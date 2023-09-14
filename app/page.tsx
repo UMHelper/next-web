@@ -23,7 +23,8 @@ import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
 import {Switch} from "@/components/ui/switch";
 import {useState} from "react";
-import {Baby, GraduationCap, Search} from "lucide-react";
+import {Search} from "lucide-react";
+import {useRouter} from "next/navigation";
 
 const formSchema = z.object({
     code: z.string()
@@ -43,8 +44,16 @@ export default function Home() {
         },
     })
 
+    const router = useRouter()
+
     function onSubmit(values: z.infer<typeof formSchema>) {
-        console.log(values)
+        if (is_prof){
+            router.push('/search/instructor/'+values["code"].toUpperCase())
+        }
+        else {
+            router.push('/search/course/'+values["code"].toUpperCase())
+        }
+
     }
 
     const [is_prof, set_is_prof]=useState(false)
