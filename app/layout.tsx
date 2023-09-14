@@ -20,7 +20,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={cn('max-w-screen-xl mx-auto p-4',inter.className )}>
+      <body className={cn(inter.className )}>
           <Navbar/>
           {children}
       </body>
