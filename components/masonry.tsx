@@ -21,7 +21,6 @@ export const MasonryCol=(
         children:ReactNode[],
         className:any
     })=>{
-    console.log(children)
     return(
         <div className='flex-col space-y-4'>
             {children.map((child,index)=>{
@@ -41,24 +40,27 @@ export const Masonry=(
       col,
       className,
   }:{
-      children:ReactNode[]
+      children:ReactElement[]
       col:number,
       className:any
   })=>{
-    const colList:ReactNode[][]=[]
-
-    for (let i = 0; i < col; i++) {
-        colList.push([])
-    }
-
-    for (let i = 0; i < children.length; i+=3) {
-        for (let j = 0; j < col; j++) {
-            colList[j].push(children[i+j])
+    const colListGen=(col:number,children:ReactElement[])=>{
+        let colList:ReactNode[][]=[]
+        for (let i = 0; i < col; i++) {
+            colList.push([])
         }
-    }
 
+        for (let i = 0; i < children.length; i+=3) {
+            for (let j = 0; j < col; j++) {
+                colList[j].push(children[i+j])
+            }
+        }
+        return colList
+    }
+    const [stateChildren,setStateChildren]=useState(children)
+    const [colList,setColList]=useState(colListGen(col,stateChildren))
     return(
-        <div className='flex flex-row space-x-2'>
+        <div className='flex md:flex-row space-x-2 flex-col'>
             {colList.map((col:ReactNode[],index:number)=>{
                 return (
                     <MasonryCol key={index} className={className}>

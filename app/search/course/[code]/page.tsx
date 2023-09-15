@@ -1,6 +1,9 @@
 'use client'
 import {useEffect, useState} from "react";
 import {Masonry, MasonryCol} from "@/components/masonry";
+import CourseCard from "@/components/search/course_card";
+import UseAnimations from "react-useanimations";
+import infinity from "react-useanimations/lib/infinity"
 
 function CourseSearchPage({params}:{params:{code:string}}){
     const [isLoading, setIsLoading]=useState(true)
@@ -19,25 +22,15 @@ function CourseSearchPage({params}:{params:{code:string}}){
     return(
         <div>
             {isLoading?(
-                <div>
-                    Loading
+                <div className='flex justify-center'>
+                    <UseAnimations animation={infinity} size={48}/>
                 </div>
             ):(
                 <div>
-                    Result
-                    <Masonry col={3} className='w-20 break-words bg-blue-500'>
-                        <div>
-                            1.hhhhhhhhhhhhhhhhhhhh
-                        </div>
-                        <div>2.hh</div>
-                        <div>3.hh</div>
-                        <div>4.hh</div>
-                        <div>5.hh</div>
-                        <div>6.hh</div>
-                        <div>7.hh</div>
-                        <div>8.hh</div>
-                        <div>9.hh</div>
-                        <div>10.hh</div>
+                    <Masonry col={3} className=''>
+                        {courseList.map((course,index)=>{
+                            return <CourseCard data={course} key={index}/>
+                        })}
                     </Masonry>
                 </div>
             )}
