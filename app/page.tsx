@@ -126,7 +126,7 @@ export default function Home() {
                                           </FormItem>
                                       )}
                                   />
-                                  <Button type="submit">
+                                  <Button type="submit" className='bg-gradient-to-r from-purple-400 to-rose-500'>
                                       <Search size={20} />
                                       Search
                                   </Button>
