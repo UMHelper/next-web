@@ -1,9 +1,12 @@
 import {Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle} from "@/components/ui/card";
 import UseAnimations from "react-useanimations";
 import arrowRightCircle from'react-useanimations/lib/arrowRightCircle'
+import {useRouter} from "next/navigation";
 const CourseCard=({data}:{data:CourseInfo})=>{
+    const router=useRouter()
     const handlerClick=()=>{
         console.log(data.New_code,'click')
+        router.push('/course/'+data.New_code)
     }
     return(
         <Card className='hover:cursor-pointer' onClick={handlerClick}>
