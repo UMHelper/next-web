@@ -19,7 +19,7 @@ function CoursePage({params}:{params:{code:string}}){
     const code=params.code.toUpperCase()
 
     const [isCourseLoading, setIsCourseLoading]=useState(true)
-    const [course, setCourse]=useState({})
+    const [course, setCourse]=useState({} as any)
 
 
     const [profList, setProfList]=useState<Array<ProfInfo>>([])
