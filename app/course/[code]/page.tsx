@@ -13,7 +13,7 @@ import {
 import {ArrowUpRightSquare} from "lucide-react";
 import UseAnimations from "react-useanimations";
 import infinity from "react-useanimations/lib/infinity"
-import {Masonry} from "@/components/masonry";
+import activity from "react-useanimations/lib/activity"
 import ProfCard from "@/components/course/prof_card";
 
 function CoursePage({params}:{params:{code:string}}){
@@ -178,15 +178,23 @@ function CoursePage({params}:{params:{code:string}}){
                 </div>
             </div>
 
-            <div className='max-w-screen-xl mx-auto p-4'>
-                <div className='columns-1 md:columns-3 md:gap-3 space-y-4'>
-                    {profList.map((data,index)=>{
-                        return (
-                            <ProfCard key={index} data={data}/>
-                        )
-                    })}
+            {isProfLoading? (
+                <div className='flex justify-center mt-8'>
+                    <div className='rounded-full'>
+                        <UseAnimations animation={activity} size={48}/>
+                    </div>
                 </div>
-            </div>
+                ):(
+                <div className='max-w-screen-xl mx-auto p-4'>
+                    <div className='columns-1 md:columns-3 md:gap-3 space-y-4'>
+                        {profList.map((data,index)=>{
+                            return (
+                                <ProfCard key={index} data={data}/>
+                            )
+                        })}
+                    </div>
+                </div>
+            )}
 
         </>
     )

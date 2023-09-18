@@ -15,6 +15,40 @@ const ProfCard= ({data}:{data:any})=>{
         return result_bg
     }
 
+    const get_gpa=(n:number)=>{
+        if (n>=8){
+            return 'A'
+        }
+        if (n>=7.4){
+            return 'A-'
+        }
+        if (n>=6.6){
+            return 'B+'
+        }
+        if (n>=6){
+            return 'B'
+        }
+        if (n>=5.4){
+            return 'B-'
+        }
+        if (n>=4.6){
+            return 'C+'
+        }
+        if (n>=4){
+            return 'C'
+        }
+        if (n>=3.4){
+            return 'C-'
+        }
+        if (n>=2.6){
+            return 'D+'
+        }
+        if (n>=2){
+            return 'D'
+        }
+        return 'F'
+    }
+
     return(
         <Card className='hover:cursor-pointer hover:shadow-lg'>
             <CardHeader className='pb-0.5'>
@@ -32,12 +66,12 @@ const ProfCard= ({data}:{data:any})=>{
                     </div>
                 </div>
             </CardHeader>
-            <Separator className='my-2'/>
+            {/*<Separator className='my-2'/>*/}
             <CardContent>
                 <div className='text-sm font-semibold'>
-                    <div className='text-gray-400'>Overall</div>
+                    <div className='text-gray-400 text-xs'>Overall</div>
                     <div className={cn(get_bg(data.result),'bg-clip-text text-transparent')}>
-                        {data.result.toFixed(2)}
+                        {get_gpa(data.result)}
                     </div>
                 </div>
                 <Separator className='my-1'/>
@@ -47,7 +81,7 @@ const ProfCard= ({data}:{data:any})=>{
                             Grade
                         </div>
                         <div className={cn(get_bg(data.grade),'bg-clip-text text-transparent')}>
-                            {data.grade.toFixed(2)}
+                            {get_gpa(data.grade)}
                         </div>
                     </div>
 
@@ -56,7 +90,7 @@ const ProfCard= ({data}:{data:any})=>{
                             Easy
                         </div>
                         <div className={cn(get_bg(data.hard),'bg-clip-text text-transparent')}>
-                            {data.hard.toFixed(2)}
+                            {get_gpa(data.hard)}
                         </div>
                     </div>
 
@@ -65,7 +99,7 @@ const ProfCard= ({data}:{data:any})=>{
                             Outcome
                         </div>
                         <div className={cn(get_bg(data.reward),'bg-clip-text text-transparent')}>
-                            {data.reward.toFixed(2)}
+                            {get_gpa(data.reward)}
                         </div>
                     </div>
 

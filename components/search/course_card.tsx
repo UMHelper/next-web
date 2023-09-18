@@ -9,7 +9,7 @@ const CourseCard=({data}:{data:any})=>{
         router.push('/course/'+data.New_code)
     }
     return(
-        <Card className='hover:cursor-pointer' onClick={handlerClick}>
+        <Card className='hover:cursor-pointer hover:shadow-lg' onClick={handlerClick}>
             <CardHeader className='pb-2 flex-row flex justify-between align-middle'>
                 <div>
                     <CardTitle className='text-base'>{data.New_code}</CardTitle>

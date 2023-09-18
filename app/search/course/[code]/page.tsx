@@ -27,11 +27,11 @@ function CourseSearchPage({params}:{params:{code:string}}){
                 </div>
             ):(
                 <div>
-                    <Masonry col={3} className=''>
+                    <div className='columns-1 md:columns-3 gap-4 space-y-2'>
                         {courseList.map((course,index)=>{
                             return <CourseCard data={course} key={index}/>
                         })}
-                    </Masonry>
+                    </div>
                 </div>
             )}
         </div>
