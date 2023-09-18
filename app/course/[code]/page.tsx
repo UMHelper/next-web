@@ -13,7 +13,8 @@ import {
 import {ArrowUpRightSquare} from "lucide-react";
 import UseAnimations from "react-useanimations";
 import infinity from "react-useanimations/lib/infinity"
-import {delay} from "@/lib/utils";
+import {Masonry} from "@/components/masonry";
+import ProfCard from "@/components/course/prof_card";
 
 function CoursePage({params}:{params:{code:string}}){
     const code=params.code.toUpperCase()
@@ -22,7 +23,7 @@ function CoursePage({params}:{params:{code:string}}){
     const [course, setCourse]=useState({} as any)
 
 
-    const [profList, setProfList]=useState<Array<ProfInfo>>([])
+    const [profList, setProfList]=useState<Array<any>>([])
     const [isProfLoading, setIsProfLoading]=useState(true)
 
     const [isOffer, setIsOffer]=useState(false)
@@ -36,7 +37,6 @@ function CoursePage({params}:{params:{code:string}}){
                 // setIsCourseLoading(false)
                 setProfList(data['prof_info'])
                 setIsProfLoading(false)
-
                 for (const prof of data['prof_info']){
                     if (prof['offer_info']['is_offer']){
                         setIsOffer(true)
@@ -76,14 +76,16 @@ function CoursePage({params}:{params:{code:string}}){
                             <div>
                                 <div className='md:pb-2 flex-row flex space-x-1'>
                                     <div className='text-3xl font-bold'>{course['courseCode']}</div>
-                                    {isOffer?
-                                        <div className='text-sm font-semibold rounded-3xl bg-gradient-to-r from-indigo-600 to-purple-600 h-fit py-0.5 px-2 shadow'> Offered</div>
-                                        :
-                                        <div className='text-sm font-semibold rounded-3xl bg-gradient-to-r from-neutral-700 to-stone-900 h-fit py-0.5 px-2 shadow'> Not Offered</div>}
+                                    {isProfLoading?"":(
+                                        isOffer?
+                                            <div className='text-sm font-semibold rounded-3xl bg-gradient-to-r from-indigo-600 to-purple-600 h-fit py-0.5 px-2 shadow'> Offered</div>
+                                            :
+                                            <div className='text-sm font-semibold rounded-3xl bg-gradient-to-r from-neutral-700 to-stone-900 h-fit py-0.5 px-2 shadow'> Not Offered</div>
+                                    )}
                                 </div>
                                 <div className='text-xl font-semibold'>{course["courseTitle"]}</div>
-                                <div className='text-sm'>{course['offeringProgLevel']+' Course for Year '+course['suggestedYearOfStudy']} Students</div>
-                                <div className='text-xs italic mt-3'>Data Source: reg.um.edu.mo</div>
+                                <div className='text-sm'>{course['offeringProgLevel']+' Course, Year '+course['suggestedYearOfStudy']}</div>
+
                             </div>
                             <div className='space-y-4'>
                                 <div className='space-y-1'>
@@ -120,6 +122,7 @@ function CoursePage({params}:{params:{code:string}}){
                                             <div className='text-sm'>{course['duration']}</div>
                                         </div>
                                     </div>
+
                                 </div>
 
                                 <div className='hover:cursor-pointer'>
@@ -166,6 +169,7 @@ function CoursePage({params}:{params:{code:string}}){
                                             </DialogFooter>
                                         </DialogContent>
                                     </Dialog>
+                                    <div className='text-xs italic mt-3'>Data Source: reg.um.edu.mo</div>
                                 </div>
                             </div>
                         </div>
@@ -173,6 +177,17 @@ function CoursePage({params}:{params:{code:string}}){
 
                 </div>
             </div>
+
+            <div className='max-w-screen-xl mx-auto p-4'>
+                <div className='columns-1 md:columns-3 md:gap-3 space-y-4'>
+                    {profList.map((data,index)=>{
+                        return (
+                            <ProfCard key={index} data={data}/>
+                        )
+                    })}
+                </div>
+            </div>
+
         </>
     )
 }

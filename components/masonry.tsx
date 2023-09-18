@@ -2,7 +2,7 @@
 // 2.row
 // 3.add
 
-import React, {ReactElement, ReactNode, useState} from "react";
+import React, {ReactElement, ReactNode, useEffect, useState} from "react";
 
 export const MasonryRow=({children,className}:{children:ReactNode,className:any})=>{
     return (
@@ -44,21 +44,25 @@ export const Masonry=(
       col:number,
       className:any
   })=>{
-    const colListGen=(col:number,children:ReactElement[])=>{
-        let colList:ReactNode[][]=[]
-        for (let i = 0; i < col; i++) {
-            colList.push([])
-        }
+    // const [stateChildren,setStateChildren]=useState(children)
+    const [colList,setColList]=useState<Array<any>>([])
 
-        for (let i = 0; i < children.length; i+=3) {
-            for (let j = 0; j < col; j++) {
-                colList[j].push(children[i+j])
+    useEffect(()=>{
+        const colListGen=(col:number,children:ReactElement[])=>{
+            let colList:ReactNode[][]=[]
+            for (let i = 0; i < col; i++) {
+                colList.push([])
             }
+
+            for (let i = 0; i < children.length; i+=3) {
+                for (let j = 0; j < col; j++) {
+                    colList[j].push(children[i+j])
+                }
+            }
+            return colList
         }
-        return colList
-    }
-    const [stateChildren,setStateChildren]=useState(children)
-    const [colList,setColList]=useState(colListGen(col,stateChildren))
+        setColList(colListGen(col,children))
+    },[children,col])
     return(
         <div className='flex md:flex-row space-x-2 flex-col'>
             {colList.map((col:ReactNode[],index:number)=>{

@@ -15,7 +15,7 @@ export const COURSE_INFO=JSON.parse('{\n' +
   '    "prof_info": [\n' +
   '        {\n' +
   '            "name": "SAM IENG",\n' +
-  '            "result": 2.1190660760428193,\n' +
+  '            "result": 8.1190660760428193,\n' +
   '            "grade": 2.05607235142119,\n' +
   '            "attendance": 2.0575581395348848,\n' +
   '            "hard": 1.8724160206718359,\n' +
@@ -28,7 +28,7 @@ export const COURSE_INFO=JSON.parse('{\n' +
   '        },\n' +
   '        {\n' +
   '            "name": "CHAI LAI PING",\n' +
-  '            "result": 2.5712344720496887,\n' +
+  '            "result": 1.5712344720496887,\n' +
   '            "grade": 2.6467391304347823,\n' +
   '            "attendance": 2.496739130434783,\n' +
   '            "hard": 2.1619565217391306,\n' +
