@@ -32,3 +32,8 @@ interface ProfInfo{
     result:number,
     reward:number,
 }
+
+interface MenuItem{
+    name:string,
+    href:string
+}

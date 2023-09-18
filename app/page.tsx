@@ -76,7 +76,7 @@ export default function Home() {
                           Course review platform for University of Macau
                       </div>
                   </div>
-                  <Card className="md:mx-8 md:w-96 min-w-max w-full mx-0">
+                  <Card className="md:mx-8 md:w-96 w-full mx-0">
                       <CardHeader>
 
                       </CardHeader>

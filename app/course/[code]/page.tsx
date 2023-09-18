@@ -4,7 +4,6 @@ import React, {useEffect, useState} from "react";
 import {
     Dialog,
     DialogContent,
-    DialogDescription,
     DialogFooter,
     DialogHeader,
     DialogTitle,
@@ -15,6 +14,7 @@ import UseAnimations from "react-useanimations";
 import infinity from "react-useanimations/lib/infinity"
 import activity from "react-useanimations/lib/activity"
 import ProfCard from "@/components/course/prof_card";
+import Toolbar from "@/components/toolbar";
 
 function CoursePage({params}:{params:{code:string}}){
     const code=params.code.toUpperCase()
@@ -61,6 +61,7 @@ function CoursePage({params}:{params:{code:string}}){
                 }
             })
     },[params])
+
     return(
         <>
             <div className='bg-gradient-to-r from-purple-400 to-rose-500 text-white p-4'>
@@ -85,7 +86,7 @@ function CoursePage({params}:{params:{code:string}}){
                                 </div>
                                 <div className='text-xl font-semibold'>{course["courseTitle"]}</div>
                                 <div className='text-sm'>{course['offeringProgLevel']+' Course, Year '+course['suggestedYearOfStudy']}</div>
-
+                                <Toolbar course={course}/>
                             </div>
                             <div className='space-y-4'>
                                 <div className='space-y-1'>
@@ -169,8 +170,8 @@ function CoursePage({params}:{params:{code:string}}){
                                             </DialogFooter>
                                         </DialogContent>
                                     </Dialog>
-                                    <div className='text-xs italic mt-3'>Data Source: reg.um.edu.mo</div>
                                 </div>
+                                <div className='text-xs italic'>Data Source: reg.um.edu.mo</div>
                             </div>
                         </div>
                     )}

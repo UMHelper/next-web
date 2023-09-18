@@ -5,6 +5,7 @@ import React from "react";
 
 import Navbar from "@/components/navbar";
 import {cn} from "@/lib/utils";
+import Footer from "@/components/footer";
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -22,7 +23,10 @@ export default function RootLayout({
     <html lang="en">
       <body className={cn(inter.className )}>
           <Navbar/>
-          {children}
+          <div className='h-screen'>
+              {children}
+          </div>
+            <Footer/>
       </body>
     </html>
   )
