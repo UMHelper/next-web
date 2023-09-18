@@ -2,7 +2,7 @@ import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from "@/compon
 import React from "react";
 import {Bug, Send} from "lucide-react";
 
-const Toolbar = ({course,prof}) => {
+const Toolbar = ({course,prof}:{course:any,prof:any|undefined}) => {
     const share=()=>{
         navigator.share({
             title: course['courseCode']+' - What2Reg @UM',
