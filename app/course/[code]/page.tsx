@@ -86,7 +86,7 @@ function CoursePage({params}:{params:{code:string}}){
                                 </div>
                                 <div className='text-xl font-semibold'>{course["courseTitle"]}</div>
                                 <div className='text-sm'>{course['offeringProgLevel']+' Course, Year '+course['suggestedYearOfStudy']}</div>
-                                <Toolbar course={course}/>
+                                <Toolbar course={course} prof={undefined}/>
                             </div>
                             <div className='space-y-4'>
                                 <div className='space-y-1'>
