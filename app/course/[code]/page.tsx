@@ -190,7 +190,7 @@ function CoursePage({params}:{params:{code:string}}){
                     <div className='columns-1 md:columns-3 md:gap-3 space-y-4'>
                         {profList.map((data,index)=>{
                             return (
-                                <ProfCard key={index} data={data}/>
+                                <ProfCard key={index} data={data} code={course['courseCode']}/>
                             )
                         })}
                     </div>
