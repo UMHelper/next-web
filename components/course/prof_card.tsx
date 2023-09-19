@@ -2,8 +2,9 @@ import {Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle} f
 import {cn} from "@/lib/utils";
 import React from "react";
 import {Separator} from "@/components/ui/separator";
+import {useRouter} from "next/navigation";
 
-const ProfCard= ({data}:{data:any})=>{
+const ProfCard= ({data,code}:{data:any,code:any})=>{
     const get_bg=(n:number)=>{
         let result_bg="bg-gradient-to-r from-amber-500 to-orange-500"
         if (n>=6){
@@ -48,9 +49,13 @@ const ProfCard= ({data}:{data:any})=>{
         }
         return 'F'
     }
+    const route=useRouter()
+    const onclick=()=>{
+        route.push('/review/'+code+'/'+data.name)
+    }
 
     return(
-        <Card className='hover:cursor-pointer hover:shadow-lg'>
+        <Card className='hover:cursor-pointer hover:shadow-lg' onClick={onclick}>
             <CardHeader className='pb-0.5'>
                 <div className='flex flex-row justify-between'>
                     <div>
