@@ -13,7 +13,7 @@ const Toolbar = ({course,prof}:{course:any,prof:any|undefined}) => {
 
     return(
         <div className='mt-4 flex flex-row justify-start space-x-2'>
-            <TooltipProvider>
+            <TooltipProvider delayDuration={0}>
                 <Tooltip>
                     <TooltipTrigger>
                         <div className='p-1 rounded bg-gray-600 bg-opacity-40' onClick={share}>
@@ -26,7 +26,7 @@ const Toolbar = ({course,prof}:{course:any,prof:any|undefined}) => {
                 </Tooltip>
             </TooltipProvider>
 
-            <TooltipProvider>
+            <TooltipProvider delayDuration={0}>
                 <Tooltip>
                     <TooltipTrigger>
                         <div className='p-1 rounded bg-gray-600 bg-opacity-40' onClick={share}>
