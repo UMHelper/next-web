@@ -15,6 +15,7 @@ import infinity from "react-useanimations/lib/infinity"
 import activity from "react-useanimations/lib/activity"
 import ProfCard from "@/components/course/prof_card";
 import Toolbar from "@/components/toolbar";
+import { Masonry } from "@/components/masonry";
 
 function CoursePage({params}:{params:{code:string}}){
     const code=params.code.toUpperCase()
@@ -187,13 +188,13 @@ function CoursePage({params}:{params:{code:string}}){
                 </div>
                 ):(
                 <div className='max-w-screen-xl mx-auto p-4'>
-                    <div className='grid md:grid-cols-3 md:gap-3 space-y-4 md:space-y-0'>
+                    <Masonry col={3} className={""}>
                         {profList.map((data,index)=>{
                             return (
                                 <ProfCard key={index} data={data} code={course['courseCode']}/>
                             )
                         })}
-                    </div>
+                    </Masonry>
                 </div>
             )}
 
