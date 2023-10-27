@@ -32,7 +32,7 @@ function CourseSearchPage({params}:{params:{code:string}}){
                             return <CourseCard data={course} key={index}/>
                         })}
                     </div> */}
-                    <Masonry col={3} className={""}>
+                    <Masonry col={3} className="mx-auto">
                         {courseList.map((course,index)=>{
                             return <CourseCard data={course} key={index}/>
                         })}
