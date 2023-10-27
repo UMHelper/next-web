@@ -187,7 +187,7 @@ function CoursePage({params}:{params:{code:string}}){
                 </div>
                 ):(
                 <div className='max-w-screen-xl mx-auto p-4'>
-                    <div className='columns-1 md:columns-3 md:gap-3 space-y-4'>
+                    <div className='grid md:grid-cols-3 md:gap-3 space-y-4 md:space-y-0'>
                         {profList.map((data,index)=>{
                             return (
                                 <ProfCard key={index} data={data} code={course['courseCode']}/>

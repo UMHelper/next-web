@@ -1,6 +1,4 @@
-import {Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle} from "@/components/ui/card";
-import UseAnimations from "react-useanimations";
-import arrowRightCircle from'react-useanimations/lib/arrowRightCircle'
+import {Card, CardDescription, CardFooter, CardHeader, CardTitle} from "@/components/ui/card";
 import {useRouter} from "next/navigation";
 const CourseCard=({data}:{data:any})=>{
     const router=useRouter()
@@ -16,13 +14,7 @@ const CourseCard=({data}:{data:any})=>{
                     <CardTitle className='text-base'>{data.courseTitleEng}</CardTitle>
                     <CardDescription>{data.courseTitleChi}</CardDescription>
                 </div>
-                {/*<div>*/}
-                {/*    <UseAnimations animation={arrowRightCircle} loop={true}/>*/}
-                {/*</div>*/}
             </CardHeader>
-            {/*<CardContent>*/}
-            {/*    <p>Card Content</p>*/}
-            {/*</CardContent>*/}
             <CardFooter className='bg-gray-50 pt-2 pb-3'>
                 <div className='flex flex-row text-sm space-x-2 mb-0'>
                     <div>

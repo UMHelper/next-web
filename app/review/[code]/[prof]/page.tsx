@@ -85,17 +85,17 @@ const ReviewPage=({params}:{params:{code:string,prof:string}})=>{
                                     )}
                                 </div>
                                 <div className='flex-row flex space-x-2'>
-                                    <Button className='text-sm bg-gradient-to-r from-green-400 to-blue-500 px-2 hover:shadow-lg'>
+                                    <Button className='text-sm px-2 hover:shadow-lg'>
                                         <ClipboardEdit size={16}/> Submit Review
                                     </Button>
 
-                                    <Button className='text-sm bg-gradient-to-r from-green-400 to-blue-500 px-2 hover:shadow-lg'>
+                                    <Button className='text-sm px-2 hover:shadow-lg'>
                                         <CalendarRange size={16}/> Timetable
                                     </Button>
                                 </div>
                                 <Toolbar course={course} prof={undefined}/>
                             </div>
-                            <Card className='md:w-80 py-4 pb-0'>
+                            <Card className='md:w-80 py-4 pb-0 md:m-0 mt-8'>
                                 <CardContent >
                                     <div className='space-y-4'>
                                         <div className='space-y-1 text-sm'>
@@ -130,6 +130,10 @@ const ReviewPage=({params}:{params:{code:string,prof:string}})=>{
                     )}
 
                 </div>
+            </div>
+
+            <div>
+
             </div>
         </>
     )

@@ -22,11 +22,13 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={cn(inter.className )}>
-          <Navbar/>
-          <div className='h-screen'>
-              {children}
+          <div className='min-h-screen'>
+            <Navbar/>
+            <div>
+                {children}
+            </div>
           </div>
-            <Footer/>
+          <Footer/>
       </body>
     </html>
   )

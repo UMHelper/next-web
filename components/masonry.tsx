@@ -2,7 +2,10 @@
 // 2.row
 // 3.add
 
+import { cn } from "@/lib/utils";
+import { MongoCryptCreateEncryptedCollectionError } from "mongodb";
 import React, {ReactElement, ReactNode, useEffect, useState} from "react";
+import { set } from "zod";
 
 export const MasonryRow=({children,className}:{children:ReactNode,className:any})=>{
     return (
@@ -25,7 +28,7 @@ export const MasonryCol=(
         <div className='flex-col space-y-4'>
             {children.map((child,index)=>{
                 return (
-                    <MasonryRow key={index} className={className}>
+                    <MasonryRow key={"row"+index} className={className}>
                         {child}
                     </MasonryRow>
                 )
@@ -38,36 +41,70 @@ export const Masonry=(
   {
       children,
       col,
-      className,
+      className="",
   }:{
       children:ReactElement[]
       col:number,
       className:any
   })=>{
-    // const [stateChildren,setStateChildren]=useState(children)
+    const [curCol,setCurCol]=useState(col)
     const [colList,setColList]=useState<Array<any>>([])
 
-    useEffect(()=>{
-        const colListGen=(col:number,children:ReactElement[])=>{
-            let colList:ReactNode[][]=[]
-            for (let i = 0; i < col; i++) {
-                colList.push([])
-            }
-
-            for (let i = 0; i < children.length; i+=3) {
-                for (let j = 0; j < col; j++) {
-                    colList[j].push(children[i+j])
-                }
-            }
-            return colList
+    const colListGen=(col_num:number,children:ReactElement[])=>{
+        let colList:ReactNode[][]=[]
+        for (let i = 0; i < col_num; i++) {
+            colList.push([])
         }
-        setColList(colListGen(col,children))
-    },[children,col])
+
+        for (let i = 0; i < children.length; i+=col_num) {
+            for (let j = 0; j < col_num; j++) {
+                colList[j].push(children[i+j])
+            }
+        }
+        return colList
+    }
+    const windowResizeUpdate = () => {
+        let h = window.innerWidth;
+        if (h<780 && h>=530){
+            setCurCol(col-1)
+        }
+        if (h<530){
+            setCurCol(col-2)
+        }
+        if (h>=780){
+            setCurCol(col)
+        }
+        setColList(colListGen(curCol,children))
+        console.log(colList,curCol)
+    };
+    useEffect(()=>{
+        let h = window.innerWidth;
+        if (h<780 && h>=530){
+            setCurCol(col-1)
+        }
+        if (h<530){
+            setCurCol(col-2)
+        }
+        if (h>=780){
+            setCurCol(col)
+        }
+        setColList(colListGen(curCol,children))
+        console.log(colList,curCol)
+    },[colListGen])
+
+    useEffect(() => {
+        window.addEventListener('resize', windowResizeUpdate);
+        return () => {
+            window.removeEventListener('resize', windowResizeUpdate);
+        }
+    }, [colListGen]);
+
     return(
-        <div className='flex md:flex-row space-x-2 flex-col'>
+        <div className={cn(
+            'grid','gap-4',"grid-cols-"+(curCol))}>
             {colList.map((col:ReactNode[],index:number)=>{
                 return (
-                    <MasonryCol key={index} className={className}>
+                    <MasonryCol key={"col"+index} className={className}>
                         {col}
                     </MasonryCol>
                 )
