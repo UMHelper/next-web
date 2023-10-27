@@ -1,6 +1,6 @@
 'use client'
 import {useEffect, useState} from "react";
-import {Masonry, MasonryCol} from "@/components/masonry";
+import {Masonry} from "@/components/masonry";
 import CourseCard from "@/components/search/course_card";
 import UseAnimations from "react-useanimations";
 import infinity from "react-useanimations/lib/infinity"
@@ -17,8 +17,8 @@ function CourseSearchPage({params}:{params:{code:string}}){
                 setCourseList(data['course_info'])
                 setIsLoading(false)
             })
-    })
-
+    },[params])
+    
     return(
         <div>
             {isLoading?(
@@ -27,11 +27,16 @@ function CourseSearchPage({params}:{params:{code:string}}){
                 </div>
             ):(
                 <div>
-                    <div className='columns-1 md:columns-3 gap-4 space-y-2'>
+                    {/* <div className='grid md:grid-cols-3 md:gap-3 space-y-4 md:space-y-0'>
                         {courseList.map((course,index)=>{
                             return <CourseCard data={course} key={index}/>
                         })}
-                    </div>
+                    </div> */}
+                    <Masonry col={3} className={""}>
+                        {courseList.map((course,index)=>{
+                            return <CourseCard data={course} key={index}/>
+                        })}
+                    </Masonry>
                 </div>
             )}
         </div>
