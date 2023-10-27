@@ -38,7 +38,9 @@ const Footer = () => {
                     Latest update <Link className='text-black font-semibold underline underline-offset-1' href='/'>2023-08-27T17:38:44Z</Link> licensed under <Link className='text-black font-semibold underline underline-offset-1' href='/'>GNU General Public License v3.0</Link> .
                 </div>
             </div>
+            <div className="grid-cols-1 grid-cols-2 grid-cols-3">
 
+            </div>
 
         </div>
     )
