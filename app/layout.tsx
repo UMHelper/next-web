@@ -6,6 +6,7 @@ import React from "react";
 import Navbar from "@/components/navbar";
 import {cn} from "@/lib/utils";
 import Footer from "@/components/footer";
+import { Toaster } from '@/components/ui/toaster';
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -29,6 +30,7 @@ export default function RootLayout({
             </div>
           </div>
           <Footer/>
+          <Toaster />
       </body>
     </html>
   )

@@ -21,7 +21,7 @@ const Toolbar = ({course,prof}:{course:any,prof:any|undefined}) => {
                         </div>
                     </TooltipTrigger>
                     <TooltipContent>
-                        <p>Share with your friends now! 👀</p>
+                        <p className="text-xs">Share with your friends now! 👀</p>
                     </TooltipContent>
                 </Tooltip>
             </TooltipProvider>
@@ -34,7 +34,7 @@ const Toolbar = ({course,prof}:{course:any,prof:any|undefined}) => {
                         </div>
                     </TooltipTrigger>
                     <TooltipContent>
-                        <p>Report bugs in this page to UMHelper💕</p>
+                        <p className="text-xs">Report bugs in this page to UMHelper💕</p>
                     </TooltipContent>
                 </Tooltip>
             </TooltipProvider>

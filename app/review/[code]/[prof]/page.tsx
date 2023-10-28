@@ -153,7 +153,7 @@ const ReviewPage=({params}:{params:{code:string,prof:string}})=>{
                                 {comments.map((comment:any,index:number)=>{
                                     return (
                                         <div key={index}>
-                                            <CommentCard comment={comment}/>
+                                            <CommentCard comment={comment} prof={prof} course={course}/>
                                         </div>
                                     )
                                 })}

@@ -1,15 +1,28 @@
 import { Card, CardHeader, CardContent } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { cn, get_bg, get_gpa } from '@/lib/utils'
-import { BadgeCheck, ThumbsDown, ThumbsUp } from 'lucide-react'
+import { Angry, BadgeCheck, Flag, ThumbsDown, ThumbsUp } from 'lucide-react'
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
+import { useToast } from "@/components/ui/use-toast"
 export const CommentCard = (
-    {comment}:{comment:any}
+    {comment,prof,course}:{comment:any,prof:any,course:any}
     ) => {
-        console.log(comment.upvote-comment.downvote)
+        const { toast } = useToast()
         return(
-            <Card className='hover:cursor-pointer hover:shadow-lg mx-auto' onClick={()=>{}}>
-                
+            <Card className='hover:cursor-pointer hover:shadow-lg mx-auto' onClick={()=>{
+                navigator.clipboard.writeText(`
+${course.New_code} - ${prof.name}
+${comment.pub_time}
+----------
+${comment.content}        
+----------
+https://umeh.top/review/${course.New_code}/${prof.name.replace(/ /g, '%20')}`);
+                toast({
+                    title: "Copied to clipboard",
+                    description: "🫣 Share this comment with your friends.",
+                    duration: 5000,
+                })
+            }}>
                 <CardHeader className='pb-0.5 pt-4'>
                     <div className='flex justify-between'>
                         <div className='text-gray-400 text-xs'>
@@ -25,13 +38,13 @@ export const CommentCard = (
                                         'hidden'
                                         }>
                                         <BadgeCheck size={16} strokeWidth={1.75} absoluteStrokeWidth/> 
-                                        <div className='px-1'>
+                                        <div className='px-1 italic'>
                                             Verified
                                         </div>
                                     </div>
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                    <p>✌️Verified UM User(logged in)</p>
+                                    <p className='text-xs'>✌️Verified UM User(logged in)</p>
                                 </TooltipContent>
                             </Tooltip>
                         </TooltipProvider>
@@ -85,8 +98,8 @@ export const CommentCard = (
                                 :
                                 <div className={
                                     comment.isCurrentUserVoted&&comment.offset==1?
-                                    'text-green-600':
-                                    'hover:rotate-12 text-gray-400 hover:text-gray-800'
+                                    'text-lime-600':
+                                    'hover:rotate-12 text-gray-400 hover:text-lime-600'
                                     }>
                                     <ThumbsUp size={16} strokeWidth={1.75} absoluteStrokeWidth />
                                 </div>
@@ -103,13 +116,29 @@ export const CommentCard = (
                                 :
                                 <div className={
                                     comment.isCurrentUserVoted&&comment.offset==-1?
-                                    'text-red-600':
-                                    'hover:-rotate-12 text-gray-400 hover:text-gray-800'
+                                    'text-rose-600':
+                                    'hover:rotate-12 text-gray-400 hover:text-rose-600'
                                     }>
                                     <ThumbsDown size={16} strokeWidth={1.75} absoluteStrokeWidth />
                                 </div>
                             }
+                            <div >
+                            <TooltipProvider delayDuration={0}>
+                                <Tooltip>
+                                    <TooltipTrigger>
+                                        <div className='text-gray-400 px-2 hover:rotate-12'>
+                                            <Flag size={14} strokeWidth={1.75} absoluteStrokeWidth/>
+                                        </div>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p className='text-xs font-normal'> 👮‍♀️ Report this comment.</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                                
+                            </div>
                         </div>
+                        
                     </div>
 
 
