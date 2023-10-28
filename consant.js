@@ -200,7 +200,7 @@ export const COMMENT={
       "pre": 5.0,
       "recommend": 5.0,
       "assignment": 4.0,
-      "upvote": 0,
+      "upvote": 10,
       "downvote": 0,
       "pub_time": "2023-1-13",
       "verified": false,
@@ -218,11 +218,11 @@ export const COMMENT={
       "recommend": 5.0,
       "assignment": 5.0,
       "upvote": 0,
-      "downvote": 0,
+      "downvote": 10,
       "pub_time": "2023-1-7",
       "verified": false,
-      "isCurrentUserVoted": false,
-      "offset": 0
+      "isCurrentUserVoted": true,
+      "offset": 1
     },
     {
       "id": 24192,
@@ -237,7 +237,7 @@ export const COMMENT={
       "upvote": 0,
       "downvote": 0,
       "pub_time": "2023-1-3",
-      "verified": false,
+      "verified": true,
       "isCurrentUserVoted": false,
       "offset": 0
     },
@@ -254,9 +254,9 @@ export const COMMENT={
       "upvote": 0,
       "downvote": 0,
       "pub_time": "2023-1-3",
-      "verified": false,
-      "isCurrentUserVoted": false,
-      "offset": 0
+      "verified": true,
+      "isCurrentUserVoted": true,
+      "offset": -1
     },
     {
       "id": 24180,
