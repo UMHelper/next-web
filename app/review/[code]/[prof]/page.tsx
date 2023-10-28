@@ -2,12 +2,15 @@
 import React, {useEffect, useState} from "react";
 import UseAnimations from "react-useanimations";
 import infinity from "react-useanimations/lib/infinity";
+import loading2 from "react-useanimations/lib/loading2";
 import Toolbar from "@/components/toolbar";
 import {Card, CardContent} from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import {undefined} from "zod";
 import {Button} from "@/components/ui/button";
 import {CalendarRange, ClipboardEdit} from "lucide-react";
+import { Masonry } from "@/components/masonry";
+import { CommentCard } from "@/components/comment_card";
 
 const ReviewPage=({params}:{params:{code:string,prof:string}})=>{
     const [course,setCourse]=useState({} as any)
@@ -31,14 +34,17 @@ const ReviewPage=({params}:{params:{code:string,prof:string}})=>{
             .then((data)=>{
                 setCourse(data['course_info'])
                 setIsCourseLoading(false)
+
                 setProf(data['prof_info'])
                 setIsProfLoading(false)
+
                 setComments(data['comments'])
                 setIsCommentLoading(false)
+
                 setIsOffer(data['prof_info']['offer_info']['is_offer'])
                 setIsOfferLoading(false)
             })
-    },[params])
+    },[])
 
     useEffect(() => {
         const interval=800
@@ -59,7 +65,8 @@ const ReviewPage=({params}:{params:{code:string,prof:string}})=>{
             clearTimeout(hardTimer)
             clearTimeout(rewardTimer)
         }
-    }, [isProfLoading,prof]);
+    }, [isProfLoading]);
+
     return(
         <>
             <div className='bg-gradient-to-r from-purple-400 to-rose-500 text-white p-4'>
@@ -85,11 +92,11 @@ const ReviewPage=({params}:{params:{code:string,prof:string}})=>{
                                     )}
                                 </div>
                                 <div className='flex-row flex space-x-2'>
-                                    <Button className='text-sm px-2 hover:shadow-lg'>
+                                    <Button className='text-sm px-2 hover:shadow-lg bg-white text-blue-800 hover:bg-gray-200'>
                                         <ClipboardEdit size={16}/> Submit Review
                                     </Button>
 
-                                    <Button className='text-sm px-2 hover:shadow-lg'>
+                                    <Button className='text-sm px-2 hover:shadow-lg  bg-white text-blue-800 hover:bg-gray-200'>
                                         <CalendarRange size={16}/> Timetable
                                     </Button>
                                 </div>
@@ -133,7 +140,28 @@ const ReviewPage=({params}:{params:{code:string,prof:string}})=>{
             </div>
 
             <div>
+                {
+                    isCommentLoading?(
+                        <div className='flex justify-center mt-4'>
+                            <div className='bg-gradient-to-r from-violet-300 to-fuchsia-300 p-4 rounded-full'>
+                                <UseAnimations animation={loading2} size={48} fillColor="#fff"/>
+                            </div>
+                        </div>
+                    ):(
+                        <div className='max-w-screen-xl mx-auto p-4'>
+                            <Masonry col={3} className="">
+                                {comments.map((comment:any,index:number)=>{
+                                    return (
+                                        <div key={index}>
+                                            <CommentCard comment={comment}/>
+                                        </div>
+                                    )
+                                })}
+                            </Masonry>
+                        </div>
+                    )
 
+                }
             </div>
         </>
     )

@@ -1,7 +1,7 @@
 'use client'
 import {useEffect, useState} from "react";
 import {Masonry} from "@/components/masonry";
-import CourseCard from "@/components/search/course_card";
+import CourseCard from "@/components/course_card";
 import UseAnimations from "react-useanimations";
 import infinity from "react-useanimations/lib/infinity"
 

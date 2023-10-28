@@ -13,7 +13,7 @@ import {ArrowUpRightSquare} from "lucide-react";
 import UseAnimations from "react-useanimations";
 import infinity from "react-useanimations/lib/infinity"
 import activity from "react-useanimations/lib/activity"
-import ProfCard from "@/components/course/prof_card";
+import ProfCard from "@/components/prof_card";
 import Toolbar from "@/components/toolbar";
 import { Masonry } from "@/components/masonry";
 
