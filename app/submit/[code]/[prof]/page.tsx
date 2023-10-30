@@ -48,14 +48,14 @@ const SubmitPage = ({params}:{params:any}) => {
         console.log(values)
     }
     return (
-        <div className='max-w-screen-xl mx-auto p-20'>
+        <div className='max-w-screen-xl mx-auto p-10 md:p-20'>
             <div className='text-3xl antialiased mb-4'>
                 Commenting on {params.prof.replace("%20"," ")} for {params.code} 
             </div>
             <div>
                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(submit)} className='space-y-10'>
-                        <div className='grid grid-cols-2 space-x-8'>
+                    <form onSubmit={form.handleSubmit(submit)} className='md:space-y-10 space-y-4'>
+                        <div className='grid grid-cols-1 md:grid-cols-2 md:space-x-8'>
                             <FormField
                                 control={form.control}
                                 name="code"
@@ -81,7 +81,7 @@ const SubmitPage = ({params}:{params:any}) => {
                                 )}
                             />
                         </div>
-                        <div className='grid grid-cols-2 space-x-8'>
+                        <div className='grid grid-cols-1 md:grid-cols-2 md:space-x-8 space-y-4 md:space-y-0'>
                             <FormField
                                 control={form.control}
                                 name="attendacne"
@@ -144,7 +144,7 @@ const SubmitPage = ({params}:{params:any}) => {
                             />
                         </div>
 
-                        <div className='grid grid-cols-3 space-x-8'>
+                        <div className='grid grid-cols-1 md:grid-cols-3 md:space-x-8'>
                             <div>
                                 <div>
                                     <FormField
