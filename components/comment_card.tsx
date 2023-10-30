@@ -9,21 +9,8 @@ export const CommentCard = (
     ) => {
         const { toast } = useToast()
         return(
-            <Card className='hover:cursor-pointer hover:shadow-lg mx-auto' onClick={()=>{
-                navigator.clipboard.writeText(`
-${course.New_code} - ${prof.name}
-${comment.pub_time}
-----------
-${comment.content}        
-----------
-https://umeh.top/review/${course.New_code}/${prof.name.replace(/ /g, '%20')}`);
-                toast({
-                    title: "Copied to clipboard",
-                    description: "🫣 Share this comment with your friends.",
-                    duration: 5000,
-                })
-            }}>
-                <CardHeader className='pb-0.5 pt-4'>
+            <Card className=' hover:shadow-lg mx-auto'>
+                <CardHeader className='pb-0.5 pt-4'  >
                     <div className='flex justify-between'>
                         <div className='text-gray-400 text-xs'>
                             {comment.pub_time}
@@ -51,7 +38,20 @@ https://umeh.top/review/${course.New_code}/${prof.name.replace(/ /g, '%20')}`);
                         
 
                     </div>
-                    <div className='flex flex-row justify-between'>
+                    <div className='flex flex-row justify-between hover:cursor-pointer' onClick={()=>{
+                navigator.clipboard.writeText(`
+${course.New_code} - ${prof.name}
+${comment.pub_time}
+----------
+${comment.content}        
+----------
+https://umeh.top/review/${course.New_code}/${prof.name.replace(/ /g, '%20')}`);
+                toast({
+                    title: "Copied to clipboard",
+                    description: "🫣 Share this comment with your friends.",
+                    duration: 5000,
+                })
+            }}>
                         <div>
                             {comment.content}
                         </div>
@@ -100,7 +100,13 @@ https://umeh.top/review/${course.New_code}/${prof.name.replace(/ /g, '%20')}`);
                                     comment.isCurrentUserVoted&&comment.offset==1?
                                     'text-lime-600':
                                     'hover:rotate-12 text-gray-400 hover:text-lime-600'
-                                    }>
+                                    } onClick={()=>{
+                                        toast({
+                                            title: "Thanks for your vote!",
+                                            description: "👍",
+                                            duration: 5000,
+                                        })
+                                    }}>
                                     <ThumbsUp size={16} strokeWidth={1.75} absoluteStrokeWidth />
                                 </div>
                                 
@@ -118,7 +124,13 @@ https://umeh.top/review/${course.New_code}/${prof.name.replace(/ /g, '%20')}`);
                                     comment.isCurrentUserVoted&&comment.offset==-1?
                                     'text-rose-600':
                                     'hover:rotate-12 text-gray-400 hover:text-rose-600'
-                                    }>
+                                    } onClick={()=>{
+                                        toast({
+                                            title: "Thanks for your vote!",
+                                            description: "👎",
+                                            duration: 5000,
+                                        })
+                                    }}>
                                     <ThumbsDown size={16} strokeWidth={1.75} absoluteStrokeWidth />
                                 </div>
                             }
@@ -126,7 +138,13 @@ https://umeh.top/review/${course.New_code}/${prof.name.replace(/ /g, '%20')}`);
                             <TooltipProvider delayDuration={0}>
                                 <Tooltip>
                                     <TooltipTrigger>
-                                        <div className='text-gray-400 px-2 hover:rotate-12'>
+                                        <div className='text-gray-400 px-2 hover:rotate-180 hover:text-red-600 duration-1000 ease-in-out' onClick={()=>{
+                                            toast({
+                                                title: "Thanks for your report!",
+                                                description: "👮‍♀️",
+                                                duration: 5000,
+                                            })
+                                        }}>
                                             <Flag size={14} strokeWidth={1.75} absoluteStrokeWidth/>
                                         </div>
                                     </TooltipTrigger>

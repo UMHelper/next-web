@@ -6,11 +6,11 @@ import loading2 from "react-useanimations/lib/loading2";
 import Toolbar from "@/components/toolbar";
 import {Card, CardContent} from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import {undefined} from "zod";
 import {Button} from "@/components/ui/button";
 import {CalendarRange, ClipboardEdit} from "lucide-react";
 import { Masonry } from "@/components/masonry";
 import { CommentCard } from "@/components/comment_card";
+import { useRouter } from "next/navigation";
 
 const ReviewPage=({params}:{params:{code:string,prof:string}})=>{
     const [course,setCourse]=useState({} as any)
@@ -27,6 +27,8 @@ const ReviewPage=({params}:{params:{code:string,prof:string}})=>{
     const [grade,setGrade]=useState(0)
     const [hard,setHard]=useState(0)
     const [reward,setReward]=useState(0)
+
+    const route=useRouter()
 
     useEffect(()=>{
         fetch('/api/comment/?code='+params.code+'&prof='+params.prof)
@@ -92,7 +94,9 @@ const ReviewPage=({params}:{params:{code:string,prof:string}})=>{
                                     )}
                                 </div>
                                 <div className='flex-row flex space-x-2'>
-                                    <Button className='text-sm px-2 hover:shadow-lg bg-white text-blue-800 hover:bg-gray-200'>
+                                    <Button className='text-sm px-2 hover:shadow-lg bg-white text-blue-800 hover:bg-gray-200' onClick={()=>{
+                                        route.push('/submit/'+params.code+'/'+params.prof)
+                                    }}>
                                         <ClipboardEdit size={16}/> Submit Review
                                     </Button>
 
