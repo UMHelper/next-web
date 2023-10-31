@@ -3,6 +3,7 @@ import React, {useEffect, useState} from "react";
 import UseAnimations from "react-useanimations";
 import infinity from "react-useanimations/lib/infinity";
 import loading2 from "react-useanimations/lib/loading2";
+import { useRouter } from "next/navigation";
 import Toolbar from "@/components/toolbar";
 import {Card, CardContent} from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -10,7 +11,8 @@ import {Button} from "@/components/ui/button";
 import {CalendarRange, ClipboardEdit} from "lucide-react";
 import { Masonry } from "@/components/masonry";
 import { CommentCard } from "@/components/comment_card";
-import { useRouter } from "next/navigation";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { TimetableCard } from "@/components/timetable-card";
 
 const ReviewPage=({params}:{params:{code:string,prof:string}})=>{
     const [course,setCourse]=useState({} as any)
@@ -19,7 +21,7 @@ const ReviewPage=({params}:{params:{code:string,prof:string}})=>{
     const [isProfLoading,setIsProfLoading]=useState(true)
     const [comments, setComments]=useState([] as any)
     const [isCommentLoading,setIsCommentLoading]=useState(true)
-    const [timetable,setTimetable]=useState({} as any)
+    const [timetable,setTimetable]=useState([] as any)
     const [isOffer,setIsOffer]=useState(false)
     const [isOfferLoading,setIsOfferLoading]=useState(true)
 
@@ -46,9 +48,8 @@ const ReviewPage=({params}:{params:{code:string,prof:string}})=>{
                 setIsOffer(data['prof_info']['offer_info']['is_offer'])
                 setIsOfferLoading(false)
 
-                if (isOffer){
-                    setTimetable(data['prof_info']['offer_info']['schedules'])
-                }
+                setTimetable(data['prof_info']['offer_info']['schedules'])
+
             })
     },[])
 
@@ -106,9 +107,17 @@ const ReviewPage=({params}:{params:{code:string,prof:string}})=>{
 
                                     {
                                         isOffer?
-                                        <Button className='text-sm px-2 hover:shadow-lg  bg-white text-blue-800 hover:bg-gray-200'>
-                                        <CalendarRange size={16}/> Timetable
-                                        </Button>:
+                                        <Popover>
+                                            <PopoverTrigger asChild>
+                                                <Button className='text-sm px-2 hover:shadow-lg  bg-white text-blue-800 hover:bg-gray-200'>
+                                                    <CalendarRange size={16}/> Timetable
+                                                </Button>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-80">
+                                                <TimetableCard timetable={timetable}/>
+                                            </PopoverContent>
+                                            </Popover>
+                                        :
                                         <></>
                                     }
                                 </div>
