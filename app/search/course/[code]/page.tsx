@@ -19,7 +19,7 @@ function CourseSearchPage({params}:{params:{code:string}}){
         //         setIsLoading(false)
         //     })
         const fetchData = async () => {
-            const data=await fuzzySearch(params.code,'course')
+            const data:any=await fuzzySearch(params.code,'course')
             setCourseList(data)
             setIsLoading(false)
         }
