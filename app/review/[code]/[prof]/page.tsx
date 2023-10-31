@@ -45,6 +45,10 @@ const ReviewPage=({params}:{params:{code:string,prof:string}})=>{
 
                 setIsOffer(data['prof_info']['offer_info']['is_offer'])
                 setIsOfferLoading(false)
+
+                if (isOffer){
+                    setTimetable(data['prof_info']['offer_info']['schedules'])
+                }
             })
     },[])
 
@@ -100,9 +104,13 @@ const ReviewPage=({params}:{params:{code:string,prof:string}})=>{
                                         <ClipboardEdit size={16}/> Submit Review
                                     </Button>
 
-                                    <Button className='text-sm px-2 hover:shadow-lg  bg-white text-blue-800 hover:bg-gray-200'>
+                                    {
+                                        isOffer?
+                                        <Button className='text-sm px-2 hover:shadow-lg  bg-white text-blue-800 hover:bg-gray-200'>
                                         <CalendarRange size={16}/> Timetable
-                                    </Button>
+                                        </Button>:
+                                        <></>
+                                    }
                                 </div>
                                 <Toolbar course={course} prof={undefined}/>
                             </div>
