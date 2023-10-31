@@ -12,6 +12,8 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { UploadCloud } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
+import { toast } from '@/components/ui/use-toast';
+import { useRouter } from 'next/navigation';
 
 
 const SubmitPage = ({params}:{params:any}) => {
@@ -43,8 +45,14 @@ const SubmitPage = ({params}:{params:any}) => {
             content: '',
         }
     })
+    const route = useRouter()
     const submit = (values: z.infer<typeof formSchema>) => {
-        console.log("asd")
+        toast({
+            title: 'Submitted!',
+            description: "💋 Thank you for your submission!",
+            duration: 5000,
+        })
+        route.push(`/review/${params.code}/${params.prof}`)
         console.log(values)
     }
     return (
