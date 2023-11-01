@@ -13,7 +13,8 @@ export const CommentCard = (
                 <CardHeader className='pb-0.5 pt-4'  >
                     <div className='flex justify-between'>
                         <div className='text-gray-400 text-xs'>
-                            {comment.pub_time}
+                            {/* convert 2022-10-20T03:44:32.219061 to 2022-10-20 */}
+                            {comment.pub_time.split('T')[0]}
                         </div>
                         {/* if comment.isCurrentUserVoted  show badge*/}
                         <TooltipProvider delayDuration={0}>

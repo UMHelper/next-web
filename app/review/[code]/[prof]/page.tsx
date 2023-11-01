@@ -13,6 +13,9 @@ import { Masonry } from "@/components/masonry";
 import { CommentCard } from "@/components/comment_card";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { TimetableCard } from "@/components/timetable-card";
+import { getCommentList } from "@/lib/database/comment-list";
+import { getProfInfo } from "@/lib/database/prof_info";
+import { fuzzySearch } from "@/lib/database/fuzzy-search";
 
 const ReviewPage=({params}:{params:{code:string,prof:string}})=>{
     const [course,setCourse]=useState({} as any)
@@ -36,21 +39,30 @@ const ReviewPage=({params}:{params:{code:string,prof:string}})=>{
         fetch('/api/comment/?code='+params.code+'&prof='+params.prof)
             .then(r=>r.json())
             .then((data)=>{
-                setCourse(data['course_info'])
-                setIsCourseLoading(false)
-
-                setProf(data['prof_info'])
-                setIsProfLoading(false)
-
-                setComments(data['comments'])
-                setIsCommentLoading(false)
-
-                setIsOffer(data['prof_info']['offer_info']['is_offer'])
-                setIsOfferLoading(false)
-
                 setTimetable(data['prof_info']['offer_info']['schedules'])
 
             })
+        
+        const fetchData=async ()=>{
+            const comment= await getCommentList(params.code,params.prof)
+            setComments(comment.reverse())
+            setIsCommentLoading(false)
+
+            const prof_info=await getProfInfo(params.code,params.prof)
+            setProf(prof_info)
+            setIsProfLoading(false)
+
+            setIsOffer(prof_info['is_offered'])
+            setIsOfferLoading(false)
+
+            const course_info:any=await fuzzySearch(params.code,'course')
+            setCourse(course_info[0])
+            setIsCourseLoading(false)
+            
+            // TODO: Timetalbe API
+        }
+
+        fetchData()
     },[])
 
     useEffect(() => {
@@ -90,7 +102,7 @@ const ReviewPage=({params}:{params:{code:string,prof:string}})=>{
                                 <div className='text-sm'>{course['New_code']}</div>
                                 <div className='text-sm'>{course["courseTitleEng"]}</div>
                                 <div className='md:pb-2 flex-row flex space-x-1 mt-4'>
-                                    <div className='font-bold text-3xl'>{prof['name']}</div>
+                                    <div className='font-bold text-3xl'>{prof['prof_id']}</div>
                                     {isOfferLoading?"":(
                                         isOffer?
                                             <div className='text-sm font-semibold rounded-3xl bg-gradient-to-r from-indigo-600 to-purple-600 h-fit py-0.5 px-2 shadow'> Offered</div>

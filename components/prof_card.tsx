@@ -9,7 +9,7 @@ const ProfCard= ({data,code}:{data:any,code:any})=>{
 
     const route=useRouter()
     const onclick=()=>{
-        route.push('/review/'+code+'/'+data.name)
+        route.push('/review/'+code+'/'+data.prof_id)
     }
 
     return(
@@ -17,11 +17,11 @@ const ProfCard= ({data,code}:{data:any,code:any})=>{
             <CardHeader className='pb-0.5'>
                 <div className='flex flex-row justify-between'>
                     <div>
-                        {data.name}
+                        {data.prof_id}
                     </div>
                     <div className='text-white flex flex-col'>
                         {
-                            data.offer_info.is_offer?
+                            data.is_offered?
                                 <div className='text-xs font-semibold rounded-3xl bg-gradient-to-r from-indigo-600 to-purple-600 h-fit py-0.5 px-2 shadow'> Offered</div>
                                 :
                                 <div className='text-xs font-semibold rounded-3xl bg-gradient-to-r from-neutral-700 to-stone-900 h-fit py-0.5 px-2 shadow'> Not Offered</div>
@@ -71,7 +71,7 @@ const ProfCard= ({data,code}:{data:any,code:any})=>{
                             Comments
                         </div>
                         <div className='text-black'>
-                            {data.num}
+                            {data.comments}
                         </div>
                     </div>
                 </div>
