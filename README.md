@@ -1,5 +1,5 @@
 # To-d0 list
 - [ ] Comment Submit API
-- [ ] API Security
-- [ ] Server Side Rendering
+- [x] API Security
+- [x] Server Side Rendering
 - [ ] Markdown Editor
