@@ -32,20 +32,6 @@ function CoursePage({params}:{params:{code:string}}){
 
 
     useEffect(()=>{
-        // fetch('/api/course/?code=' + params.code.toUpperCase() )
-        //     .then(r =>r.json())
-        //     .then((data)=>{
-        //         // setCourse(data['course_info'])
-        //         // setIsCourseLoading(false)
-        //         setProfList(data['prof_info'])
-        //         setIsProfLoading(false)
-        //         for (const prof of data['prof_info']){
-        //             if (prof['offer_info']['is_offer']){
-        //                 setIsOffer(true)
-        //                 break
-        //             }
-        //         }
-        //     })
         const fetchData=async ()=>{
             const data:any=await getProfListByCourse(code)
             setProfList(data)
