@@ -5,7 +5,6 @@ import {usePathname} from "next/navigation";
 import {Cat} from "lucide-react";
 import MobileSidebar from "@/components/mobile-sidebar";
 import {menuList as menu} from "@/lib/consant";
-import { SignInButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 
 const Navbar=()=>{
     const pathname=usePathname()
@@ -34,14 +33,6 @@ const Navbar=()=>{
                         </div>
                     </div>
                 </div>
-                <SignedIn>
-                    {/* Mount the UserButton component */}
-                    <UserButton />
-                </SignedIn>
-                <SignedOut>
-                    {/* Signed out users get sign in button */}
-                    <SignInButton />
-                </SignedOut>
                 <MobileSidebar/>
             </div>
             {/*<div className='text-xs text-gray-400 font-light'>*/}
