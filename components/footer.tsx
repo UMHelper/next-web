@@ -45,7 +45,10 @@ const Footer = async () => {
                     Latest update <Link className='text-black font-semibold underline underline-offset-1' href={git['commit'][['html_url']]}>{git['commit']['commit']['author']['date']}</Link> licensed under <Link className='text-black font-semibold underline underline-offset-1' href='/'>GNU General Public License v3.0</Link> .
                 </div>
             </div>
-            <div className="grid-cols-1 grid-cols-2 grid-cols-3">
+            <div className="grid-cols-1">
+                <div className="grid-cols-2">
+                    <div className="grid-cols-3"></div>
+                </div>
             </div>
 
         </div>
