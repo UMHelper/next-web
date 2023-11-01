@@ -1,7 +1,14 @@
 import {Cat} from "lucide-react";
 import Link from "next/link";
-
-const Footer = () => {
+import { useEffect,useState } from "react";
+async function fetchGitData() {
+    const response=await fetch("https://api.github.com/repos/UMHelper/next-web/branches/main")
+    const data=await response.json()
+    console.log(data)
+    return data
+}
+const Footer = async () => {
+    const git=await fetchGitData()
     return(
         <div className='bg-gray-300/10'>
             <div className='max-w-screen-xl mx-auto p-4 space-y-4 mb-4'>
@@ -14,7 +21,7 @@ const Footer = () => {
                     </div>
                 </div>
 
-                <div className='flex space-x-4 underline underline-offset-1 font-semibold text-sm'>
+                <div className='flex md:space-x-4 underline underline-offset-1 font-semibold text-sm flex-col md:flex-row space-y-2 md:space-y-0'>
                     <Link href='/'>
                         GitHub
                     </Link>
@@ -35,7 +42,7 @@ const Footer = () => {
                     Designed and built by the <Link className='text-black font-semibold underline underline-offset-1' href='/'>UMHelper</Link> team with the help of <Link className='text-black font-semibold underline underline-offset-1' href='/'>our contributors</Link>.
                 </div>
                 <div className='text-gray-500 text-xs'>
-                    Latest update <Link className='text-black font-semibold underline underline-offset-1' href='/'>2023-08-27T17:38:44Z</Link> licensed under <Link className='text-black font-semibold underline underline-offset-1' href='/'>GNU General Public License v3.0</Link> .
+                    Latest update <Link className='text-black font-semibold underline underline-offset-1' href={git['commit'][['html_url']]}>{git['commit']['commit']['author']['date']}</Link> licensed under <Link className='text-black font-semibold underline underline-offset-1' href='/'>GNU General Public License v3.0</Link> .
                 </div>
             </div>
             <div className="grid-cols-1 grid-cols-2 grid-cols-3">
