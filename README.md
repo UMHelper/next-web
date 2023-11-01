@@ -1,4 +1,4 @@
 # To-d0 list
-- [x] Comment Submit API
-- [x] API Security
-- [x] Server Side Rendering
+- [] Comment Submit API
+- [] API Security
+- [] Server Side Rendering
