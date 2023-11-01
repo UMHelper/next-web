@@ -1,11 +1,6 @@
-// 1.col
-// 2.row
-// 3.add
-
+'use client'
 import { cn } from "@/lib/utils";
-import { MongoCryptCreateEncryptedCollectionError } from "mongodb";
 import React, {ReactElement, ReactNode, useEffect, useState} from "react";
-import { set } from "zod";
 
 export const MasonryRow=({children,className}:{children:ReactNode,className:any})=>{
     return (
@@ -14,7 +9,6 @@ export const MasonryRow=({children,className}:{children:ReactNode,className:any}
         </div>
     )
 }
-
 
 export const MasonryCol=(
     {
@@ -36,6 +30,7 @@ export const MasonryCol=(
         </div>
     )
 }
+
 const colListGen=(col_num:number,children:ReactElement[])=>{
     let colList:ReactNode[][]=[]
     for (let i = 0; i < col_num; i++) {
@@ -66,13 +61,13 @@ export const Masonry=(
 
     useEffect(()=>{
         let h = window.innerWidth;
-        if (h<780 && h>=530){
+        if (h<900 && h>=530){
             setCurCol(col-1)
         }
         if (h<530){
             setCurCol(col-2)
         }
-        if (h>=780){
+        if (h>=900){
             setCurCol(col)
         }
     },[])
@@ -84,13 +79,13 @@ export const Masonry=(
     useEffect(() => {
         const windowResizeUpdate = () => {
             let h = window.innerWidth;
-            if (h<780 && h>=530){
+            if (h<900 && h>=530){
                 setCurCol(col-1)
             }
             if (h<530){
                 setCurCol(col-2)
             }
-            if (h>=780){
+            if (h>=900){
                 setCurCol(col)
             }
         };

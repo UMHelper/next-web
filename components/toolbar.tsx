@@ -1,5 +1,5 @@
+'use client'
 import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from "@/components/ui/tooltip";
-import React from "react";
 import {Bug, Send} from "lucide-react";
 
 const Toolbar = ({course,prof}:{course:any,prof:any|undefined}) => {

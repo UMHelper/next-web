@@ -1,59 +1,10 @@
-import ProfCard from "@/components/prof_card";
-import { Masonry } from "@/components/masonry";
-import { getProfListByCourse } from "@/lib/database/prof-list-by-course";
-
-import crypto from 'crypto';
-import https from 'https';
-import axios from 'axios';
 import Toolbar from "@/components/toolbar";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ArrowUpRightSquare } from "lucide-react";
-import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 
-const allowLegacyRenegotiationOptions = {
-    httpsAgent: new https.Agent({
-        secureOptions: crypto.constants.SSL_OP_LEGACY_SERVER_CONNECT,
-    }),
-    headers: {
-        Authorization: 'Bearer bfa9b6c0-3f4f-3b1f-92c4-1bdd885a1ca2',
-    },
-};
-
-
-async function fetchCourseInfo(code:string){
-    const response=await axios.get('https://api.data.um.edu.mo/service/academic/course_catalog/v1.0.0/all?course_code='+code.toUpperCase(), allowLegacyRenegotiationOptions)
-    const data=await response.data
-    return data['_embedded'][0]
-}
-
-async function fetchData(code:string){
-    const course= await fetchCourseInfo(code)
-    const profList:any=await getProfListByCourse(code)
-    let isOffer = false
-    for (const prof of profList){
-        if (prof['is_offered']){
-            isOffer=true
-            break
-        }
-    }
-    return {course,profList,isOffer}
-}
-
-async function CoursePage({params}:{params:{code:string}}){
-    const code=params.code.toUpperCase()
-    const {
-        course,
-        profList,
-        isOffer
-    }:{
-        course:any,
-        profList:any[],
-        isOffer:boolean
-        } 
-        =await fetchData(code)
-    console.log(course)
+export function CourseInfo(course:any,isOffer:boolean){
     return(
-        <>
-            <div className='bg-gradient-to-r from-purple-400 to-rose-500 text-white p-4'>
+        <div className='bg-gradient-to-r from-purple-400 to-rose-500 text-white p-4'>
                 <div className='max-w-screen-xl mx-auto p-4'>
                         <div className='flex flex-col md:flex-row justify-between'>
                             <div>
@@ -159,18 +110,5 @@ async function CoursePage({params}:{params:{code:string}}){
 
                 </div>
             </div>
-            <div className='max-w-screen-xl mx-auto p-4'>
-                <Masonry col={3} className={""}>
-                    {profList.map((data,index)=>{
-                        return (
-                            <ProfCard key={index} data={data} code={course['courseCode']}/>
-                        )
-                    })}
-                </Masonry>
-            </div>
-
-        </>
     )
 }
-
-export default CoursePage

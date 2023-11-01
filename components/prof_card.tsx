@@ -1,82 +1,75 @@
 import {Card, CardContent, CardHeader} from "@/components/ui/card";
 import {cn, get_bg, get_gpa} from "@/lib/utils";
-import React from "react";
 import {Separator} from "@/components/ui/separator";
-import {useRouter} from "next/navigation";
+import Link from "next/link";
 
 const ProfCard= ({data,code}:{data:any,code:any})=>{
-
-
-    const route=useRouter()
-    const onclick=()=>{
-        route.push('/review/'+code+'/'+data.prof_id)
-    }
-
     return(
-        <Card className='hover:cursor-pointer hover:shadow-lg' onClick={onclick}>
-            <CardHeader className='pb-0.5'>
-                <div className='flex flex-row justify-between'>
-                    <div>
-                        {data.prof_id}
-                    </div>
-                    <div className='text-white flex flex-col'>
-                        {
-                            data.is_offered?
-                                <div className='text-xs font-semibold rounded-3xl bg-gradient-to-r from-indigo-600 to-purple-600 h-fit py-0.5 px-2 shadow'> Offered</div>
-                                :
-                                <div className='text-xs font-semibold rounded-3xl bg-gradient-to-r from-neutral-700 to-stone-900 h-fit py-0.5 px-2 shadow'> Not Offered</div>
-                        }
-                    </div>
-                </div>
-            </CardHeader>
-            {/*<Separator className='my-2'/>*/}
-            <CardContent>
-                <div className='text-sm font-semibold'>
-                    <div className='text-gray-400 text-xs'>Overall</div>
-                    <div className={cn(get_bg(data.result),'bg-clip-text text-transparent')}>
-                        {get_gpa(data.result)}
-                    </div>
-                </div>
-                <Separator className='my-1'/>
-                <div className='flex flex-row text-xs font-semibold space-x-2'>
-                    <div>
-                        <div className='text-gray-400'>
-                            Grade
+        <Link href={'/review/'+code+'/'+data.prof_id}>
+            <Card className='hover:cursor-pointer hover:shadow-lg'>
+                <CardHeader className='pb-0.5'>
+                    <div className='flex flex-row justify-between'>
+                        <div>
+                            {data.prof_id}
                         </div>
-                        <div className={cn(get_bg(data.grade),'bg-clip-text text-transparent')}>
-                            {get_gpa(data.grade)}
+                        <div className='text-white flex flex-col'>
+                            {
+                                data.is_offered?
+                                    <div className='text-xs font-semibold rounded-3xl bg-gradient-to-r from-indigo-600 to-purple-600 h-fit py-0.5 px-2 shadow'> Offered</div>
+                                    :
+                                    <div className='text-xs font-semibold rounded-3xl bg-gradient-to-r from-neutral-700 to-stone-900 h-fit py-0.5 px-2 shadow'> Not Offered</div>
+                            }
                         </div>
                     </div>
+                </CardHeader>
+                <CardContent>
+                    <div className='text-sm font-semibold'>
+                        <div className='text-gray-400 text-xs'>Overall</div>
+                        <div className={cn(get_bg(data.result),'bg-clip-text text-transparent')}>
+                            {get_gpa(data.result)}
+                        </div>
+                    </div>
+                    <Separator className='my-1'/>
+                    <div className='flex flex-row text-xs font-semibold space-x-2'>
+                        <div>
+                            <div className='text-gray-400'>
+                                Grade
+                            </div>
+                            <div className={cn(get_bg(data.grade),'bg-clip-text text-transparent')}>
+                                {get_gpa(data.grade)}
+                            </div>
+                        </div>
 
-                    <div>
-                        <div className='text-gray-400'>
-                            Easy
+                        <div>
+                            <div className='text-gray-400'>
+                                Easy
+                            </div>
+                            <div className={cn(get_bg(data.hard),'bg-clip-text text-transparent')}>
+                                {get_gpa(data.hard)}
+                            </div>
                         </div>
-                        <div className={cn(get_bg(data.hard),'bg-clip-text text-transparent')}>
-                            {get_gpa(data.hard)}
-                        </div>
-                    </div>
 
-                    <div>
-                        <div className='text-gray-400'>
-                            Outcome
+                        <div>
+                            <div className='text-gray-400'>
+                                Outcome
+                            </div>
+                            <div className={cn(get_bg(data.reward),'bg-clip-text text-transparent')}>
+                                {get_gpa(data.reward)}
+                            </div>
                         </div>
-                        <div className={cn(get_bg(data.reward),'bg-clip-text text-transparent')}>
-                            {get_gpa(data.reward)}
-                        </div>
-                    </div>
 
-                    <div>
-                        <div className='text-gray-400'>
-                            Comments
-                        </div>
-                        <div className='text-black'>
-                            {data.comments}
+                        <div>
+                            <div className='text-gray-400'>
+                                Comments
+                            </div>
+                            <div className='text-black'>
+                                {data.comments}
+                            </div>
                         </div>
                     </div>
-                </div>
-            </CardContent>
-        </Card>
+                </CardContent>
+            </Card>
+        </Link>    
 
     )
 }

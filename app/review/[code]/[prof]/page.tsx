@@ -1,9 +1,3 @@
-'use client'
-import React, {useEffect, useState} from "react";
-import UseAnimations from "react-useanimations";
-import infinity from "react-useanimations/lib/infinity";
-import loading2 from "react-useanimations/lib/loading2";
-import { useRouter } from "next/navigation";
 import Toolbar from "@/components/toolbar";
 import {Card, CardContent} from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -16,109 +10,61 @@ import { TimetableCard } from "@/components/timetable-card";
 import { getCommentList } from "@/lib/database/comment-list";
 import { getProfInfo } from "@/lib/database/prof_info";
 import { fuzzySearch } from "@/lib/database/fuzzy-search";
+import Link from "next/link";
 
-const ReviewPage=({params}:{params:{code:string,prof:string}})=>{
-    const [course,setCourse]=useState({} as any)
-    const [isCourseLoading,setIsCourseLoading]=useState(true)
-    const [prof,setProf]=useState({} as any)
-    const [isProfLoading,setIsProfLoading]=useState(true)
-    const [comments, setComments]=useState([] as any)
-    const [isCommentLoading,setIsCommentLoading]=useState(true)
-    const [timetable,setTimetable]=useState([] as any)
-    const [isOffer,setIsOffer]=useState(false)
-    const [isOfferLoading,setIsOfferLoading]=useState(true)
+import {COMMENT} from "@/consant";
 
-    const [result,setResult]=useState(0)
-    const [grade,setGrade]=useState(0)
-    const [hard,setHard]=useState(0)
-    const [reward,setReward]=useState(0)
+async function fetchData(code:string,prof:string) {
+    const timetable=COMMENT['prof_info']['offer_info']['schedules'];
+    const comment= await getCommentList(code,prof);
+    const prof_info=await getProfInfo(code,prof);
+    const is_offered=prof_info['is_offered'];
+    const course_info=(await fuzzySearch(code,'course'))[0];
 
-    const route=useRouter()
+    return {
+        timetable,
+        comment,
+        prof_info,
+        is_offered,
+        course_info
+    }
+}
 
-    useEffect(()=>{
-        fetch('/api/comment/?code='+params.code+'&prof='+params.prof)
-            .then(r=>r.json())
-            .then((data)=>{
-                setTimetable(data['prof_info']['offer_info']['schedules'])
-
-            })
-        
-        const fetchData=async ()=>{
-            const comment= await getCommentList(params.code,params.prof)
-            setComments(comment.reverse())
-            setIsCommentLoading(false)
-
-            const prof_info=await getProfInfo(params.code,params.prof)
-            setProf(prof_info)
-            setIsProfLoading(false)
-
-            setIsOffer(prof_info['is_offered'])
-            setIsOfferLoading(false)
-
-            const course_info:any=await fuzzySearch(params.code,'course')
-            setCourse(course_info[0])
-            setIsCourseLoading(false)
-            
-            // TODO: Timetalbe API
-        }
-
-        fetchData()
-    },[])
-
-    useEffect(() => {
-        const interval=800
-        let resultTimer:any=undefined
-        let gradeTimer:any=undefined
-        let hardTimer:any=undefined
-        let rewardTimer:any=undefined
-        if (!isProfLoading){
-            resultTimer=setTimeout(()=>{setResult(prof['result']*20)},interval)
-            gradeTimer=setTimeout(()=>{setGrade(prof['grade']*20)},interval)
-            hardTimer=setTimeout(()=>{setHard(prof['hard']*20)},interval)
-            rewardTimer=setTimeout(()=>{setReward(prof['reward']*20)},interval)
-        }
-
-        return ()=>{
-            clearTimeout(resultTimer)
-            clearTimeout(gradeTimer)
-            clearTimeout(hardTimer)
-            clearTimeout(rewardTimer)
-        }
-    }, [isProfLoading]);
-
+const ReviewPage=async ({params}:{params:{code:string,prof:string}})=>{
+    const {
+        timetable,
+        comment,
+        prof_info,
+        is_offered,
+        course_info
+    }=await fetchData(params.code,params.prof);
     return(
         <>
             <div className='bg-gradient-to-r from-purple-400 to-rose-500 text-white p-4'>
                 <div className='max-w-screen-xl mx-auto p-4'>
-                    {isCourseLoading?(
-                        <div className='flex justify-center'>
-                            <div className='bg-gradient-to-r from-gray-100 to-gray-100 p-4 rounded-full'>
-                                <UseAnimations animation={infinity} size={48}/>
-                            </div>
-                        </div>
-                    ):(
+                
                         <div className='flex flex-col md:flex-row justify-between'>
                             <div>
-                                <div className='text-sm'>{course['New_code']}</div>
-                                <div className='text-sm'>{course["courseTitleEng"]}</div>
+                                <div className='text-sm'>{course_info['New_code']}</div>
+                                <div className='text-sm'>{course_info["courseTitleEng"]}</div>
                                 <div className='md:pb-2 flex-row flex space-x-1 mt-4'>
-                                    <div className='font-bold text-3xl'>{prof['prof_id']}</div>
-                                    {isOfferLoading?"":(
-                                        isOffer?
+                                    <div className='font-bold text-3xl'>{prof_info['prof_id']}</div>
+                                    {(
+                                        is_offered?
                                             <div className='text-sm font-semibold rounded-3xl bg-gradient-to-r from-indigo-600 to-purple-600 h-fit py-0.5 px-2 shadow'> Offered</div>
                                             :
                                             <div className='text-sm font-semibold rounded-3xl bg-gradient-to-r from-neutral-700 to-stone-900 h-fit py-0.5 px-2 shadow'> Not Offered</div>
                                     )}
                                 </div>
                                 <div className='flex-row flex space-x-2'>
-                                    <Button className='text-sm px-2 hover:shadow-lg bg-white text-blue-800 hover:bg-gray-200' onClick={()=>{
-                                        route.push('/submit/'+params.code+'/'+params.prof)
-                                    }}>
-                                        <ClipboardEdit size={16}/> Submit Review
-                                    </Button>
-
+                                    <Link href={'/submit/'+params.code+'/'+params.prof}>
+                                        <Button className='text-sm px-2 hover:shadow-lg bg-white text-blue-800 hover:bg-gray-200'>
+                                            <ClipboardEdit size={16}/> Submit Review
+                                        </Button>
+                                    </Link>
+                                    
                                     {
-                                        isOffer?
+                                        is_offered?
                                         <Popover>
                                             <PopoverTrigger asChild>
                                                 <Button className='text-sm px-2 hover:shadow-lg  bg-white text-blue-800 hover:bg-gray-200'>
@@ -133,7 +79,7 @@ const ReviewPage=({params}:{params:{code:string,prof:string}})=>{
                                         <></>
                                     }
                                 </div>
-                                <Toolbar course={course} prof={undefined}/>
+                                <Toolbar course={course_info} prof={undefined}/>
                             </div>
                             <Card className='md:w-80 py-4 pb-0 md:m-0 mt-8'>
                                 <CardContent >
@@ -142,59 +88,50 @@ const ReviewPage=({params}:{params:{code:string,prof:string}})=>{
                                             <div>
                                                 總體 Overall
                                             </div>
-                                            <Progress value={result} className='h-1 ' />
+                                            <Progress value={prof_info['result']*20} className='h-1 ' />
                                         </div>
                                         <div className='space-y-1 text-sm'>
                                             <div>
                                                 成績 Grade
                                             </div>
-                                            <Progress value={grade} className='h-1 ' />
+                                            <Progress value={prof_info['grade']*20} className='h-1 ' />
                                         </div>
                                         <div className='space-y-1 text-sm'>
                                             <div>
                                                 輕鬆 Easy
                                             </div>
-                                            <Progress value={hard} className='h-1 ' />
+                                            <Progress value={prof_info['hard']*20} className='h-1 ' />
                                         </div>
                                         <div className='space-y-1 text-sm'>
                                             <div>
                                                 收穫 Outcome
                                             </div>
-                                            <Progress value={reward} className='h-1 ' />
+                                            <Progress value={prof_info['reward']*20} className='h-1 ' />
                                         </div>
                                         <p className='text-xs italic text-gray-500'>Based on the reviews from users.</p>
                                     </div>
                                 </CardContent>
                             </Card>
                         </div>
-                    )}
+                
 
                 </div>
             </div>
 
             <div>
-                {
-                    isCommentLoading?(
-                        <div className='flex justify-center mt-4'>
-                            <div className='bg-gradient-to-r from-violet-300 to-fuchsia-300 p-4 rounded-full'>
-                                <UseAnimations animation={loading2} size={48} fillColor="#fff"/>
-                            </div>
-                        </div>
-                    ):(
+                
                         <div className='max-w-screen-xl mx-auto p-4'>
                             <Masonry col={3} className="">
-                                {comments.map((comment:any,index:number)=>{
+                                {comment.map((comment:any,index:number)=>{
                                     return (
                                         <div key={index}>
-                                            <CommentCard comment={comment} prof={prof} course={course}/>
+                                            <CommentCard comment={comment} prof={prof_info} course={course_info}/>
                                         </div>
                                     )
                                 })}
                             </Masonry>
                         </div>
-                    )
 
-                }
             </div>
         </>
     )

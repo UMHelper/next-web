@@ -1,3 +1,4 @@
+'use client'
 import { Card, CardHeader, CardContent } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { cn, get_bg, get_gpa } from '@/lib/utils'
