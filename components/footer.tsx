@@ -42,7 +42,7 @@ const Footer = async () => {
                     Designed and built by the <Link className='text-black font-semibold underline underline-offset-1' href='/'>UMHelper</Link> team with the help of <Link className='text-black font-semibold underline underline-offset-1' href='/'>our contributors</Link>.
                 </div>
                 <div className='text-gray-500 text-xs'>
-                    Latest update <Link className='text-black font-semibold underline underline-offset-1' href={git['commit'][['html_url']]}>{git['commit']['commit']['author']['date']}</Link> licensed under <Link className='text-black font-semibold underline underline-offset-1' href='/'>GNU General Public License v3.0</Link> .
+                    Latest update <Link className='text-black font-semibold underline underline-offset-1' href={git['commit']['html_url']}>{git['commit']['commit']['author']['date']}</Link> licensed under <Link className='text-black font-semibold underline underline-offset-1' href='/'>GNU General Public License v3.0</Link> .
                 </div>
             </div>
             <div className="grid-cols-1">

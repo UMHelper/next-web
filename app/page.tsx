@@ -9,7 +9,7 @@ import {
     CardTitle,
 } from "@/components/ui/card"
 import { z } from "zod";
-import { useForm } from "react-hook-form";
+import { set, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
     Form,
@@ -23,10 +23,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { useState } from "react";
-import { CircleDollarSign, Microscope, Newspaper, BookMarked, Scale, School, Search, Bot } from "lucide-react";
+import { useEffect, useState } from "react";
+import { CircleDollarSign, Microscope, Newspaper, BookMarked, Scale, School, Search, Bot, Star } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import crypto from 'crypto';
+import https from 'https';
+import axios from 'axios';
 
 const formSchema = z.object({
     code: z.string()
@@ -36,6 +38,50 @@ const formSchema = z.object({
         .max(10, { message: 'Search Keywords must be at most 10 characters.' }),
     is_prof: z.boolean().default(false)
 })
+
+const fetchData=async ()=>{
+    const data={
+        prof:[
+            {
+                name: "Professor A",
+                score: 4,
+            },
+            {
+                name: "Professor B",
+                score: 1,
+            },
+            {
+                name: "Professor C",
+                score: 3,
+            },
+            {
+                name: "Professor D",
+                score: 4,
+            },
+            {
+                name: "Professor E",
+                score: 5,
+            },
+        ],
+        course:[
+            {code:'CISC1001'},
+            {code:'ACCT1001'},
+            {code:'CISC2005'},
+            {code:'BECO1001'},
+            {code:'BECO1002'}
+        ]
+    }
+
+    return data
+}
+const allowLegacyRenegotiationOptions = {
+    httpsAgent: new https.Agent({
+        secureOptions: crypto.constants.SSL_OP_LEGACY_SERVER_CONNECT,
+    }),
+    headers: {
+        Authorization: 'Bearer bfa9b6c0-3f4f-3b1f-92c4-1bdd885a1ca2',
+    },
+};
 
 export default function Home() {
     const form = useForm<z.infer<typeof formSchema>>({
@@ -59,6 +105,13 @@ export default function Home() {
     }
 
     const [is_prof, set_is_prof] = useState(false)
+    const [statics_data, set_statics_data] = useState({ prof: [], course: [] })
+
+    useEffect(() => {
+        fetchData().then((data:any) => {
+            set_statics_data(data)
+        })
+    },[])
 
     return (
         <>
@@ -144,156 +197,7 @@ export default function Home() {
                         </Card>
                     </div>
                 </div>
-            </div>
-            <div className="bg-gradient-to-r from-blue-500 to-violet-500">
-                <div className="max-w-screen-xl mx-auto p-4">
-                    <div className="mx-8 py-8">
-                        <div className="text-white text-center text-2xl mb-4">
-                            Live Statistics
-                        </div>        
-                        <div className="flex flex-col md:flex-row md:space-x-4">
-                            <Table className="bg-white rounded">
-                                <TableCaption className="bg-white m-0 pb-4 rounded-b">Most popular course</TableCaption>
-                                <TableBody className="text-center">
-                                    <TableRow>
-                                    <TableCell>ACCT1000</TableCell>
-                                    </TableRow>
-                                    <TableRow>
-                                    <TableCell>CISC2005</TableCell>
-                                    </TableRow>
-                                    <TableRow>
-                                    <TableCell>EELC1003</TableCell>
-                                    </TableRow>
-                                    <TableRow>
-                                    <TableCell>GESB1002</TableCell>
-                                    </TableRow>
-                                    <TableRow>
-                                    <TableCell>CISC1001</TableCell>
-                                    </TableRow>
-                                </TableBody>
-                            </Table>
-                            <Table className="bg-white rounded">
-                                <TableCaption className="bg-white m-0 pb-4 rounded-b">Most popular instructor</TableCaption>
-                                <TableBody className="text-center">
-                                    <TableRow>
-                                    <TableCell>ACCT1000</TableCell><TableCell> CHAN WENG HANG</TableCell>
-                                    </TableRow>
-                                    <TableRow>
-                                    <TableCell>CISC2005</TableCell><TableCell> TCHIANG VAN KAM</TableCell>
-                                    </TableRow>
-                                    <TableRow>
-                                    <TableCell>EELC1003 </TableCell><TableCell> CARLOS NORONHA</TableCell>
-                                    </TableRow>
-                                    <TableRow>
-                                    <TableCell>GESB1002 </TableCell><TableCell> PUN SAU TAK</TableCell>
-                                    </TableRow>
-                                    <TableRow>
-                                    <TableCell>CISC1001</TableCell><TableCell> TERESA CHU</TableCell>
-                                    </TableRow>
-                                </TableBody>
-                            </Table>
-
-
-                        </div>                          
-                    </div>
-                </div>
-            </div>
-
-            <div className="bg-gradient-to-r from-blue-600 to-indigo-500">
-                <div className="max-w-screen-xl mx-auto p-4">
-                    <div className="mx-8 py-8">
-                        <div className="text-white text-center text-2xl">
-                            Comment Bank
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-7 text-white mt-8">
-                            <div className="flex flex-col items-center">
-                                <Newspaper size={80} strokeWidth={1} />
-                                <div className="text-lg">
-                                FAH
-                                </div>
-                                <div className="text-sm">
-                                65 courses
-                                </div>
-                                <div className="text-sm">
-                                472 comments
-                                </div>
-                            </div>
-                            <div className="flex flex-col items-center">
-                                <CircleDollarSign size={80} strokeWidth={1} />
-                                <div className="text-lg">
-                                FBA
-                                </div>
-                                <div className="text-sm">
-                                65 courses
-                                </div>
-                                <div className="text-sm">
-                                472 comments
-                                </div>
-                            </div>
-                            <div className="flex flex-col items-center">
-                                <School size={80} strokeWidth={1} />
-                                <div className="text-lg">
-                                FED
-                                </div>
-                                <div className="text-sm">
-                                65 courses
-                                </div>
-                                <div className="text-sm">
-                                472 comments
-                                </div>
-                            </div>
-                            <div className="flex flex-col items-center">
-                                <Microscope size={80} strokeWidth={1} />
-                                <div className="text-lg">
-                                FHS
-                                </div>
-                                <div className="text-sm">
-                                65 courses
-                                </div>
-                                <div className="text-sm">
-                                472 comments
-                                </div>
-                            </div>
-                            <div className="flex flex-col items-center">
-                                <Scale size={80} strokeWidth={1} />
-                                <div className="text-lg">
-                                FLL
-                                </div>
-                                <div className="text-sm">
-                                65 courses
-                                </div>
-                                <div className="text-sm">
-                                472 comments
-                                </div>
-                            </div>
-                            <div className="flex flex-col items-center">
-                                <BookMarked size={80} strokeWidth={1} />
-                                <div className="text-lg">
-                                FSS
-                                </div>
-                                <div className="text-sm">
-                                65 courses
-                                </div>
-                                <div className="text-sm">
-                                472 comments
-                                </div>
-                            </div>
-                            <div className="flex flex-col items-center">
-                                <Bot size={80} strokeWidth={1} />
-                                <div className="text-lg">
-                                FST
-                                </div>
-                                <div className="text-sm">
-                                65 courses
-                                </div>
-                                <div className="text-sm">
-                                472 comments
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            </div>   
         </>
 
     )
