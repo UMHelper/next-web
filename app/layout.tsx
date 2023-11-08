@@ -7,6 +7,7 @@ import Navbar from "@/components/navbar";
 import {cn} from "@/lib/utils";
 import Footer from "@/components/footer";
 import { Toaster } from '@/components/ui/toaster';
+import Script from 'next/script';
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -22,6 +23,14 @@ export default function RootLayout({
 }) {
   return (
       <html lang="en">
+        <head>
+        <Script
+          async
+          src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${process.env.NEXT_PUBLIC_GOOGLE_ADS_CLIENT_ID}`}
+          strategy="lazyOnload"
+          crossOrigin="anonymous"
+        />
+        </head>
         <body className={cn(inter.className )}>
             <div className='min-h-screen min-w-full'>
               <Navbar/>
