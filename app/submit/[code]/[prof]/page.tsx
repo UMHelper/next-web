@@ -19,14 +19,14 @@ import { useRouter } from 'next/navigation';
 const SubmitPage = ({params}:{params:any}) => {
     const formSchema = z.object({
         code: z.string().length(8).default(params.code),
-        prof: z.string().default(params.prof.replace("%20"," ")),
-        attendacne: z.enum(['1','2.5','5']).default('2.5'),
+        prof: z.string().default(params.prof.replaceAll("%20"," ")),
+        attendance: z.enum(['1','2.5','5']).default('2.5'),
         pre: z.enum(['1','2.5','5']).default('2.5'),
         grade: z.number().min(0).max(5),
-        easy: z.number().min(0).max(5),
+        hard: z.number().min(0).max(5),
         reward: z.number().min(0).max(5),
         assignment: z.number().min(0).max(5),
-        recommand: z.number().min(0).max(5),
+        recommend: z.number().min(0).max(5),
         content: z.string().min(0).max(1000),
       })
 
@@ -34,14 +34,14 @@ const SubmitPage = ({params}:{params:any}) => {
         resolver: zodResolver(formSchema),
         defaultValues:{
             code: params.code,
-            prof: params.prof.replace("%20"," "),
-            attendacne: '2.5',
+            prof: params.prof.replaceAll("%20"," "),
+            attendance: '2.5',
             pre: '2.5',
             grade: 2.5,
-            easy: 2.5,
+            hard: 2.5,
             reward: 2.5,
             assignment: 2.5,
-            recommand: 2.5,
+            recommend: 2.5,
             content: '',
         }
     })
@@ -52,13 +52,16 @@ const SubmitPage = ({params}:{params:any}) => {
             description: "💋 Thank you for your submission!",
             duration: 5000,
         })
+        fetch(`/api/comment/${params.code}/${params.prof}`,{
+            body: JSON.stringify(values),
+            method: 'POST',
+        })
         route.push(`/review/${params.code}/${params.prof}`)
-        console.log(values)
     }
     return (
         <div className='max-w-screen-xl mx-auto p-10 md:p-20'>
             <div className='text-3xl antialiased mb-4'>
-                Commenting on {params.prof.replace("%20"," ")} for {params.code} 
+                Commenting on {params.prof.replaceAll("%20"," ")} for {params.code} 
             </div>
             <div>
                 <Form {...form}>
@@ -92,10 +95,10 @@ const SubmitPage = ({params}:{params:any}) => {
                         <div className='grid grid-cols-1 md:grid-cols-2 md:space-x-8 space-y-4 md:space-y-0'>
                             <FormField
                                 control={form.control}
-                                name="attendacne"
+                                name="attendance"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Attendacne</FormLabel>
+                                        <FormLabel>Attendance</FormLabel>
                                         <FormControl>
                                             <RadioGroup
                                             onValueChange={field.onChange}
@@ -183,7 +186,7 @@ const SubmitPage = ({params}:{params:any}) => {
                                 <div>
                                     <FormField
                                         control={form.control}
-                                        name="easy"
+                                        name="assignment"
                                         render={({ field }) => (
                                             <FormItem>
                                             <div>
@@ -214,7 +217,7 @@ const SubmitPage = ({params}:{params:any}) => {
                                 <div>
                                     <FormField
                                         control={form.control}
-                                        name="easy"
+                                        name="hard"
                                         render={({ field }) => (
                                             <FormItem>
                                             <div>
@@ -243,7 +246,7 @@ const SubmitPage = ({params}:{params:any}) => {
                                 <div>
                                     <FormField
                                         control={form.control}
-                                        name="easy"
+                                        name="recommend"
                                         render={({ field }) => (
                                             <FormItem>
                                             <div>
@@ -274,7 +277,7 @@ const SubmitPage = ({params}:{params:any}) => {
                                 <div>
                                     <FormField
                                         control={form.control}
-                                        name="easy"
+                                        name="reward"
                                         render={({ field }) => (
                                             <FormItem>
                                             <div>

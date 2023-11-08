@@ -4,7 +4,6 @@ import { useEffect,useState } from "react";
 async function fetchGitData() {
     const response=await fetch("https://api.github.com/repos/UMHelper/next-web/branches/main")
     const data=await response.json()
-    console.log(data)
     return data
 }
 const Footer = async () => {

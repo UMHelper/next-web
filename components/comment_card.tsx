@@ -47,7 +47,7 @@ ${comment.pub_time}
 ----------
 ${comment.content}        
 ----------
-https://umeh.top/review/${course.New_code}/${prof.name.replace(/ /g, '%20')}`);
+https://umeh.top/review/${course.New_code}/${prof.name.replaceAll(/ /g, '%20')}`);
                 toast({
                     title: "Copied to clipboard",
                     description: "🫣 Share this comment with your friends.",

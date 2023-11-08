@@ -15,8 +15,4 @@ export const menuList:MenuItem[]=[
         name:'Feedback',
         href:"/feedback"
     },
-    {
-        name:'Whole @UM',
-        href:"/whole"
-    }
 ]
