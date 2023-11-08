@@ -67,8 +67,8 @@ const ReviewPage=async ({params}:{params:{code:string,prof:string}})=>{
                                         is_offered?
                                         <Popover>
                                             <PopoverTrigger asChild>
-                                                <Button className='text-sm px-2 hover:shadow-lg  bg-white text-blue-800 hover:bg-gray-200'>
-                                                    <CalendarRange size={16}/> Timetable
+                                                <Button className='text-sm px-2 hover:shadow-lg  bg-white text-blue-800 hover:bg-gray-200' disabled>
+                                                    <CalendarRange size={16}/> Timetable (Developing)
                                                 </Button>
                                             </PopoverTrigger>
                                             <PopoverContent className="w-80">

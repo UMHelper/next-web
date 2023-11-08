@@ -36,7 +36,6 @@ export default function NavbarAvatar() {
                         <DropdownMenuItem>
                             <div onClick={async ()=>{
                             createClient.auth.signOut()
-                            setUser(null)
                             }}>
                             Logout
                             </div>    
