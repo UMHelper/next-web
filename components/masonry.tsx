@@ -1,6 +1,7 @@
 'use client'
 import { cn } from "@/lib/utils";
 import React, {ReactElement, ReactNode, useEffect, useState} from "react";
+import AdBanner from "@/components/ad";
 
 export const MasonryRow=({children,className}:{children:ReactNode,className:any})=>{
     return (
@@ -40,6 +41,15 @@ const colListGen=(col_num:number,children:ReactElement[])=>{
     for (let i = 0; i < children.length; i+=col_num) {
         for (let j = 0; j < col_num; j++) {
             colList[j].push(children[i+j])
+            // randomly add ad card
+            if (Math.random()>0.8){
+                colList[j].push(
+                    <div key={"gad-"+i+j}>
+                       <AdBanner/> 
+                    </div>
+                )
+                console.log("ad added",j,i)
+            }
         }
     }
     return colList
