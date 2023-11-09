@@ -42,6 +42,14 @@ export default function RootLayout({
     gtag('config', '${process.env.NEXT_PUBLIC_MEASUREMENT_ID}');
   `}
         </Script>
+        <Script id='clarity'>
+    {`(function(c,l,a,r,i,t,y){
+        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+    })(window, document, "clarity", "script", "jnvvhmdtgl");
+    `}
+</Script>
       </head>
       <body className={cn(inter.className)}>
         <div className='min-h-screen min-w-full'>
