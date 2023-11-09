@@ -42,12 +42,12 @@ export const CommentCard = (
                     </div>
                     <div className='flex flex-row justify-between hover:cursor-pointer' onClick={()=>{
                 navigator.clipboard.writeText(`
-${course.New_code} - ${prof.name}
-${comment.pub_time}
+${course.New_code} - ${prof.prof_id}
+${comment.pub_time.split('T')[0]}
 ----------
 ${comment.content}        
 ----------
-https://umeh.top/review/${course.New_code}/${prof.name.replaceAll(/ /g, '%20')}`);
+https://umeh.top/review/${course.New_code}/${prof.prof_id.replaceAll(/ /g, '%20')}`);
                 toast({
                     title: "Copied to clipboard",
                     description: "🫣 Share this comment with your friends.",
