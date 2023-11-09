@@ -11,13 +11,13 @@ const fetchData = async (code: string) => {
 async function InstructorSearchPage({ params }: { params: { name: string } }) {
     const data = await fetchData(params.name)
     return (
-        <Accordion type="single" collapsible className="w-full">
+        <Accordion type="multiple" className="w-full">
             {
                 data.map(({ prof_name, course_list }: { prof_name: any, course_list: any }, index: any) => {
                     return (
                         <AccordionItem value={prof_name + index} key={prof_name + index}>
                             <AccordionTrigger>{prof_name}</AccordionTrigger>
-                            <AccordionContent>
+                            <AccordionContent asChild>
                                 <Masonry col={3} className="mx-auto">
                                     {course_list.map((course: any, index: any) => {
                                         return <CourseCard data={course} key={index} />
