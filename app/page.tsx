@@ -9,7 +9,7 @@ import {
     CardTitle,
 } from "@/components/ui/card"
 import { z } from "zod";
-import { set, useForm } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
     Form,
@@ -23,12 +23,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { useEffect, useState } from "react";
-import { CircleDollarSign, Microscope, Newspaper, BookMarked, Scale, School, Search, Bot, Star, Radar, Github } from "lucide-react";
+import { useState } from "react";
+import { Search, Radar, Github } from "lucide-react";
 import { useRouter } from "next/navigation";
-import crypto from 'crypto';
-import https from 'https';
-import axios from 'axios';
 import Link from "next/link";
 
 const formSchema = z.object({
@@ -40,49 +37,6 @@ const formSchema = z.object({
     is_prof: z.boolean().default(false)
 })
 
-const fetchData=async ()=>{
-    const data={
-        prof:[
-            {
-                name: "Professor A",
-                score: 4,
-            },
-            {
-                name: "Professor B",
-                score: 1,
-            },
-            {
-                name: "Professor C",
-                score: 3,
-            },
-            {
-                name: "Professor D",
-                score: 4,
-            },
-            {
-                name: "Professor E",
-                score: 5,
-            },
-        ],
-        course:[
-            {code:'CISC1001'},
-            {code:'ACCT1001'},
-            {code:'CISC2005'},
-            {code:'BECO1001'},
-            {code:'BECO1002'}
-        ]
-    }
-
-    return data
-}
-const allowLegacyRenegotiationOptions = {
-    httpsAgent: new https.Agent({
-        secureOptions: crypto.constants.SSL_OP_LEGACY_SERVER_CONNECT,
-    }),
-    headers: {
-        Authorization: 'Bearer bfa9b6c0-3f4f-3b1f-92c4-1bdd885a1ca2',
-    },
-};
 
 export default function Home() {
     const form = useForm<z.infer<typeof formSchema>>({
@@ -104,15 +58,7 @@ export default function Home() {
         }
 
     }
-
     const [is_prof, set_is_prof] = useState(false)
-    const [statics_data, set_statics_data] = useState({ prof: [], course: [] })
-
-    useEffect(() => {
-        fetchData().then((data:any) => {
-            set_statics_data(data)
-        })
-    },[])
 
     return (
         <>
