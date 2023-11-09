@@ -15,9 +15,9 @@ const Footer = async () => {
     const git=await fetchGitData()
     return(
         <div className='bg-gray-300/10'>
-            <div className='max-w-screen-xl mx-auto p-4 space-y-4 mb-4'>
+            <div className='max-w-screen-xl mx-auto p-4 space-y-4 mb-4 pt-8'>
                 <div>
-                    <div className="flex flex-wrap items-center justify-start">
+                    <div className="flex flex-wrap items-center justify-start pb-2">
                         <Cat size={24} strokeWidth={2} color='rgb(14 165 233)'/>
                         <Link href="/" className="flex items-center mr-10">
                             <span className="self-center text-2xl font-semibold whitespace-nowrap bg-gradient-to-r from-sky-500 to-indigo-600 bg-clip-text text-transparent">What2Reg @UM</span>
@@ -25,7 +25,7 @@ const Footer = async () => {
                     </div>
                 </div>
 
-                <div className='flex md:space-x-4 underline underline-offset-1 font-semibold text-sm flex-col md:flex-row space-y-2 md:space-y-0'>
+                <div className='flex md:space-x-4 underline underline-offset-1 font-semibold text-xs flex-col md:flex-row space-y-2 md:space-y-0'>
                     <Link href='/'>
                         GitHub
                     </Link>
