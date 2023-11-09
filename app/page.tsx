@@ -24,7 +24,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { useEffect, useState } from "react";
-import { CircleDollarSign, Microscope, Newspaper, BookMarked, Scale, School, Search, Bot, Star } from "lucide-react";
+import { CircleDollarSign, Microscope, Newspaper, BookMarked, Scale, School, Search, Bot, Star, Radar, Github } from "lucide-react";
 import { useRouter } from "next/navigation";
 import crypto from 'crypto';
 import https from 'https';
@@ -198,6 +198,43 @@ export default function Home() {
                     </div>
                 </div>
             </div>   
+            <div>
+            <div className='max-w-screen-xl mx-auto p-4'>
+                    <div className='grid grid-cols-1 md:grid-cols-2 mx-8 py-8 '>
+                        <div className='md:flex flex-col justify-cente hidden space-y-8'>
+                            <div className='text-2xl font-bold'>
+                                Suggesstion or Feedback?
+                            </div>
+                            {/* add discord icon and link */}
+                            <Card className="flex items-center space-x-4 p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md w-fit">
+                                <Radar size={40} strokeWidth={1.75} />
+                                <div className="">
+                                    <h2 className="text-base font-bold text-gray-900 dark:text-white">UMHelper Community</h2>
+                                    <p className="text-sm text-gray-500 dark:text-gray-300">
+                                    Be part of our community.
+                                    </p>
+                                </div>
+                                <Button variant="secondary">Join Server</Button>
+                            </Card>
+                        </div>
+                        <div className='md:flex flex-col justify-center hidden space-y-8'>
+                            <div className='text-2xl font-bold'>
+                                Join our open source project
+                            </div>
+                            <Card className="flex items-center space-x-4 p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md w-fit">
+                                <Github size={40} strokeWidth={1.75} />
+                                <div className="">
+                                    <h2 className="text-base font-bold text-gray-900 dark:text-white">UMHelper Dev Group</h2>
+                                    <p className="text-sm text-gray-500 dark:text-gray-300">
+                                    Become a contributor of UMHelper.
+                                    </p>
+                                </div>
+                                <Button variant="secondary">Fix Bug NOW</Button>
+                            </Card>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </>
 
     )
