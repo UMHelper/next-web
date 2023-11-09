@@ -214,19 +214,19 @@ export default function Home() {
                                     Be part of our community.
                                     </p>
                                 </div>
-                                <Button variant="secondary">Join Server</Button>
+                                <Button variant="secondary">Join Discord Server</Button>
                             </Card>
                         </div>
                         <div className='md:flex flex-col justify-center hidden space-y-8'>
                             <div className='text-2xl font-bold'>
-                                Join our open source project
+                                We are open source!
                             </div>
                             <Card className="flex items-center space-x-4 p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md w-fit">
                                 <Github size={40} strokeWidth={1.75} />
                                 <div className="">
                                     <h2 className="text-base font-bold text-gray-900 dark:text-white">UMHelper Dev Group</h2>
                                     <p className="text-sm text-gray-500 dark:text-gray-300">
-                                    Become a contributor of UMHelper.
+                                    We need your help!
                                     </p>
                                 </div>
                                 <Button variant="secondary">Fix Bug NOW</Button>
