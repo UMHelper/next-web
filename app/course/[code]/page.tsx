@@ -20,13 +20,30 @@ const allowLegacyRenegotiationOptions = {
 
 
 async function fetchCourseInfo(code:string){
+    if (code.startsWith('TEST')){
+        return {
+            'courseCode':'TEST',
+            'courseTitle':'Test',
+            'offeringProgLevel':'Test',
+            'suggestedYearOfStudy':'Test',
+            'credits':'Test',
+            'offeringDept':'Test',
+            'offeringUnit':'Test',
+            'mediumOfInstruction':'Test',
+            'gradingSystem':'Test',
+            'courseType':'Test',
+            'duration':'Test',
+            'courseDescription':'Test',
+            'ilo':'Test',
+        }
+    }
     const response=await axios.get('https://api.data.um.edu.mo/service/academic/course_catalog/v1.0.0/all?course_code='+code.toUpperCase(), allowLegacyRenegotiationOptions)
     const data=await response.data
     return data['_embedded'][0]
 }
 
 async function fetchData(code:string){
-    const course= await fetchCourseInfo(code)
+    const course=await fetchCourseInfo(code)
     const profList:any=await getProfListByCourse(code)
     let isOffer = false
     for (const prof of profList){
@@ -35,6 +52,7 @@ async function fetchData(code:string){
             break
         }
     }
+    console.log(course)
     return {course,profList,isOffer}
 }
 
