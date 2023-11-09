@@ -2,7 +2,12 @@ import {Cat} from "lucide-react";
 import Link from "next/link";
 import { useEffect,useState } from "react";
 async function fetchGitData() {
-    const response=await fetch("https://api.github.com/repos/UMHelper/next-web/branches/main")
+    const response=await fetch("https://api.github.com/repos/UMHelper/next-web/branches/main",
+    {
+        next: {
+            revalidate: 3600, // 1 hour
+        }
+    })
     const data=await response.json()
     return data
 }
