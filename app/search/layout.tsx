@@ -88,12 +88,12 @@ export default function RootLayout({ children, }: { children: React.ReactNode })
                 <div>
                     <div>
                     {
-                        is_prof ? 'Search Instructors' : 'Search Courses'
+                        !is_prof ? 'Search Instructors' : 'Search Courses'
                     }
                     </div>
                     <div>
                         {
-                            is_prof ? '搜尋讲师' : '搜尋課程'
+                            !is_prof ? '搜尋讲师' : '搜尋課程'
                         }
                     </div>
                 </div>
