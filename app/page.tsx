@@ -29,6 +29,7 @@ import { useRouter } from "next/navigation";
 import crypto from 'crypto';
 import https from 'https';
 import axios from 'axios';
+import Link from "next/link";
 
 const formSchema = z.object({
     code: z.string()
@@ -214,7 +215,11 @@ export default function Home() {
                                     Be part of our community.
                                     </p>
                                 </div>
-                                <Button variant="secondary">Join Discord Server</Button>
+                                <Button variant="secondary">
+                                    <Link href='https://discord.gg/y8RsDQbw'>
+                                    Join Discord Server
+                                    </Link>
+                                </Button>
                             </Card>
                         </div>
                         <div className='md:flex flex-col justify-center hidden space-y-8'>
@@ -229,7 +234,11 @@ export default function Home() {
                                     We need your help!
                                     </p>
                                 </div>
-                                <Button variant="secondary">Fix Bug NOW</Button>
+                                <Button variant="secondary">
+                                    <Link href="https://github.com/UMHelper/next-web/issues?q=is%3Aopen+is%3Aissue+label%3A%22help+wanted%22+">
+                                    Fix Bug NOW
+                                    </Link>
+                                </Button>
                             </Card>
                         </div>
                     </div>
