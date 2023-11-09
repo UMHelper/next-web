@@ -1,16 +1,35 @@
-import Link from "next/link"
+import CourseCard from "@/components/course_card"
+import { Masonry } from "@/components/masonry"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { fuzzySearch } from "@/lib/database/fuzzy-search"
 
+const fetchData = async (code: string) => {
+    const data: any = await fuzzySearch(code, 'instructor')
+    return data
+}
 
-function InstructorSearchPage({params}:{params:{name:string}}){
-    return(
-        <div>
-            <div>
-            Developing. If you are seeing this, it means that the page is not ready yet.
-            </div>
-            <div>
-                If you are insterested in Web Development, please help us to develop this page on <Link className="underline" href="https://github.com/UMHelper/next-web/tree/main">Github</Link>
-            </div>
-        </div>
+async function InstructorSearchPage({ params }: { params: { name: string } }) {
+    const data = await fetchData(params.name)
+    return (
+        <Accordion type="single" collapsible className="w-full">
+            {
+                data.map(({ prof_name, course_list }: { prof_name: any, course_list: any }, index: any) => {
+                    return (
+                        <AccordionItem value={prof_name + index} key={prof_name + index}>
+                            <AccordionTrigger>{prof_name}</AccordionTrigger>
+                            <AccordionContent>
+                                <Masonry col={3} className="mx-auto">
+                                    {course_list.map((course: any, index: any) => {
+                                        return <CourseCard data={course} key={index} />
+                                    })}
+                                </Masonry>
+                            </AccordionContent>
+                        </AccordionItem>
+
+                    )
+                })
+            }
+        </Accordion>
     )
 }
 
