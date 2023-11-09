@@ -2,7 +2,7 @@ import Toolbar from "@/components/toolbar";
 import {Card, CardContent} from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import {Button} from "@/components/ui/button";
-import {CalendarRange, ClipboardEdit} from "lucide-react";
+import {CalendarRange, ChevronRightCircle, ClipboardEdit} from "lucide-react";
 import { Masonry } from "@/components/masonry";
 import { CommentCard } from "@/components/comment_card";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -47,8 +47,11 @@ const ReviewPage=async ({params}:{params:{code:string,prof:string}})=>{
                             <div>
                                 <div className='text-sm'>{course_info['New_code']}</div>
                                 <div className='text-sm'>{course_info["courseTitleEng"]}</div>
-                                <div className='md:pb-2 flex-row flex space-x-1 mt-4'>
+                                <div className='md:pb-2 flex-row flex space-x-2 mt-4'>
+                                    <Link className="flex space-x-2" href={'/search/instructor/'+prof_info.prof_id}>
                                     <div className='font-bold text-3xl'>{prof_info['prof_id']}</div>
+                                    <ChevronRightCircle size={16} strokeWidth={1.5} />
+                                    </Link>
                                     {(
                                         is_offered?
                                             <div className='text-sm font-semibold rounded-3xl bg-gradient-to-r from-indigo-600 to-purple-600 h-fit py-0.5 px-2 shadow'> Offered</div>
