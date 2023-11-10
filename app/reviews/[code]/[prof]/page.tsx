@@ -101,7 +101,7 @@ const ReviewPage=async ({params}:{params:{code:string,prof:string}})=>{
                                         </div>
                                         <div className='space-y-1 text-sm'>
                                             <div>
-                                                輕鬆 Easy
+                                                難度 Difficulty
                                             </div>
                                             <Progress value={prof_info['hard']*20} className='h-1 ' />
                                         </div>

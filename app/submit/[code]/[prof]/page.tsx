@@ -19,7 +19,7 @@ import { useRouter } from 'next/navigation';
 const SubmitPage = ({params}:{params:any}) => {
     const formSchema = z.object({
         code: z.string().length(8).default(params.code),
-        prof: z.string().default(params.prof.replaceAll("%20"," ")),
+        prof: z.string().default(params.prof.replaceAll("%20"," ").replaceAll('$', '/')),
         attendance: z.enum(['1','2.5','5']).default('2.5'),
         pre: z.enum(['1','2.5','5']).default('2.5'),
         grade: z.number().min(0).max(5),
@@ -34,7 +34,7 @@ const SubmitPage = ({params}:{params:any}) => {
         resolver: zodResolver(formSchema),
         defaultValues:{
             code: params.code,
-            prof: params.prof.replaceAll("%20"," "),
+            prof: params.prof.replaceAll("%20"," ").replaceAll('$', '/'),
             attendance: '2.5',
             pre: '2.5',
             grade: 2.5,
@@ -56,12 +56,12 @@ const SubmitPage = ({params}:{params:any}) => {
             body: JSON.stringify(values),
             method: 'POST',
         })
-        route.push(`/review/${params.code}/${params.prof}`)
+        route.push(`/reviews/${params.code}/${params.prof}`)
     }
     return (
         <div className='max-w-screen-xl mx-auto p-10 md:p-20'>
             <div className='text-3xl antialiased mb-4'>
-                Commenting on {params.prof.replaceAll("%20"," ")} for {params.code} 
+                Commenting on {params.prof.replaceAll("%20"," ").replaceAll('$', '/')} for {params.code} 
             </div>
             <div>
                 <Form {...form}>

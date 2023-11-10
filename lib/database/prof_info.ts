@@ -4,7 +4,7 @@ export const getProfInfo = async (code: string,prof:string) => {
     const { data, error } = await supabase.from('prof_with_course')
                             .select('*')
                             .eq('course_id', code)
-                            .eq('prof_id', prof.replaceAll("%20"," "))
+                            .eq('prof_id', prof.replaceAll("%20"," ").replaceAll('$', '/'))
                             .single()
     return data
 }
