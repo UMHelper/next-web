@@ -30,14 +30,14 @@ async function fetchData(code:string,prof:string) {
     }
 }
 
-const ReviewPage=async ({params}:{params:{code:string,prof:string}})=>{
+const ReviewPage=async ({params}:{params:{code:string,prof:string[]}})=>{
     const {
         timetable,
         comment,
         prof_info,
         is_offered,
         course_info
-    }=await fetchData(params.code,params.prof);
+    }=await fetchData(params.code,params.prof.join('/'));
     return(
         <>
             <div className='bg-gradient-to-r from-purple-400 to-rose-500 text-white p-4'>
