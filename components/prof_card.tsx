@@ -3,9 +3,9 @@ import {cn, get_bg, get_gpa} from "@/lib/utils";
 import {Separator} from "@/components/ui/separator";
 import Link from "next/link";
 
-const ProfCard= ({data,code}:{data:any,code:any})=>{
+const ProfCard= ({data,code,detailed=true}:{data:any,code:any,detailed:boolean})=>{
     return(
-        <Link href={'/reviews/'+code+'/'+data.prof_id.replaceAll('/','$')}>
+        <Link href={'/reviews/'+code+'/'+data.prof_id}>
             <Card className='hover:cursor-pointer hover:shadow-lg'>
                 <CardHeader className='pb-0.5'>
                     <div className='flex flex-row justify-between'>
@@ -29,7 +29,9 @@ const ProfCard= ({data,code}:{data:any,code:any})=>{
                             {get_gpa(data.result)}
                         </div>
                     </div>
-                    <Separator className='my-1'/>
+                    {detailed?<Separator className='my-1'/>:null}
+                    {detailed?
+                    (
                     <div className='flex flex-row text-xs font-semibold space-x-2'>
                         <div>
                             <div className='text-gray-400'>
@@ -67,6 +69,7 @@ const ProfCard= ({data,code}:{data:any,code:any})=>{
                             </div>
                         </div>
                     </div>
+                    ):null}
                 </CardContent>
             </Card>
         </Link>    
