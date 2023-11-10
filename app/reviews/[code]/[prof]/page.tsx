@@ -16,8 +16,8 @@ import {COMMENT} from "@/consant";
 
 async function fetchData(code:string,prof:string) {
     const timetable=COMMENT['prof_info']['offer_info']['schedules'];
-    const comment= await getCommentList(code,prof);
-    const prof_info=await getProfInfo(code,prof);
+    const comment= await getCommentList(code,prof.replaceAll('$','/'));
+    const prof_info=await getProfInfo(code,prof.replaceAll('$','/'));
     const is_offered=prof_info['is_offered'];
     const course_info=(await fuzzySearch(code,'course'))[0];
 
@@ -37,7 +37,7 @@ const ReviewPage=async ({params}:{params:{code:string,prof:string}})=>{
         prof_info,
         is_offered,
         course_info
-    }=await fetchData(params.code,params.prof);
+    }=await fetchData(params.code,params.prof.replaceAll('$','/'));
     return(
         <>
             <div className='bg-gradient-to-r from-purple-400 to-rose-500 text-white p-4'>

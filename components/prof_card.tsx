@@ -5,7 +5,7 @@ import Link from "next/link";
 
 const ProfCard= ({data,code}:{data:any,code:any})=>{
     return(
-        <Link href={'/reviews/'+code+'/'+data.prof_id}>
+        <Link href={'/reviews/'+code+'/'+data.prof_id.replaceAll('/','$')}>
             <Card className='hover:cursor-pointer hover:shadow-lg'>
                 <CardHeader className='pb-0.5'>
                     <div className='flex flex-row justify-between'>
