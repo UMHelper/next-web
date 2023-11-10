@@ -67,10 +67,10 @@ export default function Home() {
                     <div className='flex justify-between mx-8 py-8 '>
                         <div className='md:flex flex-col justify-center text-white hidden space-y-2'>
                             <div className='text-4xl'>
-                                澳大选咩课
+                                澳大選咩課
                             </div>
                             <div className='text-3xl'>
-                                What2REG @UM
+                                What2Reg @UM
                             </div>
                             <div className='text-base'>
                                 專為澳大學生而設的課程評價網站
@@ -119,7 +119,7 @@ export default function Home() {
                                                     <div className='my-0 flex items-center space-x-2'>
                                                         <div>
                                                             <FormLabel className="text-base">
-                                                                搜索讲师
+                                                                搜索講師
                                                             </FormLabel>
                                                             <FormDescription >
                                                                 Search Instructors
@@ -137,7 +137,7 @@ export default function Home() {
                                 </Form>
                             </CardContent>
                             <CardFooter className='text-xs text-gray-400 flex flex-col items-start'>
-                                <div>輸入部分課程代碼/名稱或講師姓名</div>
+                                <div>鍵入部分課程代碼/名稱或講師姓名</div>
                                 <div className='max-w-sm'>Search by course codes/titles, or name of instructors (partial search supported)</div>
                                 <div className='italic'>Data Source: reg.um.edu.mo</div>
                             </CardFooter>

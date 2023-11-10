@@ -30,7 +30,7 @@ export default function RootLayout({ children, }: { children: React.ReactNode })
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
-            code: pathname_list[3].toUpperCase().replaceAll('%20', ' ')
+            code: pathname_list[3].toUpperCase().replaceAll('%20', ' ').replaceAll('$', '/')
         },
     })
 
@@ -88,12 +88,12 @@ export default function RootLayout({ children, }: { children: React.ReactNode })
                 <div>
                     <div>
                     {
-                        !is_prof ? 'Search Instructors' : 'Search Courses'
+                        !is_prof ? 'Search Courses' : 'Search Intructors'
                     }
                     </div>
                     <div>
                         {
-                            !is_prof ? '搜尋讲师' : '搜尋課程'
+                            !is_prof ? '搜尋課程' : '搜尋讲师'
                         }
                     </div>
                 </div>

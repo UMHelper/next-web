@@ -30,15 +30,14 @@ async function fetchData(code:string,prof:string) {
     }
 }
 
-const ReviewPage=async ({params}:{params:{code:string,prof:string[]}})=>{
+const ReviewPage=async ({params}:{params:{code:string,prof:string}})=>{
     const {
         timetable,
         comment,
         prof_info,
         is_offered,
         course_info
-    }=await fetchData(params.code,params.prof.join('/'));
-
+    }=await fetchData(params.code,params.prof.replaceAll('$','/'));
     return(
         <>
             <div className='bg-gradient-to-r from-purple-400 to-rose-500 text-white p-4'>
@@ -46,15 +45,8 @@ const ReviewPage=async ({params}:{params:{code:string,prof:string[]}})=>{
                 
                         <div className='flex flex-col md:flex-row justify-between'>
                             <div>
-                                <div className="pb-4">
-                                    <Link href={"/search/course/" + course_info['New_code'].substring(0, 4)} className="flex space-x-1 items-center">
-                                    <div className='text-base'>{course_info['New_code'].substring(0, 4)}</div>
-                                    <ChevronRightCircle size={14} strokeWidth={1.5} />
-                                    </Link>
-                                </div>
-                                <div className='text-base'>{course_info['New_code']}</div>
-                                <div className='text-base'>{course_info["courseTitleEng"]}</div>
-                                <div className='text-sm'>{course_info["courseTitleChi"]}</div>
+                                <div className='text-sm'>{course_info['New_code']}</div>
+                                <div className='text-sm'>{course_info["courseTitleEng"]}</div>
                                 <div className='md:pb-2 flex-row flex space-x-2 mt-4'>
                                     <Link className="flex space-x-2" href={'/search/instructor/'+prof_info.prof_id}>
                                     <div className='font-bold text-3xl'>{prof_info['prof_id']}</div>
