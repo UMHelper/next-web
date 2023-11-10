@@ -11,7 +11,7 @@ const fetchData = async (code: string) => {
 async function InstructorSearchPage({ params }: { params: { name: string } }) {
     const data = await fetchData(params.name)
     return (
-        <Accordion type="single" className="w-full">
+        <Accordion type="single" collapsible className="w-full">
             {
                 data.map(({ prof_name, course_list }: { prof_name: any, course_list: any }, index: any) => {
                     return (
