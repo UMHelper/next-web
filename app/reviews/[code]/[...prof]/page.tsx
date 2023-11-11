@@ -45,11 +45,11 @@ const ReviewPage = async ({ params }: { params: { code: string, prof: string[] }
 
     return (
         <>
-            <div className='bg-gradient-to-r from-purple-400 to-rose-500 text-white p-4'>
+            <div className='bg-gradient-to-r from-purple-400 to-rose-500 text-white p-3'>
                 <div className='max-w-screen-xl mx-auto p-4'>
 
                     <div className='flex flex-col md:flex-row justify-between'>
-                        <div>
+                        <div className="py-6">
                             <div className="pb-4">
                                 <Link href={"/search/course/" + course_info['New_code'].substring(0, 4)} className="flex space-x-1 items-center">
                                     <div className='text-sm'>{course_info['New_code'].substring(0, 4)}</div>

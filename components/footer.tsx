@@ -15,7 +15,7 @@ const Footer = async () => {
     const git=await fetchGitData()
     return(
         <div className='bg-gray-300/10'>
-            <div className='max-w-screen-xl mx-auto p-4 space-y-4 mb-4 pt-8'>
+            <div className='max-w-screen-xl mx-auto px-6 py-10 space-y-4 '>
                 <div>
                     <div className="flex flex-wrap items-center justify-start pb-2">
                         <Cat size={24} strokeWidth={2} color='rgb(14 165 233)'/>

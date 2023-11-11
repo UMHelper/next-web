@@ -71,6 +71,11 @@ async function fetchCourseInfo(code: string) {
 async function fetchData(code: string) {
     const course = await fetchCourseInfo(code)
     const profList: any = await getProfListByCourse(code)
+    profList.sort((a:any, b:any) => {
+        if (a['is_offered'] && !b['is_offered']) return -1
+        else if (!a['is_offered'] && b['is_offered']) return 1
+        else return 0
+    })
     let isOffer = false
     for (const prof of profList) {
         if (prof['is_offered']) {
@@ -97,10 +102,10 @@ async function CoursePage({ params }: { params: { code: string } }) {
     console.log(course)
     return (
         <>
-            <div className='bg-gradient-to-r from-purple-400 to-rose-500 text-white p-4'>
+            <div className='bg-gradient-to-r from-purple-400 to-rose-500 text-white p-3'>
                 <div className='max-w-screen-xl mx-auto p-4'>
                     <div className='flex flex-col md:flex-row justify-between'>
-                        <div>
+                        <div className="py-6">
                             <div className="text-sm pb-2">
                                 <Link href={"/search/course/" + course['courseCode'].substring(0, 4)} className="flex space-x-1">
                                     <div>
@@ -109,7 +114,7 @@ async function CoursePage({ params }: { params: { code: string } }) {
                                     <ArrowUpRightSquare size={12} />
                                 </Link>
                             </div>
-                            <div className='md:pb-2 flex-row flex space-x-1'>
+                            <div className='pb-2 flex-row flex space-x-1'>
                                 <div className='text-3xl font-bold space-x-1'>
                                     <span>
                                         <Link href={"/search/course/" + course['courseCode'].substring(0, 4)}>
@@ -129,7 +134,7 @@ async function CoursePage({ params }: { params: { code: string } }) {
                             <div className='text-sm'>{course['offeringProgLevel'] + ' Course, Year ' + course['suggestedYearOfStudy']}</div>
                             <Toolbar course={course} prof={undefined} />
                         </div>
-                        <div className='space-y-4'>
+                        <div className='py-6 space-y-4'>
                             <div className='space-y-1'>
                                 <div className='flex-row flex space-x-4'>
                                     <div>

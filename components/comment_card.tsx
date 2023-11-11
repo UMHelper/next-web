@@ -74,7 +74,7 @@ https://umeh.top/reviews/${course.New_code}/${prof.prof_id.replaceAll(/ /g, '%20
 
                         <div>
                             <div className='text-gray-400'>
-                                Easy
+                                Difficulty
                             </div>
                             <div className={cn(get_bg(comment.hard),'bg-clip-text text-transparent')}>
                                 {get_gpa(comment.hard)}
