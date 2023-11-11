@@ -49,52 +49,54 @@ export default function RootLayout({ children, }: { children: React.ReactNode })
             <div className='text-2xl font-semibold'>
                 You are searching:
             </div>
-            <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2">
-                    <div className="flex flex-row space-x-4">
-                        <FormField
-                            control={form.control}
-                            name="code"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormControl>
-                                        <Input placeholder={pathname_list[2] === 'instructor' ? "e.g., CHAN Tai Man" : "e.g., ACCT1000 or Accounting"} {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <Button type="submit" className='bg-gradient-to-r from-purple-400 to-rose-500'>
-                            <Search size={20} />
-                            <span>Search</span>
-                        </Button>
-                    </div>
-                </form>
-            </Form>
-            <div className="my-0 flex items-center space-x-2">
-                <Switch
-                    checked={is_prof}
-                    onClick={() => {
-                        if (is_prof) {
-                            serIsProf(false)
-                            router.push('/search/course/' + pathname_list[3].toUpperCase())
-                        }
-                        else {
-                            serIsProf(true)
-                            router.push('/search/instructor/' + pathname_list[3].toUpperCase())
-                        }
-                    }}
-                />
-                <div>
+            <div className="flex flex-row space-x-2 items-center justify-between">
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2">
+                        <div className="flex flex-row space-x-4">
+                            <FormField
+                                control={form.control}
+                                name="code"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormControl>
+                                            <Input placeholder={pathname_list[2] === 'instructor' ? "e.g., CHAN Tai Man" : "e.g., ACCT1000 or Accounting"} {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <Button type="submit" className='bg-gradient-to-r from-blue-600 to-indigo-500'>
+                                <Search size={20} />
+                                <span>Search</span>
+                            </Button>
+                        </div>
+                    </form>
+                </Form>
+                <div className="my-0 flex items-center space-x-2">
+                    <Switch
+                        checked={is_prof}
+                        onClick={() => {
+                            if (is_prof) {
+                                serIsProf(false)
+                                router.push('/search/course/' + pathname_list[3].toUpperCase())
+                            }
+                            else {
+                                serIsProf(true)
+                                router.push('/search/instructor/' + pathname_list[3].toUpperCase())
+                            }
+                        }}
+                    />
                     <div>
-                    {
-                        !is_prof ? 'Search Courses' : 'Search Intructors'
-                    }
-                    </div>
-                    <div>
-                        {
-                            !is_prof ? '搜尋課程' : '搜尋讲师'
-                        }
+                        <div>
+                            {
+                                'Search Intructors'
+                            }
+                        </div>
+                        <div>
+                            {
+                                '搜尋讲师'
+                            }
+                        </div>
                     </div>
                 </div>
             </div>
