@@ -73,7 +73,7 @@ const ReviewPage = async ({ params }: { params: { code: string, prof: string[] }
                                     </Link>
                                     {(
                                         is_offered?
-                                            <div className='text-sm font-semibold rounded-3xl bg-gradient-to-r from-indigo-600 to-purple-600 h-fit py-0.5 px-2 shadow'> Offered</div>
+                                            <div className='text-sm font-semibold rounded-3xl bg-gradient-to-r from-indigo-600  to-purple-600 h-fit py-0.5 px-2 shadow'> Offered</div>
                                             :
                                             <div className='text-sm font-semibold rounded-3xl bg-gradient-to-r from-neutral-700 to-stone-900 h-fit py-0.5 px-2 shadow'> Not Offered</div>
                                     )}

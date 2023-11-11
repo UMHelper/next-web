@@ -29,9 +29,7 @@ const ProfCard= ({data,code}:{data:any,code:any})=>{
                             {get_gpa(data.result)}
                         </div>
                     </div>
-                    {detailed?<Separator className='my-1'/>:null}
-                    {detailed?
-                    (
+                    <Separator className='my-1'/>
                     <div className='flex flex-row text-xs font-semibold space-x-2'>
                         <div>
                             <div className='text-gray-400'>
@@ -69,7 +67,6 @@ const ProfCard= ({data,code}:{data:any,code:any})=>{
                             </div>
                         </div>
                     </div>
-                    ):null}
                 </CardContent>
             </Card>
         </Link>    
