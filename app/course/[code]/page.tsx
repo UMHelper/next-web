@@ -197,7 +197,7 @@ async function CoursePage({ params }: { params: { code: string } }) {
                 <Masonry col={3} className={""}>
                     {profList.map((data, index) => {
                         return (
-                            <ProfCard key={index} data={data} code={course['courseCode']} detailed={true} />
+                            <ProfCard key={index} data={data} code={course['courseCode']} />
                         )
                     })}
                 </Masonry>
