@@ -8,11 +8,12 @@ import { CommentCard } from "@/components/comment_card";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { TimetableCard } from "@/components/timetable-card";
 import { getCommentList } from "@/lib/database/comment-list";
-import { getProfInfo } from "@/lib/database/prof_info";
+import { getProfInfo } from "@/lib/database/prof-info";
 import { fuzzySearch } from "@/lib/database/fuzzy-search";
 import Link from "next/link";
 
 import {COMMENT} from "@/consant";
+import { getCourseInfo } from "@/lib/database/course-info";
 
 async function fetchData(code:string,prof:string) {
     const timetable=COMMENT['prof_info']['offer_info']['schedules'];
@@ -20,7 +21,8 @@ async function fetchData(code:string,prof:string) {
     const prof_info=await getProfInfo(code,prof.replaceAll('$','/'));
     
     const is_offered=prof_info['is_offered'];
-    const course_info=(await fuzzySearch(code,'course'))[0];
+    const course_info=await getCourseInfo(code);
+    //(await fuzzySearch(code,'course'))[0];
 
     return {
         timetable,
@@ -47,25 +49,25 @@ const ReviewPage=async ({params}:{params:{code:string,prof:string[]}})=>{
                 
                         <div className='flex flex-col md:flex-row justify-between'>
                             <div>
-                                <div className="pb-2">
+                                <div className="pb-4">
                                     <Link href={"/search/course/" + course_info['New_code'].substring(0, 4)} className="flex space-x-1 items-center">
-                                    <div className='text-base'>{course_info['New_code'].substring(0, 4)}</div>
+                                    <div className='text-sm'>{course_info['New_code'].substring(0, 4)}</div>
                                     <ChevronRightCircle size={14} strokeWidth={1.5} />
                                     </Link>
                                 </div>
-                                <div className='text-base'>
+                                <div className='font-bold text-xl'>
                                     <Link href={"/course/"+course_info['New_code']} className="flex space-x-1 items-center">
-                                    <div>
+                                    <h2>
                                     {course_info['New_code']}
-                                    </div>
+                                    </h2>
                                     <ChevronRightCircle size={14} strokeWidth={1.5} />
                                     </Link>
                                 </div>
                                 <div className='text-base'>{course_info["courseTitleEng"]}</div>
                                 <div className='text-sm'>{course_info["courseTitleChi"]}</div>
-                                <div className='md:pb-2 flex-row flex space-x-2 mt-4'>
+                                <div className='pb-4 flex-row flex space-x-2 mt-4'>
                                     <Link className="flex space-x-2" href={'/search/instructor/'+prof_info.prof_id}>
-                                    <div className='font-bold text-3xl'>{prof_info['prof_id']}</div>
+                                    <h1 className='font-bold text-3xl'>{prof_info['prof_id']}</h1>
                                     <ChevronRightCircle size={16} strokeWidth={1.5} />
                                     </Link>
                                     {(
@@ -87,7 +89,7 @@ const ReviewPage=async ({params}:{params:{code:string,prof:string[]}})=>{
                                         <Popover>
                                             <PopoverTrigger asChild>
                                                 <Button className='text-sm px-2 hover:shadow-lg  bg-white text-blue-800 hover:bg-gray-200' disabled>
-                                                    <CalendarRange size={16}/> Timetable (Developing)
+                                                    <CalendarRange size={16}/> <span>Timetable (IP)</span>
                                                 </Button>
                                             </PopoverTrigger>
                                             <PopoverContent className="w-80">

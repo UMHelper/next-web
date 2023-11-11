@@ -9,6 +9,8 @@ import Toolbar from "@/components/toolbar";
 import { ArrowUpRightSquare } from "lucide-react";
 import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import Link from "next/link";
+import { error } from "console";
+import { getCourseInfo } from "@/lib/database/course-info";
 
 const allowLegacyRenegotiationOptions = {
     httpsAgent: new https.Agent({
@@ -21,26 +23,49 @@ const allowLegacyRenegotiationOptions = {
 
 
 async function fetchCourseInfo(code: string) {
-    if (code.startsWith('TEST')) {
-        return {
-            'courseCode': 'TEST',
-            'courseTitle': 'Test',
-            'offeringProgLevel': 'Test',
-            'suggestedYearOfStudy': 'Test',
-            'credits': 'Test',
-            'offeringDept': 'Test',
-            'offeringUnit': 'Test',
-            'mediumOfInstruction': 'Test',
-            'gradingSystem': 'Test',
-            'courseType': 'Test',
-            'duration': 'Test',
-            'courseDescription': 'Test',
-            'ilo': 'Test',
+    return await axios
+    .get('https://api.data.um.edu.mo/service/academic/course_catalog/v1.0.0/all?course_code=' + code.toUpperCase(), allowLegacyRenegotiationOptions)
+    .then(async response => {
+        if (response.data['_embedded'][0] != undefined)
+            return response.data['_embedded'][0];
+        else {
+            // empty response, fallback to local data
+            const course_info=await getCourseInfo(code);
+            return ({
+                'courseCode': code.toUpperCase(),
+                'courseTitle': course_info['courseTitleEng'],
+                'offeringProgLevel': course_info['offeringProgLevel'],
+                'suggestedYearOfStudy': course_info['suggestedYearOfStudy'],
+                'credits': course_info['Credits'],
+                'offeringDept': course_info['Offering_Department'],
+                'offeringUnit': course_info['Offering_Unit'],
+                'mediumOfInstruction': course_info['Medium_of_Instruction'],
+                'gradingSystem': course_info['gradingSystem'],
+                'courseType': course_info['courseType'],
+                'duration': course_info['Course_Duration'],
+                'courseDescription': course_info['courseDescription'],
+                'ilo': course_info['ilo'],
+            })
         }
-    }
-    const response = await axios.get('https://api.data.um.edu.mo/service/academic/course_catalog/v1.0.0/all?course_code=' + code.toUpperCase(), allowLegacyRenegotiationOptions)
-    const data = await response.data
-    return data['_embedded'][0]
+
+     })
+    .catch(function (error) {
+        return ({
+            'courseCode': code.toUpperCase(),
+            'courseTitle': 'Error: ' + error.toString(),
+            'offeringProgLevel': 'Error',
+            'suggestedYearOfStudy': 'Error',
+            'credits': 'Error',
+            'offeringDept': 'Error',
+            'offeringUnit': 'Error',
+            'mediumOfInstruction': 'Error',
+            'gradingSystem': 'Error',
+            'courseType': 'Error',
+            'duration': 'Error',
+            'courseDescription': error.toString(),
+            'ilo': error.toString(),
+        })
+    });
 }
 
 async function fetchData(code: string) {
@@ -53,7 +78,7 @@ async function fetchData(code: string) {
             break
         }
     }
-    console.log(course)
+    //console.log(course)
     return { course, profList, isOffer }
 }
 
@@ -157,7 +182,7 @@ async function CoursePage({ params }: { params: { code: string } }) {
                                             <DialogTitle>Course Description</DialogTitle>
                                         </DialogHeader>
                                         <div className="py-4 text-sm">
-                                            {course['courseDescription']}
+                                            {course['courseDescription'].replaceAll('\n', '<br />')}
                                         </div>
                                         <DialogFooter>
                                             <div className='text-xs italic mt-3'>Data Source: reg.um.edu.mo</div>
@@ -179,7 +204,7 @@ async function CoursePage({ params }: { params: { code: string } }) {
                                             <DialogTitle>Course Description</DialogTitle>
                                         </DialogHeader>
                                         <div className="py-4 text-sm">
-                                            {course['ilo']}
+                                            {course['ilo'].replaceAll('\n', '<br />')}
                                         </div>
                                         <DialogFooter>
                                             <div className='text-xs italic mt-3'>Data Source: reg.um.edu.mo</div>

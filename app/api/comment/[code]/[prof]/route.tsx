@@ -2,7 +2,7 @@ import {NextResponse} from "next/server";
 import {COMMENT} from "@/consant";
 import {delay} from "@/lib/utils";
 import createServer from "@/lib/database/database";
-import { getProfInfo } from "@/lib/database/prof_info";
+import { getProfInfo } from "@/lib/database/prof-info";
 
 export async function GET(){
     await delay(1000)
