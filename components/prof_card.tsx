@@ -3,7 +3,7 @@ import {cn, get_bg, get_gpa} from "@/lib/utils";
 import {Separator} from "@/components/ui/separator";
 import Link from "next/link";
 
-const ProfCard= ({data,code,detailed=true}:{data:any,code:any,detailed:boolean})=>{
+const ProfCard= ({data,code}:{data:any,code:any})=>{
     return(
         <Link href={'/reviews/'+code+'/'+data.prof_id}>
             <Card className='hover:cursor-pointer hover:shadow-lg'>
