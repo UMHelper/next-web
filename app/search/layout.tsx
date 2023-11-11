@@ -66,7 +66,7 @@ export default function RootLayout({ children, }: { children: React.ReactNode })
                         />
                         <Button type="submit" className='bg-gradient-to-r from-purple-400 to-rose-500'>
                             <Search size={20} />
-                            Search
+                            <span>Search</span>
                         </Button>
                     </div>
                 </form>

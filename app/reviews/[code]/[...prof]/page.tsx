@@ -18,6 +18,7 @@ async function fetchData(code:string,prof:string) {
     const timetable=COMMENT['prof_info']['offer_info']['schedules'];
     const comment= await getCommentList(code,prof.replaceAll('$','/'));
     const prof_info=await getProfInfo(code,prof.replaceAll('$','/'));
+    
     const is_offered=prof_info['is_offered'];
     const course_info=(await fuzzySearch(code,'course'))[0];
 
@@ -77,7 +78,7 @@ const ReviewPage=async ({params}:{params:{code:string,prof:string[]}})=>{
                                 <div className='flex-row flex space-x-2'>
                                     <Link href={'/submit/'+params.code+'/'+params.prof}>
                                         <Button className='text-sm px-2 hover:shadow-lg bg-white text-blue-800 hover:bg-gray-200'>
-                                            <ClipboardEdit size={16}/> Submit Review
+                                            <ClipboardEdit size={16}/><span> Submit Review</span>
                                         </Button>
                                     </Link>
                                     

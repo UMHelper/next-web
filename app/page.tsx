@@ -60,21 +60,27 @@ export default function Home() {
     }
     const [is_prof, set_is_prof] = useState(false)
 
+    const bannerStyle = {
+        backgroundImage: `url('./banner.jpg')`,
+        width: '100%',
+        height: '100%',
+    }
+
     return (
         <>
-            <div className='bg-gradient-to-r to-blue-600 from-indigo-600'>
-                <div className='max-w-screen-xl mx-auto p-4'>
-                    <div className='flex justify-between mx-8 py-8 '>
-                        <div className='md:flex flex-col justify-center text-white hidden space-y-2'>
-                            <div className='text-4xl'>
+            <div className='bg-gradient-to-r to-blue-600 from-indigo-600' style={bannerStyle}>
+                <div className='max-w-screen-xl mx-auto p-2'>
+                    <div className='flex justify-between mx-2 py-8 '>
+                        <div className='md:flex flex-col justify-center text-white hidden space-y-2 p-6'>
+                            <h1 className='text-4xl'>
                                 澳大選咩課
-                            </div>
+                            </h1>
                             <div className='text-3xl'>
                                 What2Reg @UM
-                            </div>
-                            <div className='text-base'>
+                            </div><br></br>
+                            <h2 className='text-base'>
                                 專為澳大學生而設的課程評價網站
-                            </div>
+                            </h2>
                             <div className='text-base'>
                                 Course review platform for University of Macau
                             </div>
@@ -85,24 +91,12 @@ export default function Home() {
                             </CardHeader>
                             <CardContent className='space-y-2'>
                                 <div>
-                                    <CardTitle >{is_prof ? '搜尋讲师' : '搜尋課程'}</CardTitle>
+                                    <CardTitle >{is_prof ? '搜尋講師' : '搜尋課程'}</CardTitle>
                                     <CardDescription >{is_prof ? 'Find Instructors' : 'Find Courses'}</CardDescription>
                                 </div>
                                 <Form {...form}>
-                                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2">
-                                        <FormField
-                                            control={form.control}
-                                            name="code"
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormControl>
-                                                        <Input placeholder={is_prof ? "e.g., CHAN Tai Man" : "e.g., ACCT1000 or Accounting"} {...field} />
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-                                        <FormField
+
+                                <FormField
                                             control={form.control}
                                             name="is_prof"
                                             render={({ field }) => (
@@ -119,26 +113,39 @@ export default function Home() {
                                                     <div className='my-0 flex items-center space-x-2'>
                                                         <div>
                                                             <FormLabel className="text-base">
-                                                                搜索講師
+                                                            Search Instructors
                                                             </FormLabel>
                                                             <FormDescription >
-                                                                Search Instructors
+                                                            搜索講師
                                                             </FormDescription>
                                                         </div>
                                                     </div>
                                                 </FormItem>
                                             )}
                                         />
-                                        <Button type="submit" className='bg-gradient-to-r from-purple-400 to-rose-500'>
-                                            <Search size={20} />
-                                            Search
+                                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2">
+                                        <FormField
+                                            control={form.control}
+                                            name="code"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormControl>
+                                                        <Input placeholder={is_prof ? "e.g., CHAN Tai Man" : "e.g., ACCT1000 or Accounting"} {...field} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <br></br>
+                                        <Button type="submit" className='bg-gradient-to-r from-blue-600 to-indigo-500'>
+                                            <Search size={20} /><span>Search</span>
                                         </Button>
                                     </form>
                                 </Form>
                             </CardContent>
                             <CardFooter className='text-xs text-gray-400 flex flex-col items-start'>
                                 <div>鍵入部分課程代碼/名稱或講師姓名</div>
-                                <div className='max-w-sm'>Search by course codes/titles, or name of instructors (partial search supported)</div>
+                                <div className='max-w-sm'>Search by course codes/titles, or name of instructors (partial search supported)</div><br></br>
                                 <div className='italic'>Data Source: reg.um.edu.mo</div>
                             </CardFooter>
                         </Card>
@@ -150,7 +157,7 @@ export default function Home() {
                     <div className='grid grid-cols-1 md:grid-cols-2 mx-8 py-8 gap-y-8 gap-x-4'>
                         <div className='flex flex-col justify-cente space-y-8 items-center md:items-start'>
                             <div className='text-2xl font-bold'>
-                                Suggesstion or Feedback?
+                                Suggesstions or Feedback?
                             </div>
                             <Card className="flex items-center space-x-4 p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md w-fit">
                                 <Radar size={40} strokeWidth={1.75} />
@@ -176,12 +183,12 @@ export default function Home() {
                                 <div className="">
                                     <h2 className="text-base font-bold text-gray-900 dark:text-white">UMHelper Dev Group</h2>
                                     <p className="text-sm text-gray-500 dark:text-gray-300">
-                                    We need your help!
+                                    Join us and contribute together.
                                     </p>
                                 </div>
                                 <Button variant="secondary">
                                     <Link href="https://github.com/UMHelper/next-web/issues?q=is%3Aopen+is%3Aissue+label%3A%22help+wanted%22+">
-                                    Fix Bug NOW
+                                    Fix Bugs NOW
                                     </Link>
                                 </Button>
                             </Card>
