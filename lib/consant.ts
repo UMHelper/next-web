@@ -3,10 +3,10 @@ export const menuList:MenuItem[]=[
         name:'Home',
         href:"/"
     },
-    // {
-    //     name:'Catalog',
-    //     href:"/catalog"
-    // },
+    {
+        name:'Catalog',
+        href:"/catalog"
+    },
     // {
     //     name:'Timetable',
     //     href:"/timetable"
