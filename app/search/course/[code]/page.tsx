@@ -1,5 +1,4 @@
-import {Masonry} from "@/components/masonry";
-import CourseCard from "@/components/course_card";
+import CourseFilter from "@/components/course_filter";
 import { fuzzySearch } from "@/lib/database/fuzzy-search";
 
 const fetchData = async (code:string) => {
@@ -11,11 +10,12 @@ async function CourseSearchPage({params}:{params:{code:string}}){
     const courseList:any[] = await fetchData(params.code)
     return(
         <div>
-            <Masonry col={3} className="mx-auto">
+            <CourseFilter data={courseList}/>
+            {/* <Masonry col={3} className="mx-auto">
                 {courseList.map((course,index)=>{
                     return <CourseCard data={course} key={index}/>
                 })}
-            </Masonry>
+            </Masonry> */}
         </div>
     )
 }

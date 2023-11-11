@@ -4,13 +4,13 @@ export const fuzzySearch = async (keyword:string,type:string) => {
     if (type==='course'){
         const { data:code_data, error:code_error }:{data:any,error:any} = await supabase
         .from('course_noporf')
-        .select('*')
+        .select('')
         .ilike('New_code', `%${keyword}%`)
         const {data:title_data,error}:{data:any,error:any} = await supabase
         .from('course_noporf')
         .select('*')
         .ilike('courseTitleEng', `%${keyword.replaceAll("%20"," ")}%`)
-        return code_data.concat(title_data)
+        return code_data.concat(title_data).sort((a:any, b:any) => a.New_code.localeCompare(b.New_code))
     }
     else{
         const {data:prof_list,error:prof_error}:{data:any,error:any}=await supabase.from('prof_info').select('name').ilike('name', `%${keyword.replaceAll("%20"," ").replaceAll('$', '/')}%`)
