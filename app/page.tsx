@@ -60,15 +60,9 @@ export default function Home() {
     }
     const [is_prof, set_is_prof] = useState(false)
 
-    const bannerStyle = {
-        backgroundImage: `url('./banner.jpg')`,
-        width: '100%',
-        height: '100%',
-    }
-
     return (
         <>
-            <div className='bg-gradient-to-r to-blue-600 from-indigo-600' style={bannerStyle}>
+            <div className='bg-[url("/banner.jpg")]'>
                 <div className='max-w-screen-xl mx-auto p-2'>
                     <div className='flex justify-between mx-2 py-8 '>
                         <div className='md:flex flex-col justify-center text-white hidden space-y-2 p-6'>
