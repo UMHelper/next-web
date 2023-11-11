@@ -45,12 +45,12 @@ const ReviewPage = async ({ params }: { params: { code: string, prof: string[] }
 
     return (
         <>
-            <div className='bg-gradient-to-r from-purple-400 to-rose-500 text-white p-3'>
+            <div className='bg-gradient-to-r from-blue-600 to-indigo-500 text-white p-3'>
                 <div className='max-w-screen-xl mx-auto p-4'>
 
                     <div className='flex flex-col md:flex-row justify-between'>
                         <div className="py-6">
-                            <div className="pb-4">
+                            <div>
                                 <Link href={"/search/course/" + course_info['New_code'].substring(0, 4)} className="flex space-x-1 items-center">
                                     <div className='text-sm'>{course_info['New_code'].substring(0, 4)}</div>
                                     <ChevronRightCircle size={14} strokeWidth={1.5} />
@@ -73,7 +73,7 @@ const ReviewPage = async ({ params }: { params: { code: string, prof: string[] }
                                     </Link>
                                     {(
                                         is_offered?
-                                            <div className='text-sm font-semibold rounded-3xl bg-gradient-to-r from-indigo-600  to-purple-600 h-fit py-0.5 px-2 shadow'> Offered</div>
+                                            <div className='text-sm font-semibold rounded-3xl bg-gradient-to-r from-green-600 to-green-600 h-fit py-0.5 px-2 shadow'> Offered</div>
                                             :
                                             <div className='text-sm font-semibold rounded-3xl bg-gradient-to-r from-neutral-700 to-stone-900 h-fit py-0.5 px-2 shadow'> Not Offered</div>
                                     )}

@@ -15,7 +15,7 @@ const ProfCard= ({data,code}:{data:any,code:any})=>{
                         <div className='text-white flex flex-col'>
                             {
                                 data.is_offered?
-                                    <div className='text-xs font-semibold rounded-3xl bg-gradient-to-r from-indigo-600 to-purple-600 h-fit py-0.5 px-2 shadow'> Offered</div>
+                                    <div className='text-xs font-semibold rounded-3xl bg-gradient-to-r from-green-600 to-green-600 h-fit py-0.5 px-2 shadow'> Offered</div>
                                     :
                                     <div className='text-xs font-semibold rounded-3xl bg-gradient-to-r from-neutral-700 to-stone-900 h-fit py-0.5 px-2 shadow'> Not Offered</div>
                             }

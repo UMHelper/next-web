@@ -102,7 +102,7 @@ async function CoursePage({ params }: { params: { code: string } }) {
     console.log(course)
     return (
         <>
-            <div className='bg-gradient-to-r from-purple-400 to-rose-500 text-white p-3'>
+            <div className='bg-gradient-to-r from-blue-600 to-indigo-500 text-white p-3'>
                 <div className='max-w-screen-xl mx-auto p-4'>
                     <div className='flex flex-col md:flex-row justify-between'>
                         <div className="py-6">
@@ -125,7 +125,7 @@ async function CoursePage({ params }: { params: { code: string } }) {
                                 </div>
                                 {
                                     isOffer ?
-                                        <div className='text-sm font-semibold rounded-3xl bg-gradient-to-r from-indigo-600 to-purple-600 h-fit py-0.5 px-2 shadow'> Offered</div>
+                                        <div className='text-sm font-semibold rounded-3xl bg-gradient-to-r from-green-600 to-green-600 h-fit py-0.5 px-2 shadow'> Offered</div>
                                         :
                                         <div className='text-sm font-semibold rounded-3xl bg-gradient-to-r from-neutral-700 to-stone-900 h-fit py-0.5 px-2 shadow'> Not Offered</div>
                                 }
