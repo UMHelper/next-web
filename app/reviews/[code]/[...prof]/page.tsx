@@ -104,31 +104,31 @@ const ReviewPage = async ({ params }: { params: { code: string, prof: string[] }
                             <Toolbar course={course_info} prof={undefined} />
                         </div>
                         <Card className='md:w-80 py-4 pb-0 md:m-0 mt-8'>
-                            <CardContent >
-                                <div className='space-y-4'>
-                                    <div className='space-y-1 text-sm'>
+                            <CardContent className="h-full py-4">
+                                <div className='space-y-2 flex flex-col h-full justify-between'>
+                                    <div className='space-y-2 text-sm'>
                                         <div>
                                             總體 Overall
                                         </div>
-                                        <Progress value={prof_info['result'] * 20} className='h-1 ' />
+                                        <Progress value={prof_info['result'] * 20} className='h-2' />
                                     </div>
-                                    <div className='space-y-1 text-sm'>
+                                    <div className='space-y-2 text-sm'>
                                         <div>
                                             成績 Grade
                                         </div>
-                                        <Progress value={prof_info['grade'] * 20} className='h-1 ' />
+                                        <Progress value={prof_info['grade'] * 20} className='h-2' />
                                     </div>
-                                    <div className='space-y-1 text-sm'>
+                                    <div className='space-y-2 text-sm'>
                                         <div>
                                             難度 Difficulty
                                         </div>
-                                        <Progress value={prof_info['hard'] * 20} className='h-1 ' />
+                                        <Progress value={prof_info['hard'] * 20} className='h-2' />
                                     </div>
-                                    <div className='space-y-1 text-sm'>
+                                    <div className='space-y-2 text-sm'>
                                         <div>
                                             收穫 Outcome
                                         </div>
-                                        <Progress value={prof_info['reward'] * 20} className='h-1 ' />
+                                        <Progress value={prof_info['reward'] * 20} className='h-2' />
                                     </div>
                                     <p className='text-xs italic text-gray-500'>Based on the reviews from users.</p>
                                 </div>
