@@ -41,14 +41,13 @@ const colListGen=(col_num:number,children:ReactElement[])=>{
     for (let i = 0; i < children.length; i+=col_num) {
         for (let j = 0; j < col_num; j++) {
             colList[j].push(children[i+j])
-            // randomly add ad card
+
             if (Math.random()>0.8){
                 colList[j].push(
                     <div key={"gad-"+i+j}>
                        <AdBanner/> 
                     </div>
                 )
-                console.log("ad added",j,i)
             }
         }
     }
@@ -80,11 +79,11 @@ export const Masonry=(
         if (h>=900){
             setCurCol(col)
         }
-    },[])
+    },[col])
 
     useEffect(()=>{
         setColList(colListGen(curCol,children))
-    },[curCol])
+    },[curCol,children])
 
     useEffect(() => {
         const windowResizeUpdate = () => {
@@ -103,7 +102,7 @@ export const Masonry=(
         return () => {
             window.removeEventListener('resize', windowResizeUpdate);
         }
-    }, []);
+    }, [col]);
 
     return(
         <div className={cn(

@@ -25,12 +25,11 @@ export default function CourseFilter({ data }: { data: any[] }) {
 
     useEffect(() => {
         const option = countUniqueValues(data, courseKeysToCount)
-        console.log(option)
         setOption(option)
-    },[data])
+    }, [data])
 
     useEffect(() => {
-        let curCourseList = courseList
+        let curCourseList = [...courseList]
         for (const key in filter) {
             if (filter[key] !== 'All') {
                 curCourseList = curCourseList.filter((course) => {
@@ -38,13 +37,10 @@ export default function CourseFilter({ data }: { data: any[] }) {
                 })
             }
         }
-        setCurrentCourseList(curCourseList)
+        setCurrentCourseList([...curCourseList])
     }, [filter, courseList])
 
-    useEffect(() => {
-        console.log(currentCourseList)
-    }, [currentCourseList])
-    
+
     return (
         <div>
             <div className="grid grid-cols-3 md:grid-cols-6 my-4 gap-2">
@@ -70,7 +66,6 @@ export default function CourseFilter({ data }: { data: any[] }) {
                                         return setFilter(option)
                                     }
                                     option[key] = e
-                                    console.log(option)
                                     setFilter(option)
                                 }}>
                                     <SelectTrigger>
