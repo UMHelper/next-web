@@ -10,7 +10,10 @@ export function countUniqueValues(jsonList:any, keysToCount:any) {
             const value = obj[key];
 
             if (!result[key].includes(value)) {
-                result[key].push(value);
+                if (value !== null && value !== undefined && value !== '') {
+                    result[key].push(value);
+                }
+                // result[key].push(value);
             }
         });
     });

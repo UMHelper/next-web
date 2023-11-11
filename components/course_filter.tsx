@@ -25,6 +25,7 @@ export default function CourseFilter({ data }: { data: any[] }) {
 
     useEffect(() => {
         const option = countUniqueValues(data, courseKeysToCount)
+        console.log(option)
         setOption(option)
     }, [data])
 
