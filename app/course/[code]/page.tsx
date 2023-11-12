@@ -245,7 +245,7 @@ async function CoursePage({ params }: { params: { code: string } }) {
             </div>
             <div className='max-w-screen-xl mx-auto p-4'>
 
-                <div id="googleBotCourseInfo" className="space-y-3 my-3">
+                <div id="googleBotCourseInfo" className="space-y-3 my-3 hidden">
 
                     <Alert>
                         <AlertTitle>Course Description</AlertTitle>

@@ -55,11 +55,11 @@ const ReviewPage = async ({ params }: { params: { code: string, prof: string[] }
 
     return (
         <>
-            <div className='bg-gradient-to-r from-blue-600 to-indigo-500 text-white p-3'>
+            <div className='bg-gradient-to-r from-blue-600 to-indigo-500 text-white p-6'>
                 <div className='max-w-screen-xl mx-auto p-4'>
 
                     <div className='flex flex-col md:flex-row justify-between'>
-                        <div className="py-6">
+                        <div className="py-3">
                             <div>
                                 <Link href={"/search/course/" + course_info['New_code'].substring(0, 4)} className="flex space-x-1 items-center">
                                     <div className='text-sm'>{course_info['New_code'].substring(0, 4)}</div>
@@ -76,7 +76,7 @@ const ReviewPage = async ({ params }: { params: { code: string, prof: string[] }
                             </div>
                             <div className='text-base'>{course_info["courseTitleEng"]}</div>
                             <div className='text-sm'>{course_info["courseTitleChi"]}</div>
-                            <div className='pb-4 flex-row flex space-x-2 mt-4'>
+                            <div className='pb-3 flex-row flex space-x-2 mt-4'>
                                 <Link className="flex space-x-2" href={'/search/instructor/' + prof_info.prof_id}>
                                     <h1 className='font-bold text-3xl'>{prof_info['prof_id']}</h1>
                                     <ChevronRightCircle size={16} strokeWidth={1.5} />
