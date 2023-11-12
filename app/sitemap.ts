@@ -9,7 +9,7 @@ const fetchCourseSitemap = async () => {
         courseSitemap.push({
             url: `https://umeh.top/course/${course.New_code}`,
             lastModified: new Date(),
-            changeFrequency: 'yearly',
+            changeFrequency: 'monthly',
             priority: 0.9,
         })
     })
@@ -23,7 +23,7 @@ const fetchReviewSitemap = async () => {
         reviewSitemap.push({
             url: `https://umeh.top/reviews/${review.course_id}/${review.prof_id.replaceAll(" ", '%20')}`,
             lastModified: new Date(),
-            changeFrequency: 'yearly',
+            changeFrequency: 'monthly',
             priority: 0.8,
         })
     })
@@ -36,7 +36,7 @@ const fetchCatalogSitemap = async () => {
         catalogSitemap.push({
             url: `https://umeh.top/catalog/${fac}`,
             lastModified: new Date(),
-            changeFrequency: 'yearly',
+            changeFrequency: 'monthly',
             priority: 0.7,
         })
         const { data, error }: { data: any, error: any } = await supabase.from('course_noporf')
@@ -48,7 +48,7 @@ const fetchCatalogSitemap = async () => {
             catalogSitemap.push({
                 url: `https://umeh.top/catalog/${fac}/${dept}`,
                 lastModified: new Date(),
-                changeFrequency: 'yearly',
+                changeFrequency: 'monthly',
                 priority: 0.7,
             })
         })
@@ -61,7 +61,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         {
             url: 'https://umeh.top',
             lastModified: new Date(),
-            changeFrequency: 'yearly',
+            changeFrequency: 'monthly',
             priority: 1,
         },
     ]
