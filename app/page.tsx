@@ -62,7 +62,7 @@ export default function Home() {
 
     return (
         <>
-            <div className='bg-[url("/banner.jpg")]'>
+            <div className='bg-[url("/banner.jpg")] bg-cover'>
                 <div className='max-w-screen-xl mx-auto p-2'>
                     <div className='flex justify-between mx-2 py-8 '>
                         <div className='md:flex flex-col justify-center text-white hidden space-y-2 p-6'>
