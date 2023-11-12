@@ -38,7 +38,7 @@ const formSchema = z.object({
     is_prof: z.boolean().default(false)
 })
 
-export default function Home() {
+async function HomePage() {
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -260,3 +260,5 @@ export default function Home() {
 
     )
 }
+
+export default HomePage
