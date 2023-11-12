@@ -49,7 +49,7 @@ export default function RootLayout({ children, }: { children: React.ReactNode })
             <div className='text-2xl font-semibold'>
                 You are searching:
             </div>
-            <div className="flex flex-row space-x-2 items-center justify-between">
+            <div className="md:flex md:flex-row space-y-3 items-center justify-between">
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2">
                         <div className="flex flex-row space-x-4">
