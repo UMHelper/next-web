@@ -1,9 +1,9 @@
 import { BookMarked, Bot, CircleDollarSign, Microscope, Newspaper, Scale, School } from "lucide-react";
 import { Card } from "./ui/card";
-import { getStatistics } from "@/lib/database/ statistics";
+import { getStatistics } from "@/lib/database/statistics";
 
 export default async function CommentBank() {
-    const statistics = await getStatistics();
+    const statistics:any = await getStatistics();
     return (
         <div className="flex flex-wrap justify-center	">
             <Card className="flex flex-col items-center p-4 m-2 min-w-[20%]">

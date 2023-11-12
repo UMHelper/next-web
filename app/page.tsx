@@ -10,7 +10,7 @@ async function HomePage() {
             <SearchComp/>
             <div className='max-w-screen-xl mx-auto p-4'>
                 <div className='grid grid-cols-1 md:grid-cols-2 mx-4 py-8 gap-y-8 gap-x-16'>
-                    <div className='flex flex-col justify-center space-y-8 items-center md:items-start justify-stretch'>
+                    <div className='flex flex-col justify-center space-y-8 items-center md:items-start'>
                         <div className='text-2xl font-bold'>
                             Suggesstions or Feedback?
                         </div>
@@ -47,7 +47,7 @@ async function HomePage() {
                             </div>
                         </Card>
                     </div>
-                    <div className='flex flex-col justify-center space-y-8 items-center md:items-start justify-stretch'>
+                    <div className='flex flex-col justify-center space-y-8 items-center md:items-start'>
                         <div className='text-2xl font-bold'>
                             We are open source!
                         </div>
@@ -74,7 +74,7 @@ async function HomePage() {
                             <div className="flex items-center space-x-4 " >
                                 <Github size={40} strokeWidth={1.75} />
                                 <div >
-                                    <h2 className="text-base font-bold text-gray-900 dark:text-white">What2Reg Ver. "Next"</h2>
+                                    <h2 className="text-base font-bold text-gray-900 dark:text-white">What2Reg Ver. &quot;Next&quot;</h2>
                                     <p className="text-sm text-gray-500 dark:text-gray-300">
                                         Check out this project on GitHub.
                                     </p>
