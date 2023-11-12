@@ -3,6 +3,16 @@ import { Masonry } from "@/components/masonry"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { fuzzySearch } from "@/lib/database/fuzzy-search"
 
+export function generateMetadata(
+    {params}:{params:any}) {
+    const title = `Searching for ${params.name} | Whats2REG @UM`
+
+    return {
+        title: title,
+    }
+
+}
+
 const fetchData = async (code: string) => {
     const data: any = await fuzzySearch(code, 'instructor')
     return data

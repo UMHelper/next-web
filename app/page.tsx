@@ -62,7 +62,7 @@ export default function Home() {
 
     return (
         <>
-            <div className='bg-[url("/banner.jpg")]'>
+            <div className='bg-[url("/banner.jpg")] bg-cover'>
                 <div className='max-w-screen-xl mx-auto p-2'>
                     <div className='flex justify-between mx-2 py-8 '>
                         <div className='md:flex flex-col justify-center text-white hidden space-y-2 p-6'>
@@ -161,11 +161,11 @@ export default function Home() {
                                     Be part of our community.
                                     </p>
                                 </div>
-                                <Button variant="secondary">
+                                <div className="p-2 rounded hover:shadow bg-zinc-200 text-center">
                                     <Link href='https://discord.gg/y8RsDQbw'>
                                     Discord Server
                                     </Link>
-                                </Button>
+                                </div>
                             </Card>
                         </div>
                         <div className='flex flex-col justify-cente space-y-8 items-center md:items-start'>
@@ -180,11 +180,11 @@ export default function Home() {
                                     Join us and contribute together.
                                     </p>
                                 </div>
-                                <Button variant="secondary">
-                                    <Link href="https://github.com/UMHelper/next-web/issues?q=is%3Aopen+is%3Aissue+label%3A%22help+wanted%22+">
+                                <div className="p-2 rounded hover:shadow bg-zinc-200 text-center">
+                                    <Link className="p-1" href="https://github.com/UMHelper/next-web/issues?q=is%3Aopen+is%3Aissue+label%3A%22help+wanted%22+">
                                     Fix Bugs NOW
                                     </Link>
-                                </Button>
+                                </div>
                             </Card>
                         </div>
                     </div>

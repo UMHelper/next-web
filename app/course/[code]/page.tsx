@@ -9,7 +9,6 @@ import Toolbar from "@/components/toolbar";
 import { ArrowUpRightSquare } from "lucide-react";
 import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import Link from "next/link";
-import { error } from "console";
 import { getCourseInfo } from "@/lib/database/course-info";
 import {
     Accordion,
@@ -19,6 +18,16 @@ import {
 } from "@/components/ui/accordion"
 import { NextResponse, userAgent } from 'next/server'
 
+
+export function generateMetadata(
+    {params}:{params:any}) {
+    const title = `${params.code} | Whats2REG @UM`
+
+    return {
+        title: title,
+    }
+
+}
 
 const allowLegacyRenegotiationOptions = {
     httpsAgent: new https.Agent({
