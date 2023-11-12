@@ -12,7 +12,7 @@ import Script from 'next/script';
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Home | What2Reg @UM',
+  title: 'Home | What2Reg @ UM 澳大選咩課',
   description: 'Course review platform for University of Macau',
 }
 
