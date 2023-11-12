@@ -24,9 +24,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { useState } from "react";
-import { Search, Radar, Github } from "lucide-react";
+import { Search, Radar, Github, Quote, UserPlus, BookMarked, Bot, CircleDollarSign, Microscope, Newspaper, Scale, School } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import CommentBank from "@/components/comment-bank";
 
 const formSchema = z.object({
     code: z.string()
@@ -37,8 +38,8 @@ const formSchema = z.object({
     is_prof: z.boolean().default(false)
 })
 
-
 export default function Home() {
+
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
@@ -90,33 +91,33 @@ export default function Home() {
                                 </div>
                                 <Form {...form}>
 
-                                <FormField
-                                            control={form.control}
-                                            name="is_prof"
-                                            render={({ field }) => (
-                                                <FormItem className="flex flex-row items-center space-x-2 mb-1">
-                                                    <FormControl>
-                                                        <Switch
-                                                            checked={field.value}
-                                                            onCheckedChange={(e) => {
-                                                                field.onChange(e)
-                                                                set_is_prof(!is_prof)
-                                                            }}
-                                                        />
-                                                    </FormControl>
-                                                    <div className='my-0 flex items-center space-x-2'>
-                                                        <div>
-                                                            <FormLabel className="text-base">
+                                    <FormField
+                                        control={form.control}
+                                        name="is_prof"
+                                        render={({ field }) => (
+                                            <FormItem className="flex flex-row items-center space-x-2 mb-1">
+                                                <FormControl>
+                                                    <Switch
+                                                        checked={field.value}
+                                                        onCheckedChange={(e) => {
+                                                            field.onChange(e)
+                                                            set_is_prof(!is_prof)
+                                                        }}
+                                                    />
+                                                </FormControl>
+                                                <div className='my-0 flex items-center space-x-2'>
+                                                    <div>
+                                                        <FormLabel className="text-base">
                                                             Search Instructors
-                                                            </FormLabel>
-                                                            <FormDescription >
+                                                        </FormLabel>
+                                                        <FormDescription >
                                                             搜索講師
-                                                            </FormDescription>
-                                                        </div>
+                                                        </FormDescription>
                                                     </div>
-                                                </FormItem>
-                                            )}
-                                        />
+                                                </div>
+                                            </FormItem>
+                                        )}
+                                    />
                                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2">
                                         <FormField
                                             control={form.control}
@@ -145,49 +146,103 @@ export default function Home() {
                         </Card>
                     </div>
                 </div>
-            </div>   
+            </div>
+
+
+
             <div>
-            <div className='max-w-screen-xl mx-auto p-4'>
-                    <div className='grid grid-cols-1 md:grid-cols-2 mx-8 py-8 gap-y-8 gap-x-4'>
-                        <div className='flex flex-col justify-cente space-y-8 items-center md:items-start'>
-                            <div className='text-2xl font-bold'>
-                                Suggesstions or Feedback?
+                <div>
+                    <div className='max-w-screen-xl mx-auto p-4'>
+                        <div className='grid grid-cols-1 md:grid-cols-2 mx-4 py-8 gap-y-8 gap-x-16'>
+                            <div className='flex flex-col justify-center space-y-8 items-center md:items-start justify-stretch'>
+                                <div className='text-2xl font-bold'>
+                                    Suggesstions or Feedback?
+                                </div>
+                                <Card className="flex items-center space-x-4 p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md w-full justify-between ">
+                                    <div className="flex items-center space-x-4 " >
+                                        <Quote size={40} strokeWidth={1.75} />
+                                        <div >
+                                            <h2 className="text-base font-bold text-gray-900 dark:text-white">Report and Feedback</h2>
+                                            <p className="text-sm text-gray-500 dark:text-gray-300">
+                                                Report problems, bugs, and suggestions.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="p-2 rounded hover:shadow bg-zinc-200 text-center">
+                                        <Link href='https://docs.google.com/forms/d/1_HrH0jJ9Fyxu_dmW1xGsn9Hq1ZtN9nFG-Jangj_BNVk/'>
+                                            Report Form
+                                        </Link>
+                                    </div>
+                                </Card>
+                                <Card className="flex items-center space-x-4 p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md w-full justify-between ">
+                                    <div className="flex items-center space-x-4 " >
+                                        <Radar size={40} strokeWidth={1.75} />
+                                        <div >
+                                            <h2 className="text-base font-bold text-gray-900 dark:text-white">Our Community</h2>
+                                            <p className="text-sm text-gray-500 dark:text-gray-300">
+                                                Be part of our community.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="p-2 rounded hover:shadow bg-zinc-200 text-center">
+                                        <Link href='https://discord.gg/y8RsDQbw'>
+                                            Discord Server
+                                        </Link>
+                                    </div>
+                                </Card>
                             </div>
-                            <Card className="flex items-center space-x-4 p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md w-fit">
-                                <Radar size={40} strokeWidth={1.75} />
-                                <div className="">
-                                    <h2 className="text-base font-bold text-gray-900 dark:text-white">Our Community</h2>
-                                    <p className="text-sm text-gray-500 dark:text-gray-300">
-                                    Be part of our community.
-                                    </p>
+                            <div className='flex flex-col justify-center space-y-8 items-center md:items-start justify-stretch'>
+                                <div className='text-2xl font-bold'>
+                                    We are open source!
                                 </div>
-                                <div className="p-2 rounded hover:shadow bg-zinc-200 text-center">
-                                    <Link href='https://discord.gg/y8RsDQbw'>
-                                    Discord Server
-                                    </Link>
-                                </div>
-                            </Card>
-                        </div>
-                        <div className='flex flex-col justify-cente space-y-8 items-center md:items-start'>
-                            <div className='text-2xl font-bold'>
-                                We are open source!
+
+
+                                <Card className="flex items-center space-x-4 p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md w-full justify-between ">
+                                    <div className="flex items-center space-x-4 " >
+                                        <UserPlus size={40} strokeWidth={1.75} />
+                                        <div >
+                                            <h2 className="text-base font-bold text-gray-900 dark:text-white">UMHelper Dev Group</h2>
+                                            <p className="text-sm text-gray-500 dark:text-gray-300">
+                                                Join us and contribute together.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="p-2 rounded hover:shadow bg-zinc-200 text-center">
+                                        <Link className="p-1" href="https://github.com/UMHelper/Feedback-and-Join-Us/blob/master/Join.md">
+                                            Join us
+                                        </Link>
+                                    </div>
+                                </Card>
+
+                                <Card className="flex items-center space-x-4 p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md w-full justify-between ">
+                                    <div className="flex items-center space-x-4 " >
+                                        <Github size={40} strokeWidth={1.75} />
+                                        <div >
+                                            <h2 className="text-base font-bold text-gray-900 dark:text-white">What2Reg Ver. "Next"</h2>
+                                            <p className="text-sm text-gray-500 dark:text-gray-300">
+                                                Check out this project on GitHub.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="p-2 rounded hover:shadow bg-zinc-200 text-center">
+                                        <Link className="p-1" href="https://github.com/UMHelper/next-web/issues?q=is%3Aopen+is%3Aissue+label%3A%22help+wanted%22+">
+                                            Fix Bugs Now
+                                        </Link>
+                                    </div>
+                                </Card>
                             </div>
-                            <Card className="flex items-center space-x-4 p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md w-fit">
-                                <Github size={40} strokeWidth={1.75} />
-                                <div className="">
-                                    <h2 className="text-base font-bold text-gray-900 dark:text-white">UMHelper Dev Group</h2>
-                                    <p className="text-sm text-gray-500 dark:text-gray-300">
-                                    Join us and contribute together.
-                                    </p>
-                                </div>
-                                <div className="p-2 rounded hover:shadow bg-zinc-200 text-center">
-                                    <Link className="p-1" href="https://github.com/UMHelper/next-web/issues?q=is%3Aopen+is%3Aissue+label%3A%22help+wanted%22+">
-                                    Fix Bugs NOW
-                                    </Link>
-                                </div>
-                            </Card>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <div className='max-w-screen-xl mx-auto p-4'>
+
+                <div className="mx-8 py-8">
+                    <div className="text-center text-2xl pb-8">
+                        Our Comment Bank
+                    </div>
+                    <CommentBank />
                 </div>
             </div>
         </>
