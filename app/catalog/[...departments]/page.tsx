@@ -5,13 +5,14 @@ const fetchCourseList=async(departments:string[])=>{
     if (departments.length===1){
         const {data,error}=await supabase.from('course_noporf')
                         .select('')
-                        .eq('Offering_Unit',departments[0])
+                        .eq('Offering_Unit',departments[0].toUpperCase())
+        console.log(data)
         return data
     }
     const {data,error}=await supabase.from('course_noporf')
                         .select('')
-                        .eq('Offering_Unit',departments[0])
-                        .eq('Offering_Department',departments[1])
+                        .eq('Offering_Unit',departments[0].toUpperCase())
+                        .eq('Offering_Department',departments[1].toUpperCase())
     return data
     
 }
