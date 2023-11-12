@@ -15,6 +15,16 @@ import Link from "next/link";
 import { COMMENT } from "@/consant";
 import { getCourseInfo } from "@/lib/database/course-info";
 
+export function generateMetadata(
+    {params}:{params:any}) {
+    const title = `${params.prof.join('/').replaceAll('%20'," ")} | ${params.code} | Whats2REG @UM`
+
+    return {
+        title: title,
+    }
+
+}
+
 async function fetchData(code:string,prof:string) {
     const timetable=COMMENT['prof_info']['offer_info']['schedules'];
     const comment= await getCommentList(code,prof.replaceAll('$','/'));

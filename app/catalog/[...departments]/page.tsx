@@ -1,6 +1,17 @@
 import CourseFilter from '@/components/course_filter';
 import supabase from '@/lib/database/database';
 import { faculty } from '@/lib/consant';
+
+export function generateMetadata(
+    {params}:{params:any}) {
+    const title = `Catalog of ${params.departments.join(' ').toUpperCase()} | Whats2REG @UM`
+
+    return {
+        title: title,
+    }
+
+}
+
 const fetchCourseList = async (departments: string[]) => {
     if (departments.length === 1) {
         const { data, error }: { data: any, error: any } = await supabase.from('course_noporf')

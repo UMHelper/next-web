@@ -1,6 +1,16 @@
 import CourseFilter from "@/components/course_filter";
 import { fuzzySearch } from "@/lib/database/fuzzy-search";
 
+export function generateMetadata(
+    {params}:{params:any}) {
+    const title = `Searching for ${params.code} | Whats2REG @UM`
+
+    return {
+        title: title,
+    }
+
+}
+
 const fetchData = async (code:string) => {
     const data:any=await fuzzySearch(code,'course')
     return data
