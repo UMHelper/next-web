@@ -34,13 +34,16 @@ const Footer = async () => {
                         Feedback
                     </Link>
                     <Link href='./sitemap.xml'>
+                    <Link href='./sitemap.xml'>
                         Sitemap
                     </Link>
                 </div>
                 <div className='text-gray-500 text-xs'>
                     Designed and built by the <Link className='text-black font-semibold underline underline-offset-1' href='https://github.com/UMHelper/Feedback-and-Join-Us/blob/master/Join.md'>UMHelper</Link> team with the help of our contributors.
+                    Designed and built by the <Link className='text-black font-semibold underline underline-offset-1' href='https://github.com/UMHelper/Feedback-and-Join-Us/blob/master/Join.md'>UMHelper</Link> team with the help of our contributors.
                 </div>
                 <div className='text-gray-500 text-xs'>
+                    Version "Next". Latest update <Link className='text-black font-semibold underline underline-offset-1' href={git['commit']['html_url']}>{git['commit']['commit']['author']['date']}</Link> licensed under <Link className='text-black font-semibold underline underline-offset-1' href='/'>GNU General Public License v3.0</Link> .
                     Version "Next". Latest update <Link className='text-black font-semibold underline underline-offset-1' href={git['commit']['html_url']}>{git['commit']['commit']['author']['date']}</Link> licensed under <Link className='text-black font-semibold underline underline-offset-1' href='/'>GNU General Public License v3.0</Link> .
                 </div>
             </div>
