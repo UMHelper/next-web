@@ -43,8 +43,8 @@ async function fetchCourseInfo(code: string) {
                 'gradingSystem': course_info['gradingSystem'],
                 'courseType': course_info['courseType'],
                 'duration': course_info['Course_Duration'],
-                'courseDescription': course_info['courseDescription'],
-                'ilo': course_info['ilo'],
+                'courseDescription': String(course_info['courseDescription']),
+                'ilo': String(course_info['ilo']),
             })
         }
 
@@ -208,8 +208,8 @@ async function CoursePage({ params }: { params: { code: string } }) {
                                         <DialogHeader>
                                             <DialogTitle>Course Description</DialogTitle>
                                         </DialogHeader>
-                                        <div className="py-4 text-sm">
-                                            {course['ilo'].replaceAll('\n', '<br />')}
+                                        <div className="py-4 text-sm" style={{whiteSpace: "pre-wrap"}}>
+                                            {course['ilo']}
                                         </div>
                                         <DialogFooter>
                                             <div className='text-xs italic mt-3'>Data Source: reg.um.edu.mo</div>
