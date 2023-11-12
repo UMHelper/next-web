@@ -21,7 +21,7 @@ const fetchReviewSitemap = async () => {
     let reviewSitemap:any[]=[]
     data.map((review:any)=>{
         reviewSitemap.push({
-            url: `https://umeh.top/review/${review.course_id}/${review.prof_id.replaceAll(" ", '%20')}`,
+            url: `https://umeh.top/reviews/${review.course_id}/${review.prof_id.replaceAll(" ", '%20')}`,
             lastModified: new Date(),
             changeFrequency: 'yearly',
             priority: 0.8,
