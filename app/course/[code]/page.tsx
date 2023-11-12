@@ -11,6 +11,14 @@ import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, Dialog
 import Link from "next/link";
 import { error } from "console";
 import { getCourseInfo } from "@/lib/database/course-info";
+import {
+    Accordion,
+    AccordionContent,
+    AccordionItem,
+    AccordionTrigger,
+} from "@/components/ui/accordion"
+import { NextResponse, userAgent } from 'next/server'
+
 
 const allowLegacyRenegotiationOptions = {
     httpsAgent: new https.Agent({
@@ -88,6 +96,7 @@ async function fetchData(code: string) {
 }
 
 async function CoursePage({ params }: { params: { code: string } }) {
+
     const code = params.code.toUpperCase()
     const {
         course,
@@ -214,7 +223,7 @@ async function CoursePage({ params }: { params: { code: string } }) {
                                         <DialogHeader>
                                             <DialogTitle>Course Description</DialogTitle>
                                         </DialogHeader>
-                                        <div className="py-4 text-sm" style={{whiteSpace: "pre-wrap"}}>
+                                        <div className="py-4 text-sm" style={{ whiteSpace: "pre-wrap" }}>
                                             {course['ilo']}
                                         </div>
                                         <DialogFooter>
@@ -230,6 +239,22 @@ async function CoursePage({ params }: { params: { code: string } }) {
                 </div>
             </div>
             <div className='max-w-screen-xl mx-auto p-4'>
+
+                <Accordion type="multiple" className="hidden" >
+                    <AccordionItem value="item-0">
+                        <AccordionTrigger>
+                            Course Description</AccordionTrigger>
+                        <AccordionContent>
+                            {course['courseDescription'].replaceAll('\n', '<br />')}
+                        </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="item-1">
+                        <AccordionTrigger>
+                            Intended Learning Outcomes</AccordionTrigger>
+                        <AccordionContent>{course['ilo']}
+                        </AccordionContent>
+                    </AccordionItem>
+                </Accordion>
                 <Masonry col={3} className={""}>
                     {profList.map((data, index) => {
                         return (
