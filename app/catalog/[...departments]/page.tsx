@@ -4,7 +4,7 @@ import { faculty } from '@/lib/consant';
 
 export function generateMetadata(
     {params}:{params:any}) {
-    const title = `Catalog of ${params.departments.join(' ').toUpperCase()} | Whats2REG @UM`
+    const title = `Catalog of ${params.departments.join(' ').toUpperCase()} | What2Reg @ UM 澳大選咩課 @UM`
 
     return {
         title: title,

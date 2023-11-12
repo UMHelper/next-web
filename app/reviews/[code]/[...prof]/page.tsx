@@ -17,7 +17,7 @@ import { getCourseInfo } from "@/lib/database/course-info";
 
 export function generateMetadata(
     {params}:{params:any}) {
-    const title = `${params.prof.join('/').replaceAll('%20'," ")} | ${params.code} | Whats2REG @UM`
+    const title = `${params.prof.join('/').replaceAll('%20'," ")} | ${params.code} | What2Reg @ UM 澳大選咩課 @UM`
 
     return {
         title: title,
