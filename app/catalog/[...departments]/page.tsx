@@ -19,10 +19,6 @@ const CatalogPage=async ({params:{departments}}:{params:{departments:string[]}})
     const courseList:any=await fetchCourseList(departments)
     return(
         <div>
-            <h1>Catalog page</h1>
-            <div>
-                {departments.join('/')}
-            </div>
             <div>
             <CourseFilter data={courseList}/>
             </div>

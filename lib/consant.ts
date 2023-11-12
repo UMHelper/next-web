@@ -16,3 +16,13 @@ export const menuList:MenuItem[]=[
     //     href:"/feedback"
     // },
 ]
+
+export const faculty=[
+    'FBA',           'FAH',
+    'ICI',           'FST',
+    'IAPME',         
+    'ICMS',          'FSS', 
+    'FED',           'FLL',
+    'FHS',           'IME',
+    'HC',            'RC',
+]

@@ -1,12 +1,6 @@
-const CatalogPage=()=>{
+const CatalogPage=async ()=>{
     return(
-        <div>
-            <h1>Catalog page</h1>
-            <div>
-                FST?
-            </div>
-            <div>....</div>
-        </div>
+        <></>
     )
 }
 
