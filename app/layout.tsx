@@ -50,6 +50,12 @@ export default function RootLayout({
     })(window, document, "clarity", "script", "jnvvhmdtgl");
     `}
 </Script>
+<link rel="icon" href="/favicon.png" sizes="any" />
+<link
+  rel="apple-touch-icon"
+  href="/favicon.png"
+  sizes="any"
+/>
       </head>
       <body className={cn(inter.className)}>
         <div className='min-h-screen min-w-full'>
