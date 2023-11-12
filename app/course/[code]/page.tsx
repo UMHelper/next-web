@@ -24,54 +24,54 @@ const allowLegacyRenegotiationOptions = {
 
 async function fetchCourseInfo(code: string) {
     return await axios
-    .get('https://api.data.um.edu.mo/service/academic/course_catalog/v1.0.0/all?course_code=' + code.toUpperCase(), allowLegacyRenegotiationOptions)
-    .then(async response => {
-        if (response.data['_embedded'][0] != undefined)
-            return response.data['_embedded'][0];
-        else {
-            // empty response, fallback to local data
-            const course_info=await getCourseInfo(code);
+        .get('https://api.data.um.edu.mo/service/academic/course_catalog/v1.0.0/all?course_code=' + code.toUpperCase(), allowLegacyRenegotiationOptions)
+        .then(async response => {
+            if (response.data['_embedded'][0] != undefined)
+                return response.data['_embedded'][0];
+            else {
+                // empty response, fallback to local data
+                const course_info = await getCourseInfo(code);
+                return ({
+                    'courseCode': code.toUpperCase(),
+                    'courseTitle': course_info['courseTitleEng'],
+                    'offeringProgLevel': course_info['offeringProgLevel'],
+                    'suggestedYearOfStudy': course_info['suggestedYearOfStudy'],
+                    'credits': course_info['Credits'],
+                    'offeringDept': course_info['Offering_Department'],
+                    'offeringUnit': course_info['Offering_Unit'],
+                    'mediumOfInstruction': course_info['Medium_of_Instruction'],
+                    'gradingSystem': course_info['gradingSystem'],
+                    'courseType': course_info['courseType'],
+                    'duration': course_info['Course_Duration'],
+                    'courseDescription': String(course_info['courseDescription']),
+                    'ilo': String(course_info['ilo']),
+                })
+            }
+
+        })
+        .catch(function (error) {
             return ({
                 'courseCode': code.toUpperCase(),
-                'courseTitle': course_info['courseTitleEng'],
-                'offeringProgLevel': course_info['offeringProgLevel'],
-                'suggestedYearOfStudy': course_info['suggestedYearOfStudy'],
-                'credits': course_info['Credits'],
-                'offeringDept': course_info['Offering_Department'],
-                'offeringUnit': course_info['Offering_Unit'],
-                'mediumOfInstruction': course_info['Medium_of_Instruction'],
-                'gradingSystem': course_info['gradingSystem'],
-                'courseType': course_info['courseType'],
-                'duration': course_info['Course_Duration'],
-                'courseDescription': String(course_info['courseDescription']),
-                'ilo': String(course_info['ilo']),
+                'courseTitle': 'Error: ' + error.toString(),
+                'offeringProgLevel': 'Error',
+                'suggestedYearOfStudy': 'Error',
+                'credits': 'Error',
+                'offeringDept': 'Error',
+                'offeringUnit': 'Error',
+                'mediumOfInstruction': 'Error',
+                'gradingSystem': 'Error',
+                'courseType': 'Error',
+                'duration': 'Error',
+                'courseDescription': error.toString(),
+                'ilo': error.toString(),
             })
-        }
-
-     })
-    .catch(function (error) {
-        return ({
-            'courseCode': code.toUpperCase(),
-            'courseTitle': 'Error: ' + error.toString(),
-            'offeringProgLevel': 'Error',
-            'suggestedYearOfStudy': 'Error',
-            'credits': 'Error',
-            'offeringDept': 'Error',
-            'offeringUnit': 'Error',
-            'mediumOfInstruction': 'Error',
-            'gradingSystem': 'Error',
-            'courseType': 'Error',
-            'duration': 'Error',
-            'courseDescription': error.toString(),
-            'ilo': error.toString(),
-        })
-    });
+        });
 }
 
 async function fetchData(code: string) {
     const course = await fetchCourseInfo(code)
     const profList: any = await getProfListByCourse(code)
-    profList.sort((a:any, b:any) => {
+    profList.sort((a: any, b: any) => {
         if (a['is_offered'] && !b['is_offered']) return -1
         else if (!a['is_offered'] && b['is_offered']) return 1
         else return 0
@@ -143,11 +143,17 @@ async function CoursePage({ params }: { params: { code: string } }) {
                                     </div>
                                     <div>
                                         <div className='text-xs font-light'>Dept</div>
-                                        <div className='text-sm'>{course['offeringDept']}</div>
+                                        <Link className="flex flex-row" href={`/catalog/${course['offeringUnit']}/${course['offeringDept']}`}>
+                                            <div className='text-sm'>{course['offeringDept']}</div>
+                                            <ArrowUpRightSquare size={8} />
+                                        </Link>
                                     </div>
                                     <div>
                                         <div className='text-xs font-light'>Faculty</div>
-                                        <div className='text-sm'>{course['offeringUnit']}</div>
+                                        <Link className="flex flex-row" href={`/catalog/${course['offeringUnit']}`}>
+                                            <div className='text-sm'>{course['offeringUnit']}</div>
+                                            <ArrowUpRightSquare size={8} />
+                                        </Link>
                                     </div>
                                     <div>
                                         <div className='text-xs font-light'>Language</div>
