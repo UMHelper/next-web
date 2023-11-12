@@ -10,17 +10,13 @@ import { ArrowUpRightSquare } from "lucide-react";
 import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import Link from "next/link";
 import { getCourseInfo } from "@/lib/database/course-info";
-import {
-    Accordion,
-    AccordionContent,
-    AccordionItem,
-    AccordionTrigger,
-} from "@/components/ui/accordion"
-import { NextResponse, userAgent } from 'next/server'
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+
+import Script from "next/script";
 
 
 export function generateMetadata(
-    {params}:{params:any}) {
+    { params }: { params: any }) {
     const title = `${params.code} | What2Reg @ UM 澳大選咩課 @UM`
 
     return {
@@ -249,21 +245,22 @@ async function CoursePage({ params }: { params: { code: string } }) {
             </div>
             <div className='max-w-screen-xl mx-auto p-4'>
 
-                <Accordion type="multiple" className="hidden" >
-                    <AccordionItem value="item-0">
-                        <AccordionTrigger>
-                            Course Description</AccordionTrigger>
-                        <AccordionContent>
+                <div id="googleBotCourseInfo" className="space-y-3 my-3">
+
+                    <Alert>
+                        <AlertTitle>Course Description</AlertTitle>
+                        <AlertDescription>
                             {course['courseDescription'].replaceAll('\n', '<br />')}
-                        </AccordionContent>
-                    </AccordionItem>
-                    <AccordionItem value="item-1">
-                        <AccordionTrigger>
-                            Intended Learning Outcomes</AccordionTrigger>
-                        <AccordionContent>{course['ilo']}
-                        </AccordionContent>
-                    </AccordionItem>
-                </Accordion>
+                        </AlertDescription>
+                    </Alert>
+
+                    <Alert>
+                        <AlertTitle>Intended Learning Outcomes</AlertTitle>
+                        <AlertDescription>
+                            {course['ilo']}
+                        </AlertDescription>
+                    </Alert>
+                </div>
                 <Masonry col={3} className={""}>
                     {profList.map((data, index) => {
                         return (
@@ -272,7 +269,17 @@ async function CoursePage({ params }: { params: { code: string } }) {
                     })}
                 </Masonry>
             </div>
-
+            <Script id="show-for-bot">
+                {`
+                    if (/bot|google|baidu|bing|msn|teoma|slurp|yandex/i.test(navigator.userAgent)) {
+                        console.log('Welcome bot');
+                        document.getElementById('googleBotCourseInfo').classList.remove('hidden');
+                    }
+                    else {
+                        document.getElementById('googleBotCourseInfo').classList.add('hidden');
+                    }
+                    `}
+            </Script>
         </>
     )
 }
