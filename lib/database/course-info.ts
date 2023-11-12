@@ -5,6 +5,6 @@ export const getCourseInfo = async (course_id: string) => {
                             .select('*')
                             .eq('New_code', course_id)
         
-    console.log(data)
+    //console.log(data)
     return data ? data[0] : {}
 }

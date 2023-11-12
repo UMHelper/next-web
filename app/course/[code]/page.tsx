@@ -83,7 +83,7 @@ async function fetchData(code: string) {
             break
         }
     }
-    //console.log(course)
+    ////console.log(course)
     return { course, profList, isOffer }
 }
 
@@ -99,7 +99,7 @@ async function CoursePage({ params }: { params: { code: string } }) {
         isOffer: boolean
     }
         = await fetchData(code)
-    console.log(course)
+    //console.log(course)
     return (
         <>
             <div className='bg-gradient-to-r from-blue-600 to-indigo-500 text-white p-3'>

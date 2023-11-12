@@ -15,7 +15,7 @@ const allowLegacyRenegotiationOptions = {
 async function fetchCourseInfo(code:string){
     const response=await axios.get('https://api.data.um.edu.mo/service/academic/course_catalog/v1.0.0/all?course_code='+code.toUpperCase(), allowLegacyRenegotiationOptions)
     const data=await response.data
-    console.log(data)
+    //console.log(data)
     return data['_embedded'][0]
 }
 

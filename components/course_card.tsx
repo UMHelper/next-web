@@ -5,10 +5,10 @@ import {useRouter} from "next/navigation";
 const CourseCard=({data}:{data:any})=>{
     const router=useRouter()
     const handlerClick=()=>{
-        console.log(data.New_code,'click')
+        //console.log(data.New_code,'click')
         router.push('/course/'+data.New_code)
     }
-    console.log(data)
+    //console.log(data)
     return(
         <Link href={'/course/'+data.New_code}>
             <Card className='hover:cursor-pointer hover:shadow-lg mx-auto'>

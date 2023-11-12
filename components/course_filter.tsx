@@ -12,11 +12,11 @@ export default function CourseFilter({ data }: { data: any[] }) {
     const [currentCourseList, setCurrentCourseList] = useState(data)
 
     const [filter, setFilter] = useState<any>({
+        'Medium_of_Instruction': 'All',
+        'Offering_Department': 'All',
         'Course_Duration': 'All',
         'Credits': 'All',
         'Is_Offered': 'All',
-        'Medium_of_Instruction': 'All',
-        'Offering_Department': 'All',
         'Offering_Unit': 'All',
         'courseType': 'All',
         'offeringProgLevel': 'All',
@@ -25,7 +25,7 @@ export default function CourseFilter({ data }: { data: any[] }) {
 
     useEffect(() => {
         const option = countUniqueValues(data, courseKeysToCount)
-        console.log(option.Offering_Unit)
+        //console.log(option.Offering_Unit)
         setOption(option)
     }, [data])
 
@@ -44,7 +44,7 @@ export default function CourseFilter({ data }: { data: any[] }) {
 
     return (
         <div>
-            <div className="grid grid-cols-3 md:grid-cols-6 my-4 gap-2">
+            <div className="grid grid-cols-2 md:grid-cols-6 my-4 gap-2">
                 {
                     option[courseKeysToCount[0]] && courseKeysToCount.map((key, index) => {
                         return (

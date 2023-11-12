@@ -52,12 +52,12 @@ export const courseKeysToCount = [
 ]
 
 export const CourseFilterName:any = {
+    'Offering_Department':'Department',
+    'Offering_Unit':'Faculty',
     'Course_Duration': 'Duration',
     'Credits': 'Credits',
-    'Is_Offered':'Offer/Not Offer',
+    'Is_Offered':'Offered',
     'Medium_of_Instruction':'Language',
-    'Offering_Department':'Dept',
-    'Offering_Unit':'Fac',
     'courseType':'GE/Non-GE',
     'offeringProgLevel':'UG/PG',
     'suggestedYearOfStudy':'Learn at'

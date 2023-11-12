@@ -26,3 +26,19 @@ export const faculty=[
     'FHS',           'IME',
     'HC',            'RC',
 ]
+
+
+export const faculty_dept = {
+    'FAH': ['CJS', 'DCH', 'DENG', 'DHIST', 'DPHIL', 'DPT', 'ELC'] ,
+    'FBA': ['AIM', 'DRTM', 'FBE', 'IIRM', 'MMI'] ,
+    'FLL': ['MLS'] ,
+    'FSS': ['DCOM', 'DECO', 'DGPA', 'DPSY', 'DSOC'] ,
+    'FST': ['CEE', 'CIS', 'CSG', 'DPC', 'ECE', 'EME', 'MAT'] ,
+    'ICI': ['CIE'],
+    'FED': [], 
+    'FHS': [], 
+    'HC': [], 
+    'IAPME': [], 
+    'ICMS': [], 
+    'RC' : []
+};

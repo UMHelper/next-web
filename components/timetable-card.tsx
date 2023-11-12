@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button"
 import { ShoppingCart } from "lucide-react"
 
 export const TimetableCard = ({ timetable }: { timetable: any }) => {
-    console.log(timetable)
+    //console.log(timetable)
     return (
         <div className="space-y-4">
             {
