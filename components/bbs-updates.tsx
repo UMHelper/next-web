@@ -46,7 +46,7 @@ export default async function BbsUpdates() {
         <div className="columns-1">
             {
                 updates.map((item: any) => (
-                    <Link href={item.url}>
+                    <Link key={item.url} href={item.url}>
                         <Card className="px-4 py-3 bg-white dark:bg-gray-800 rounded-lg shadow-md w-full  ">
                             <div className="flex w-full justify-between " >
                                 <div className="text-sm text-slate-700">{item.date} </div>
