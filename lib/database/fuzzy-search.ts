@@ -22,7 +22,6 @@ export const fuzzySearch = async (keyword:string,type:string) => {
                     prof_name:name,
                     course_list:data
                 })
-                console.log(name,data,error)
             }
         ))
         return res
