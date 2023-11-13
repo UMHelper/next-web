@@ -7,10 +7,10 @@ export const menuList:MenuItem[]=[
         name:'Catalog',
         href:"/catalog"
     },
-    // {
-    //     name:'Timetable',
-    //     href:"/timetable"
-    // },
+    {
+        name:'Whole BBS',
+        href:"https://whole.umeh.top"
+    },
     // {
     //     name:'Feedback',
     //     href:"/feedback"
