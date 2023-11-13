@@ -1,11 +1,13 @@
+'use client'
+
 import axios from "axios";
 import { Card } from "./ui/card";
 import { Badge } from "@/components/ui/badge"
 import { Eye, MessageCircle } from "lucide-react";
 import Link from "next/link";
 
-async function fetchBbsUpdates(count: number) {
-    return await axios
+function fetchBbsUpdates(count: number) {
+    return axios
         .get('https://whole.umeh.top/public/api/discussions?include=user%2ClastPostedUser%2Ctags%2Ctags.parent%2CfirstPost&filter%5Btag%5D=umeh-notes&sort&page%5Boffset%5D=0')
         .then(async response => {
             if (response.data.data[0] != undefined)
@@ -39,8 +41,8 @@ async function fetchBbsUpdates(count: number) {
 }
 
 
-export default async function BbsUpdates() {
-    const updates: any = await fetchBbsUpdates(3);
+export default function BbsUpdates() {
+    const updates: any = fetchBbsUpdates(3);
 
     return (
 
