@@ -1,8 +1,10 @@
+'use client'
 import { Button } from "@/components/ui/button"
 import { ShoppingCart } from "lucide-react"
+import { useLocalStorage } from 'usehooks-ts'
 
-export const TimetableCard = ({ timetable }: { timetable: any }) => {
-    //console.log(timetable)
+export const TimetableCard = ({ timetable, code, prof }: { timetable: any,code:string, prof:string }) => {
+    const [timetableCart, setTimetableCart] = useLocalStorage<any[]>('timetableCart', [])
     return (
         <div className="space-y-4">
             {
@@ -31,7 +33,23 @@ export const TimetableCard = ({ timetable }: { timetable: any }) => {
                             })
                         }
                         </div>
-                        <Button size='xs' className="bg-gradient-to-r from-purple-600 to-blue-600 text-slate-100">
+                        <Button 
+                            size='xs' 
+                            className="bg-gradient-to-r hover:from-purple-500 hover:to-blue-500 text-slate-100 from-purple-600 to-blue-600 hover:shadow"
+                            onClick={() => {
+                                const isExist=timetableCart.find((timetable: any) =>{
+                                    console.log(timetable)
+                                    console.log(timetable.section, schedules.section)
+                                    console.log(timetable.code, code)
+                                    return  timetable['section'] === schedules['section'] && timetable['code'] === code
+                                })
+                                console.log(isExist)
+                                if(isExist){
+                                    return
+                                }
+                                setTimetableCart([...timetableCart, {...schedules,code:code,prof:prof.replaceAll('%20', ' ')}])
+                            }}
+                            >
                             <ShoppingCart size={14} strokeWidth={2} className="m-1"/> Add to Schedule Cart
                         </Button>
                         </div>
