@@ -1,5 +1,3 @@
-'use client'
-
 import axios from "axios";
 import { Card } from "./ui/card";
 import { Badge } from "@/components/ui/badge"
@@ -23,6 +21,7 @@ async function fetchBbsUpdates(count: number) {
                 throw Error('No update data found in Whole.');
         })
         .catch(function (error) {
+            console.log(error);
             return ([{
                 'url': 'https://whole.umeh.top',
                 'title': 'Cannot fetching data. Please contact us',
