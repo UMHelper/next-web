@@ -1,14 +1,6 @@
-'use client'
 import {Card, CardDescription, CardFooter, CardHeader, CardTitle} from "@/components/ui/card";
 import Link from "next/link";
-import {useRouter} from "next/navigation";
 const CourseCard=({data}:{data:any})=>{
-    const router=useRouter()
-    const handlerClick=()=>{
-        //console.log(data.New_code,'click')
-        router.push('/course/'+data.New_code)
-    }
-    //console.log(data)
     return(
         <Link href={'/course/'+data.New_code}>
             <Card className='hover:cursor-pointer hover:shadow-lg mx-auto'>
@@ -20,10 +12,10 @@ const CourseCard=({data}:{data:any})=>{
                                 {data.New_code}
                                 </div>
                                 {
-                                    data.Is_Offered===1 ?
+                                    parseInt(data.New_code[4])<=4 && (data.Is_Offered===1 ?
                                         <div className='text-white text-xs rounded-3xl bg-gradient-to-r from-green-600 to-green-600 h-fit py-0.5 px-2 shadow'> Offered</div>
                                         :
-                                        <div className='text-white text-xs rounded-3xl bg-gradient-to-r from-neutral-700 to-stone-900 h-fit py-0.5 px-2 shadow'> Not Offered</div>
+                                        <div className='text-white text-xs rounded-3xl bg-gradient-to-r from-neutral-700 to-stone-900 h-fit py-0.5 px-2 shadow'> Not Offered</div>)
                                 }
                             
                         </CardTitle>

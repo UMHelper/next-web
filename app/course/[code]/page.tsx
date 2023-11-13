@@ -138,10 +138,10 @@ async function CoursePage({ params }: { params: { code: string } }) {
                                     <span>{course['courseCode'].substring(4)}</span>
                                 </div>
                                 {
-                                    isOffer ?
+                                    parseInt(course['courseCode'][4])<=4 && (isOffer ?
                                         <div className='text-sm font-semibold rounded-3xl bg-gradient-to-r from-green-600 to-green-600 h-fit py-0.5 px-2 shadow'> Offered</div>
                                         :
-                                        <div className='text-sm font-semibold rounded-3xl bg-gradient-to-r from-neutral-700 to-stone-900 h-fit py-0.5 px-2 shadow'> Not Offered</div>
+                                        <div className='text-sm font-semibold rounded-3xl bg-gradient-to-r from-neutral-700 to-stone-900 h-fit py-0.5 px-2 shadow'> Not Offered</div>)
                                 }
                             </div>
                             <div className='text-xl font-semibold'>{course["courseTitle"]}</div>
