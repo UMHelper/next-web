@@ -24,7 +24,6 @@ import { useEffect, useState } from "react";
                 throw Error('No update data found in Whole.');
         })
         .catch(function (error) {
-            console.log(error);
             return ([{
                 'url': 'https://whole.umeh.top',
                 'title': 'Cannot fetching data. Please contact us',
