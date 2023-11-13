@@ -5,6 +5,7 @@ import { Card } from "./ui/card";
 import { Badge } from "@/components/ui/badge"
 import { Eye, MessageCircle } from "lucide-react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
  function fetchBbsUpdates(count: number) {
     return  axios
@@ -42,13 +43,18 @@ import Link from "next/link";
 
 
 export default function BbsUpdates() {
-    const updates: any = fetchBbsUpdates(3);
+    const [data, setData] = useState([])
+    useEffect(() => {
+        fetchBbsUpdates(3).then((data) => {
+            setData(data)
+        })
+    }, [])
 
     return (
 
         <div className="columns-1">
             {
-                updates.map((item: any) => (
+                data.map((item: any) => (
                     <Link key={item.url} href={item.url}>
                         <Card className="px-4 py-3 bg-white dark:bg-gray-800 rounded-lg shadow-md w-full  ">
                             <div className="flex w-full justify-between " >
