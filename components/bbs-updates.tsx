@@ -6,9 +6,10 @@ import { Badge } from "@/components/ui/badge"
 import { Eye, MessageCircle } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { Separator } from "@/components/ui/separator";
 
- function fetchBbsUpdates(count: number) {
-    return  axios
+async function fetchBbsUpdates(count: number) {
+    return axios
         .get('https://whole.umeh.top/public/api/discussions?include=user%2ClastPostedUser%2Ctags%2Ctags.parent%2CfirstPost&filter%5Btag%5D=umeh-notes&sort&page%5Boffset%5D=0')
         .then(async response => {
             if (response.data.data[0] != undefined)
@@ -51,24 +52,27 @@ export default function BbsUpdates() {
 
     return (
 
-        <div className="columns-1">
+        <div className="columns-1 border shadow rounded">
             {
                 data.map((item: any) => (
-                    <Link key={item.url} href={item.url}>
-                        <Card className="px-4 py-3 bg-white dark:bg-gray-800 rounded-lg shadow-md w-full  ">
-                            <div className="flex w-full justify-between " >
-                                <div className="text-sm text-slate-700">{item.date} </div>
-                                <div >
-                                    <Badge className="py-0.5 px-1.5 mx-1 bg-gradient-to-r from-blue-600 to-indigo-500"><Eye size={12} className="me-1" />{item.viewCount}</Badge>
-                                    <Badge className="py-0.5 px-1.5 mx-1 bg-gradient-to-r from-blue-600 to-indigo-500"><MessageCircle size={12} className="me-1" />{item.commentCount}</Badge>
-                                </div>
+                    <div key={item.url}>
+                        <Link href={item.url}>
+                            <div className="bg-white w-full space-y-1 mt-2 px-4 py-1">
+                                <div className="flex w-full justify-between items-center" >
+                                    <div className="text-sm text-slate-700">{item.date} </div>
+                                    <div >
+                                        <Badge className="py-0.5 px-1.5 mx-1 bg-gradient-to-r from-blue-600 to-indigo-500"><Eye size={12} className="me-1" />{item.viewCount}</Badge>
+                                        <Badge className="py-0.5 px-1.5 mx-1 bg-gradient-to-r from-blue-600 to-indigo-500"><MessageCircle size={12} className="me-1" />{item.commentCount}</Badge>
+                                    </div>
 
+                                </div>
+                                <div >
+                                    {item.title}
+                                </div>
                             </div>
-                            <div >
-                                {item.title}
-                            </div>
-                        </Card>
-                    </Link>
+                        </Link>
+                        <Separator className="mt-2" />
+                    </div>
 
                 ))}
         </div>
