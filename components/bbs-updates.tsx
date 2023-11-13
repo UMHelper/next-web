@@ -1,11 +1,14 @@
+'use client'
+
 import axios from "axios";
 import { Card } from "./ui/card";
 import { Badge } from "@/components/ui/badge"
 import { Eye, MessageCircle } from "lucide-react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
-async function fetchBbsUpdates(count: number) {
-    return await axios
+ function fetchBbsUpdates(count: number) {
+    return  axios
         .get('https://whole.umeh.top/public/api/discussions?include=user%2ClastPostedUser%2Ctags%2Ctags.parent%2CfirstPost&filter%5Btag%5D=umeh-notes&sort&page%5Boffset%5D=0')
         .then(async response => {
             if (response.data.data[0] != undefined)
@@ -38,14 +41,19 @@ async function fetchBbsUpdates(count: number) {
 }
 
 
-export default async function BbsUpdates() {
-    const updates: any = await fetchBbsUpdates(3);
+export default function BbsUpdates() {
+    const [data, setData] = useState([])
+    useEffect(() => {
+        fetchBbsUpdates(3).then((data) => {
+            setData(data)
+        })
+    }, [])
 
     return (
 
         <div className="columns-1">
             {
-                updates.map((item: any) => (
+                data.map((item: any) => (
                     <Link key={item.url} href={item.url}>
                         <Card className="px-4 py-3 bg-white dark:bg-gray-800 rounded-lg shadow-md w-full  ">
                             <div className="flex w-full justify-between " >
