@@ -1,5 +1,3 @@
-'use client'
-
 import axios from "axios";
 import { Card } from "./ui/card";
 import { Badge } from "@/components/ui/badge"
