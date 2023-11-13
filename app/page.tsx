@@ -1,18 +1,50 @@
-import { Radar, Github, Quote, UserPlus } from "lucide-react";
+import { Radar, Github, Quote, UserPlus, ArrowUpRightSquare } from "lucide-react";
 import Link from "next/link";
 import CommentBank from "@/components/comment-bank";
 import { Card } from "@/components/ui/card";
 import SearchComp from "@/components/search";
+import BbsUpdates from "@/components/bbs-updates";
 
 async function HomePage() {
     return (
         <>
-            <SearchComp/>
+            <SearchComp />
+
+            <div className='max-w-screen-xl mx-auto p-4'>
+                <div className='md:flex mx-4 my-4 py-8'>
+                    <div className='w-full md:w-2/5 space-y-3 py-4'>
+                        <div className="flex">
+
+                            <Link  href="https://whole.umeh.top">
+                                <img src="./whole-icon.png" className="w-48 -ms-2" />
+                            </Link>
+
+                            <ArrowUpRightSquare className="text-indigo-400" />
+                        </div>
+                        <div className='text-xl bg-gradient-to-r from-sky-500 to-indigo-600 bg-clip-text text-transparent'>
+                            Student Community @ UM
+                        </div><br></br>
+
+                        <div className='text-base text-slate-600	'>
+                            Anonymous and free discussions
+                        </div>
+                        <div className='text-base text-slate-600	'>
+                            識朋友，揾同好，傾學業✅ <br />
+                            快來加入我哋嘅 <Link
+                                href="https://whole.umeh.top" className="underline underline-offset-1 text-indigo-700"> Whole @UM 社群 </Link>
+                        </div>
+                    </div>
+                    <div className='w-full py-4 md:w-3/5'>
+                        <BbsUpdates />
+                    </div>
+                </div>
+            </div>
+
             <div className='max-w-screen-xl mx-auto p-4'>
                 <div className='grid grid-cols-1 md:grid-cols-2 mx-4 py-8 gap-y-8 gap-x-16'>
                     <div className='flex flex-col justify-center space-y-8 items-center md:items-start'>
                         <div className='text-2xl font-bold'>
-                            Suggesstions or Feedback?
+                            Suggesstions or feedback?
                         </div>
                         <Card className="flex items-center space-x-4 p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md w-full justify-between ">
                             <div className="flex items-center space-x-4 " >
@@ -49,7 +81,7 @@ async function HomePage() {
                     </div>
                     <div className='flex flex-col justify-center space-y-8 items-center md:items-start'>
                         <div className='text-2xl font-bold'>
-                            We are open source!
+                            We are open sourced!
                         </div>
 
 
@@ -92,8 +124,8 @@ async function HomePage() {
             </div>
 
             <div className='max-w-screen-xl mx-auto p-4'>
-                <div className="mx-8 py-8">
-                    <div className="text-center text-2xl pb-8">
+                <div className="py-8">
+                    <div className="text-center text-2xl font-bold pb-8">
                         Our Comment Bank
                     </div>
                     <CommentBank />
