@@ -2,22 +2,21 @@ import Toolbar from "@/components/toolbar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { CalendarRange, ChevronRightCircle, ClipboardEdit, Divide } from "lucide-react";
+import { CalendarRange, ChevronRightCircle, ClipboardEdit } from "lucide-react";
 import { Masonry } from "@/components/masonry";
 import { CommentCard } from "@/components/comment_card";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { TimetableCard } from "@/components/timetable-card";
 import { getCommentList } from "@/lib/database/comment-list";
 import { getProfInfo } from "@/lib/database/prof-info";
-import { fuzzySearch } from "@/lib/database/fuzzy-search";
 import Link from "next/link";
 
-import { COMMENT } from "@/consant";
 import { getCourseInfo } from "@/lib/database/course-info";
+import getScheduleList from "@/lib/database/schedule-list";
 
 export function generateMetadata(
-    {params}:{params:any}) {
-    const title = `${params.prof.join('/').replaceAll('%20'," ")} | ${params.code} | What2Reg @ UM 澳大選咩課 @UM`
+    { params }: { params: any }) {
+    const title = `${params.prof.join('/').replaceAll('%20', " ")} | ${params.code} | What2Reg @ UM 澳大選咩課 @UM`
 
     return {
         title: title,
@@ -25,39 +24,23 @@ export function generateMetadata(
 
 }
 
-async function fetchData(code:string,prof:string) {
-    const timetable=COMMENT['prof_info']['offer_info']['schedules'];
-    const comment= await getCommentList(code,prof.replaceAll('$','/'));
-    const prof_info=await getProfInfo(code,prof.replaceAll('$','/'));
-    
-    const is_offered=prof_info['is_offered'];
-    const course_info=await getCourseInfo(code);
-    //(await fuzzySearch(code,'course'))[0];
-
-
-    return {
-        timetable,
-        comment,
-        prof_info,
-        is_offered,
-        course_info,
-    }
-}
-
 const ReviewPage = async ({ params }: { params: { code: string, prof: string[] } }) => {
-    const {
-        timetable,
-        comment,
-        prof_info,
-        is_offered,
-        course_info,
-    } = await fetchData(params.code, params.prof.join('/'));
+    const code = params.code;
+    const prof = params.prof.join('/');
+
+    const prof_info = await getProfInfo(code, prof.replaceAll('$', '/'));
+    const is_offered = prof_info['is_offered'];
+
+    const course_info = await getCourseInfo(code);
+
+    const comment = await getCommentList(code, prof.replaceAll('$', '/'));
+
+    const timetable = await getScheduleList(params.code, params.prof.join('/'));
 
     return (
         <>
             <div className='bg-gradient-to-r from-blue-600 to-indigo-500 text-white p-6'>
                 <div className='max-w-screen-xl mx-auto p-4'>
-
                     <div className='flex flex-col md:flex-row justify-between'>
                         <div className="py-3">
                             <div>
@@ -80,31 +63,31 @@ const ReviewPage = async ({ params }: { params: { code: string, prof: string[] }
                                 <Link className="flex space-x-2" href={'/search/instructor/' + prof_info.prof_id}>
                                     <h1 className='font-bold text-3xl'>{prof_info['prof_id']}</h1>
                                     <ChevronRightCircle size={16} strokeWidth={1.5} />
-                                    </Link>
-                                    {(
-                                        is_offered?
-                                            <div className='text-sm font-semibold rounded-3xl bg-gradient-to-r from-green-600 to-green-600 h-fit py-0.5 px-2 shadow'> Offered</div>
-                                            :
-                                            <div className='text-sm font-semibold rounded-3xl bg-gradient-to-r from-neutral-700 to-stone-900 h-fit py-0.5 px-2 shadow'> Not Offered</div>
-                                    )}
-                                </div>
-                                <div className='flex-row flex space-x-2'>
-                                    <Link href={'/submit/'+params.code+'/'+params.prof}>
-                                        <Button className='text-sm px-2 hover:shadow-lg bg-white text-blue-800 hover:bg-gray-200'>
-                                            <ClipboardEdit size={16}/><span> Submit Review</span>
-                                        </Button>
-                                    </Link>
-                                    
-                                    {
-                                        is_offered?
+                                </Link>
+                                {(
+                                    is_offered ?
+                                        <div className='text-sm font-semibold rounded-3xl bg-gradient-to-r from-green-600 to-green-600 h-fit py-0.5 px-2 shadow'> Offered</div>
+                                        :
+                                        <div className='text-sm font-semibold rounded-3xl bg-gradient-to-r from-neutral-700 to-stone-900 h-fit py-0.5 px-2 shadow'> Not Offered</div>
+                                )}
+                            </div>
+                            <div className='flex-row flex space-x-2'>
+                                <Link href={'/submit/' + params.code + '/' + params.prof}>
+                                    <Button className='text-sm px-2 hover:shadow-lg bg-white text-blue-800 hover:bg-gray-200'>
+                                        <ClipboardEdit size={16} /><span> Submit Review</span>
+                                    </Button>
+                                </Link>
+
+                                {
+                                    is_offered ?
                                         <Popover>
                                             <PopoverTrigger asChild>
-                                                <Button className='text-sm px-2 hover:shadow-lg  bg-white text-blue-800 hover:bg-gray-200' disabled>
+                                                <Button className='text-sm px-2 hover:shadow-lg  bg-white text-blue-800 hover:bg-gray-200'>
                                                     <CalendarRange size={16} /> <span>Timetable (IP)</span>
                                                 </Button>
                                             </PopoverTrigger>
                                             <PopoverContent className="w-80">
-                                                <TimetableCard timetable={timetable} />
+                                                <TimetableCard timetable={timetable} code={code} prof={prof}/>
                                             </PopoverContent>
                                         </Popover>
                                         :
@@ -145,8 +128,6 @@ const ReviewPage = async ({ params }: { params: { code: string, prof: string[] }
                             </CardContent>
                         </Card>
                     </div>
-
-
                 </div>
             </div>
 
