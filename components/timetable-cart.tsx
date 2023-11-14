@@ -5,6 +5,7 @@ import { useLocalStorage } from 'usehooks-ts'
 import { X } from "lucide-react"
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
+import { usePathname } from 'next/navigation'
 
 export const TimetableCard = (
     { timetable: {
@@ -99,12 +100,14 @@ export const TimetableList = () => {
 }
 
 const TimetableCart = () => {
+    const isTimetablePage = usePathname().split('/')[1]==='timetable'
+    console.log(isTimetablePage)
     return (
         <Sheet>
             <SheetTrigger>
-                <div>
+                {!isTimetablePage&&(<div>
                     <ShoppingCart size={16} strokeWidth={2} />
-                </div>
+                </div>)}
             </SheetTrigger>
             <SheetContent>
                 <SheetHeader>

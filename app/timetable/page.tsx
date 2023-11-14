@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useLocalStorage } from 'usehooks-ts'
 import { Scheduler } from "@aldabil/react-scheduler";
 import { Button } from "@mui/material";
+import Link from 'next/link';
 
 interface CalendarEvent {
     event_id: number | string;
@@ -16,6 +17,7 @@ interface CalendarEvent {
     deletable?: boolean;
     draggable?: boolean;
     allDay?: boolean;
+    data: any;
 }
 
 const weekDay: any = {
@@ -58,7 +60,11 @@ const convertToEvents = (timetable: any, index: number) => {
             title: `${event_title}`,
             start: convertToDate(start_time, schedule.date),
             end: convertToDate(end_time, schedule.date),
-            color: `#${timetable.color}`
+            color: `#${timetable.color}`,
+            data: { ...schedule, ...timetable },
+            editable: false,
+            deletable: false,
+            draggable: false,
         }
         events.push(newEvent)
     })
@@ -110,6 +116,21 @@ const TimetableCalendar = () => {
                     deletable={false}
                     draggable={false}
                     events={events}
+                    eventRenderer={({ event, ...props }) => {
+                        return (
+                            <div className="flex flex-col justify-center items-center w-full h-full" style={{
+                                backgroundColor: event.color,
+                            }}>
+                                <Link href={`/reviews/${event.data.code}/${event.data.prof}`}>
+                                    <div className="text-xs">{`${event.data.code}-${event.data.section}`}</div>
+                                    <div className="text-xs">{event.data.time}</div>
+                                    <div className="text-xs">{event.data.location}</div>
+                                </Link>
+                                
+                            </div>
+                        )
+                    }
+                    }
                 />}
         </div>
     )
