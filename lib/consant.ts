@@ -8,13 +8,13 @@ export const menuList:MenuItem[]=[
         href:"/catalog"
     },
     {
+        name:'Timetable',
+        href:"/timetable"
+    },
+    {
         name:'Whole BBS',
         href:"https://whole.umeh.top"
     },
-    // {
-    //     name:'Feedback',
-    //     href:"/feedback"
-    // },
 ]
 
 export const faculty=[

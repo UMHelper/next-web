@@ -43,7 +43,7 @@ export const TimetableCard = ({ timetable, code, prof }: { timetable: any,code:s
                                 if(isExist){
                                     return
                                 }
-                                setTimetableCart([...timetableCart, {...schedules,code:code,prof:prof.replaceAll('%20', ' ')}])
+                                setTimetableCart([...timetableCart, {...schedules,code:code,prof:prof.replaceAll('%20', ' '),color:Math.floor(Math.random() * 16777215).toString(16)}])
                             }}
                             disabled={timetableCart.find((timetable: any) => timetable['section'] === schedules['section'] && timetable['code'] === code)}
                             >

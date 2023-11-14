@@ -1,27 +1,35 @@
 'use client'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { ShoppingCart } from "lucide-react"
-import { useEffect } from "react";
 import { useLocalStorage } from 'usehooks-ts'
 import { X } from "lucide-react"
+import { useEffect, useState } from "react";
+import { cn } from "@/lib/utils";
 
-const TimetableCard = (
+export const TimetableCard = (
     { timetable: {
         schedules,
         code,
         prof,
         section
-    } }: {
+    },horizontal=false }: {
         timetable: {
             schedules: any[],
             code: string,
             prof: string,
             section: string
-        }
+        },
+        horizontal?: boolean
     }) => {
-    const [timetableCart, setTimetableCart] = useLocalStorage<any[]>('timetableCart', [])
+    const [timetableCart, setTimetableCart] = useState<any[]>([])
+
+    const [data, setData] = useLocalStorage<any[]>('timetableCart', [])
+
+    useEffect(() => {
+        setTimetableCart(data)
+    }, [data])
     return (
-        <div className=" border p-4 rounded hover:shadow">
+        <div className={cn("border p-4 rounded hover:shadow",horizontal?"inline-table min-w-fit":"")}>
             <div className="flex flex-row justify-between">
                 <div>
                     <div className="font-bold">{code}</div>
@@ -33,7 +41,7 @@ const TimetableCard = (
                     const newTimetableCart = timetableCart.filter((timetable: any) => {
                         return timetable['section'] !== section || timetable['code'] !== code
                     })
-                    setTimetableCart([...newTimetableCart])
+                    setData([...newTimetableCart])
                 }}>
                     <X className="h-3 w-3" />
                 </div>
@@ -61,8 +69,36 @@ const TimetableCard = (
     )
 }
 
+export const TimetableList = () => {
+    const [timetableCart, setTimetableCart] = useState<any[]>([])
+
+    const [data, setData] = useLocalStorage<any[]>('timetableCart', [])
+
+    useEffect(() => {
+        setTimetableCart(data)
+    }, [data])
+    return (
+        <div>
+            <div className="my-2 space-y-2">
+                {timetableCart.map((timetable: any) => (<TimetableCard key={timetable.code + timetable.prof + timetable.section} timetable={timetable}/>))}
+            </div>
+            {
+                timetableCart.length > 0 ? (
+                    <div
+                        className="w-full bg-red-500 rounded hover:shadow flex justify-center text-white font-bold"
+                        onClick={() => {
+                            setData([])
+                        }}
+                    >
+                        Clear Cart
+                    </div>
+                ) : null
+            }
+        </div>
+    )
+}
+
 const TimetableCart = () => {
-    const [timetableCart, setTimetableCart] = useLocalStorage<any[]>('timetableCart', [])
     return (
         <Sheet>
             <SheetTrigger>
@@ -77,21 +113,7 @@ const TimetableCart = () => {
                         Manage your timetable cart here.
                     </SheetDescription>
                 </SheetHeader>
-                <div className="my-2 space-y-2">
-                    {timetableCart.map((timetable: any) => (<TimetableCard key={timetable.code + timetable.prof + timetable.section} timetable={timetable} />))}
-                </div>
-                {
-                    timetableCart.length > 0 ? (
-                        <div
-                            className="w-full bg-red-500 rounded hover:shadow flex justify-center text-white font-bold"
-                            onClick={() => {
-                                setTimetableCart([])
-                            }}
-                        >
-                            Clear Cart
-                        </div>
-                    ) : null
-                }
+                <TimetableList />
             </SheetContent>
         </Sheet>
 
