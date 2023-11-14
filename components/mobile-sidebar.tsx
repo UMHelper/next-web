@@ -11,6 +11,8 @@ import {AlignJustify} from "lucide-react";
 import {menuList as menu} from "@/lib/consant";
 import {usePathname} from "next/navigation";
 import Link from "next/link";
+import TimetableCart from "@/components/timetable-cart";
+import NavbarAvatar from "@/components/navbar-avatar";
 
 const MobileSidebar=()=>{
     const pathname=usePathname()
@@ -36,7 +38,12 @@ const MobileSidebar=()=>{
                                 </Link>
                             )
                         })}
+                        <div className="flex flex-row space-x-2 px-1">
+                            <TimetableCart />
+                            <NavbarAvatar />
+                        </div>
                     </div>
+                    
                 </SheetContent>
             </Sheet>
         </div>

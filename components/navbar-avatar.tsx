@@ -21,7 +21,7 @@ export default function NavbarAvatar() {
           return () => subscription.unsubscribe()
     }, [])
     return (
-        <div className="hidden md:flex justify-center items-center">
+        <div className="flex md:justify-center items-center">
                 {session ? (
                     <DropdownMenu>
                     <DropdownMenuTrigger>

@@ -7,9 +7,9 @@ import TimetableCart from "@/components/timetable-cart";
 const Navbar = () => {
     return (
         <div className="bg-white border-gray-200 max-w-screen-xl mx-auto p-4 ">
-            <div className='hidden md:flex flex-row justify-between'>
+            <div className='flex flex-row justify-between'>
                 <NavbarList />
-                <div className="flex flex-row space-x-2">
+                <div className="hidden md:flex flex-row space-x-2">
                     <TimetableCart />
                     <NavbarAvatar />
                 </div>
