@@ -101,7 +101,6 @@ export const TimetableList = () => {
 
 const TimetableCart = () => {
     const isTimetablePage = usePathname().split('/')[1]==='timetable'
-    console.log(isTimetablePage)
     return (
         <Sheet>
             <SheetTrigger>
