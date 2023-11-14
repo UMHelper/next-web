@@ -126,7 +126,7 @@ const TimetableCalendar = () => {
                                     <div className="text-xs">{event.data.time}</div>
                                     <div className="text-xs">{event.data.location}</div>
                                 </Link>
-                                
+
                             </div>
                         )
                     }
@@ -143,30 +143,42 @@ const TimetablePage = () => {
     useEffect(() => {
         setTimetableCart(data)
     }, [data])
-    return (
-        <div>
-            <div className="text-xl font-bold">Timetable</div>
-            <div>Timetable Cart</div>
-            <div className="flex flex-row space-x-2 my-2 w-full overflow-x-auto flex-nowrap scroll-smooth">
-                {timetableCart.map((timetable: any) => (<TimetableCard key={timetable.code + timetable.prof + timetable.section} timetable={timetable} horizontal />))}
-                {
-                    timetableCart.length > 0 ? (
-                        <div
-                            className=" bg-red-500 rounded hover:shadow flex justify-center text-white font-bold min-w-fit px-4 items-center"
-                            onClick={() => {
-                                setData([])
-                            }}
-                        >
-                            Clear Cart
-                        </div>
-                    ) :
-                        null
-                }
-            </div>
 
-            <div>Calendar</div>
-            <TimetableCalendar />
-        </div>
-    )
+    if (timetableCart.length === 0) {
+        return (
+            <div className="w-full h-screen flex justify-center items-center flex-col space-y-8">
+                <div className="text-4xl font-black racking-widest bg-gradient-to-r from-teal-400 via-violet-400 to-blue-500 bg-clip-text text-transparent">
+                    Generateing your timetable... XD
+                </div>
+            </div>
+        )
+    }
+    else {
+        return (
+            <div>
+                <div className="text-xl font-bold">Timetable</div>
+                <div>Timetable Cart</div>
+                <div className="flex flex-row space-x-2 my-2 w-full overflow-x-auto flex-nowrap scroll-smooth">
+                    {timetableCart.map((timetable: any) => (<TimetableCard key={timetable.code + timetable.prof + timetable.section} timetable={timetable} horizontal />))}
+                    {
+                        timetableCart.length > 0 ? (
+                            <div
+                                className=" bg-red-500 rounded hover:shadow flex justify-center text-white font-bold min-w-fit px-4 items-center"
+                                onClick={() => {
+                                    setData([])
+                                }}
+                            >
+                                Clear Cart
+                            </div>
+                        ) :
+                            null
+                    }
+                </div>
+
+                <div>Calendar</div>
+                <TimetableCalendar />
+            </div>
+        )
+    }
 }
 export default TimetablePage
