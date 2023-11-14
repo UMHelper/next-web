@@ -31,7 +31,7 @@ const TimetableCard = (
                 <div onClick={() => {
                     // find code and section in timetableCart and remove it
                     const newTimetableCart = timetableCart.filter((timetable: any) => {
-                        return timetable['section'] !== section && timetable['code'] !== code
+                        return timetable['section'] !== section || timetable['code'] !== code
                     })
                     setTimetableCart([...newTimetableCart])
                 }}>
@@ -63,9 +63,6 @@ const TimetableCard = (
 
 const TimetableCart = () => {
     const [timetableCart, setTimetableCart] = useLocalStorage<any[]>('timetableCart', [])
-    useEffect(() => {
-        console.log(timetableCart)
-    }, [timetableCart])
     return (
         <Sheet>
             <SheetTrigger>

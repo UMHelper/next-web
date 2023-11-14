@@ -38,17 +38,14 @@ export const TimetableCard = ({ timetable, code, prof }: { timetable: any,code:s
                             className="bg-gradient-to-r hover:from-purple-500 hover:to-blue-500 text-slate-100 from-purple-600 to-blue-600 hover:shadow"
                             onClick={() => {
                                 const isExist=timetableCart.find((timetable: any) =>{
-                                    console.log(timetable)
-                                    console.log(timetable.section, schedules.section)
-                                    console.log(timetable.code, code)
                                     return  timetable['section'] === schedules['section'] && timetable['code'] === code
                                 })
-                                console.log(isExist)
                                 if(isExist){
                                     return
                                 }
                                 setTimetableCart([...timetableCart, {...schedules,code:code,prof:prof.replaceAll('%20', ' ')}])
                             }}
+                            disabled={timetableCart.find((timetable: any) => timetable['section'] === schedules['section'] && timetable['code'] === code)}
                             >
                             <ShoppingCart size={14} strokeWidth={2} className="m-1"/> Add to Schedule Cart
                         </Button>
