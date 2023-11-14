@@ -15,22 +15,21 @@ async function HomePage() {
                     <div className='w-full md:w-2/5 space-y-3 py-4'>
                         <div className="flex">
 
-                            <Link  href="https://whole.umeh.top" className="bg-gradient-to-r from-sky-500 to-indigo-600 bg-clip-text text-transparent space-x-1">
+                            <Link href="https://whole.umeh.top" className="bg-gradient-to-r from-sky-500 to-indigo-600 bg-clip-text text-transparent space-x-1">
                                 {/* <img src="./whole-icon.png" className="w-48 -ms-2" /> */}
-                                <span className="text-2xl font-black ">WHOLE</span>
-                                <span className="text-2xl font-sembold">@UM</span>
+                                <span className="text-3xl font-bold font-black me-2">WHOLE</span>
                             </Link>
 
-                            <ArrowUpRightSquare className="text-indigo-600" size={14}/>
+                            <ArrowUpRightSquare className="text-indigo-600" size={14} />
                         </div>
                         <div className='text-xl bg-gradient-to-r from-sky-500 to-indigo-600 bg-clip-text text-transparent'>
-                            Student Community @ UM
+                            Student Community @UM
                         </div><br></br>
 
-                        <div className='text-base text-slate-800	'>
+                        <div className='hidden md:block text-base text-slate-800	'>
                             Anonymous and free discussions
                         </div>
-                        <div className='text-base text-slate-800	'>
+                        <div className='hidden md:block text-base text-slate-800	'>
                             識朋友，揾同好，傾學業✅ <br />
                             快來加入我哋嘅 <Link
                                 href="https://whole.umeh.top" className="text-sky-800"> Whole @UM 社群 </Link>

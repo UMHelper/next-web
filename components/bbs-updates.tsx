@@ -52,7 +52,7 @@ export default function BbsUpdates() {
 
     return (
 
-        <div className="columns-1 border shadow rounded">
+        <div className="columns-1 border shadow-md rounded-lg">
             {
                 data.map((item: any) => (
                     <div key={item.url}>

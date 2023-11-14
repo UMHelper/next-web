@@ -60,20 +60,20 @@ export default function SearchComp() {
     return (
         <div className='bg-[url("/banner.jpg")] bg-cover'>
             <div className='max-w-screen-xl mx-auto p-2'>
-                <div className='flex justify-between mx-2 py-8 '>
-                    <div className='md:flex flex-col justify-center text-white hidden space-y-2 p-6'>
+                <div className='flex justify-between mx-2 py-10 md:py-8 '>
+                    <div className='md:flex flex-col justify-center text-white hidden space-y-2  p-6'>
                         <h1 className='text-4xl'>
-                            澳大選咩課
-                        </h1>
-                        <div className='text-3xl'>
                             What2Reg @UM
-                        </div><br></br>
+                        </h1>
+                        <h1 className='text-3xl'>
+                            澳大選咩課
+                        </h1><br></br>
+                        <h2 className='text-base'>
+                            Course review platform for University of Macau
+                        </h2>
                         <h2 className='text-base'>
                             專為澳大學生而設的課程評價網站
                         </h2>
-                        <div className='text-base'>
-                            Course review platform for University of Macau
-                        </div>
                     </div>
                     <Card className="md:mx-8 md:w-96 w-full mx-0">
                         <CardHeader>
@@ -81,8 +81,8 @@ export default function SearchComp() {
                         </CardHeader>
                         <CardContent className='space-y-2'>
                             <div>
-                                <CardTitle >{is_prof ? '搜尋講師' : '搜尋課程'}</CardTitle>
-                                <CardDescription >{is_prof ? 'Find Instructors' : 'Find Courses'}</CardDescription>
+                                <CardTitle >{is_prof ? 'Find Instructors' : 'Find Courses'}</CardTitle>
+                                <CardDescription >{is_prof ? '搜尋講師' : '搜尋課程'}</CardDescription>
                             </div>
                             <Form {...form}>
 
@@ -140,16 +140,16 @@ export default function SearchComp() {
                                             </FormItem>
                                         )}
                                     />
-                                    <br></br>
+                                    <br/>
                                     <Button type="submit" className='bg-gradient-to-r from-blue-600 to-indigo-500'>
                                         <Search size={20} /><span>Search</span>
                                     </Button>
                                 </form>
                             </Form>
                         </CardContent>
-                        <CardFooter className='text-xs text-gray-400 flex flex-col items-start'>
-                            <div>鍵入部分課程代碼/名稱或講師姓名</div>
-                            <div className='max-w-sm'>Search by course codes/titles, or name of instructors (partial search supported)</div><br></br>
+                        <CardFooter className='text-xs text-gray-400 flex flex-col items-start space-y-1'>
+                            <div className='max-w-sm'>Search by course codes/titles, or name of instructors (partial search supported)</div>
+                            <div>鍵入部分課程代碼/名稱或講師姓名</div><br></br>
                             <div className='italic'>Data Source: reg.um.edu.mo</div>
                         </CardFooter>
                     </Card>

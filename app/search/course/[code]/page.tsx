@@ -13,7 +13,15 @@ export function generateMetadata(
 
 const fetchData = async (code:string) => {
     const data:any=await fuzzySearch(code,'course')
-    return data
+    const unique_data = data
+    .map((e: { [x: string]: any; }) => e['New_code'])
+    // store the keys of the unique objects
+    .map((e: any, i: any, final: string | any[]) => final.indexOf(e) === i && i)
+    // eliminate the dead keys & store unique objects
+    .filter((e: string | number) => data[e]).map((e: string | number) => data[e])
+    return unique_data  
+  
+    
 }
 
 async function CourseSearchPage({params}:{params:{code:string}}){
