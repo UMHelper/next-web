@@ -42,3 +42,8 @@ export const faculty_dept = {
     'ICMS': [], 
     'RC' : []
 };
+
+export const NO_ROOT_LAYOUT_LIST=[
+    'sign-in',
+    'sign-up',
+]
