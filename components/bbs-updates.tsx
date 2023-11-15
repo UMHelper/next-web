@@ -43,7 +43,13 @@ async function fetchBbsUpdates(count: number) {
 
 
 export default function BbsUpdates() {
-    const [data, setData] = useState([])
+    const [data, setData] = useState([{
+        'url': 'https://whole.umeh.top',
+        'title': 'Loading update data from Whole API',
+        'commentCount': 0,
+        'viewCount': 0,
+        'date': 'One second...'
+    }])
     useEffect(() => {
         fetchBbsUpdates(3).then((data) => {
             setData(data)
