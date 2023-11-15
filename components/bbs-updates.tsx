@@ -3,7 +3,7 @@
 import axios from "axios";
 import { Card } from "./ui/card";
 import { Badge } from "@/components/ui/badge"
-import { Eye, MessageCircle } from "lucide-react";
+import { ArrowUpRightSquare, Cat, Eye, MessageCircle } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Separator } from "@/components/ui/separator";
@@ -58,29 +58,60 @@ export default function BbsUpdates() {
 
     return (
 
-        <div className="columns-1 border shadow-md rounded-lg">
-            {
-                data.map((item: any) => (
-                    <div key={item.url}>
-                        <Link href={item.url}>
-                            <div className="bg-white w-full space-y-1 mt-2 px-4 py-1">
-                                <div className="flex w-full justify-between items-center" >
-                                    <div className="text-sm text-slate-700">{item.date} </div>
-                                    <div >
-                                        <Badge className="py-0.5 px-1.5 mx-1 bg-gradient-to-r from-blue-600 to-indigo-500"><Eye size={12} className="me-1" />{item.viewCount}</Badge>
-                                        <Badge className="py-0.5 px-1.5 mx-1 bg-gradient-to-r from-blue-600 to-indigo-500"><MessageCircle size={12} className="me-1" />{item.commentCount}</Badge>
-                                    </div>
+        <div className='max-w-screen-xl mx-auto p-4'>
+            <div className='md:flex mx-4 my-4 py-8'>
+                <div className='w-full md:w-2/5 space-y-3 py-4'>
 
-                                </div>
-                                <div >
-                                    {item.title}
-                                </div>
-                            </div>
+                    <div className="flex flex-wrap items-center justify-start pb-2">
+                        <Cat size={24} strokeWidth={2} color='rgb(14 165 233)' className="me-2" />
+                        <Link href="https://whole.umeh.top" className="flex mr-10">
+                            <span className="self-center text-2xl font-bold font-black whitespace-nowrap bg-gradient-to-r from-sky-500 to-indigo-600 bg-clip-text text-transparent">WHOLE</span>
+                            <ArrowUpRightSquare className="ms-2 text-indigo-600" size={14} />
                         </Link>
-                        <Separator className="mt-2" />
                     </div>
 
-                ))}
+                    <div className='text-xl bg-gradient-to-r from-sky-500 to-indigo-600 bg-clip-text text-transparent'>
+                        Student Community @UM
+                    </div><br></br>
+
+                    <div className='hidden md:block text-base text-slate-800	'>
+                        Anonymous and free discussions
+                    </div>
+                    <div className='hidden md:block text-base text-slate-800	'>
+                        識朋友，揾同好，傾學業✅ <br />
+                        快來加入我哋嘅 <Link
+                            href="https://whole.umeh.top" className="text-sky-800"> Whole @UM 社群 </Link>
+                    </div>
+                </div>
+                <div className='w-full md:w-3/5'>
+
+                    <div className="columns-1 border shadow-md rounded-lg">
+                        {
+                            data.map((item: any) => (
+                                <div key={item.url}>
+                                    <Link href={item.url}>
+                                        <div className="bg-white w-full space-y-1 mt-2 px-4 py-1">
+                                            <div className="flex w-full justify-between items-center" >
+                                                <div className="text-sm text-slate-700">{item.date} </div>
+                                                <div >
+                                                    <Badge className="py-0.5 px-1.5 mx-1 bg-gradient-to-r from-blue-600 to-indigo-500"><Eye size={12} className="me-1" />{item.viewCount}</Badge>
+                                                    <Badge className="py-0.5 px-1.5 mx-1 bg-gradient-to-r from-blue-600 to-indigo-500"><MessageCircle size={12} className="me-1" />{item.commentCount}</Badge>
+                                                </div>
+
+                                            </div>
+                                            <div >
+                                                {item.title}
+                                            </div>
+                                        </div>
+                                    </Link>
+                                    <Separator className="mt-2" />
+                                </div>
+
+                            ))}
+                    </div>
+                </div>
+            </div>
         </div>
+
     );
 }

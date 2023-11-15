@@ -3,43 +3,11 @@ import Link from "next/link";
 import CommentBank from "@/components/comment-bank";
 import { Card } from "@/components/ui/card";
 import SearchComp from "@/components/search";
-import BbsUpdates from "@/components/bbs-updates";
 
 async function HomePage() {
     return (
         <>
             <SearchComp />
-
-            <div className='max-w-screen-xl mx-auto p-4'>
-                <div className='md:flex mx-4 my-4 py-8'>
-                    <div className='w-full md:w-2/5 space-y-3 py-4'>
-
-                        <div className="flex flex-wrap items-center justify-start pb-2">
-                            <Cat size={24} strokeWidth={2} color='rgb(14 165 233)' className="me-2" />
-                            <Link href="https://whole.umeh.top" className="flex mr-10">
-                                <span className="self-center text-2xl font-bold font-black whitespace-nowrap bg-gradient-to-r from-sky-500 to-indigo-600 bg-clip-text text-transparent">WHOLE</span>
-                                <ArrowUpRightSquare className="ms-2 text-indigo-600" size={14} />
-                            </Link>
-                        </div>
-
-                        <div className='text-xl bg-gradient-to-r from-sky-500 to-indigo-600 bg-clip-text text-transparent'>
-                            Student Community @UM
-                        </div><br></br>
-
-                        <div className='hidden md:block text-base text-slate-800	'>
-                            Anonymous and free discussions
-                        </div>
-                        <div className='hidden md:block text-base text-slate-800	'>
-                            識朋友，揾同好，傾學業✅ <br />
-                            快來加入我哋嘅 <Link
-                                href="https://whole.umeh.top" className="text-sky-800"> Whole @UM 社群 </Link>
-                        </div>
-                    </div>
-                    <div className='w-full md:w-3/5'>
-                        <BbsUpdates />
-                    </div>
-                </div>
-            </div>
 
             <div className='max-w-screen-xl mx-auto p-4'>
                 <div className='grid grid-cols-1 md:grid-cols-2 mx-4 py-8 gap-y-8 gap-x-16'>
