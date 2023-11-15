@@ -1,4 +1,4 @@
-import { Radar, Github, Quote, UserPlus, ArrowUpRightSquare } from "lucide-react";
+import { Radar, Github, Quote, UserPlus, ArrowUpRightSquare, Cat } from "lucide-react";
 import Link from "next/link";
 import CommentBank from "@/components/comment-bank";
 import { Card } from "@/components/ui/card";
@@ -13,15 +13,15 @@ async function HomePage() {
             <div className='max-w-screen-xl mx-auto p-4'>
                 <div className='md:flex mx-4 my-4 py-8'>
                     <div className='w-full md:w-2/5 space-y-3 py-4'>
-                        <div className="flex">
 
-                            <Link href="https://whole.umeh.top" className="bg-gradient-to-r from-sky-500 to-indigo-600 bg-clip-text text-transparent space-x-1">
-                                {/* <img src="./whole-icon.png" className="w-48 -ms-2" /> */}
-                                <span className="text-3xl font-bold font-black me-2">WHOLE</span>
+                        <div className="flex flex-wrap items-center justify-start pb-2">
+                            <Cat size={24} strokeWidth={2} color='rgb(14 165 233)' className="me-2" />
+                            <Link href="https://whole.umeh.top" className="flex mr-10">
+                                <span className="self-center text-2xl font-bold font-black whitespace-nowrap bg-gradient-to-r from-sky-500 to-indigo-600 bg-clip-text text-transparent">WHOLE</span>
+                                <ArrowUpRightSquare className="ms-2 text-indigo-600" size={14} />
                             </Link>
-
-                            <ArrowUpRightSquare className="text-indigo-600" size={14} />
                         </div>
+
                         <div className='text-xl bg-gradient-to-r from-sky-500 to-indigo-600 bg-clip-text text-transparent'>
                             Student Community @UM
                         </div><br></br>
