@@ -12,7 +12,7 @@ export default function NavbarAvatar() {
         <div className="flex md:justify-center items-center">
             <SignedIn>
                 {/* Mount the UserButton component */}
-                <UserButton />
+                <UserButton afterSignOutUrl="/"/>
             </SignedIn>
             <SignedOut>
                 {/* Signed out users get sign in button */}
