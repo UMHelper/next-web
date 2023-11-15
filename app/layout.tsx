@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import Footer from "@/components/footer";
 import { Toaster } from '@/components/ui/toaster';
 import Script from 'next/script';
+import { ClerkProvider } from '@clerk/nextjs'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -22,6 +23,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
+    <ClerkProvider>
     <html lang="en">
       <head>
         <Script
@@ -68,5 +70,6 @@ export default function RootLayout({
         <Toaster />
       </body>
     </html>
+    </ClerkProvider>
   )
 }
