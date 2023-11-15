@@ -9,7 +9,7 @@ import {
 
 export default function NavbarAvatar() {
     return (
-        <div className="flex md:justify-center items-center">
+        <div className="flex md:justify-center items-center min-w-full">
             <SignedIn>
                 {/* Mount the UserButton component */}
                 <UserButton afterSignOutUrl="/"/>

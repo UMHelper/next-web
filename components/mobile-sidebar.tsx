@@ -18,7 +18,7 @@ const MobileSidebar=()=>{
     const pathname=usePathname()
     const menuList=menu
     return(
-        <div className='md:hidden'>
+        <div className='md:hidden w-full h-full flex justify-center items-center'>
             <Sheet>
                 <SheetTrigger>
                     <div>
@@ -38,10 +38,10 @@ const MobileSidebar=()=>{
                                 </Link>
                             )
                         })}
-                        <div className="flex flex-row space-x-2 px-1">
+                        {/* <div className="flex flex-row space-x-2 px-1">
                             <TimetableCart />
                             <NavbarAvatar />
-                        </div>
+                        </div> */}
                     </div>
                     
                 </SheetContent>
