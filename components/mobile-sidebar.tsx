@@ -10,6 +10,7 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 import TimetableCart from "@/components/timetable-cart";
 import NavbarAvatar from "@/components/navbar-avatar";
+import { SignInButton, SignedOut } from "@clerk/nextjs";
 
 const MobileSidebar = () => {
     const pathname = usePathname()
@@ -35,8 +36,12 @@ const MobileSidebar = () => {
                                 </Link>
                             )
                         })}
-                    {/* <NavbarAvatar /> */}
-                    <TimetableCart />
+                        <div className="flex justify-start items-center px-1 py-2">
+                        <SignedOut>
+                            <SignInButton />
+                        </SignedOut>
+                        </div>
+                        <TimetableCart />
                     </div>
 
                 </SheetContent>

@@ -2,6 +2,7 @@ import MobileSidebar from "@/components/mobile-sidebar";
 import NavbarList from "@/components/navbar-list";
 import NavbarAvatar from '@/components/navbar-avatar';
 import TimetableCart from "@/components/timetable-cart";
+import { SignedIn, UserButton } from "@clerk/nextjs";
 
 
 const Navbar = () => {
@@ -15,7 +16,7 @@ const Navbar = () => {
                         <NavbarAvatar />
                     </div>
                     <div className="md:hidden">
-                        <NavbarAvatar />
+                        <UserButton afterSignOutUrl={'/'} />
                     </div>
                     <MobileSidebar />
                 </div>
