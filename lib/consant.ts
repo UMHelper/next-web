@@ -11,10 +11,6 @@ export const menuList:MenuItem[]=[
         name:'Timetable',
         href:"/timetable"
     },
-    {
-        name:'Whole BBS',
-        href:"https://whole.umeh.top"
-    },
 ]
 
 export const faculty=[
