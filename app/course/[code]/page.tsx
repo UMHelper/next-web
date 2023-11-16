@@ -158,7 +158,7 @@ async function CoursePage({ params }: { params: { code: string } }) {
                                 }
                             </div>
                             <div className='text-xl font-semibold'>{course["courseTitle"]}</div>
-                            <div className='text-sm'>{course['offeringProgLevel'] + ' Course, Year ' + course['suggestedYearOfStudy']}</div>
+                            <div className='text-sm'>{course['offeringProgLevel'] + ' Course, Year ' + parseInt(course['suggestedYearOfStudy'])}</div>
                             <Toolbar course={course} prof={undefined} />
                         </div>
                         <div className='py-6 space-y-4'>
