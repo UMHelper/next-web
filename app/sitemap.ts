@@ -20,8 +20,10 @@ const fetchReviewSitemap = async () => {
     const { data, error }:{data:any,error:any} = await supabase.from('prof_with_course').select('course_id,prof_id')
     let reviewSitemap:any[]=[]
     data.map((review:any)=>{
+        // return
+        const prof=review.prof_id.replaceAll(' ','%20')
         reviewSitemap.push({
-            url: `https://umeh.top/reviews/${review.course_id}/${review.prof_id.replaceAll(" ", '%20')}`,
+            url: `https://umeh.top/reviews/${review.course_id}/${prof}/`,
             lastModified: new Date(),
             changeFrequency: 'monthly',
             priority: 0.8,
@@ -57,7 +59,7 @@ const fetchCatalogSitemap = async () => {
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-    const indexSitemap=[
+    const indexSitemap:any=[
         {
             url: 'https://umeh.top',
             lastModified: new Date(),
@@ -70,6 +72,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const reviewSitemap=await fetchReviewSitemap()
 
     const catalogSitemap=await fetchCatalogSitemap()
-
-    return [...indexSitemap,...courseSitemap,...reviewSitemap,...catalogSitemap]
+    return [...indexSitemap,...courseSitemap,...catalogSitemap,...reviewSitemap,]
 }
