@@ -1,7 +1,7 @@
 import {NextResponse} from "next/server";
 import {COMMENT} from "@/consant";
 import {delay} from "@/lib/utils";
-import createServer from "@/lib/database/database";
+import supabase from '@/lib/database/database';
 import { getProfInfo } from "@/lib/database/prof-info";
 
 export async function GET(){
@@ -19,7 +19,7 @@ export async function POST(request: Request){
     body.result=(parseFloat(body.attendance)+parseFloat(body.pre)+body.grade+body.hard+body.reward+body.assignment+body.recommend)/7
     // 2021-10-10T16:00:00.000Z
     body.pub_time=new Date().toISOString().slice(0, 19).replace('T', ' ')
-    createServer.from('comment').insert([body]).select().then(({data,error}:{data:any,error:any})=>{
+    supabase.from('comment').insert([body]).select().then(({data,error}:{data:any,error:any})=>{
         //console.log(data)
         //console.log(error)
     })

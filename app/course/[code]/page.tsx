@@ -105,7 +105,7 @@ export async function generateStaticParams() {
     if (!courses) {
         return []
     }
-    console.log(courses[0])
+    // console.log(courses[0])
     return courses.map((course) => {
         return{
             code:course['New_code']
