@@ -26,6 +26,15 @@ const fetchCourseList = async (departments: string[]) => {
     return data.sort((a: any, b: any) => a.New_code.localeCompare(b.New_code))
 
 }
+
+export async function generateStaticParams() {
+    return faculty.map((faculty) => {
+        return{
+            departments:[faculty,]
+        }
+    })
+}
+
 const CatalogPage = async ({ params: { departments } }: { params: { departments: string[] } }) => {
     // if departements[0] not in faculty, return 404
     if (!faculty.includes(departments[0])) {

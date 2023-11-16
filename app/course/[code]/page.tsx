@@ -13,7 +13,7 @@ import { getCourseInfo } from "@/lib/database/course-info";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 import Script from "next/script";
-
+import supabase from '@/lib/database/database';
 
 export function generateMetadata(
     { params }: { params: any }) {
@@ -98,6 +98,19 @@ async function fetchData(code: string) {
     }
     ////console.log(course)
     return { course, profList, isOffer }
+}
+
+export async function generateStaticParams() {
+    const { data: courses } = await supabase.from('course_noporf').select('New_code')
+    if (!courses) {
+        return []
+    }
+    console.log(courses[0])
+    return courses.map((course) => {
+        return{
+            code:course['New_code']
+        }
+    })
 }
 
 async function CoursePage({ params }: { params: { code: string } }) {
