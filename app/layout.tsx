@@ -67,7 +67,7 @@ export default function RootLayout({
               sizes="any"
             />
           </head>
-          <body className={cn(inter.className)}>
+          <body className={cn(inter.className,"w-full h-screen flex justify-center items-center")}>
             {children}
           </body>
         </html>
