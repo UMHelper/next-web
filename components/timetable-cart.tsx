@@ -105,7 +105,7 @@ const TimetableCart = () => {
         <Sheet>
             <SheetTrigger>
                 {!isTimetablePage&&(<div>
-                    <ShoppingCart size={18} strokeWidth={2} />
+                    <ShoppingCart size={20} strokeWidth={2} />
                 </div>)}
             </SheetTrigger>
             <SheetContent>

@@ -10,8 +10,11 @@ const Navbar = () => {
             <div className='flex flex-row justify-between'>
                 <NavbarList />
                 <div className=" space-x-4 flex flex-row justify-center items-center">
-                    <div className="hidden md:flex flex-row space-x-2">
+                    <div className=" hidden md:flex flex-row space-x-2">
                         <TimetableCart />
+                        <NavbarAvatar />
+                    </div>
+                    <div className="md:hidden">
                         <NavbarAvatar />
                     </div>
                     <MobileSidebar />

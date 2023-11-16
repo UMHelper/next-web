@@ -35,7 +35,7 @@ const MobileSidebar = () => {
                                 </Link>
                             )
                         })}
-                    <NavbarAvatar />
+                    {/* <NavbarAvatar /> */}
                     <TimetableCart />
                     </div>
 
