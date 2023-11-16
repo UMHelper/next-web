@@ -2,6 +2,12 @@ import { Post, allPosts } from 'contentlayer/generated';
 import { useMDXComponent } from 'next-contentlayer/hooks'
 import { notFound } from 'next/navigation'
 
+export async function generateStaticParams() {
+    return allPosts.map((post) => ({
+      slug: post._raw.flattenedPath,
+    }))
+}
+
 const PostDetailPage = (({ params: { code } }: { params: { code: string } }) => {
     const post = allPosts.find((post) => post.url === code)
     if (!post) {
