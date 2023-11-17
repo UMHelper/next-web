@@ -70,6 +70,6 @@ export default makeSource({
       ],
       [rehypePrismPlus, { ignoreMissing: true }]
     ],
-    remarkPlugins: [remarkGfm],
+    // remarkPlugins: [remarkGfm],
   },
 });

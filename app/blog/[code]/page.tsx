@@ -43,7 +43,7 @@ const PostDetailPage = (({ params: { code } }: { params: { code: string } }) => 
                 <div className='text-sm text-gray-500 italic'>posted by</div>
                 <AuthorsAvata authors={post.authors} size={40} with_name />
 
-                <div className=" text-slate-500 flex flex-row flex-wrap text-sm space-x-2 px-2">
+                <div className=" text-slate-500 flex flex-row flex-wrap text-sm space-x-2">
                     {post.tags.map((tag) => {
                         return (
                             <div key={tag}>{`#${tag.replaceAll(" ", ".")}`}</div>

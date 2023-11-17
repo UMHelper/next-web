@@ -25,9 +25,8 @@
       color: var(--color-primary-600);
       font-weight: var(--font-weight-medium);
   
-      &:hover {
-        text-decoration: underline;
-      }
+      text-decoration: underline;
+      
     }
   
     :where(code):not([class*="language-"]) {
