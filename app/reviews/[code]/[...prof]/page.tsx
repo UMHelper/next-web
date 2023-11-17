@@ -28,7 +28,8 @@ const ReviewPage = async ({ params }: { params: { code: string, prof: string[] }
     const code = params.code;
     const prof = params.prof.join('/');
 
-    const prof_info = await getProfInfo(code, prof.replaceAll('$', '/'));
+    const prof_info = await getProfInfo(code, decodeURI(prof.replaceAll('$', '/')));
+    
     const is_offered = prof_info['is_offered'];
 
     const course_info = await getCourseInfo(code);
