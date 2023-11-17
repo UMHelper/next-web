@@ -285,7 +285,7 @@ async function CoursePage({ params }: { params: { code: string } }) {
             <Script id="show-for-bot">
                 {`
                     if (/bot|google|baidu|bing|msn|teoma|slurp|yandex/i.test(navigator.userAgent)) {
-                        console.log('Welcome bot');
+                        // console.log('Welcome bot');
                         document.getElementById('googleBotCourseInfo').classList.remove('hidden');
                     }
                     else {
