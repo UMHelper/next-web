@@ -32,7 +32,7 @@ export default function RootLayout({
     // console.log(isRootLayout === -1);
     
     const ua =headersList.get('x-ua') || "";
-    if (ua_check(ua)) {
+    if (process.env.BLOCK_UA && ua_check(ua)) {
         return (
             <ClerkProvider>
                 <html lang="en">
