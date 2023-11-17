@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, userAgent } from 'next/server';
 
 export function middleware(request: Request) {
   const requestHeaders = new Headers(request.headers);
@@ -10,6 +10,8 @@ export function middleware(request: Request) {
 
   requestHeaders.set('x-pathname', pathname);
 
+  const ua=userAgent(request)
+  requestHeaders.set('x-ua', ua.ua);
   return NextResponse.next({
     request: {
       headers: requestHeaders,
