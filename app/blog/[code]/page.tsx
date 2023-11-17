@@ -6,11 +6,12 @@ import type { MDXComponents } from 'mdx/types'
 import { useMDXComponent } from 'next-contentlayer/hooks'
 import { notFound } from 'next/navigation'
 
-export async function generateStaticParams() {
-    return allPosts.map((post) => ({
-        slug: post._raw.flattenedPath,
-    }))
-}
+// export async function generateStaticParams() {
+//     console.log(allPosts)
+//     return allPosts.map((post) => ({
+//         slug: post._raw.flattenedPath,
+//     }))
+// }
 
 const components: MDXComponents = {
     h1: (props) => <h1 className='text-2xl font-bold flex items-center' {...props} />,
