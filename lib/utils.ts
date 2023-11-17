@@ -5,8 +5,6 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export const delay = (ms:number) => new Promise(res => setTimeout(res, ms));
-
 export const get_bg=(n:number)=>{
   let result_bg="bg-gradient-to-r from-amber-500 to-orange-500"
   if (n>=6){
@@ -50,4 +48,11 @@ export const get_gpa=(n:number)=>{
       return 'D'
   }
   return 'F'
+} 
+
+export const ua_check=(ua:string)=>{
+    return (
+        ua.indexOf(" Mobile/") > 0 &&
+        ua.indexOf(" Safari/") === -1
+      );
 }
