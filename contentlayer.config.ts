@@ -23,7 +23,7 @@ export const Post = defineDocumentType(() => ({
       of: { type: 'string' },
       required: true,
     },
-    author: {
+    authors: {
       type: 'list', 
       of: { type: 'string' },
       required: true,
@@ -64,15 +64,15 @@ export default makeSource({
         rehypeAutolinkHeadings,
         {
           behavior: 'append',
-          test: ['h2', 'h3'],
+          // test: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'],
           properties: { class: 'heading-link' },
           content: s(
             'svg',
             {
               xmlns: 'http://www.w3.org/2000/svg',
               viewBox: '0 0 24 24',
-              width: '24',
-              height: '24',
+              width: '18',
+              height: '18',
               fill: 'none',
               stroke: 'currentColor',
               'stroke-width': '2',

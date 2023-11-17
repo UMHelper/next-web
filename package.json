@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@aldabil/react-scheduler": "^2.7.26",
+    "@clerk/backend": "^0.34.1",
     "@clerk/nextjs": "^4.27.1",
     "@emotion/react": "^11.11.1",
     "@emotion/styled": "^11.11.0",

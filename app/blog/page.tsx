@@ -10,7 +10,7 @@ export default async function Blog() {
     // console.log(sortedPosts);
     return (
         <>
-            <div className='mb-4 w-full h-full text-3xl font-semibold flex justify-center items-center bg-gradient-to-r from-green-600 to-blue-700 bg-clip-text text-transparent'>
+            <div className='mb-4 w-full h-full text-3xl font-semibold flex justify-center items-center bg-gradient-to-r from-blue-700 via-blue-800 to-gray-900 to-yellow-500 bg-clip-text text-transparent'>
                 UMHelper Dev Blog
             </div>
             <div className='grid grid-cols-2 gap-4'>
