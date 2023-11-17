@@ -11,6 +11,10 @@ export const menuList:MenuItem[]=[
         name:'Timetable',
         href:"/timetable"
     },
+    {
+        name:'Blog',
+        href:"/blog"
+    }
 ]
 
 export const faculty=[
