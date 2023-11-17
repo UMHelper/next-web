@@ -18,8 +18,8 @@ const fetchData = async (code: string) => {
     return data
 }
 
-async function InstructorSearchPage({ params }: { params: { name: string } }) {
-    const data = await fetchData(params.name)
+async function InstructorSearchPage({ params }: { params: { name: string[] } }) {
+    const data = await fetchData(decodeURI(params.name.join('/')))
     return (
         <Accordion type="single" collapsible className="w-full">
             {

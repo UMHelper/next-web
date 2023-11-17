@@ -30,7 +30,7 @@ export default function RootLayout({ children, }: { children: React.ReactNode })
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
-            code: pathname_list[3].toUpperCase().replaceAll('%20', ' ').replaceAll('$', '/')
+            code: decodeURI(pathname_list.slice(3).join('/').toUpperCase().replaceAll('%20', ' ').replaceAll('$', '/'))
         },
     })
 
