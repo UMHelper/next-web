@@ -1,13 +1,11 @@
 import { defineDocumentType, makeSource } from 'contentlayer/source-files';
- 
-import rehypeAutolinkHeadings, {
-  type Options as AutolinkOptions,
-} from 'rehype-autolink-headings';
+
 import rehypePrettyCode, {
   type Options as PrettyCodeOptions,
 } from 'rehype-pretty-code';
 import rehypeSlug from 'rehype-slug';
-import { s } from 'hastscript';
+import rehypePrismPlus from 'rehype-prism-plus';
+import remarkGfm from 'remark-gfm';
  
 // defining document type where we will defing our mdx document frontmatter structure
 // (all these fields will be passed to static json with types that can be imported and used by next app)
@@ -59,38 +57,6 @@ export default makeSource({
       rehypeSlug,
       [
         /**
-         * Adds auto-linking button after h1, h2, h3 headings
-         */
-        rehypeAutolinkHeadings,
-        {
-          behavior: 'append',
-          // test: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'],
-          properties: { class: 'heading-link' },
-          content: s(
-            'svg',
-            {
-              xmlns: 'http://www.w3.org/2000/svg',
-              viewBox: '0 0 24 24',
-              width: '18',
-              height: '18',
-              fill: 'none',
-              stroke: 'currentColor',
-              'stroke-width': '2',
-              'stroke-linecap': 'round',
-              'stroke-linejoin': 'round',
-              'aria-label': 'Anchor link',
-            },
-            [
-              s('line', { x1: '4', y1: '9', x2: '20', y2: '9' }),
-              s('line', { x1: '4', y1: '15', x2: '20', y2: '15' }),
-              s('line', { x1: '10', y1: '3', x2: '8', y2: '21' }),
-              s('line', { x1: '16', y1: '3', x2: '14', y2: '21' }),
-            ],
-          ),
-        } satisfies Partial<AutolinkOptions>,
-      ],
-      [
-        /**
          * Enhances code blocks with syntax highlighting, line numbers,
          * titles, and allows highlighting specific lines and words
          */
@@ -102,6 +68,8 @@ export default makeSource({
           },
         } satisfies Partial<PrettyCodeOptions>,
       ],
+      [rehypePrismPlus, { ignoreMissing: true }]
     ],
+    remarkPlugins: [remarkGfm],
   },
 });
