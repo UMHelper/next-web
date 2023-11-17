@@ -28,7 +28,8 @@ const ReviewPage = async ({ params }: { params: { code: string, prof: string[] }
     const code = params.code;
     const prof = params.prof.join('/');
 
-    const prof_info = await getProfInfo(code, prof.replaceAll('$', '/'));
+    const prof_info = await getProfInfo(code, decodeURI(prof.replaceAll('$', '/')));
+    
     const is_offered = prof_info['is_offered'];
 
     const course_info = await getCourseInfo(code);
@@ -142,6 +143,11 @@ const ReviewPage = async ({ params }: { params: { code: string, prof: string[] }
                             )
                         })}
                     </Masonry>
+                    {comment.length == 0 ?(
+                        <div className="bg-gradient-to-r from-blue-600 to-indigo-500 bg-clip-text text-transparent text-xl font-black mt-4">
+                            No comment yet. Be the first one to comment!
+                        </div>
+                    ):null}
                 </div>
             </div>
         </>

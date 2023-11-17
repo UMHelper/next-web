@@ -4,7 +4,7 @@ import { Inter } from 'next/font/google'
 import React from "react";
 
 import Navbar from "@/components/navbar";
-import { cn } from "@/lib/utils";
+import { cn, ua_check } from "@/lib/utils";
 import Footer from "@/components/footer";
 import { Toaster } from '@/components/ui/toaster';
 import Script from 'next/script';
@@ -30,6 +30,24 @@ export default function RootLayout({
     // console.log(header_url);
     const isRootLayout = NO_ROOT_LAYOUT_LIST.indexOf(header_url.split('/')[0]);
     // console.log(isRootLayout === -1);
+    
+    const ua =headersList.get('x-ua') || "";
+    console.log(process.env.BLOCK_UA);
+    if (process.env.BLOCK_UA && ua_check(ua)) {
+        return (
+            <ClerkProvider>
+                <html lang="en">
+                    <head>
+                    </head>
+                    <body className={cn(inter.className, "w-full h-screen flex justify-center items-center")}>
+                        <div>
+                        Open this page in browser to view the content.
+                        </div>
+                    </body>
+                </html>
+            </ClerkProvider>
+        )
+    }
     if (!isRootLayout) {
         return (
             <ClerkProvider>
@@ -125,6 +143,9 @@ export default function RootLayout({
                         </div>
                     </div>
                     <Footer />
+                    <div className='w-full bg-gray-300/10 text-xs text-gray-200'>
+                        {ua}
+                    </div>
                     <Toaster />
                 </body>
             </html>
