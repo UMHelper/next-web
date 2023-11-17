@@ -1,13 +1,7 @@
-import {NextResponse} from "next/server";
-import {COMMENT} from "@/consant";
-import {delay} from "@/lib/utils";
+import {NextResponse} from "next/server";;
 import supabase from '@/lib/database/database';
 import { getProfInfo } from "@/lib/database/prof-info";
 
-export async function GET(){
-    await delay(1000)
-    return new NextResponse(JSON.stringify(COMMENT))
-}
 
 export async function POST(request: Request){
     let body = await request.json()
