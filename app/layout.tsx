@@ -143,9 +143,9 @@ export default function RootLayout({
                         </div>
                     </div>
                     <Footer />
-                    <div className='w-full bg-gray-300/10 text-xs text-gray-200'>
+                    {/* <div className='w-full bg-gray-300/10 text-xs text-gray-200'>
                         {ua}
-                    </div>
+                    </div> */}
                     <Toaster />
                 </body>
             </html>
