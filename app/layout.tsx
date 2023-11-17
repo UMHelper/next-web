@@ -74,7 +74,12 @@ export default function RootLayout({
                         />
                     </head>
                     <body className={cn(inter.className, "w-full h-screen flex justify-center items-center")}>
+                        <div>
                         Open this page in browser to view the content.
+                        </div>
+                        <div>
+                            {ua}
+                        </div>
                     </body>
                 </html>
             </ClerkProvider>
