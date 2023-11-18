@@ -12,6 +12,7 @@ import { ClerkProvider } from '@clerk/nextjs';
 import { headers } from 'next/headers';
 import { NO_ROOT_LAYOUT_LIST } from '@/lib/consant';
 import Link from 'next/link';
+import UADialog from '@/components/ua-dialog';
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -30,8 +31,8 @@ export default function RootLayout({
     // console.log(header_url);
     const isRootLayout = NO_ROOT_LAYOUT_LIST.indexOf(header_url.split('/')[0]);
     // console.log(isRootLayout === -1);
-    
-    const ua =headersList.get('x-ua') || "";
+
+    const ua = headersList.get('x-ua') || "";
     // console.log(process.env.BLOCK_UA);
     // if (process.env.BLOCK_UA && ua_check(ua)) {
     //     return (
@@ -135,17 +136,15 @@ export default function RootLayout({
                     <div className='min-h-screen min-w-full'>
                         <Navbar />
                         <div className='w-full p-1 flex justify-center items-center bg-slate-100 text-slate-500 text-xs'>
-                            <span>This is <span className= "font-semibold bg-gradient-to-r from-sky-500 to-indigo-600 bg-clip-text text-transparent">NEXT Ver. Preview</span>. Please <Link className=' underline' href='https://docs.google.com/forms/d/1_HrH0jJ9Fyxu_dmW1xGsn9Hq1ZtN9nFG-Jangj_BNVk/'>
-                            report</Link>  bugs to us.</span>
+                            <span>This is <span className="font-semibold bg-gradient-to-r from-sky-500 to-indigo-600 bg-clip-text text-transparent">NEXT Ver. Preview</span>. Please <Link className=' underline' href='https://docs.google.com/forms/d/1_HrH0jJ9Fyxu_dmW1xGsn9Hq1ZtN9nFG-Jangj_BNVk/'>
+                                report</Link>  bugs to us.</span>
                         </div>
                         <div>
                             {children}
                         </div>
                     </div>
                     <Footer />
-                    {/* <div className='w-full bg-gray-300/10 text-xs text-gray-200'>
-                        {ua}
-                    </div> */}
+                    <UADialog ua={ua}/>
                     <Toaster />
                 </body>
             </html>
