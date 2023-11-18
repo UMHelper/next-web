@@ -39,3 +39,6 @@ next-env.d.ts
 
 .contentlayer
 blog/test.mdx
+
+public/sw.*
+public/workbox-*

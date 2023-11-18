@@ -6,4 +6,9 @@ const nextConfig = {
     },
 }
 
-module.exports = withContentlayer(nextConfig)
+const pwaConfig = {
+    dest: "public",
+    register: true,
+};
+const withPWA = require('next-pwa')(pwaConfig)
+module.exports = withPWA(withContentlayer(nextConfig))
