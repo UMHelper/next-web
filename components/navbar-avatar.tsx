@@ -13,14 +13,16 @@ export default function NavbarAvatar() {
     const pathname = usePathname()
     // console.log(pathname)
     return (
-        <div className="flex md:justify-center items-center min-w-full">
+        <div className="flex md:justify-center items-center">
             <SignedIn>
                 {/* Mount the UserButton component */}
                 <UserButton afterSignOutUrl={pathname}/>
             </SignedIn>
             <SignedOut>
                 {/* Signed out users get sign in button */}
+                <div className='py-1 px-2 ml-2 rounded bg-gradient-to-r from-blue-600 to-indigo-500 text-white'>
                 <SignInButton />
+                </div>
             </SignedOut>
         </div >
     )

@@ -2,7 +2,8 @@ import MobileSidebar from "@/components/mobile-sidebar";
 import NavbarList from "@/components/navbar-list";
 import NavbarAvatar from '@/components/navbar-avatar';
 import TimetableCart from "@/components/timetable-cart";
-import { SignedIn, UserButton } from "@clerk/nextjs";
+import { UserButton } from "@clerk/nextjs";
+import SearchButton from "@/components/search-button";
 
 
 const Navbar = () => {
@@ -11,7 +12,8 @@ const Navbar = () => {
             <div className='flex flex-row justify-between'>
                 <NavbarList />
                 <div className=" space-x-4 flex flex-row justify-center items-center">
-                    <div className=" hidden md:flex flex-row space-x-2">
+                    <div className=" hidden md:flex flex-row space-x-2 items-center">
+                        <SearchButton />
                         <TimetableCart />
                         <NavbarAvatar />
                     </div>
