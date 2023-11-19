@@ -81,7 +81,7 @@ export default function SearchComp() {
                         </CardHeader>
                         <CardContent className='space-y-2'>
                             <div>
-                                <CardTitle >{is_prof ? 'Find Instructors' : 'Find Courses'}</CardTitle>
+                                <CardTitle >{is_prof ? 'Search Instructors' : 'Search Courses'}</CardTitle>
                                 <CardDescription >{is_prof ? '搜尋講師' : '搜尋課程'}</CardDescription>
                             </div>
                             <Form {...form}>
