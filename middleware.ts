@@ -1,6 +1,7 @@
 import { NextResponse, userAgent } from 'next/server';
 
 export function middleware(request: Request) {
+  console.log('middleware')
   const requestHeaders = new Headers(request.headers);
 
   const url=request.url.split('/');
@@ -20,5 +21,5 @@ export function middleware(request: Request) {
 }
 
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)',],
+  matcher: ['/sign-in','/sign-up','/course/:path*'],
 };
