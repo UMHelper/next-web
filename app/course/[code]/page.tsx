@@ -6,7 +6,7 @@ import crypto from 'crypto';
 import https from 'https';
 import axios from 'axios';
 import Toolbar from "@/components/toolbar";
-import { ArrowUpRightSquare } from "lucide-react";
+import { ArrowUpRightSquare, Frown } from "lucide-react";
 import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import Link from "next/link";
 import { getCourseInfo } from "@/lib/database/course-info";
@@ -107,8 +107,8 @@ export async function generateStaticParams() {
     }
     // console.log(courses[0])
     return courses.map((course) => {
-        return{
-            code:course['New_code']
+        return {
+            code: course['New_code']
         }
     })
 }
@@ -151,7 +151,7 @@ async function CoursePage({ params }: { params: { code: string } }) {
                                     <span>{course['courseCode'].substring(4)}</span>
                                 </div>
                                 {
-                                    parseInt(course['courseCode'][4])<=4 && (isOffer ?
+                                    parseInt(course['courseCode'][4]) <= 4 && (isOffer ?
                                         <div className='text-sm font-semibold rounded-3xl bg-gradient-to-r from-green-600 to-green-600 h-fit py-0.5 px-2 shadow'> Offered</div>
                                         :
                                         <div className='text-sm font-semibold rounded-3xl bg-gradient-to-r from-neutral-700 to-stone-900 h-fit py-0.5 px-2 shadow'> Not Offered</div>)
@@ -274,6 +274,19 @@ async function CoursePage({ params }: { params: { code: string } }) {
                         </AlertDescription>
                     </Alert>
                 </div>
+                {
+                    (profList.length == 0 || profList === undefined) ? (
+                        <div className="flex space-x-1 items-center bg-gradient-to-r from-blue-600 to-indigo-500 bg-clip-text text-transparent">
+                            <div className='text-xl font-semibold py-4'>No Instructor Found</div>
+                            <div className="text-indigo-500">
+                                <Frown size={24} strokeWidth={2} />
+                            </div>
+                        </div>
+
+                    ) : (
+                        null
+                    )
+                }
                 <Masonry col={3} className={""}>
                     {profList.map((data, index) => {
                         return (
