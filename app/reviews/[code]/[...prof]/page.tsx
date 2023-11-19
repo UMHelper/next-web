@@ -62,8 +62,8 @@ const ReviewPage = async ({ params }: { params: { code: string, prof: string[] }
                             <div className='text-sm'>{course_info["courseTitleChi"]}</div>
                             <div className='pb-3 flex-row flex space-x-2 mt-4'>
                                 <Link className="flex space-x-2" href={'/search/instructor/' + prof_info.prof_id}>
-                                    <h1 className='font-bold text-3xl'>{prof_info['prof_id']}</h1>
-                                    <ChevronRightCircle size={16} strokeWidth={1.5} />
+                                    <div className='font-bold text-3xl'>{prof_info['prof_id'].replaceAll('.'," ")}</div>
+                                    {/* <ChevronRightCircle size={16} strokeWidth={1.5} /> */}
                                 </Link>
                                 {(
                                     is_offered ?
