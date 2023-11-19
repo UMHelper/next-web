@@ -10,7 +10,7 @@ const ProfCard= ({data,code}:{data:any,code:any})=>{
                 <CardHeader className='pb-0.5'>
                     <div className='flex flex-row justify-between'>
                         <div>
-                            {data.prof_id}
+                            {data.prof_id.replaceAll('.',' ')}
                         </div>
                         <div className='text-white flex flex-col'>
                             {

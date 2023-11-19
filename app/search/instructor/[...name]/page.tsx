@@ -5,7 +5,8 @@ import { fuzzySearch } from "@/lib/database/fuzzy-search"
 
 export function generateMetadata(
     {params}:{params:any}) {
-    const title = `Searching for ${params.name} | What2Reg @ UM 澳大選咩課 @UM`
+    const name=decodeURI(params.name.join('/'))
+    const title = `Searching for ${name} | What2Reg @ UM 澳大選咩課 @UM`
 
     return {
         title: title,
@@ -26,7 +27,7 @@ async function InstructorSearchPage({ params }: { params: { name: string[] } }) 
                 data.map(({ prof_name, course_list }: { prof_name: any, course_list: any }, index: any) => {
                     return (
                         <AccordionItem value={prof_name + index} key={prof_name + index}>
-                            <AccordionTrigger>{prof_name}</AccordionTrigger>
+                            <AccordionTrigger>{prof_name.replaceAll("."," ")}</AccordionTrigger>
                             <AccordionContent asChild>
                                 <Masonry col={3} className="mx-auto">
                                     {course_list.map((course: any, index: any) => {
