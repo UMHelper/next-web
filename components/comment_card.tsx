@@ -54,7 +54,7 @@ https://umeh.top/reviews/${course.New_code}/${prof.prof_id.replaceAll(/ /g, '%20
                     duration: 5000,
                 })
             }}>
-                        <div>
+                        <div className='breal-all'>
                             {comment.content}
                         </div>
                     </div>
