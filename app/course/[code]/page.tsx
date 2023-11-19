@@ -215,11 +215,14 @@ async function CoursePage({ params }: { params: { code: string } }) {
                                             <ArrowUpRightSquare size={12} />
                                         </div>
                                     </DialogTrigger>
-                                    <DialogContent className="sm:max-w-[425px]">
+                                    <DialogContent className="sm:max-w-[425px]" >
                                         <DialogHeader>
                                             <DialogTitle>Course Description</DialogTitle>
                                         </DialogHeader>
-                                        <div className="py-4 text-sm">
+                                        <div className="py-4 text-sm" style={{
+                                            maxHeight:'70vh',
+                                            overflowY:'scroll'
+                                        }}>
                                             {course['courseDescription'].replaceAll('\n', '<br />')}
                                         </div>
                                         <DialogFooter>
@@ -241,7 +244,13 @@ async function CoursePage({ params }: { params: { code: string } }) {
                                         <DialogHeader>
                                             <DialogTitle>Course Description</DialogTitle>
                                         </DialogHeader>
-                                        <div className="py-4 text-sm" style={{ whiteSpace: "pre-wrap" }}>
+                                        <div className="py-4 text-sm"
+                                            style={{
+                                                maxHeight:'70vh',
+                                                overflowY:'scroll',
+                                                whiteSpace: "pre-wrap",
+                                            }}
+                                        >
                                             {course['ilo']}
                                         </div>
                                         <DialogFooter>
