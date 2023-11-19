@@ -9,6 +9,7 @@ const nextConfig = {
 const pwaConfig = {
     dest: "public",
     register: true,
+    mode: 'production'
 };
 const withPWA = require('next-pwa')(pwaConfig)
 module.exports = withPWA(withContentlayer(nextConfig))

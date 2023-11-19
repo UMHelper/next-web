@@ -25,10 +25,11 @@ export const faculty=[
     'FED',           'FLL',
     'FHS',           'IME',
     'HC',            'RC',
+    'GE Course'
 ]
 
 
-export const faculty_dept = {
+export const faculty_dept:any = {
     'FAH': ['CJS', 'DCH', 'DENG', 'DHIST', 'DPHIL', 'DPT', 'ELC'] ,
     'FBA': ['AIM', 'DRTM', 'FBE', 'IIRM', 'MMI'] ,
     'FLL': ['MLS'] ,
@@ -40,7 +41,9 @@ export const faculty_dept = {
     'HC': [], 
     'IAPME': [], 
     'ICMS': [], 
-    'RC' : []
+    'RC' : [],
+    'IME': [],
+    'GE Course':['GEGA','GESB','GEST','GELH']
 };
 
 export const NO_ROOT_LAYOUT_LIST=[
