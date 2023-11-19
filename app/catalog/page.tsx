@@ -13,7 +13,7 @@ export function generateMetadata(
 const CatalogPage=async ()=>{
     return(
         <div className="flex flex-row items-center justify-center text-xl font-semibold">
-            <div>
+            {/* <div>
             <CornerLeftUp size={28} strokeWidth={2.5} />
             </div>
             <div>
@@ -21,7 +21,7 @@ const CatalogPage=async ()=>{
             </div>
             <div>
             <CornerRightUp size={28} strokeWidth={2.5} />
-            </div>
+            </div> */}
         </div>
     )
 }
