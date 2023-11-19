@@ -1,7 +1,7 @@
 import { NextResponse, userAgent } from 'next/server';
 
 export function middleware(request: Request) {
-  console.log('middleware')
+  // console.log('middleware')
   const requestHeaders = new Headers(request.headers);
 
   const url=request.url.split('/');

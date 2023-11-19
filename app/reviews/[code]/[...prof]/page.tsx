@@ -26,7 +26,8 @@ export function generateMetadata(
 
 const ReviewPage = async ({ params }: { params: { code: string, prof: string[] } }) => {
     const code = params.code;
-    const prof = params.prof.join('/');
+    const prof = params.prof.join('/').replaceAll('%2C', ",");
+    // console.log(prof);
 
     const prof_info = await getProfInfo(code, decodeURI(prof.replaceAll('$', '/')));
     
