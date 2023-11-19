@@ -16,7 +16,7 @@ import getScheduleList from "@/lib/database/schedule-list";
 
 export function generateMetadata(
     { params }: { params: any }) {
-    const title = `${params.prof.join('/').replaceAll('%20', " ")} | ${params.code} | What2Reg @ UM 澳大選咩課 @UM`
+    const title = `${params.prof.join('/').replaceAll('%20', " ").replaceAll("%2C", ",")} | ${params.code} | What2Reg @ UM 澳大選咩課 @UM`
 
     return {
         title: title,
