@@ -9,8 +9,8 @@ const ProfCard= ({data,code}:{data:any,code:any})=>{
             <Card className='hover:cursor-pointer hover:shadow-lg'>
                 <CardHeader className='pb-0.5'>
                     <div className='flex flex-row justify-between'>
-                        <div>
-                            {data.prof_id.replaceAll('.',' ')}
+                        <div className="break-all">
+                            {data.prof_id}
                         </div>
                         <div className='text-white flex flex-col'>
                             {

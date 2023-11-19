@@ -27,7 +27,7 @@ async function InstructorSearchPage({ params }: { params: { name: string[] } }) 
                 data.map(({ prof_name, course_list }: { prof_name: any, course_list: any }, index: any) => {
                     return (
                         <AccordionItem value={prof_name + index} key={prof_name + index}>
-                            <AccordionTrigger>{prof_name.replaceAll("."," ")}</AccordionTrigger>
+                            <AccordionTrigger className="breal-all">{prof_name}</AccordionTrigger>
                             <AccordionContent asChild>
                                 <Masonry col={3} className="mx-auto">
                                     {course_list.map((course: any, index: any) => {
