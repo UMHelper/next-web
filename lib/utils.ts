@@ -13,6 +13,9 @@ export const get_bg=(n:number)=>{
   if (n<=3){
       result_bg='bg-gradient-to-r from-rose-900 to-fuchsia-800'
   }
+  if (n===0){
+    result_bg='bg-gradient-to-r from-gray-400 to-gray-500'
+  }
   return result_bg
 }
 
@@ -46,6 +49,9 @@ export const get_gpa=(n:number)=>{
   }
   if (n>=2){
       return 'D'
+  }
+  if (n===0){
+    return "N/A"
   }
   return 'F'
 } 
