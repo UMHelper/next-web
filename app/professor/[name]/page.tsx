@@ -1,12 +1,23 @@
 import { Masonry } from '@/components/masonry';
 import { ProfCourseCard } from '@/components/prof_card';
 import supabase from '@/lib/database/database';
+
+export const generateStaticParams = async () => {
+    const { data, error }:{data:any,error:any} = await supabase.from('prof_with_course')
+        .select('prof_id')
+    return Array.from(new Set(data)).map((prof: any) => {
+        return {
+            name: encodeURI(prof.prof_id.replaceAll(" ", "%20").replaceAll('/', '%24'))
+        }
+    })
+}
+
 const ProfessorPage = async ({ params: { name } }: { params: { name: string } }) => {
     const { data, error }:{data:any,error:any} = await supabase.from('prof_with_course')
         .select('*')
         .eq('prof_id', name.replaceAll("%20", " ").replaceAll('%24', '/').toUpperCase())
     // sort data by data.course_id
-    const courseList=data.sort((a:any,b:any)=>a.course_id.localeCompare(b.course_id))
+    data.sort((a:any,b:any)=>a.course_id.localeCompare(b.course_id))
     if (error){
         // TODO: add error page
         return <div>error</div>
