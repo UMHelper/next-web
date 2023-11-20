@@ -10,6 +10,7 @@ import { TimetableCard } from "@/components/timetable-card";
 import { getCommentList } from "@/lib/database/comment-list";
 import { getProfInfo } from "@/lib/database/prof-info";
 import Link from "next/link";
+import { notFound } from 'next/navigation'
 
 import { getCourseInfo } from "@/lib/database/course-info";
 import getScheduleList from "@/lib/database/schedule-list";
@@ -30,7 +31,11 @@ const ReviewPage = async ({ params }: { params: { code: string, prof: string[] }
     // console.log(prof);
 
     const prof_info = await getProfInfo(code, decodeURI(prof.replaceAll('$', '/')));
-    
+    if (prof_info == undefined) {
+        return(
+            notFound()
+        )
+    }
     const is_offered = prof_info['is_offered'];
 
     const course_info = await getCourseInfo(code);
