@@ -13,7 +13,7 @@ const UADialog = ({ ua }: { ua: string }) => {
     }, [setIs, ua])
     if (!is) return null;
     return (
-        <Dialog open={is}>
+        <Dialog defaultOpen={is}>
             <DialogContent forceMount>
                 <DialogHeader>
                     <div className="text-black font-blod text-base space-y-1">

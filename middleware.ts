@@ -21,5 +21,5 @@ export function middleware(request: Request) {
 }
 
 export const config = {
-  matcher: ['/sign-in','/sign-up'],
+  matcher: ['/sign-in','/sign-up','/course/:path*'],
 };
