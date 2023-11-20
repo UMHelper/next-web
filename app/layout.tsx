@@ -38,7 +38,7 @@ export default function RootLayout({
         <ClerkProvider>
             <html lang="en">
                 <head>
-                    <Script
+                    {/* <Script
                         async
                         src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${process.env.NEXT_PUBLIC_GOOGLE_ADS_CLIENT_ID}`}
                         strategy="lazyOnload"
@@ -63,7 +63,14 @@ export default function RootLayout({
                             y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
                         })(window, document, "clarity", "script", "jnvvhmdtgl");
                         `}
-                    </Script>
+                    </Script> */}
+
+                    <Script id='gtm'>{`(function(w,d,s,l,i){w[l] = w[l] || [];w[l].push({'gtm.start':
+                            new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+                        j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+                        'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+                            })(window,document,'script','dataLayer','${process.env.GTM_ID}');`}</Script>
+
                     <meta name='theme-color' content='#2563EB' />
                     <meta name='apple-mobile-web-app-status-bar-style' content='#2563EB' />
                     <meta name='viewport' content='width=device-width, initial-scale=1' />
