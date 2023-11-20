@@ -33,8 +33,8 @@ const SubmitPage = ({params}:{params:any}) => {
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues:{
-            code: params.code,
-            prof: params.prof.replaceAll("%20"," ").replaceAll('$', '/'),
+            code: params.code.toUpperCase(),
+            prof: params.prof.replaceAll("%20"," ").replaceAll('$', '/').toUpperCase(),
             attendance: '2.5',
             pre: '2.5',
             grade: 2.5,

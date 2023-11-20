@@ -3,7 +3,7 @@ import { fuzzySearch } from "@/lib/database/fuzzy-search";
 
 export function generateMetadata(
     {params}:{params:any}) {
-    const title = `Searching for ${params.code} | What2Reg @ UM 澳大選咩課 @UM`
+    const title = `Searching for ${params.code.toUpperCase()} | What2Reg @ UM 澳大選咩課 @UM`
 
     return {
         title: title,
@@ -25,7 +25,7 @@ const fetchData = async (code:string) => {
 }
 
 async function CourseSearchPage({params}:{params:{code:string}}){
-    const courseList:any[] = await fetchData(params.code)
+    const courseList:any[] = await fetchData(params.code.toUpperCase())
     return(
         <div>
             <CourseFilter data={courseList}/>

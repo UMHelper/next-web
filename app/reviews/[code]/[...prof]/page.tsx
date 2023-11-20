@@ -16,7 +16,7 @@ import getScheduleList from "@/lib/database/schedule-list";
 
 export function generateMetadata(
     { params }: { params: any }) {
-    const title = `${params.prof.join('/').replaceAll('%20', " ").replaceAll("%2C", ",")} | ${params.code} | What2Reg @ UM 澳大選咩課 @UM`
+    const title = `${params.prof.join('/').replaceAll('%20', " ").replaceAll("%2C", ",").toUpperCase()} | ${params.code.toUpperCase()} | What2Reg @ UM 澳大選咩課 @UM`
 
     return {
         title: title,
@@ -25,8 +25,8 @@ export function generateMetadata(
 }
 
 const ReviewPage = async ({ params }: { params: { code: string, prof: string[] } }) => {
-    const code = params.code;
-    const prof = params.prof.join('/').replaceAll('%2C', ",");
+    const code = params.code.toUpperCase();
+    const prof = params.prof.join('/').replaceAll('%2C', ",").toUpperCase();
     // console.log(prof);
 
     const prof_info = await getProfInfo(code, decodeURI(prof.replaceAll('$', '/')));

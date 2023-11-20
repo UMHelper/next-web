@@ -28,7 +28,7 @@ const fetchCourseList = async (departments: string[]) => {
     if (departments[0]==='GECourse'){
         const { data, error }: { data: any, error: any } = await supabase.from('course_noporf')
         .select('')
-        .like('New_code', `${departments[1]}%`)
+        .like('New_code', `${departments[1]}%`.toUpperCase())
         return data.sort((a: any, b: any) => a.New_code.localeCompare(b.New_code))
     }
     const { data, error }: { data: any, error: any } = await supabase.from('course_noporf')
@@ -59,7 +59,7 @@ export async function generateStaticParams() {
 
 const CatalogPage = async ({ params: { departments } }: { params: { departments: string[] } }) => {
     // if departements[0] not in faculty, return 404
-    if (!faculty.includes(departments[0]) && departments[0]!=='GECourse') {
+    if (!faculty.includes(departments[0].toUpperCase()) && departments[0]!=='GECourse') {
         return (
             <div>
                 <div className="w-full flex justify-center items-center flex-col space-y-8 my-20">

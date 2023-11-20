@@ -5,7 +5,7 @@ import { fuzzySearch } from "@/lib/database/fuzzy-search"
 
 export function generateMetadata(
     {params}:{params:any}) {
-    const name=decodeURI(params.name.join('/'))
+    const name=decodeURI(params.name.join('/')).toUpperCase()
     const title = `Searching for ${name} | What2Reg @ UM 澳大選咩課 @UM`
 
     return {
@@ -20,7 +20,7 @@ const fetchData = async (code: string) => {
 }
 
 async function InstructorSearchPage({ params }: { params: { name: string[] } }) {
-    const data = await fetchData(decodeURI(params.name.join('/')))
+    const data = await fetchData(decodeURI(params.name.join('/')).toUpperCase())
     return (
         <Accordion type="single" collapsible className="w-full">
             {
