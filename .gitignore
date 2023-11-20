@@ -42,3 +42,6 @@ blog/test.mdx
 
 public/sw.*
 public/workbox-*
+
+# Sentry Config File
+.sentryclirc
