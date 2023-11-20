@@ -58,12 +58,12 @@ const colListGen=(col_num:number,children:ReactElement[])=>{
 export const Masonry=(
   {
       children,
-      col,
+      col=3,
       className="",
   }:{
       children:ReactElement[]
       col:number,
-      className:any
+      className?:any
   })=>{
     const [curCol,setCurCol]=useState(col)
     const [colList,setColList]=useState<Array<any>>([])
