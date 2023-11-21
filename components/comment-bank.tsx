@@ -1,6 +1,6 @@
 import { BookMarked, Bot, CircleDollarSign, Microscope, Newspaper, Scale, School } from "lucide-react";
 import { Card } from "./ui/card";
-import { getStatistics } from "@/lib/database/statistics";
+import { getStatistics } from "@/lib/database/get-statistics";
 import Link from "next/link";
 
 export default async function CommentBank() {

@@ -1,11 +1,11 @@
 import {NextResponse} from "next/server";;
 import supabase from '@/lib/database/database';
-import { getProfInfo } from "@/lib/database/prof-info";
+import { getReviewInfo } from "@/lib/database/get-prof-info";
 
 
 export async function POST(request: Request){
     let body = await request.json()
-    const course=await getProfInfo(body.code,body.prof)
+    const course=await getReviewInfo(body.code,body.prof)
     //console.log(course)
     delete body.code
     delete body.prof

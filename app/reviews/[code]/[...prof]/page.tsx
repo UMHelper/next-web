@@ -7,13 +7,13 @@ import { Masonry } from "@/components/masonry";
 import { CommentCard } from "@/components/comment_card";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { TimetableCard } from "@/components/timetable-card";
-import { getCommentList } from "@/lib/database/comment-list";
-import { getProfInfo } from "@/lib/database/prof-info";
+import { getCommentList } from "@/lib/database/get-comment-list";
+import { getReviewInfo } from "@/lib/database/get-prof-info";
 import Link from "next/link";
 import { notFound } from 'next/navigation'
 
-import { getCourseInfo } from "@/lib/database/course-info";
-import getScheduleList from "@/lib/database/schedule-list";
+import { getCourseInfo } from "@/lib/database/get-course-info";
+import getScheduleList from "@/lib/database/get-schedule-list";
 
 export const revalidate = 0
 
@@ -32,7 +32,7 @@ const ReviewPage = async ({ params }: { params: { code: string, prof: string[] }
     const prof = params.prof.join('/').replaceAll('%2C', ",").toUpperCase();
     // console.log(prof);
 
-    const prof_info = await getProfInfo(code, decodeURI(prof.replaceAll('$', '/')));
+    const prof_info = await getReviewInfo(code, decodeURI(prof.replaceAll('$', '/')));
     if (prof_info == undefined) {
         return(
             notFound()

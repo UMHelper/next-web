@@ -1,10 +1,10 @@
-import { Radar, Github, Quote, UserPlus, ArrowUpRightSquare, Cat } from "lucide-react";
+import { Radar, Github, Quote, UserPlus } from "lucide-react";
 import Link from "next/link";
 import CommentBank from "@/components/comment-bank";
 import { Card } from "@/components/ui/card";
 import SearchComp from "@/components/search";
 
-async function HomePage() {
+function HomePage() {
     return (
         <>
             <SearchComp />

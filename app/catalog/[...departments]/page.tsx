@@ -1,6 +1,6 @@
 import CourseFilter from '@/components/course_filter';
-import supabase from '@/lib/database/database';
 import { faculty, faculty_dept } from '@/lib/consant';
+import { fetchCatalogList } from '@/lib/database/get-course-info';
 
 export function generateMetadata(
     {params}:{params:any}) {
@@ -9,33 +9,6 @@ export function generateMetadata(
     return {
         title: title,
     }
-
-}
-
-const fetchCourseList = async (departments: string[]) => {
-    if (departments.length === 1) {
-        if (departments[0]==='GECourse'){
-            const { data, error }: { data: any, error: any } = await supabase.from('course_noporf')
-            .select('')
-            .like('New_code', 'GE%')
-            return data.sort((a: any, b: any) => a.New_code.localeCompare(b.New_code))
-        }
-        const { data, error }: { data: any, error: any } = await supabase.from('course_noporf')
-            .select('')
-            .eq('Offering_Unit', departments[0].toUpperCase())
-        return data.sort((a: any, b: any) => a.New_code.localeCompare(b.New_code))
-    }
-    if (departments[0]==='GECourse'){
-        const { data, error }: { data: any, error: any } = await supabase.from('course_noporf')
-        .select('')
-        .like('New_code', `${departments[1]}%`.toUpperCase())
-        return data.sort((a: any, b: any) => a.New_code.localeCompare(b.New_code))
-    }
-    const { data, error }: { data: any, error: any } = await supabase.from('course_noporf')
-        .select('')
-        .eq('Offering_Unit', departments[0].toUpperCase())
-        .eq('Offering_Department', departments[1].toUpperCase())
-    return data.sort((a: any, b: any) => a.New_code.localeCompare(b.New_code))
 
 }
 
@@ -73,7 +46,7 @@ const CatalogPage = async ({ params: { departments } }: { params: { departments:
             </div>
         )
     }
-    const courseList: any = await fetchCourseList(departments)
+    const courseList: any = await fetchCatalogList(departments)
     return (
         <div>
             <div>

@@ -28,3 +28,19 @@ export const fuzzySearch = async (keyword:string,type:string) => {
     }
     return []
 }
+
+export const fetchCourseFuzzySearch = async (code:string) => {
+    const data:any=await fuzzySearch(code,'course')
+    const unique_data = data
+    .map((e: { [x: string]: any; }) => e['New_code'])
+    // store the keys of the unique objects
+    .map((e: any, i: any, final: string | any[]) => final.indexOf(e) === i && i)
+    // eliminate the dead keys & store unique objects
+    .filter((e: string | number) => data[e]).map((e: string | number) => data[e])
+    return unique_data   
+}
+
+export const fetchInstructorFuzzySearch = async (code: string) => {
+    const data: any = await fuzzySearch(code, 'instructor')
+    return data
+}

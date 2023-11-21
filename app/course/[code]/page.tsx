@@ -1,15 +1,11 @@
 import ProfCard from "@/components/prof_card";
 import { Masonry } from "@/components/masonry";
-import { getProfListByCourse } from "@/lib/database/prof-list-by-course";
 
-import crypto from 'crypto';
-import https from 'https';
-import axios from 'axios';
 import Toolbar from "@/components/toolbar";
 import { ArrowUpRightSquare, Frown } from "lucide-react";
 import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import Link from "next/link";
-import { getCourseInfo } from "@/lib/database/course-info";
+import { fetchCourseInfo } from "@/lib/database/get-course-info";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 import Script from "next/script";
@@ -23,81 +19,6 @@ export function generateMetadata(
         title: title,
     }
 
-}
-
-const allowLegacyRenegotiationOptions = {
-    httpsAgent: new https.Agent({
-        secureOptions: crypto.constants.SSL_OP_LEGACY_SERVER_CONNECT,
-    }),
-    headers: {
-        Authorization: 'Bearer bfa9b6c0-3f4f-3b1f-92c4-1bdd885a1ca2',
-    },
-};
-
-
-async function fetchCourseInfo(code: string) {
-    return await axios
-        .get('https://api.data.um.edu.mo/service/academic/course_catalog/v1.0.0/all?course_code=' + code.toUpperCase(), allowLegacyRenegotiationOptions)
-        .then(async response => {
-            if (response.data['_embedded'][0] != undefined)
-                return response.data['_embedded'][0];
-            else {
-                // empty response, fallback to local data
-                const course_info = await getCourseInfo(code);
-                return ({
-                    'courseCode': code.toUpperCase(),
-                    'courseTitle': course_info['courseTitleEng'],
-                    'offeringProgLevel': course_info['offeringProgLevel'],
-                    'suggestedYearOfStudy': course_info['suggestedYearOfStudy'],
-                    'credits': course_info['Credits'],
-                    'offeringDept': course_info['Offering_Department'],
-                    'offeringUnit': course_info['Offering_Unit'],
-                    'mediumOfInstruction': course_info['Medium_of_Instruction'],
-                    'gradingSystem': course_info['gradingSystem'],
-                    'courseType': course_info['courseType'],
-                    'duration': course_info['Course_Duration'],
-                    'courseDescription': String(course_info['courseDescription']),
-                    'ilo': String(course_info['ilo']),
-                })
-            }
-
-        })
-        .catch(function (error) {
-            return ({
-                'courseCode': code.toUpperCase(),
-                'courseTitle': 'Error: ' + error.toString(),
-                'offeringProgLevel': 'Error',
-                'suggestedYearOfStudy': 'Error',
-                'credits': 'Error',
-                'offeringDept': 'Error',
-                'offeringUnit': 'Error',
-                'mediumOfInstruction': 'Error',
-                'gradingSystem': 'Error',
-                'courseType': 'Error',
-                'duration': 'Error',
-                'courseDescription': error.toString(),
-                'ilo': error.toString(),
-            })
-        });
-}
-
-async function fetchData(code: string) {
-    const course = await fetchCourseInfo(code)
-    const profList: any = await getProfListByCourse(code)
-    profList.sort((a: any, b: any) => {
-        if (a['is_offered'] && !b['is_offered']) return -1
-        else if (!a['is_offered'] && b['is_offered']) return 1
-        else return 0
-    })
-    let isOffer = false
-    for (const prof of profList) {
-        if (prof['is_offered']) {
-            isOffer = true
-            break
-        }
-    }
-    ////console.log(course)
-    return { course, profList, isOffer }
 }
 
 export async function generateStaticParams() {
@@ -125,7 +46,7 @@ async function CoursePage({ params }: { params: { code: string } }) {
         profList: any[],
         isOffer: boolean
     }
-        = await fetchData(code)
+        = await fetchCourseInfo(code)
     //console.log(course)
     return (
         <>

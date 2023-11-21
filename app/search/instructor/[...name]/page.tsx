@@ -1,7 +1,7 @@
 import CourseCard from "@/components/course_card"
 import { Masonry } from "@/components/masonry"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { fuzzySearch } from "@/lib/database/fuzzy-search"
+import { fetchInstructorFuzzySearch } from "@/lib/database/get-fuzzy-search"
 
 export function generateMetadata(
     {params}:{params:any}) {
@@ -14,13 +14,9 @@ export function generateMetadata(
 
 }
 
-const fetchData = async (code: string) => {
-    const data: any = await fuzzySearch(code, 'instructor')
-    return data
-}
 
 async function InstructorSearchPage({ params }: { params: { name: string[] } }) {
-    const data = await fetchData(decodeURI(params.name.join('/')).toUpperCase())
+    const data = await fetchInstructorFuzzySearch(decodeURI(params.name.join('/')).toUpperCase())
     if (data.length === 0) {
         return (
             <div className="mt-20">
