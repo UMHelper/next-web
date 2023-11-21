@@ -9,7 +9,7 @@ const UADialog = ({ ua }: { ua: string }) => {
 
     useEffect(() => {
         setIs(ua_check(ua))
-        setIs(true)
+        // setIs(true)
     }, [setIs, ua])
     if (!is) return null;
     return (
