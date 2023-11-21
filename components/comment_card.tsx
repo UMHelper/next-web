@@ -62,8 +62,8 @@ https://umeh.top/reviews/${course.New_code}/${prof.prof_id.replaceAll(/ /g, '%20
                 <CardContent>
 
                     <Separator className='my-1'/> 
-                    <div className='flex flex-row text-xs font-semibold space-x-2'>
-                        <div>
+                    <div className='flex flex-row text-xs font-semibold space-x-1 flex-wrap'>
+                        <div className='pl-1'>
                             <div className='text-gray-400'>
                                 Recommend
                             </div>
