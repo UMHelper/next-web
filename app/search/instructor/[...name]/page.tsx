@@ -21,6 +21,13 @@ const fetchData = async (code: string) => {
 
 async function InstructorSearchPage({ params }: { params: { name: string[] } }) {
     const data = await fetchData(decodeURI(params.name.join('/')).toUpperCase())
+    if (data.length === 0) {
+        return (
+            <div className="mt-20">
+                <div className="text-xl font-semibold">No result found :(</div>
+            </div>
+        )
+    }    
     return (
         <Accordion type="single" collapsible className="w-full">
             {
