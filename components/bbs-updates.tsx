@@ -65,7 +65,7 @@ export default function BbsUpdates() {
                     <div className="flex flex-wrap items-center justify-start pb-2">
                         <Cat size={24} strokeWidth={2} color='rgb(14 165 233)' className="me-2" />
                         <Link href="https://whole.umeh.top" className="flex mr-10">
-                            <span className="self-center text-2xl font-bold font-black whitespace-nowrap bg-gradient-to-r from-sky-500 to-indigo-600 bg-clip-text text-transparent">WHOLE</span>
+                            <span className="self-center text-2xl font-bold whitespace-nowrap bg-gradient-to-r from-sky-500 to-indigo-600 bg-clip-text text-transparent">WHOLE</span>
                             <ArrowUpRightSquare className="ms-2 text-indigo-600" size={14} />
                         </Link>
                     </div>
