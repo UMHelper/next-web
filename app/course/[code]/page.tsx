@@ -223,7 +223,7 @@ async function CoursePage({ params }: { params: { code: string } }) {
                                             maxHeight:'70vh',
                                             overflowY:'scroll'
                                         }}>
-                                            {course['courseDescription'].replaceAll('\n', '<br />')}
+                                            {course['courseDescription']?.replaceAll('\n', '<br />')||"No Course Description"}
                                         </div>
                                         <DialogFooter>
                                             <div className='text-xs italic mt-3'>Data Source: reg.um.edu.mo</div>
@@ -242,7 +242,7 @@ async function CoursePage({ params }: { params: { code: string } }) {
                                     </DialogTrigger>
                                     <DialogContent className="sm:max-w-[425px]">
                                         <DialogHeader>
-                                            <DialogTitle>Course Description</DialogTitle>
+                                            <DialogTitle>Intended Learning Outcomes</DialogTitle>
                                         </DialogHeader>
                                         <div className="py-4 text-sm"
                                             style={{
@@ -251,7 +251,7 @@ async function CoursePage({ params }: { params: { code: string } }) {
                                                 whiteSpace: "pre-wrap",
                                             }}
                                         >
-                                            {course['ilo']}
+                                            {course['ilo']?.replaceAll('\n', '<br />')||"No Intended Learning Outcomes"}
                                         </div>
                                         <DialogFooter>
                                             <div className='text-xs italic mt-3'>Data Source: reg.um.edu.mo</div>
@@ -272,14 +272,14 @@ async function CoursePage({ params }: { params: { code: string } }) {
                     <Alert>
                         <AlertTitle>Course Description</AlertTitle>
                         <AlertDescription>
-                            {course['courseDescription'].replaceAll('\n', '<br />')}
+                            {course['courseDescription']?.replaceAll('\n', '<br />')||"No Course Description"}
                         </AlertDescription>
                     </Alert>
 
                     <Alert>
                         <AlertTitle>Intended Learning Outcomes</AlertTitle>
                         <AlertDescription>
-                            {course['ilo']}
+                            {course['ilo']?.replaceAll('\n', '<br />')||"No Intended Learning Outcomes"}
                         </AlertDescription>
                     </Alert>
                 </div>
