@@ -7,15 +7,16 @@ export const generateStaticParams = async () => {
         .select('prof_id')
     return Array.from(new Set(data)).map((prof: any) => {
         return {
-            name: encodeURI(prof.prof_id.replaceAll(" ", "%20").replaceAll('/', '%24'))
+            name: encodeURI(prof.prof_id.replaceAll(" ", "%20")).split("/"),
         }
     })
 }
 
-const ProfessorPage = async ({ params: { name } }: { params: { name: string } }) => {
+const ProfessorPage = async ({ params: { name } }: { params: { name: string[] } }) => {
+    const prof_name=name.join("/").replaceAll("%20", " ").replaceAll('%24', '/').toUpperCase()
     const { data, error }:{data:any,error:any} = await supabase.from('prof_with_course')
         .select('*')
-        .eq('prof_id', name.replaceAll("%20", " ").replaceAll('%24', '/').toUpperCase())
+        .eq('prof_id', prof_name)
     // sort data by data.course_id
     data.sort((a:any,b:any)=>a.course_id.localeCompare(b.course_id))
     if (error){
@@ -27,7 +28,7 @@ const ProfessorPage = async ({ params: { name } }: { params: { name: string } })
             <div className='bg-gradient-to-r from-blue-600 to-indigo-500 text-white p-3'>
                 <div className='max-w-screen-xl mx-auto p-4'>
                     <div className='break-all text-3xl font-semibold'>
-                        {name.toUpperCase().replaceAll("%20", " ").replaceAll('%24', '/')}
+                        {prof_name.toUpperCase().replaceAll("%20", " ").replaceAll('%24', '/')}
                     </div>
                 </div>
             </div>
