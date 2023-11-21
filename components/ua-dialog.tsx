@@ -4,13 +4,13 @@ import { ua_check } from "@/lib/utils"
 import { Armchair } from "lucide-react"
 import { useEffect, useState } from "react"
 
-const UADialog = ({ ua }: { ua: string }) => {
+const UADialog = () => {
     const [is, setIs] = useState<boolean>(false);
 
     useEffect(() => {
-        setIs(ua_check(ua))
+        setIs(ua_check(navigator.userAgent))
         // setIs(true)
-    }, [setIs, ua])
+    }, [setIs])
     if (!is) return null;
     return (
         <Dialog defaultOpen={is}>

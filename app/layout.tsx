@@ -32,7 +32,7 @@ export default function RootLayout({
     const isRootLayout = NO_ROOT_LAYOUT_LIST.indexOf(header_url.split('/')[0]);
     // console.log(isRootLayout === -1);
 
-    const ua = headersList.get('x-ua') || "";
+    // const ua = headersList.get('x-ua') || "";
 
     return (
         <ClerkProvider>
@@ -95,7 +95,7 @@ export default function RootLayout({
                                 </div>
                             </div>
                             <Footer />
-                            <UADialog ua={ua} />
+                            <UADialog/>
                             <Toaster />
                         </body>
                     ) : (
