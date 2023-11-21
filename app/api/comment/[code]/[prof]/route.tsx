@@ -13,6 +13,8 @@ export async function POST(request: Request){
     body.result=(parseFloat(body.attendance)+parseFloat(body.pre)+body.grade+body.hard+body.reward+body.assignment+body.recommend)/7
     // 2021-10-10T16:00:00.000Z
     body.pub_time=new Date().toISOString().slice(0, 19).replace('T', ' ')
+    const id:any=await supabase.from('comment').select('*', { count: 'exact', head: true })
+    body.id=id.count+1
     const {data,error}= await supabase.from('comment').insert([body]).select()
     //console.log(body)
     return new NextResponse(JSON.stringify({data,error}))
