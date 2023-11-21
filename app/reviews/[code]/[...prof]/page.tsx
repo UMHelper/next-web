@@ -92,7 +92,7 @@ const ReviewPage = async ({ params }: { params: { code: string, prof: string[] }
                                         <Popover>
                                             <PopoverTrigger asChild>
                                                 <Button className='text-sm px-2 hover:shadow-lg  bg-white text-blue-800 hover:bg-gray-200'>
-                                                    <CalendarRange size={16} /> <span>Timetable (IP)</span>
+                                                    <CalendarRange size={16} /> <span>Timetable</span>
                                                 </Button>
                                             </PopoverTrigger>
                                             <PopoverContent className="w-80">
