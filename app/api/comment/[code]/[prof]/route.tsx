@@ -14,8 +14,9 @@ export async function POST(request: Request){
     // 2021-10-10T16:00:00.000Z
     body.pub_time=new Date().toISOString().slice(0, 19).replace('T', ' ')
     const id:any=await supabase.from('comment').select('*', { count: 'exact', head: true })
-    body.id=id.count+1
+    body.id=27734+id.count
+    console.log(body)
     const {data,error}= await supabase.from('comment').insert([body]).select()
-    //console.log(body)
+    console.log(data,error)
     return new NextResponse(JSON.stringify({data,error}))
 }
