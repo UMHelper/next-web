@@ -15,6 +15,8 @@ import { notFound } from 'next/navigation'
 import { getCourseInfo } from "@/lib/database/course-info";
 import getScheduleList from "@/lib/database/schedule-list";
 
+export const revalidate = 0
+
 export function generateMetadata(
     { params }: { params: any }) {
     const title = `${params.prof.join('/').replaceAll('%20', " ").replaceAll("%2C", ",").toUpperCase()} | ${params.code.toUpperCase()} | What2Reg @ UM 澳大選咩課 @UM`
