@@ -73,7 +73,7 @@ export async function fetchCourseInfoByUMAPI(code: string) {
 }
 
 export async function fetchCourseInfo(code: string) {
-    const course:any = await fetchCourseInfo(code)
+    const course:any = await fetchCourseInfoByUMAPI(code)
     const profList: any = await getProfListByCourse(code)
     profList.sort((a: any, b: any) => {
         if (a['is_offered'] && !b['is_offered']) return -1
