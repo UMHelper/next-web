@@ -136,7 +136,7 @@ const TimetableCalendar = () => {
     )
 }
 const TimetablePage = () => {
-    const [timetableCart, setTimetableCart] = useState<any[]>([])
+    const [timetableCart, setTimetableCart] = useState<any[]>(['none'])
 
     const [data, setData] = useLocalStorage<any[]>('timetableCart', [])
 
@@ -144,11 +144,21 @@ const TimetablePage = () => {
         setTimetableCart(data)
     }, [data])
 
-    if (timetableCart.length === 0) {
+    if (timetableCart.length === 1 && timetableCart[0] === 'none') {
         return (
             <div className="w-full h-screen flex justify-center items-center flex-col space-y-8">
                 <div className="text-4xl font-black racking-widest bg-gradient-to-r from-teal-400 via-violet-400 to-blue-500 bg-clip-text text-transparent">
                     Generateing your timetable... XD
+                </div>
+            </div>
+        )
+    }
+
+    if (timetableCart.length === 0){
+        return (
+            <div className="w-full h-screen flex justify-center items-center flex-col space-y-8">
+                <div className="text-4xl font-black racking-widest bg-gradient-to-r from-teal-400 via-violet-400 to-blue-500 bg-clip-text text-transparent">
+                    NO course in your timetable cart, add some!
                 </div>
             </div>
         )
