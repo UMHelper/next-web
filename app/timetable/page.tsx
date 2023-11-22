@@ -118,13 +118,13 @@ const TimetableCalendar = () => {
                     events={events}
                     eventRenderer={({ event, ...props }) => {
                         return (
-                            <div className="flex flex-col justify-center items-center w-full h-full" style={{
+                            <div className="flex flex-col justify-center items-center w-full h-full md:text-xs text-[10px]" style={{
                                 backgroundColor: event.color,
                             }}>
                                 <Link href={`/reviews/${event.data.code}/${event.data.prof}`}>
-                                    <div className="text-xs">{`${event.data.code}-${event.data.section}`}</div>
-                                    <div className="text-xs">{event.data.time}</div>
-                                    <div className="text-xs">{event.data.location}</div>
+                                    <div>{`${event.data.code}-${event.data.section}`}</div>
+                                    <div>{event.data.time}</div>
+                                    <div>{event.data.location}</div>
                                 </Link>
 
                             </div>
