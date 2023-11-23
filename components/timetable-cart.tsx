@@ -6,6 +6,7 @@ import { X } from "lucide-react"
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { usePathname } from 'next/navigation'
+import Link from "next/link";
 
 export const TimetableCard = (
     { timetable: {
@@ -13,7 +14,7 @@ export const TimetableCard = (
         code,
         prof,
         section
-    },horizontal=false }: {
+    }, horizontal = false }: {
         timetable: {
             schedules: any[],
             code: string,
@@ -30,7 +31,7 @@ export const TimetableCard = (
         setTimetableCart(data)
     }, [data])
     return (
-        <div className={cn("border p-4 rounded hover:shadow",horizontal?"inline-table min-w-fit":"")}>
+        <div className={cn("border p-4 rounded hover:shadow", horizontal ? "inline-table min-w-fit" : "")}>
             <div className="flex flex-row justify-between">
                 <div>
                     <div className="font-bold">{code}</div>
@@ -78,15 +79,16 @@ export const TimetableList = () => {
     useEffect(() => {
         setTimetableCart(data)
     }, [data])
+
     return (
         <div>
             <div className="my-2 space-y-2">
-                {timetableCart.map((timetable: any) => (<TimetableCard key={timetable.code + timetable.prof + timetable.section} timetable={timetable}/>))}
+                {timetableCart.map((timetable: any) => (<TimetableCard key={timetable.code + timetable.prof + timetable.section} timetable={timetable} />))}
             </div>
             {
                 timetableCart.length > 0 ? (
                     <div
-                        className="w-full bg-red-500 rounded hover:shadow flex justify-center text-white font-bold"
+                        className="w-full bg-gradient-to-r from-red-400 to-orange-500 rounded hover:shadow flex justify-center text-white font-bold my-1 py-1"
                         onClick={() => {
                             setData([])
                         }}
@@ -100,11 +102,13 @@ export const TimetableList = () => {
 }
 
 const TimetableCart = () => {
-    const isTimetablePage = usePathname().split('/')[1]==='timetable'
+    const isTimetablePage = usePathname().split('/')[1] === 'timetable'
+    const [open, setOpen] = useState(false);
+    const wait = () => new Promise((resolve) => setTimeout(resolve, 100));
     return (
-        <Sheet>
+        <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger>
-                {!isTimetablePage&&(<div>
+                {!isTimetablePage && (<div>
                     <ShoppingCart size={20} strokeWidth={2} />
                 </div>)}
             </SheetTrigger>
@@ -115,6 +119,17 @@ const TimetableCart = () => {
                         Manage your timetable cart here.
                     </SheetDescription>
                 </SheetHeader>
+                <div
+                    onClick={() => {
+                        wait().then(() => setOpen(false));
+                    }}
+                    className="w-full bg-gradient-to-r from-blue-600 to-indigo-500 rounded hover:shadow flex justify-center text-white font-bold py-1 my-1"
+                >
+                    <Link
+                        href={'/timetable'}>
+                        Go to Timetable
+                    </Link>
+                </div>
                 <TimetableList />
             </SheetContent>
         </Sheet>
