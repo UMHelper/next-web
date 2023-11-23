@@ -4,15 +4,14 @@ import { Inter } from 'next/font/google'
 import React from "react";
 
 import Navbar from "@/components/navbar";
-import { cn, ua_check } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import Footer from "@/components/footer";
 import { Toaster } from '@/components/ui/toaster';
 import Script from 'next/script';
 import { ClerkProvider } from '@clerk/nextjs';
-import { headers } from 'next/headers';
-import { NO_ROOT_LAYOUT_LIST } from '@/lib/consant';
 import Link from 'next/link';
 import UADialog from '@/components/ua-dialog';
+import CsBanner from '@/components/cs-banner';
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -53,6 +52,7 @@ export default function RootLayout({
                             <span>This is <span className="font-semibold bg-gradient-to-r from-sky-500 to-indigo-600 bg-clip-text text-transparent">NEXT Ver. Preview</span>. Please <Link className=' underline' href='https://docs.google.com/forms/d/1_HrH0jJ9Fyxu_dmW1xGsn9Hq1ZtN9nFG-Jangj_BNVk/'>
                                 report</Link>  bugs to us.</span>
                         </div>
+                        <CsBanner/>
                         <div>
                             {children}
                         </div>
