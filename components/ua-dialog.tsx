@@ -11,11 +11,11 @@ const UADialog = () => {
     useEffect(() => {
         console.log(pathname)
         setIs(ua_check(navigator.userAgent))
-        setIs(true)
+        // setIs(true)
     }, [pathname])
     useEffect(() => {
         setIs(ua_check(navigator.userAgent))
-        setIs(true)
+        // setIs(true)
     }, [setIs])
     if (!is) return null;
     return (
