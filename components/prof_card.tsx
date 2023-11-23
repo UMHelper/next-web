@@ -2,8 +2,10 @@ import {Card, CardContent, CardHeader} from "@/components/ui/card";
 import {cn, get_bg, get_gpa} from "@/lib/utils";
 import {Separator} from "@/components/ui/separator";
 import Link from "next/link";
+import { getCommentNumber } from "@/lib/database/get-comment-list";
 
-const ProfCard= ({data,code}:{data:any,code:any})=>{
+const ProfCard= async ({data,code}:{data:any,code:any})=>{
+
     return(
         <Link href={'/reviews/'+code+'/'+data.prof_id}>
             <Card className='hover:cursor-pointer hover:shadow-lg'>
@@ -63,7 +65,7 @@ const ProfCard= ({data,code}:{data:any,code:any})=>{
                                 Comments
                             </div>
                             <div className='text-black'>
-                                {data.comments}
+                                {await getCommentNumber(code,data.prof_id)}
                             </div>
                         </div>
                     </div>
