@@ -313,6 +313,19 @@ const SubmitPage = ({params}:{params:any}) => {
                             render={({ field }) => (
                                 <FormItem>
                                 <FormLabel>Comment on the instructor of this course</FormLabel>
+                                <div className="text-sm text-muted-foreground">
+                                    <p>When you are writing your comment, please consider the following questions:</p>
+                                    <br />
+                                    <ul className=' list-inside list-disc'>
+                                        <li>What have you learned from this course?</li>
+                                        <li>這門課是否讓你受益匪淺？</li>
+                                        <li>Did the teaching of the instructor in this course make your learning more passionate?</li>
+                                        <li>你是否對這門課的學習一直保持熱情？</li>
+                                        <li>Do you recommend classmates to choose this course, and what is the reason?</li>
+                                        <li>你是否推薦同學選修這門課，並說明原因。</li>
+                                    </ul>
+                                    <br />
+                                </div>
                                 <FormControl>
                                     <Textarea
                                     placeholder="Comment about this course or advice for your younger fellow students."
