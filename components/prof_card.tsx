@@ -76,7 +76,7 @@ const ProfCard= async ({data,code}:{data:any,code:any})=>{
     )
 }
 
-export const ProfCourseCard= ({data,code}:{data:any,code:any})=>{
+export const ProfCourseCard= async ({data,code}:{data:any,code:any})=>{
     return(
         <Link href={'/reviews/'+code+'/'+data.prof_id}>
             <Card className='hover:cursor-pointer hover:shadow-lg'>
@@ -136,7 +136,7 @@ export const ProfCourseCard= ({data,code}:{data:any,code:any})=>{
                                 Comments
                             </div>
                             <div className='text-black'>
-                                {data.comments}
+                                {await getCommentNumber(code,data.prof_id)}
                             </div>
                         </div>
                     </div>
