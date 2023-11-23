@@ -1,20 +1,26 @@
 'use client'
-import { Dialog, DialogContent, DialogHeader, } from "@/components/ui/dialog"
+import { Dialog, DialogContentNoX, DialogHeader, } from "@/components/ui/dialog"
 import { ua_check } from "@/lib/utils"
 import { Armchair } from "lucide-react"
+import { usePathname } from "next/navigation"
 import { useEffect, useState } from "react"
 
 const UADialog = () => {
     const [is, setIs] = useState<boolean>(false);
-
+    const pathname = usePathname()
+    useEffect(() => {
+        console.log(pathname)
+        setIs(ua_check(navigator.userAgent))
+        setIs(true)
+    }, [pathname])
     useEffect(() => {
         setIs(ua_check(navigator.userAgent))
-        // setIs(true)
+        setIs(true)
     }, [setIs])
     if (!is) return null;
     return (
-        <Dialog defaultOpen={is}>
-            <DialogContent forceMount>
+        <Dialog open={is}>
+            <DialogContentNoX forceMount>
                 <DialogHeader>
                     <div className="text-black font-blod text-sm space-y-1 break-all">
                         <Armchair size={28} strokeWidth={2} />
@@ -34,16 +40,25 @@ const UADialog = () => {
                             Please use your default browser to open this page and enjoy the best browsing experience!
                         </p>
                         <br />
-                        <p> 
-                        The website you are visiting is <span className="bg-gradient-to-r from-sky-500 to-indigo-600 bg-clip-text text-transparent">What2REG @UM</span>, developed and maintained by the <span className="bg-gradient-to-r from-sky-500 to-indigo-600 bg-clip-text text-transparent">UMHelper Dev Team</span>. This website has no affiliation with the University of Macau, and any other student organizations.
+                        <p>
+                            The website you are visiting is <span className="bg-gradient-to-r from-sky-500 to-indigo-600 bg-clip-text text-transparent">What2REG @UM</span>, developed and maintained by the <span className="bg-gradient-to-r from-sky-500 to-indigo-600 bg-clip-text text-transparent">UMHelper Dev Team</span>. This website has no affiliation with the University of Macau, and any other student organizations.
                         </p>
                         <br />
                         <p className="underline font-semibold">
-                        If you are accessing this website through other websites or applications, please be aware of the security of your personal information. <span className="bg-gradient-to-r from-sky-500 to-indigo-600 bg-clip-text text-transparent">UMHelper</span> is not responsible for the security and accuracy of information on other websites or applications.
+                            If you are accessing this website through other websites or applications, please be aware of the security of your personal information. <span className="bg-gradient-to-r from-sky-500 to-indigo-600 bg-clip-text text-transparent">UMHelper</span> is not responsible for the security and accuracy of information on other websites or applications.
                         </p>
+                        <br />
+                        <div
+                            className="w-full bg-gradient-to-r from-red-400 to-orange-500 rounded hover:shadow flex justify-center text-white font-bold my-1 py-1 hover:cursor-pointer"
+                            onClick={() => {
+                                setIs(false)
+                            }}
+                        >
+                            我已知曉，繼續訪問 / I know, continue.
+                        </div>
                     </div>
                 </DialogHeader>
-            </DialogContent>
+            </DialogContentNoX>
         </Dialog>
     )
 
