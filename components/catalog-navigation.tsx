@@ -31,9 +31,9 @@ const CatalogNavigation = () => {
         })
     }, [])
 
-    useEffect(() => {
-        console.log(open)
-    }, [open])
+    // useEffect(() => {
+    //     console.log(open)
+    // }, [open])
     return (
         <div className="flex flex-row flex-wrap py-2">
             {

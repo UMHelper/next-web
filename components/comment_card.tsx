@@ -18,7 +18,7 @@ export const CommentCard = (
     { comment, prof, course }: { comment: any, prof: any, course: any }
 ) => {
     const { toast } = useToast()
-    console.log(comment)
+    // console.log(comment)
     return (
         <Card className=' hover:shadow-lg mx-auto'>
             <CardHeader className='pb-0.5 pt-4'  >
