@@ -337,18 +337,18 @@ const SubmitPage = ({ params }: { params: any }) => {
                             </div>
                         </div>
 
-                        <div>
-
-
+                        <div className=' space-y-2'>
                             <FormItem>
-                                <FormLabel>Upload an image</FormLabel>
+                                <FormLabel>Upload an image if you want</FormLabel>
                                 <FormControl>
                                     <Input type='file' onChange={
                                         (e) => {
                                             // console.log(e.target.files)
                                             setImage(e.target.files?.[0])
                                         }
-                                    } />
+                                    }
+                                    className='w-fit' 
+                                    />
                                 </FormControl>
                             </FormItem>
 
