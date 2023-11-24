@@ -9,7 +9,7 @@ const UADialog = () => {
     const [is, setIs] = useState<boolean>(false);
     const pathname = usePathname()
     useEffect(() => {
-        console.log(pathname)
+        // console.log(pathname)
         setIs(ua_check(navigator.userAgent))
         // setIs(true)
     }, [pathname])

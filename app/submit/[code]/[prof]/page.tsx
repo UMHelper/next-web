@@ -50,7 +50,7 @@ const SubmitPage = ({ params }: { params: any }) => {
     })
     const route = useRouter()
     const submit = (values: any) => {
-        console.log(typeof values)
+        // console.log(typeof values)
         let data=new FormData()
         for (const key in values){
             data.append(key,values[key])
@@ -82,7 +82,7 @@ const SubmitPage = ({ params }: { params: any }) => {
             description: "💋 Thank you for your submission!",
             duration: 5000,
         })
-        console.log(data)
+        // console.log(data)
         fetch(`/api/comment/${params.code}/${params.prof}`, {
             body: data,
             method: 'POST',
@@ -345,7 +345,7 @@ const SubmitPage = ({ params }: { params: any }) => {
                                 <FormControl>
                                     <Input type='file' onChange={
                                         (e) => {
-                                            console.log(e.target.files)
+                                            // console.log(e.target.files)
                                             setImage(e.target.files?.[0])
                                         }
                                     } />

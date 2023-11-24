@@ -44,7 +44,7 @@ export const AuthorsAvata = async ({ authors, size = 28, with_name = false }: { 
 
 const PostCard = async ({ post }: { post: Post }) => {
     const authors = await clerk.users.getUserList({ username: post.authors })
-    console.log(authors)
+    // console.log(authors)
     return (
         <div>
             <div className=" text-slate-500 flex flex-row flex-wrap text-xs space-x-2">

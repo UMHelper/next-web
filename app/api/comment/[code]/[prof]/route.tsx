@@ -31,7 +31,7 @@ export async function POST(request: Request){
     data.pub_time=new Date().toISOString().slice(0, 19).replace('T', ' ')
     const id:any=await supabase.from('comment').select('*', { count: 'exact', head: true })
     data.id=27734+id.count
-    console.log(body.get('image'))
+    // console.log(body.get('image'))
     if (body.get('image')!=""){
         const image:any=(await body.get('image'))
         const ext=image.name.split('.').pop()
@@ -43,7 +43,7 @@ export async function POST(request: Request){
         data.image=blob.url
     }
 
-    console.log(data)
+    // console.log(data)
     const {data : res,error}= await supabase.from('comment').insert([data]).select()
     // console.log(res,error)
     return new NextResponse(JSON.stringify({res,error}))
