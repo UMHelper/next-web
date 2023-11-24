@@ -22,7 +22,7 @@ const CsBanner = () => {
     }, [pathname])
     if (!isCS) return null
     return (
-        <div className='w-full p-1 flex justify-center items-center bg-slate-100 text-black text-xs break-all flex-wrap'>
+        <div className='w-full px-1 py-2 flex justify-center items-center bg-slate-100 text-black text-xs break-all flex-wrap'>
             💻 如果你喜歡coding，有興趣為 <span className="font-semibold bg-gradient-to-r from-sky-500 to-indigo-600 bg-clip-text text-transparent">What2Reg @ UM</span> 出一分力，歡迎你<Link href="https://github.com/UMHelper/Feedback-and-Join-Us" className=" underline">加入我們</Link>！💻
         </div>
     )
