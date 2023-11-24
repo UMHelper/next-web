@@ -36,25 +36,25 @@ export async function POST(request: Request){
         const image:any=(await body.get('image'))
         const ext=image.name.split('.').pop()
         let name=uuid()+'.'+ext
-        // const blob = await put(name, await image.arrayBuffer(), {
-        //     access: 'public',
-        //   });
+        const blob = await put(name, await image.arrayBuffer(), {
+            access: 'public',
+          });
 
-        // data.img=blob.url
+        data.img=blob.url
 
-        const formData = new FormData()
-        formData.append('image', image)
-        const response=await fetch('https://api.imgur.com/3/upload',
-        {
-            method: 'POST',
-            body: formData,
-            headers:{
-                'Authorization':`Client-ID ${process.env.IMGUR_CLIENT_ID}`
-            }
-        })
-        const json=await response.json()
-        // console.log(json)
-        data.img=json.data.link
+        // const formData = new FormData()
+        // formData.append('image', image)
+        // const response=await fetch('https://api.imgur.com/3/upload',
+        // {
+        //     method: 'POST',
+        //     body: formData,
+        //     headers:{
+        //         'Authorization':`Client-ID ${process.env.IMGUR_CLIENT_ID}`
+        //     }
+        // })
+        // const json=await response.json()
+        // // console.log(json)
+        // data.img=json.data.link
         
     }
 
