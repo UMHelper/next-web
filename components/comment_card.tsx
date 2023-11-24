@@ -54,7 +54,7 @@ https://umeh.top/reviews/${course.New_code}/${prof.prof_id.replaceAll(/ /g, '%20
                     duration: 5000,
                 })
             }}>
-                        <p className='break-all'>
+                        <p className='break-word'>
                             {comment.content}
                         </p>
                     </div>

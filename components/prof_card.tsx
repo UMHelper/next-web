@@ -11,7 +11,7 @@ const ProfCard= async ({data,code}:{data:any,code:any})=>{
             <Card className='hover:cursor-pointer hover:shadow-lg'>
                 <CardHeader className='pb-0.5'>
                     <div className='flex flex-row justify-between'>
-                        <div className="break-all">
+                        <div className="break-word">
                             {data.prof_id}
                         </div>
                         <div className='text-white flex flex-col'>
@@ -82,7 +82,7 @@ export const ProfCourseCard= async ({data,code}:{data:any,code:any})=>{
             <Card className='hover:cursor-pointer hover:shadow-lg'>
                 <CardHeader className='pb-0.5'>
                     <div className='flex flex-row justify-between'>
-                        <div className="break-all">
+                        <div className="break-word">
                             {data.course_id}
                         </div>
                         <div className='text-white flex flex-col'>
