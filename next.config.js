@@ -2,7 +2,7 @@
 const { withContentlayer } = require("next-contentlayer")
 const nextConfig = {
     images: {
-        domains: ['img.clerk.com'],
+        domains: ['img.clerk.com','erdqyqa4vgrnyxnx.public.blob.vercel-storage.com'],
     },
 }
 

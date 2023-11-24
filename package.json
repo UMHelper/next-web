@@ -14,6 +14,7 @@
     "@clerk/nextjs": "^4.27.1",
     "@emotion/react": "^11.11.1",
     "@emotion/styled": "^11.11.0",
+    "@fancyapps/ui": "^5.0.28",
     "@hookform/resolvers": "^3.3.1",
     "@radix-ui/react-accordion": "^1.1.2",
     "@radix-ui/react-avatar": "^1.0.4",
