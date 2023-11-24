@@ -11,8 +11,8 @@ const pwaConfig = {
     register: true,
     mode: 'production'
 };
-const withPWA = require('next-pwa')(pwaConfig)
-module.exports = withPWA(withContentlayer(nextConfig))
+// const withPWA = require('next-pwa')(pwaConfig)
+module.exports = withContentlayer(nextConfig)
 
 
 // Injected content via Sentry wizard below
