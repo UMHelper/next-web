@@ -29,7 +29,7 @@ const UADialog = () => {
                         </p>
                         <br />
                         <p>
-                            您正在訪問的網站為 由<span className="bg-gradient-to-r from-sky-500 to-indigo-600 bg-clip-text text-transparent">UMHelper Dev Team</span> 開發維護的 <span className="bg-gradient-to-r from-sky-500 to-indigo-600 bg-clip-text text-transparent">What2REG @UM</span>，本網站同澳門大學，其他學生組織沒有任何關係。
+                            您正在訪問的網站為 由<span className="bg-gradient-to-r from-sky-500 to-indigo-600 bg-clip-text text-transparent">UMHelper Dev Team</span> 開發維護的 <span className="bg-gradient-to-r from-sky-500 to-indigo-600 bg-clip-text text-transparent">What2Reg @UM</span>，本網站同澳門大學或其他學生組織沒有任何關係。
                         </p>
                         <br />
                         <p className="underline font-semibold">
@@ -41,7 +41,7 @@ const UADialog = () => {
                         </p>
                         <br />
                         <p>
-                            The website you are visiting is <span className="bg-gradient-to-r from-sky-500 to-indigo-600 bg-clip-text text-transparent">What2REG @UM</span>, developed and maintained by the <span className="bg-gradient-to-r from-sky-500 to-indigo-600 bg-clip-text text-transparent">UMHelper Dev Team</span>. This website has no affiliation with the University of Macau, and any other student organizations.
+                            The website you are visiting is <span className="bg-gradient-to-r from-sky-500 to-indigo-600 bg-clip-text text-transparent">What2Reg @UM</span>, developed and maintained by the <span className="bg-gradient-to-r from-sky-500 to-indigo-600 bg-clip-text text-transparent">UMHelper Dev Team</span>. This website has no affiliation with the University of Macau, and any other student organizations.
                         </p>
                         <br />
                         <p className="underline font-semibold">
@@ -54,7 +54,7 @@ const UADialog = () => {
                                 setIs(false)
                             }}
                         >
-                            我已知曉，繼續訪問 / I know, continue.
+                            我已知曉，繼續訪問 / I understand, continue.
                         </div>
                     </div>
                 </DialogHeader>
