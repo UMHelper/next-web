@@ -40,7 +40,7 @@ export async function POST(request: Request){
             access: 'public',
           });
 
-        data.image=blob.url
+        data.img=blob.url
     }
 
     // console.log(data)
