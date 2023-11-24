@@ -87,7 +87,7 @@ const SubmitPage = ({ params }: { params: any }) => {
             body: data,
             method: 'POST',
         })
-        // route.push(`/reviews/${params.code}/${params.prof}`)
+        route.push(`/reviews/${params.code}/${params.prof}`)
     }
     return (
         <div className='max-w-screen-xl mx-auto p-10 md:p-20'>
