@@ -62,3 +62,9 @@ export const ua_check=(ua:string)=>{
         ua.indexOf(" Safari/") === -1
       );
 }
+
+export const uuid = () => {
+    // 随机生成英文字母
+    const randomLetter = String.fromCharCode(Math.round(Math.random() * 25) + 65);
+    return randomLetter + Date.now().toString(36);
+};
