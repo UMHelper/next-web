@@ -14,11 +14,13 @@ import { UploadCloud } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
 import { toast } from '@/components/ui/use-toast';
 import { useRouter } from 'next/navigation';
+import { useUser } from "@clerk/nextjs";
 
+const MAX_FILE_SIZE = 5000000;
+const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
 
 const SubmitPage = ({ params }: { params: any }) => {
-    const MAX_FILE_SIZE = 5000000;
-    const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+    const { isSignedIn, user } = useUser();
     const [image, setImage] = useState<File | null | undefined>(null);
     const formSchema = z.object({
         code: z.string().length(8).default(params.code),
@@ -51,9 +53,9 @@ const SubmitPage = ({ params }: { params: any }) => {
     const route = useRouter()
     const submit = (values: any) => {
         // console.log(typeof values)
-        let data=new FormData()
-        for (const key in values){
-            data.append(key,values[key])
+        let data = new FormData()
+        for (const key in values) {
+            data.append(key, values[key])
         }
         if (image) {
             if (!ACCEPTED_IMAGE_TYPES.includes(image.type)) {
@@ -74,8 +76,15 @@ const SubmitPage = ({ params }: { params: any }) => {
             }
             data.append('image', image)
         }
+        else {
+            data.append('image', '')
+        }
+        if (isSignedIn) {
+            data.append('verify', '1')
+            data.append('verify_account',user.id)
+        }
         else{
-            data.append('image','')
+            data.append('verify', '0')
         }
         toast({
             title: 'Submitted!',
@@ -135,7 +144,7 @@ const SubmitPage = ({ params }: { params: any }) => {
                                                 onValueChange={field.onChange}
                                                 value={field.value}
                                             >
-                                                <div className='flex flex-row space-x-2 justify-between'>
+                                                <div className='flex flex-row space-y-1 justify-between flex-wrap'>
                                                     <div className="flex items-center space-x-2">
                                                         <RadioGroupItem value="1" id="option-one" />
                                                         <Label htmlFor="option-one">Always</Label>
@@ -165,7 +174,7 @@ const SubmitPage = ({ params }: { params: any }) => {
                                                 onValueChange={field.onChange}
                                                 value={field.value}
                                             >
-                                                <div className='flex flex-row space-x-2 justify-between'>
+                                                <div className='flex flex-row space-y-1 justify-between flex-wrap'>
                                                     <div className="flex items-center space-x-2">
                                                         <RadioGroupItem value="1" id="option-one" />
                                                         <Label htmlFor="option-one">Multiple</Label>
@@ -343,13 +352,22 @@ const SubmitPage = ({ params }: { params: any }) => {
                                 <FormControl>
                                     <Input type='file' onChange={
                                         (e) => {
-                                            // console.log(e.target.files)
+
                                             setImage(e.target.files?.[0])
                                         }
                                     }
-                                    className='w-fit' 
+                                        disabled={!isSignedIn}
                                     />
                                 </FormControl>
+                                {
+                                    !isSignedIn ? (
+                                        <FormDescription className=' text-red-400'>
+                                            <span>
+                                                Please sign in to upload an image.
+                                            </span>
+                                        </FormDescription>
+                                    ) : null
+                                }
                             </FormItem>
 
                             <FormField
@@ -391,10 +409,19 @@ const SubmitPage = ({ params }: { params: any }) => {
                             />
                         </div>
 
-                        <Button type="submit" className='space-x-2 bg-gradient-to-r from-violet-500 to-fuchsia-500'>
-                            <UploadCloud size={18} strokeWidth={2.5} />
-                            <span>Submit</span>
-                        </Button>
+                        <div className=' space-y-1'>
+                            {
+                                isSignedIn ? (
+                                    <FormDescription>
+                                        NOTE: You will submit this comment as {user?.firstName} {user?.lastName}.
+                                    </FormDescription>
+                                ) : null
+                            }
+                            <Button type="submit" className='space-x-2 bg-gradient-to-r from-violet-500 to-fuchsia-500'>
+                                <UploadCloud size={18} strokeWidth={2.5} />
+                                <span>Submit</span>
+                            </Button>
+                        </div>
                     </form>
                 </Form>
             </div>

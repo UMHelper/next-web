@@ -57,7 +57,10 @@ export async function POST(request: Request){
         data.img=json.data.link
         
     }
-
+    if (body.get('verify')==="1"){
+        data.verified=1
+        data.verify_account=body.get('verify_account') as string
+    }
     // console.log(data)
     const {data : res,error}= await supabase.from('comment').insert([data]).select()
     // console.log(res,error)
