@@ -32,7 +32,11 @@ export async function POST(request: Request){
     const id:any=await supabase.from('comment').select('*', { count: 'exact', head: true })
     data.id=27734+id.count+100
     // console.log(body.get('image'))
-    if (body.get('image')!=""){
+    if (body.get('verify')==="1"){
+        data.verified=1
+        data.verify_account=body.get('verify_account') as string
+    }
+    if (body.get('verify')==="1" && body.get('image')!=""){
         const image:any=(await body.get('image'))
         // const ext=image.name.split('.').pop()
         // let name=uuid()+'.'+ext
@@ -56,10 +60,6 @@ export async function POST(request: Request){
         // console.log(json)
         data.img=json.data.link
         
-    }
-    if (body.get('verify')==="1"){
-        data.verified=1
-        data.verify_account=body.get('verify_account') as string
     }
     // console.log(data)
     const {data : res,error}= await supabase.from('comment').insert([data]).select()
