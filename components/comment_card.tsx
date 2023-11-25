@@ -15,7 +15,7 @@ Fancybox.bind("[data-fancybox]", {
 });
 
 export const CommentCard = (
-    { comment, prof, course }: { comment: any, prof: any, course: any }
+    { comment }: { comment: any}
 ) => {
     const { toast } = useToast()
     // console.log(comment)

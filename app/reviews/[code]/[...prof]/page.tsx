@@ -3,8 +3,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { CalendarRange, ChevronRightCircle, ClipboardEdit } from "lucide-react";
-import { Masonry } from "@/components/masonry";
-import { CommentCard } from "@/components/comment_card";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { TimetableCard } from "@/components/timetable-card";
 import { getCommentList } from "@/lib/database/get-comment-list";
@@ -14,6 +12,7 @@ import { notFound } from 'next/navigation'
 
 import { getCourseInfo } from "@/lib/database/get-course-info";
 import getScheduleList from "@/lib/database/get-schedule-list";
+import { Comments } from "@/components/comments";
 
 export const revalidate = 0
 
@@ -34,13 +33,15 @@ const ReviewPage = async ({ params }: { params: { code: string, prof: string[] }
 
     const prof_info = await getReviewInfo(code, decodeURI(prof.replaceAll('$', '/')));
     if (prof_info == undefined) {
-        return(
+        return (
             notFound()
         )
     }
+    // console.log(prof_info);
     const is_offered = prof_info['is_offered'];
 
     const course_info = await getCourseInfo(code);
+    // console.log(course_info);
 
     const comment = await getCommentList(code, prof.replaceAll('$', '/'));
 
@@ -96,7 +97,7 @@ const ReviewPage = async ({ params }: { params: { code: string, prof: string[] }
                                                 </Button>
                                             </PopoverTrigger>
                                             <PopoverContent className="w-80">
-                                                <TimetableCard timetable={timetable} code={code} prof={prof}/>
+                                                <TimetableCard timetable={timetable} code={code} prof={prof} />
                                             </PopoverContent>
                                         </Popover>
                                         :
@@ -142,20 +143,7 @@ const ReviewPage = async ({ params }: { params: { code: string, prof: string[] }
 
             <div>
                 <div className='max-w-screen-xl mx-auto p-4'>
-                    <Masonry col={3} className="">
-                        {comment.map((comment: any, index: number) => {
-                            return (
-                                <div key={index}>
-                                    <CommentCard comment={comment} prof={prof_info} course={course_info} />
-                                </div>
-                            )
-                        })}
-                    </Masonry>
-                    {comment.length == 0 ?(
-                        <div className="bg-gradient-to-r from-blue-600 to-indigo-500 bg-clip-text text-transparent text-xl font-black mt-4">
-                            No comment yet. Be the first one to comment!
-                        </div>
-                    ):null}
+                    <Comments comments={comment} course_id={course_info.id} />
                 </div>
             </div>
         </>
