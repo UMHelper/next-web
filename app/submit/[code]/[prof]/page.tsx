@@ -421,6 +421,10 @@ const SubmitPage = ({ params }: { params: any }) => {
                                 <UploadCloud size={18} strokeWidth={2.5} />
                                 <span>Submit</span>
                             </Button>
+                            <div className='text-xs text-red-500 break-words'>
+                                <p>由於瀏覽器緩存的問題，您的評論可能不會立刻出現在評論頁面，請刷新頁面後再次查看。感謝您的理解。</p>
+                                <p>Since the browser cache, your comment may not appear on the comment page immediately, please refresh the page and check again. Thank you for your understanding.</p>
+                            </div>
                         </div>
                     </form>
                 </Form>
