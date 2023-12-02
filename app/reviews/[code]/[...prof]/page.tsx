@@ -15,6 +15,7 @@ import getScheduleList from "@/lib/database/get-schedule-list";
 import { Comments } from "@/components/comments";
 
 export const revalidate = 0
+export const dynamic = "force-dynamic";
 
 export function generateMetadata(
     { params }: { params: any }) {
