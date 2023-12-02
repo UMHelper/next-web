@@ -110,7 +110,7 @@ const ReplyDialog = ({ comment, reply_comment }: { comment: any, reply_comment: 
 const CommentDetail = ({ comment, env }: { comment: any, env: string }) => {
     return (
         <div className='flex flex-col justify-between'>
-            <p className='break-word'>
+            <p className='break-words'>
                 {comment.content}
             </p>
             {

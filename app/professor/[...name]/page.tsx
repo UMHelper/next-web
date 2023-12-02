@@ -24,7 +24,7 @@ const ProfessorPage = async ({ params: { name } }: { params: { name: string[] } 
         <div>
             <div className='bg-gradient-to-r from-blue-600 to-indigo-500 text-white p-3'>
                 <div className='max-w-screen-xl mx-auto p-4'>
-                    <div className='break-word text-3xl font-semibold'>
+                    <div className='break-words text-3xl font-semibold'>
                         {prof_name.toUpperCase().replaceAll("%20", " ").replaceAll('%24', '/')}
                     </div>
                 </div>
