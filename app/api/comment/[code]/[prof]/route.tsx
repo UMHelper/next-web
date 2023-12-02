@@ -33,7 +33,7 @@ export async function POST(request: Request){
     data.id=27734+id.count+100
     // console.log(body.get('image'))
     if (body.get('verify')==="1"){
-        data.verified=1
+        data.verify=1
         data.verify_account=body.get('verify_account') as string
     }
     if (body.get('verify')==="1" && body.get('image')!=""){
@@ -57,12 +57,12 @@ export async function POST(request: Request){
             }
         })
         const json=await response.json()
-        // console.log(json)
+        console.log(json)
         data.img=json.data.link
         
     }
     // console.log(data)
     const {data : res,error}= await supabase.from('comment').insert([data]).select()
-    // console.log(res,error)
+    console.log(res,error)
     return new NextResponse(null,{status:200})
 }
