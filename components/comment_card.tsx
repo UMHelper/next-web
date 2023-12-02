@@ -54,7 +54,7 @@ const ReplyCard = ({ reply }: { reply: any }) => {
                 </div>
                 </div>
             </div>
-        )break-words
+        )
     }
     return (
         <div>
