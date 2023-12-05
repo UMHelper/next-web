@@ -106,7 +106,7 @@ const ReviewPage = async ({ params }: { params: { code: string, prof: string[] }
                                         <></>
                                 }
                             </div>
-                            <Toolbar course={course_info} prof={undefined} />
+                            {/* <Toolbar course={course_info} prof={undefined} /> */}
                         </div>
                         <Card className='md:w-80 py-4 pb-0 md:m-0 mt-8'>
                             <CardContent className="h-full py-4">
