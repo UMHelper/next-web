@@ -53,7 +53,7 @@ export default function RootLayout({
                                 report</Link>  bugs to us.</span>
                         </div>
                         <CsBanner/>
-                        <div>
+                        <div>   
                             {children}
                         </div>
                     </div>

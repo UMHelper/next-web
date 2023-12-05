@@ -2,7 +2,7 @@ import Toolbar from "@/components/toolbar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { CalendarRange, ChevronRightCircle, ClipboardEdit } from "lucide-react";
+import { CalendarRange, Cat, ChevronRightCircle, ClipboardEdit } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { TimetableCard } from "@/components/timetable-card";
 import { getCommentList } from "@/lib/database/get-comment-list";
@@ -13,6 +13,7 @@ import { notFound } from 'next/navigation'
 import { getCourseInfo } from "@/lib/database/get-course-info";
 import getScheduleList from "@/lib/database/get-schedule-list";
 import { Comments } from "@/components/comments";
+import { BBSAd } from "@/components/bbs-updates";
 
 export const revalidate = 0
 export const dynamic = "force-dynamic";
@@ -105,7 +106,7 @@ const ReviewPage = async ({ params }: { params: { code: string, prof: string[] }
                                         <></>
                                 }
                             </div>
-                            <Toolbar course={course_info} prof={undefined} />
+                            {/* <Toolbar course={course_info} prof={undefined} /> */}
                         </div>
                         <Card className='md:w-80 py-4 pb-0 md:m-0 mt-8'>
                             <CardContent className="h-full py-4">
@@ -141,7 +142,7 @@ const ReviewPage = async ({ params }: { params: { code: string, prof: string[] }
                     </div>
                 </div>
             </div>
-
+            <BBSAd/>
             <div>
                 <div className='max-w-screen-xl mx-auto p-4'>
                     <Comments comments={comment} course_id={course_info.id} />

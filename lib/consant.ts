@@ -8,6 +8,10 @@ export const menuList:MenuItem[]=[
         href:"/catalog"
     },
     {
+        name:'GE Course',
+        href:"/catalog/gecourse"
+    },
+    {
         name:'Timetable',
         href:"/timetable"
     },

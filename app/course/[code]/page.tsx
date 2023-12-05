@@ -10,6 +10,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 import Script from "next/script";
 import supabase from '@/lib/database/database';
+import { BBSAd } from "@/components/bbs-updates";
 
 export function generateMetadata(
     { params }: { params: any }) {
@@ -80,7 +81,7 @@ async function CoursePage({ params }: { params: { code: string } }) {
                             </div>
                             <div className='text-xl font-semibold'>{course["courseTitle"]}</div>
                             <div className='text-sm'>{course['offeringProgLevel'] + ' Course, Year ' + parseInt(course['suggestedYearOfStudy'])}</div>
-                            <Toolbar course={course} prof={undefined} />
+                            {/* <Toolbar course={course} prof={undefined} /> */}
                         </div>
                         <div className='py-6 space-y-4'>
                             <div className='space-y-1'>
@@ -141,10 +142,10 @@ async function CoursePage({ params }: { params: { code: string } }) {
                                             <DialogTitle>Course Description</DialogTitle>
                                         </DialogHeader>
                                         <div className="py-4 text-sm" style={{
-                                            maxHeight:'70vh',
-                                            overflowY:'scroll'
+                                            maxHeight: '70vh',
+                                            overflowY: 'scroll'
                                         }}>
-                                            {course['courseDescription']?.replaceAll('\n', '\n')||"No Course Description"}
+                                            {course['courseDescription']?.replaceAll('\n', '\n') || "No Course Description"}
                                         </div>
                                         <DialogFooter>
                                             <div className='text-xs italic mt-3'>Data Source: reg.um.edu.mo</div>
@@ -167,12 +168,12 @@ async function CoursePage({ params }: { params: { code: string } }) {
                                         </DialogHeader>
                                         <div className="py-4 text-sm"
                                             style={{
-                                                maxHeight:'70vh',
-                                                overflowY:'scroll',
+                                                maxHeight: '70vh',
+                                                overflowY: 'scroll',
                                                 whiteSpace: "pre-wrap",
                                             }}
                                         >
-                                            {course['ilo']?.replaceAll('\n', '\n')||"No Intended Learning Outcomes"}
+                                            {course['ilo']?.replaceAll('\n', '\n') || "No Intended Learning Outcomes"}
                                         </div>
                                         <DialogFooter>
                                             <div className='text-xs italic mt-3'>Data Source: reg.um.edu.mo</div>
@@ -183,9 +184,9 @@ async function CoursePage({ params }: { params: { code: string } }) {
                             <div className='text-xs italic'>Data Source: reg.um.edu.mo</div>
                         </div>
                     </div>
-
                 </div>
             </div>
+            <BBSAd/>
             <div className='max-w-screen-xl mx-auto p-4'>
 
                 <div id="googleBotCourseInfo" className="space-y-3 my-3 hidden">
@@ -193,14 +194,14 @@ async function CoursePage({ params }: { params: { code: string } }) {
                     <Alert>
                         <AlertTitle>Course Description</AlertTitle>
                         <AlertDescription>
-                            {course['courseDescription']?.replaceAll('\n', '\n')||"No Course Description"}
+                            {course['courseDescription']?.replaceAll('\n', '\n') || "No Course Description"}
                         </AlertDescription>
                     </Alert>
 
                     <Alert>
                         <AlertTitle>Intended Learning Outcomes</AlertTitle>
                         <AlertDescription>
-                            {course['ilo']?.replaceAll('\n', '\n')||"No Intended Learning Outcomes"}
+                            {course['ilo']?.replaceAll('\n', '\n') || "No Intended Learning Outcomes"}
                         </AlertDescription>
                     </Alert>
                 </div>
