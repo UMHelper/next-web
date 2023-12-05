@@ -2,7 +2,7 @@ import { CornerLeftUp, CornerRightUp } from "lucide-react"
 
 export function generateMetadata(
     {params}:{params:any}) {
-    const title = `Catalog | What2Reg @ UM 澳大選咩課 @UM`
+    const title = `Catalog | What2Reg @ UM 澳大選咩課`
 
     return {
         title: title,

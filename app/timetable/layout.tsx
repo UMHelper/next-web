@@ -1,5 +1,5 @@
 export function generateMetadata() {
-    const title = `Timetable Sim | What2Reg @ UM 澳大選咩課 @UM`
+    const title = `Timetable Sim | What2Reg @ UM 澳大選咩課`
     return {
         title: title,
     }

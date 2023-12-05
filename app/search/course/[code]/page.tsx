@@ -3,7 +3,7 @@ import { fetchCourseFuzzySearch } from "@/lib/database/get-fuzzy-search";
 
 export function generateMetadata(
     {params}:{params:any}) {
-    const title = `Searching for ${params.code.toUpperCase()} | What2Reg @ UM 澳大選咩課 @UM`
+    const title = `Searching for ${params.code.toUpperCase()} | What2Reg @ UM 澳大選咩課`
 
     return {
         title: title,

@@ -6,7 +6,7 @@ import { fetchInstructorFuzzySearch } from "@/lib/database/get-fuzzy-search"
 export function generateMetadata(
     {params}:{params:any}) {
     const name=decodeURI(params.name.join('/')).toUpperCase()
-    const title = `Searching for ${name} | What2Reg @ UM 澳大選咩課 @UM`
+    const title = `Searching for ${name} | What2Reg @ UM 澳大選咩課`
 
     return {
         title: title,

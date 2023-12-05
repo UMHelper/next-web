@@ -4,7 +4,7 @@ import { fetchCatalogList } from '@/lib/database/get-course-info';
 
 export function generateMetadata(
     {params}:{params:any}) {
-    const title = `Catalog of ${params.departments.join(' ').toUpperCase()} | What2Reg @ UM 澳大選咩課 @UM`
+    const title = `Catalog of ${params.departments.join(' ').toUpperCase()} | What2Reg @ UM 澳大選咩課`
 
     return {
         title: title,

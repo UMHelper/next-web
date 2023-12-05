@@ -13,7 +13,7 @@ import supabase from '@/lib/database/database';
 
 export function generateMetadata(
     { params }: { params: any }) {
-    const title = `${params.code.toUpperCase()} | What2Reg @ UM 澳大選咩課 @UM`
+    const title = `${params.code.toUpperCase()} | What2Reg @ UM 澳大選咩課`
 
     return {
         title: title,
