@@ -1,5 +1,6 @@
 import { Masonry } from "@/components/masonry"
 import { CommentCard } from "@/components/comment_card"
+import Link from "next/link"
 
 const Comments = ({ comments, course_id }: { comments: any[], course_id: string }) => {
     const non_reply_comments = comments.filter((comment) => comment.replyto === null)
@@ -27,7 +28,7 @@ const Comments = ({ comments, course_id }: { comments: any[], course_id: string 
             </Masonry>
             {non_reply_comments.length == 0 ? (
                 <div className="bg-gradient-to-r from-blue-600 to-indigo-500 bg-clip-text text-transparent text-xl font-black mt-4">
-                    No comment yet. Be the first one to comment!
+                    No comment yet. Ask your questions at <Link href="https://whole.umeh.top/public/t/adddrop">WHOLE @UM </Link> student community, and be the first one to comment!
                 </div>
             ) : null}
         </>
