@@ -32,7 +32,7 @@ export async function generateStaticParams() {
 
 const CatalogPage = async ({ params: { departments } }: { params: { departments: string[] } }) => {
     // if departements[0] not in faculty, return 404
-    if (!faculty.includes(departments[0].toUpperCase()) && departments[0]!=='GECourse') {
+    if (!faculty.includes(departments[0].toUpperCase()) && departments[0].toLowerCase()!=='gecourse') {
         return (
             <div>
                 <div className="w-full flex justify-center items-center flex-col space-y-8 my-20">

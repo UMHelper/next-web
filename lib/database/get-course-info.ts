@@ -102,7 +102,7 @@ export const fetchCourseListByProf = async ({ name }:{name:string}) => {
 
 export const fetchCatalogList = async (departments: string[]) => {
     if (departments.length === 1) {
-        if (departments[0]==='GECourse'){
+        if (departments[0].toLowerCase()==='gecourse'){
             const { data, error }: { data: any, error: any } = await supabase.from('course_noporf')
             .select('')
             .like('New_code', 'GE%')
