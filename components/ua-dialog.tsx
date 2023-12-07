@@ -28,7 +28,11 @@ const UADialog = () => {
         setIs(ua_check(navigator.userAgent))
         // setIs(true)
     }, [setIs])
-    if (!is) return null;
+    if (!is) return (
+        <div className="text-xs text-gray-400">
+            {navigator.userAgent}
+        </div>
+    );
     return (
         <Dialog open={is}>
             <DialogContentNoX forceMount>
