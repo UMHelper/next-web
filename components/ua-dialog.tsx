@@ -4,15 +4,26 @@ import { ua_check } from "@/lib/utils"
 import { Armchair } from "lucide-react"
 import { usePathname } from "next/navigation"
 import { useEffect, useState } from "react"
+import { Button } from "@/components/ui/button"
 
 const UADialog = () => {
     const [is, setIs] = useState<boolean>(false);
+    const [timer,setTimer]=useState(10)
     const pathname = usePathname()
     useEffect(() => {
         // console.log(pathname)
+        setTimer(10)
         setIs(ua_check(navigator.userAgent))
-        // setIs(true)
+        setIs(true)
     }, [pathname])
+    useEffect(()=>{
+        const t=setTimeout(()=>{
+            setTimer(prev=>prev-1)
+        },1000)
+        return ()=>{
+            clearTimeout(t)
+        }
+    })
     useEffect(() => {
         setIs(ua_check(navigator.userAgent))
         // setIs(true)
@@ -48,14 +59,15 @@ const UADialog = () => {
                             If you are accessing this website through other websites or applications, please be aware of the security of your personal information. <span className="bg-gradient-to-r from-sky-500 to-indigo-600 bg-clip-text text-transparent">UMHelper</span> is not responsible for the security and accuracy of information on other websites or applications.
                         </p>
                         <br />
-                        <div
+                        <Button
                             className="w-full bg-gradient-to-r from-red-400 to-orange-500 rounded hover:shadow flex justify-center text-white font-bold my-1 py-1 hover:cursor-pointer"
                             onClick={() => {
                                 setIs(false)
                             }}
+                            disabled={timer>0}
                         >
-                            我已知曉，繼續訪問 / I understand, continue.
-                        </div>
+                            我已知曉，繼續訪問 / I understand, continue. {timer>0?`(${timer}s)`:''}
+                        </Button>
                     </div>
                 </DialogHeader>
             </DialogContentNoX>
