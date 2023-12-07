@@ -14,7 +14,7 @@ const UADialog = () => {
         // console.log(pathname)
         setTimer(10)
         setIs(ua_check(navigator.userAgent))
-        setIs(true)
+        // setIs(true)
     }, [pathname])
     useEffect(()=>{
         const t=setTimeout(()=>{
