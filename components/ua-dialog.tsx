@@ -14,7 +14,7 @@ const UADialog = () => {
         // console.log(pathname)
         setTimer(10)
         setIs(ua_check(navigator.userAgent))
-        // setIs(true)
+        setIs(true)
     }, [pathname])
     useEffect(()=>{
         const t=setTimeout(()=>{
@@ -40,7 +40,7 @@ const UADialog = () => {
                     <div className="text-black font-blod text-sm space-y-1 break-words">
                         <Armchair size={28} strokeWidth={2} />
                         <p >
-                            為保證完整的用戶體驗，請使用系統默認瀏覽器打開本網站！
+                            為保證完整的用戶體驗，請使用 <span className="font-black underline">系統默認瀏覽器</span> 打開本網站！
                         </p>
                         <br />
                         <p>
@@ -52,7 +52,7 @@ const UADialog = () => {
                         </p>
                         <br />
                         <p>
-                            Please use your default browser to open this page and enjoy the best browsing experience!
+                            Please use your <span className="font-black underline">default browser</span> to open this page and enjoy the best browsing experience!
                         </p>
                         <br />
                         <p>

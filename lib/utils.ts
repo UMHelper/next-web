@@ -60,7 +60,10 @@ export const ua_check=(ua:string)=>{
     return (
         ua.indexOf(" Mobile/") > 0 &&
         ua.indexOf(" Safari/") === -1
-      );
+      ) || (
+        ua.indexOf("Android") > 0 &&
+        ua.indexOf(" wv") > 0
+      ) ;
 }
 
 export const uuid = () => {
