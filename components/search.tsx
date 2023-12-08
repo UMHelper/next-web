@@ -58,7 +58,7 @@ export default function SearchComp() {
     }
     const [is_prof, set_is_prof] = useState(false)
     return (
-        <div className='bg-[url("/banner.jpg")] bg-cover'>
+        <div className='bg-[url("/bg2.jpg")] bg-cover'>
             <div className='max-w-screen-xl mx-auto p-2'>
                 <div className='flex justify-between mx-2 py-10 md:py-8 '>
                     <div className='md:flex flex-col justify-center text-white hidden space-y-2  p-6'>
@@ -75,14 +75,14 @@ export default function SearchComp() {
                             專為澳大學生而設的課程評價網站
                         </h2>
                     </div>
-                    <Card className="md:mx-8 md:w-96 w-full mx-0">
+                    <Card className="md:mx-8 md:w-96 w-full mx-0 backdrop-blur-3xl bg-transparent border-none">
                         <CardHeader>
 
                         </CardHeader>
                         <CardContent className='space-y-2'>
-                            <div>
+                            <div className="text-white">
                                 <CardTitle >{is_prof ? 'Search Instructors' : 'Search Courses'}</CardTitle>
-                                <CardDescription >{is_prof ? '搜尋講師' : '搜尋課程'}</CardDescription>
+                                <CardDescription className="text-white/80">{is_prof ? '搜尋講師' : '搜尋課程'}</CardDescription>
                             </div>
                             <Form {...form}>
 
@@ -110,10 +110,10 @@ export default function SearchComp() {
                                                                     </FormControl>
                                                                     <div className='my-0 flex items-center space-x-2'>
                                                                         <div>
-                                                                            <FormLabel className="text-base">
+                                                                            <FormLabel className="text-base text-white">
                                                                                 Search Instructors
                                                                             </FormLabel>
-                                                                            <FormDescription >
+                                                                            <FormDescription className="text-white/80">
                                                                                 搜索講師
                                                                             </FormDescription>
                                                                         </div>
@@ -147,7 +147,7 @@ export default function SearchComp() {
                                 </form>
                             </Form>
                         </CardContent>
-                        <CardFooter className='text-xs text-gray-400 flex flex-col items-start space-y-1'>
+                        <CardFooter className='text-xs text-white/80 flex flex-col items-start space-y-1'>
                             <div className='max-w-sm'>Search by course codes/titles, or name of instructors (partial search supported)</div>
                             <div>鍵入部分課程代碼/名稱或講師姓名</div><br></br>
                             <div className='italic'>Data Source: reg.um.edu.mo</div>
