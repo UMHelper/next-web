@@ -20,7 +20,7 @@ const MobileSidebar = () => {
     const [open, setOpen] = useState(false);
     const wait = () => new Promise((resolve) => setTimeout(resolve, 100));
     return (
-        <div className='md:hidden w-full h-full flex justify-center items-center'>
+        <div className='md:hidden h-full flex justify-center items-center pr-2'>
             <Sheet open={open} onOpenChange={setOpen}>
                 <SheetTrigger>
                     <div>
@@ -45,7 +45,7 @@ const MobileSidebar = () => {
                         <div className="flex justify-start items-center px-1 py-2">
                         <div className="flex flex-row space-x-2">
                         {/* <SearchButton /> */}
-                        <TimetableCart />
+                        
                         </div>
                         <SignedOut>
                             <SignInButton />
