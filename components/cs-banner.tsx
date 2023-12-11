@@ -11,10 +11,10 @@ const CsBanner = () => {
         // console.log(pathname.split('/')[1],pathname.split('/')[2])
         const path=pathname.split('/')
         if (path.length===3){
-            setIsCS(path[2].startsWith('CISC'))
+            setIsCS(path[2].startsWith('CISC')|| path[2].startsWith('ISOM'))
         }
         else if (path.length>=4){
-            setIsCS(path[3].startsWith('CISC')||path[2].startsWith('CISC')||path[3].startsWith('CIS'))
+            setIsCS(path[3].startsWith('CISC')||path[2].startsWith('CISC')||path[3].startsWith('CIS')||path[3].startsWith('ISOM')||path[2].startsWith('ISOM'))
         }
         else{
             setIsCS(false)
