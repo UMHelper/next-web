@@ -20,6 +20,7 @@ export const get_bg=(n:number)=>{
 }
 
 export const get_gpa=(n:number)=>{
+    return n
   if (n>=8){
       return 'A'
   }
