@@ -20,6 +20,9 @@ export const get_bg=(n:number)=>{
 }
 
 export const get_gpa=(n:number)=>{
+    if (n===0){
+        return 'N/A'
+    }
     return n
   if (n>=8){
       return 'A'
