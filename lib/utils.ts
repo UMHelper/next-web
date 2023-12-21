@@ -23,7 +23,7 @@ export const get_gpa=(n:number)=>{
     if (n===0){
         return 'N/A'
     }
-    return n
+    return n.toFixed(2)
   if (n>=8){
       return 'A'
   }
