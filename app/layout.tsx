@@ -48,9 +48,13 @@ export default function RootLayout({
                 <body className={cn(inter.className)}>
                     <div className='min-h-screen min-w-full'>
                         <Navbar />
-                        <div className='w-full px-1 py-2 flex justify-center items-center bg-slate-100 text-slate-500 text-xs'>
-                            <span>This is <span className="font-semibold bg-gradient-to-r from-sky-500 to-indigo-600 bg-clip-text text-transparent">NEXT Ver. Preview</span>. Please <Link className=' underline' href='https://docs.google.com/forms/d/1_HrH0jJ9Fyxu_dmW1xGsn9Hq1ZtN9nFG-Jangj_BNVk/'>
-                                report</Link>  bugs to us.</span>
+                        <div className='w-full px-1 py-2 flex flex-col justify-center items-center bg-slate-100 text-slate-800 text-xs space-y-1'>
+                            <div>
+                            課表數據庫已更新至 <span className='font-semibold bg-gradient-to-r from-sky-500 to-indigo-600 bg-clip-text text-transparent'>2023/2024 學年 第二學期</span>
+                            </div>
+                            <div>
+                            歡迎使用 <span className='font-semibold bg-gradient-to-r from-sky-500 to-indigo-600 bg-clip-text text-transparent'><Link href='/timetable'>課表模擬助手</Link></span>
+                            </div>
                         </div>
                         <CsBanner/>
                         <div>   
