@@ -4,6 +4,7 @@ import CommentBank from "@/components/comment-bank";
 import { Card } from "@/components/ui/card";
 import SearchComp from "@/components/search";
 import BbsUpdates from "@/components/bbs-updates";
+import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
 
 function HomePage() {
     return (
@@ -44,9 +45,21 @@ function HomePage() {
                                 </div>
                             </div>
                             <div className="p-2 rounded hover:shadow bg-zinc-200 text-center">
-                                <Link href='https://discord.gg/Z7hjNPAZgV'>
+                                <Drawer>
+                                    <DrawerTrigger >Wechat Group</DrawerTrigger>
+                                    <DrawerContent>
+                                        <DrawerHeader>
+                                            <DrawerTitle>Gourp QRCode 群組二維碼</DrawerTitle>
+                                            <DrawerDescription>請使用手機微信掃描</DrawerDescription>
+                                        </DrawerHeader>
+                                        <div className='flex justify-center pb-4'>
+                                            <img src='/qrcode.jpeg' className='w-64' />
+                                        </div>
+                                    </DrawerContent>
+                                </Drawer>
+                                {/* <Link href='https://discord.gg/Z7hjNPAZgV'>
                                     Discord Server
-                                </Link>
+                                </Link> */}
                             </div>
                         </Card>
                     </div>
