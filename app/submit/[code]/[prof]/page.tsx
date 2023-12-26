@@ -52,7 +52,7 @@ const SubmitPage = ({ params }: { params: any }) => {
     })
     const route = useRouter()
     const submit = (values: any) => {
-        console.log(values);
+
         let data = new FormData()
         for (const key in values) {
             data.append(key, values[key])
@@ -91,12 +91,12 @@ const SubmitPage = ({ params }: { params: any }) => {
             description: "Thank you for your comments!",
             duration: 5000,
         })
-        // console.log(data)
-        //fetch(`/api/comment/${params.code}/${params.prof}`, {
-        //    body: data,
-        //    method: 'POST',
-        //})
-        //route.push(`/reviews/${params.code}/${params.prof}`)
+        //console.log(data)
+        fetch(`/api/comment/${params.code}/${params.prof}`, {
+            body: data,
+            method: 'POST',
+        })
+        route.push(`/reviews/${params.code}/${params.prof}`)
     }
     return (
         <div className='max-w-screen-xl mx-auto p-10 md:p-20'>
