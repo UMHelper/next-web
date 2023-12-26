@@ -25,14 +25,14 @@ const SubmitPage = ({ params }: { params: any }) => {
     const formSchema = z.object({
         code: z.string().length(8).default(params.code),
         prof: z.string().default(params.prof.replaceAll("%20", " ").replaceAll('$', '/')),
-        attendance: z.enum(['1', '2.5', '5']).default('2.5'),
-        pre: z.enum(['1', '2.5', '5']).default('2.5'),
-        grade: z.number().min(0).max(5),
-        hard: z.number().min(0).max(5),
-        reward: z.number().min(0).max(5),
-        assignment: z.number().min(0).max(5),
-        recommend: z.number().min(0).max(5),
-        content: z.string().min(0).max(1000),
+        attendance: z.enum(['1', '3', '5']).default('3'),
+        pre: z.enum(['1', '3', '5']).default('3'),
+        grade: z.number().min(1).max(5),
+        hard: z.number().min(1).max(5),
+        reward: z.number().min(1).max(5),
+        assignment: z.number().min(1).max(5),
+        recommend: z.number().min(1).max(5),
+        content: z.string().min(10).max(1000),
     })
 
     const form = useForm<z.infer<typeof formSchema>>({
@@ -40,19 +40,19 @@ const SubmitPage = ({ params }: { params: any }) => {
         defaultValues: {
             code: params.code.toUpperCase(),
             prof: params.prof.replaceAll("%20", " ").replaceAll('$', '/').toUpperCase(),
-            attendance: '2.5',
-            pre: '2.5',
-            grade: 2.5,
-            hard: 2.5,
-            reward: 2.5,
-            assignment: 2.5,
-            recommend: 2.5,
+            attendance: '3',
+            pre: '3',
+            grade: 3,
+            hard: 3,
+            reward: 3,
+            assignment: 3,
+            recommend: 3,
             content: '',
         }
     })
     const route = useRouter()
     const submit = (values: any) => {
-        // console.log(typeof values)
+        console.log(values);
         let data = new FormData()
         for (const key in values) {
             data.append(key, values[key])
@@ -60,16 +60,16 @@ const SubmitPage = ({ params }: { params: any }) => {
         if (image) {
             if (!ACCEPTED_IMAGE_TYPES.includes(image.type)) {
                 toast({
-                    title: 'Image type not supported!',
-                    description: "🤔 Please upload an image in JPEG, PNG or WEBP format.",
+                    title: '❌ Image type not supported!',
+                    description: "Please upload an image in JPEG, PNG or WEBP format.",
                     duration: 5000,
                 })
                 return
             }
             if (image.size > MAX_FILE_SIZE) {
                 toast({
-                    title: 'Image too large!',
-                    description: "🤔 Please upload an image smaller than 5MB.",
+                    title: '❌ Image too large!',
+                    description: "Please upload an image smaller than 5MB.",
                     duration: 5000,
                 })
                 return
@@ -81,22 +81,22 @@ const SubmitPage = ({ params }: { params: any }) => {
         }
         if (isSignedIn) {
             data.append('verify', '1')
-            data.append('verify_account',user.id)
+            data.append('verify_account', user.id)
         }
-        else{
+        else {
             data.append('verify', '0')
         }
         toast({
-            title: 'Submitted!',
-            description: "💋 Thank you for your submission!",
+            title: '✅ Success!',
+            description: "Thank you for your comments!",
             duration: 5000,
         })
         // console.log(data)
-        fetch(`/api/comment/${params.code}/${params.prof}`, {
-            body: data,
-            method: 'POST',
-        })
-        route.push(`/reviews/${params.code}/${params.prof}`)
+        //fetch(`/api/comment/${params.code}/${params.prof}`, {
+        //    body: data,
+        //    method: 'POST',
+        //})
+        //route.push(`/reviews/${params.code}/${params.prof}`)
     }
     return (
         <div className='max-w-screen-xl mx-auto p-10 md:p-20'>
@@ -138,7 +138,7 @@ const SubmitPage = ({ params }: { params: any }) => {
                                 name="attendance"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Attendance</FormLabel>
+                                        <FormLabel>Attendance 出席檢查</FormLabel>
                                         <FormControl>
                                             <RadioGroup
                                                 onValueChange={field.onChange}
@@ -146,16 +146,16 @@ const SubmitPage = ({ params }: { params: any }) => {
                                             >
                                                 <div className='flex flex-row space-y-1 justify-between flex-wrap'>
                                                     <div className="flex items-center space-x-2">
-                                                        <RadioGroupItem value="1" id="option-one" />
-                                                        <Label htmlFor="option-one">Always</Label>
+                                                        <RadioGroupItem value="1" id="attend-1" />
+                                                        <Label htmlFor="attend-1">Always 經常</Label>
                                                     </div>
                                                     <div className="flex items-center space-x-2">
-                                                        <RadioGroupItem value="2.5" id="option-one" />
-                                                        <Label htmlFor="option-one">Sometimes</Label>
+                                                        <RadioGroupItem value="3" id="attend-3" />
+                                                        <Label htmlFor="attend-3">Sometimes 有時</Label>
                                                     </div>
                                                     <div className="flex items-center space-x-2">
-                                                        <RadioGroupItem value="5" id="option-one" />
-                                                        <Label htmlFor="option-one">Never</Label>
+                                                        <RadioGroupItem value="5" id="attend-5" />
+                                                        <Label htmlFor="attend-5">Never 從未</Label>
                                                     </div>
                                                 </div>
                                             </RadioGroup>
@@ -168,7 +168,7 @@ const SubmitPage = ({ params }: { params: any }) => {
                                 name="pre"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Presentations</FormLabel>
+                                        <FormLabel>Presentations 演示頻次</FormLabel>
                                         <FormControl>
                                             <RadioGroup
                                                 onValueChange={field.onChange}
@@ -176,16 +176,16 @@ const SubmitPage = ({ params }: { params: any }) => {
                                             >
                                                 <div className='flex flex-row space-y-1 justify-between flex-wrap'>
                                                     <div className="flex items-center space-x-2">
-                                                        <RadioGroupItem value="1" id="option-one" />
-                                                        <Label htmlFor="option-one">Multiple</Label>
+                                                        <RadioGroupItem value="1" id="pre-1" />
+                                                        <Label htmlFor="pre-1">Multiple 多次</Label>
                                                     </div>
                                                     <div className="flex items-center space-x-2">
-                                                        <RadioGroupItem value="2.5" id="option-one" />
-                                                        <Label htmlFor="option-one">Once</Label>
+                                                        <RadioGroupItem value="3" id="pre-3" />
+                                                        <Label htmlFor="pre-3">Once 一次</Label>
                                                     </div>
                                                     <div className="flex items-center space-x-2">
-                                                        <RadioGroupItem value="5" id="option-one" />
-                                                        <Label htmlFor="option-one">Never</Label>
+                                                        <RadioGroupItem value="5" id="pre-5" />
+                                                        <Label htmlFor="pre-5">Never 從未</Label>
                                                     </div>
                                                 </div>
                                             </RadioGroup>
@@ -204,7 +204,7 @@ const SubmitPage = ({ params }: { params: any }) => {
                                         render={({ field }) => (
                                             <FormItem>
                                                 <div>
-                                                    <FormLabel>Grades you get</FormLabel>
+                                                    <FormLabel>Grades Obtained 獲得的成績</FormLabel>
                                                     <div className='flex flex-row justify-between mt-2'>
                                                         <div className='text-xs'>😡 F</div>
                                                         <div className='text-xs'>😋 A</div>
@@ -214,7 +214,7 @@ const SubmitPage = ({ params }: { params: any }) => {
                                                     <Slider
                                                         max={5}
                                                         min={1}
-                                                        step={0.1}
+                                                        step={1}
                                                         defaultValue={[field.value]}
                                                         onChange={field.onChange} />
                                                 </FormControl>
@@ -230,17 +230,17 @@ const SubmitPage = ({ params }: { params: any }) => {
                                         render={({ field }) => (
                                             <FormItem>
                                                 <div>
-                                                    <FormLabel>Assignment</FormLabel>
+                                                    <FormLabel>Workload 課程工作量</FormLabel>
                                                     <div className='flex flex-row justify-between mt-2'>
-                                                        <div className='text-xs'>😩 Everyday</div>
-                                                        <div className='text-xs'>💃 No assignment</div>
+                                                        <div className='text-xs'>😩 Very heavy 繁重</div>
+                                                        <div className='text-xs'>💃 No assignments 輕鬆</div>
                                                     </div>
                                                 </div>
                                                 <FormControl>
                                                     <Slider
                                                         max={5}
                                                         min={1}
-                                                        step={0.1}
+                                                        step={1}
                                                         defaultValue={[field.value]}
                                                         onChange={field.onChange} />
                                                 </FormControl>
@@ -261,17 +261,17 @@ const SubmitPage = ({ params }: { params: any }) => {
                                         render={({ field }) => (
                                             <FormItem>
                                                 <div>
-                                                    <FormLabel>Easy or Not</FormLabel>
+                                                    <FormLabel>Course Difficulty 內容難易程度</FormLabel>
                                                     <div className='flex flex-row justify-between mt-2'>
-                                                        <div className='text-xs'>🤯 No</div>
-                                                        <div className='text-xs'>👨‍🎓 Easy~</div>
+                                                        <div className='text-xs'>🤯 Hard 難以理解</div>
+                                                        <div className='text-xs'>👨‍🎓 Easy 簡單易懂</div>
                                                     </div>
                                                 </div>
                                                 <FormControl>
                                                     <Slider
                                                         max={5}
                                                         min={1}
-                                                        step={0.1}
+                                                        step={1}
                                                         defaultValue={[field.value]}
                                                         onChange={field.onChange} />
                                                 </FormControl>
@@ -290,17 +290,17 @@ const SubmitPage = ({ params }: { params: any }) => {
                                         render={({ field }) => (
                                             <FormItem>
                                                 <div>
-                                                    <FormLabel>Recommand or Not</FormLabel>
+                                                    <FormLabel>Recommand 推薦程度</FormLabel>
                                                     <div className='flex flex-row justify-between mt-2'>
                                                         <div className='text-xs'>👎 No</div>
-                                                        <div className='text-xs'>👍 Yes!~</div>
+                                                        <div className='text-xs'>👍 Yes!</div>
                                                     </div>
                                                 </div>
                                                 <FormControl>
                                                     <Slider
                                                         max={5}
                                                         min={1}
-                                                        step={0.1}
+                                                        step={1}
                                                         defaultValue={[field.value]}
                                                         onChange={field.onChange} />
                                                 </FormControl>
@@ -321,17 +321,17 @@ const SubmitPage = ({ params }: { params: any }) => {
                                         render={({ field }) => (
                                             <FormItem>
                                                 <div>
-                                                    <FormLabel>What you learn in this course</FormLabel>
+                                                    <FormLabel>Usefulness 課程實用性</FormLabel>
                                                     <div className='flex flex-row justify-between mt-2'>
-                                                        <div className='text-xs'>👶 Nothing</div>
-                                                        <div className='text-xs'>🧠 Everything!</div>
+                                                        <div className='text-xs'>👶 Useless 完全無用</div>
+                                                        <div className='text-xs'>🧠 Valuable! 十分有價值</div>
                                                     </div>
                                                 </div>
                                                 <FormControl>
                                                     <Slider
                                                         max={5}
                                                         min={1}
-                                                        step={0.1}
+                                                        step={1}
                                                         defaultValue={[field.value]}
                                                         onChange={field.onChange} />
                                                 </FormControl>
@@ -347,29 +347,6 @@ const SubmitPage = ({ params }: { params: any }) => {
                         </div>
 
                         <div className=' space-y-2'>
-                            <FormItem>
-                                <FormLabel>Upload an image if you want</FormLabel>
-                                <FormControl>
-                                    <Input type='file' onChange={
-                                        (e) => {
-
-                                            setImage(e.target.files?.[0])
-                                        }
-                                    }
-                                        disabled={!isSignedIn}
-                                    />
-                                </FormControl>
-                                {
-                                    !isSignedIn ? (
-                                        <FormDescription className=' text-red-400'>
-                                            <span>
-                                                Please sign in to upload an image.
-                                            </span>
-                                        </FormDescription>
-                                    ) : null
-                                }
-                            </FormItem>
-
                             <FormField
                                 control={form.control}
                                 name="content"
@@ -380,19 +357,24 @@ const SubmitPage = ({ params }: { params: any }) => {
                                             <p>When you are writing your comment, please consider the following questions:</p>
                                             <br />
                                             <ul className=' list-inside list-disc'>
-                                                <li>What have you learned from this course?</li>
-                                                <li>這門課是否讓你受益匪淺？</li>
+                                                <li>How is the course arranged and why do you like or dislike it? </li>
+                                                <li>What have you learned from this course? </li>
                                                 <li>Did the teaching of the instructor in this course make your learning more passionate?</li>
+                                                <li>Why do you recommend this course or not? </li>
+                                                <br/>
+                                                
+                                                <li>這門課程的安排如何，以及你為何喜歡或不喜歡其中的哪些？</li>
+                                                <li>這門課是否讓你受益匪淺？</li>
                                                 <li>你是否對這門課的學習一直保持熱情？</li>
-                                                <li>Do you recommend classmates to choose this course, and what is the reason?</li>
-                                                <li>你是否推薦同學選修這門課，並說明原因。</li>
+                                                <li>為何你推薦或不推薦同學選修這門課？</li>
+
                                             </ul>
                                             <br />
                                         </div>
                                         <FormControl>
                                             <Textarea
-                                                placeholder="Comment about this course or advice for your younger fellow students."
-                                                className="resize-none"
+                                                placeholder="Comment about this course or advice for your fellow students."
+                                                className="resize-y h-48"
                                                 {...field}
                                             />
                                         </FormControl>
@@ -407,13 +389,40 @@ const SubmitPage = ({ params }: { params: any }) => {
                                     </FormItem>
                                 )}
                             />
+
+
                         </div>
 
-                        <div className=' space-y-1'>
+                        <div className=' space-y-6'>
+
+                            <FormItem>
+                                <FormLabel>Image Upload 上載圖像 (optional)</FormLabel>
+                                <FormControl>
+                                    <Input type='file' onChange={
+                                        (e) => {
+
+                                            setImage(e.target.files?.[0])
+                                        }
+                                    }
+                                        disabled={!isSignedIn}
+                                    />
+                                </FormControl>
+                                {
+                                    !isSignedIn ? (
+                                        <FormDescription className=' text-red-400'>
+                                            <span>
+                                                Please sign in to upload an image.<br />
+                                                您必須登入以上載圖像。
+                                            </span>
+                                        </FormDescription>
+                                    ) : null
+                                }
+                            </FormItem>
+
                             {
                                 isSignedIn ? (
                                     <FormDescription>
-                                        NOTE: You will submit this comment as {user?.firstName} {user?.lastName}.
+                                        NOTE: You will submit this comment as {user?.firstName} {user?.lastName}. You can change this display name in user settings.
                                     </FormDescription>
                                 ) : null
                             }
@@ -421,9 +430,9 @@ const SubmitPage = ({ params }: { params: any }) => {
                                 <UploadCloud size={18} strokeWidth={2.5} />
                                 <span>Submit</span>
                             </Button>
-                            <div className='text-xs text-red-500 break-words'>
-                                <p>由於瀏覽器緩存的問題，您的評論可能不會立刻出現在評論頁面，請刷新頁面後再次查看。感謝您的理解。</p>
-                                <p>Since the browser cache, your comment may not appear on the comment page immediately, please refresh the page and check again. Thank you for your understanding.</p>
+                            <div className='py-2 text-xs text-red-500 break-words'>
+                                <p>New comments are usually published in 3 minutes. </p>
+                                <p>新發表的評價通常在 3 分鐘內公開展示。</p>
                             </div>
                         </div>
                     </form>
