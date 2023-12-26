@@ -216,7 +216,9 @@ const SubmitPage = ({ params }: { params: any }) => {
                                                         min={1}
                                                         step={1}
                                                         defaultValue={[field.value]}
-                                                        onChange={field.onChange} />
+                                                        onValueChange={(e)=>{
+                                                            field.onChange(e[0])
+                                                        }} />
                                                 </FormControl>
                                                 <FormMessage />
                                             </FormItem>
@@ -242,7 +244,9 @@ const SubmitPage = ({ params }: { params: any }) => {
                                                         min={1}
                                                         step={1}
                                                         defaultValue={[field.value]}
-                                                        onChange={field.onChange} />
+                                                        onValueChange={(e)=>{
+                                                            field.onChange(e[0])
+                                                        }} />
                                                 </FormControl>
                                                 {/* <FormDescription>
                                                 The higher the better grade.
@@ -273,7 +277,9 @@ const SubmitPage = ({ params }: { params: any }) => {
                                                         min={1}
                                                         step={1}
                                                         defaultValue={[field.value]}
-                                                        onChange={field.onChange} />
+                                                        onValueChange={(e)=>{
+                                                            field.onChange(e[0])
+                                                        }} />
                                                 </FormControl>
                                                 {/* <FormDescription>
                                                 The higher the better grade.
@@ -302,7 +308,9 @@ const SubmitPage = ({ params }: { params: any }) => {
                                                         min={1}
                                                         step={1}
                                                         defaultValue={[field.value]}
-                                                        onChange={field.onChange} />
+                                                        onValueChange={(e)=>{
+                                                            field.onChange(e[0])
+                                                        }} />
                                                 </FormControl>
                                                 {/* <FormDescription>
                                                 The higher the better grade.
@@ -333,7 +341,9 @@ const SubmitPage = ({ params }: { params: any }) => {
                                                         min={1}
                                                         step={1}
                                                         defaultValue={[field.value]}
-                                                        onChange={field.onChange} />
+                                                        onValueChange={(e)=>{
+                                                            field.onChange(e[0])
+                                                        }} />
                                                 </FormControl>
                                                 {/* <FormDescription>
                                                 The higher the better grade.
