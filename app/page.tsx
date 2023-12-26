@@ -44,7 +44,7 @@ function HomePage() {
                                 </div>
                             </div>
                             <div className="p-2 rounded hover:shadow bg-zinc-200 text-center">
-                                <Link href='https://discord.gg/y8RsDQbw'>
+                                <Link href='https://discord.gg/Z7hjNPAZgV'>
                                     Discord Server
                                 </Link>
                             </div>
