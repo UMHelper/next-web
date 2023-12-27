@@ -29,21 +29,9 @@ function HomePage() {
                                 </div>
                             </div>
                             <div className="p-2 rounded hover:shadow bg-zinc-200 text-center">
-                                <Drawer>
-                                    <DrawerTrigger >Wechat Group</DrawerTrigger>
-                                    <DrawerContent>
-                                        <DrawerHeader>
-                                            <DrawerTitle>Gourp QRCode 群組二維碼</DrawerTitle>
-                                            <DrawerDescription>請使用手機微信掃描</DrawerDescription>
-                                        </DrawerHeader>
-                                        <div className='flex justify-center pb-4'>
-                                            <img src='/qrcode.jpeg' className='w-64' />
-                                        </div>
-                                    </DrawerContent>
-                                </Drawer>
-                                {/* <Link href='https://docs.google.com/forms/d/1_HrH0jJ9Fyxu_dmW1xGsn9Hq1ZtN9nFG-Jangj_BNVk/'>
+                                <Link href='https://docs.google.com/forms/d/1_HrH0jJ9Fyxu_dmW1xGsn9Hq1ZtN9nFG-Jangj_BNVk/'>
                                     Report Form
-                                </Link> */}
+                                </Link> 
                             </div>
                         </Card>
                         <Card className="flex items-center space-x-4 p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md w-full justify-between ">
