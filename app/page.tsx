@@ -10,7 +10,7 @@ function HomePage() {
     return (
         <>
             <SearchComp />
-            <BbsUpdates/>
+            <BbsUpdates />
 
             <div className='max-w-screen-xl mx-auto p-4'>
                 <div className='grid grid-cols-1 md:grid-cols-2 mx-4 py-8 gap-y-8 gap-x-16'>
@@ -29,9 +29,21 @@ function HomePage() {
                                 </div>
                             </div>
                             <div className="p-2 rounded hover:shadow bg-zinc-200 text-center">
-                                <Link href='https://docs.google.com/forms/d/1_HrH0jJ9Fyxu_dmW1xGsn9Hq1ZtN9nFG-Jangj_BNVk/'>
+                                <Drawer>
+                                    <DrawerTrigger >Wechat Group</DrawerTrigger>
+                                    <DrawerContent>
+                                        <DrawerHeader>
+                                            <DrawerTitle>Gourp QRCode 群組二維碼</DrawerTitle>
+                                            <DrawerDescription>請使用手機微信掃描</DrawerDescription>
+                                        </DrawerHeader>
+                                        <div className='flex justify-center pb-4'>
+                                            <img src='/qrcode.jpeg' className='w-64' />
+                                        </div>
+                                    </DrawerContent>
+                                </Drawer>
+                                {/* <Link href='https://docs.google.com/forms/d/1_HrH0jJ9Fyxu_dmW1xGsn9Hq1ZtN9nFG-Jangj_BNVk/'>
                                     Report Form
-                                </Link>
+                                </Link> */}
                             </div>
                         </Card>
                         <Card className="flex items-center space-x-4 p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md w-full justify-between ">
