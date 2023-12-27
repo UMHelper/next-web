@@ -1,10 +1,23 @@
 'use client'
 import { Button } from "@/components/ui/button"
 import { ShoppingCart } from "lucide-react"
+import Link from "next/link"
 import { useLocalStorage } from 'usehooks-ts'
 
 export const TimetableCard = ({ timetable, code, prof }: { timetable: any,code:string, prof:string }) => {
     const [timetableCart, setTimetableCart] = useLocalStorage<any[]>('timetableCart', [])
+    if (timetable===undefined || timetable.length === 0) {
+        return(
+            <div className=" space-y-2 text-sm">
+                <div>
+                No schedule information found. 
+                </div>
+                <div className="text-xs">
+                Please refer to the official documents of the <span className=" underline"><Link href='https://reg.um.edu.mo'>Registry</Link></span>.
+                </div>
+            </div>
+        )
+    }
     return (
         <div className="space-y-4">
             {
@@ -53,6 +66,9 @@ export const TimetableCard = ({ timetable, code, prof }: { timetable: any,code:s
                     )
                 })
             }
+            <div className="text-xs italic text-gray-500">
+            Data Source: reg.um.edu.mo
+            </div>
         </div>
     )
 }
