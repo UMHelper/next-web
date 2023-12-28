@@ -21,9 +21,9 @@ const Navbar = () => {
                         <NavbarAvatar />
                     </div>
                     <div className="md:hidden flex items-center space-x-2">
+                        <SearchButton />
                         <TimetableCart />
                         <UserButton afterSignOutUrl={'/'} />
-                        <SearchButton />
                     </div>
                 </div>
             </div>

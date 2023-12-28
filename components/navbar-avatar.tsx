@@ -21,7 +21,7 @@ export default function NavbarAvatar() {
             <SignedOut>
                 {/* Signed out users get sign in button */}
                 <div className='py-1 px-2 ml-2 rounded bg-gradient-to-r from-blue-600 to-indigo-500 text-white'>
-                <SignInButton />
+                <SignInButton mode="modal" redirectUrl={pathname}/>
                 </div>
             </SignedOut>
         </div >

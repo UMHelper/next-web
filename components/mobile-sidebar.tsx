@@ -48,7 +48,7 @@ const MobileSidebar = () => {
                         
                         </div>
                         <SignedOut>
-                            <SignInButton />
+                            <SignInButton mode="modal" redirectUrl={pathname}/>
                         </SignedOut>
                         </div>
                     </div>
