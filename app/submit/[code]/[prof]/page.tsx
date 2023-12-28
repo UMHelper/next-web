@@ -12,7 +12,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { UploadCloud } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from "sonner"
 import { useRouter } from 'next/navigation';
 import { SignInButton, useUser } from "@clerk/nextjs";
 import { Rating, Heart } from '@smastrom/react-rating';
@@ -62,18 +62,16 @@ const SubmitPage = ({ params }: { params: any }) => {
         }
         if (image) {
             if (!ACCEPTED_IMAGE_TYPES.includes(image.type)) {
-                toast({
-                    title: '❌ Image type not supported!',
-                    description: "Please upload an image in JPEG, PNG or WEBP format.",
-                    duration: 5000,
+                toast.error('Image type not supported!',
+                    {
+                        description: "Please upload an image in JPEG, PNG or WEBP format.",
                 })
                 return
             }
             if (image.size > MAX_FILE_SIZE) {
-                toast({
-                    title: '❌ Image too large!',
-                    description: "Please upload an image smaller than 5MB.",
-                    duration: 5000,
+                toast.error('Image too large!',
+                    {
+                        description: "Please upload an image smaller than 5MB.",
                 })
                 return
             }
@@ -89,15 +87,17 @@ const SubmitPage = ({ params }: { params: any }) => {
         else {
             data.append('verify', '0')
         }
-        toast({
-            title: '✅ Success!',
-            description: "Thank you for your comments!",
-            duration: 5000,
-        })
-        fetch(`/api/comment/${params.code}/${params.prof}`, {
-            body: data,
-            method: 'POST',
-        })
+        toast.promise(
+            fetch(`/api/comment/${params.code}/${params.prof}`, {
+                body: data,
+                method: 'POST',
+            }),
+            {
+                loading: 'Submitting...',
+                success: 'Submitted!',
+                error: 'Failed to submit.',
+            }
+        )
         route.push(`/reviews/${params.code}/${params.prof}`)
     }
     return (

@@ -1,11 +1,23 @@
 import { Masonry } from "@/components/masonry"
 import { CommentCard } from "@/components/comment-card"
 import Link from "next/link"
+import { getVoteHistory } from "@/lib/database/get-comment-list"
 
-const Comments = ({ comments, course_id }: { comments: any[], course_id: string }) => {
-    const non_reply_comments = comments.filter((comment) => comment.replyto === null)
+const Comments = async ({ comments, course_id }: { comments: any[], course_id: string }) => {
+    
+    const comments_id_array = comments.map((comment) => comment.id)
+    const vote_history = await getVoteHistory(comments_id_array)
+    
+    const edited_comments:any[] = comments.map((comment) => {
+        comment.vote_history = vote_history?.filter((vote) => vote.comment_id == comment.id)
+        comment.upvote=comment.vote_history.filter((vote:any) => vote.offset == 1).length
+        comment.downvote=comment.vote_history.filter((vote:any) => vote.offset == -1).length
+        return comment
+    })
 
-    const reply_comment = comments.filter((comment) => comment.replyto !== null)
+    const non_reply_comments = edited_comments.filter((comment) => comment.replyto === null)
+    const reply_comment = edited_comments.filter((comment) => comment.replyto !== null)
+    
     return (
         <>
             <Masonry col={3} className="">

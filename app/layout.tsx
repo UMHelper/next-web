@@ -8,7 +8,7 @@ import React from "react";
 import Navbar from "@/components/navbar";
 import { cn } from "@/lib/utils";
 import Footer from "@/components/footer";
-import { Toaster } from '@/components/ui/toaster';
+import { Toaster } from "@/components/ui/sonner"
 import Script from 'next/script';
 import { ClerkProvider } from '@clerk/nextjs';
 import Link from 'next/link';
@@ -65,7 +65,7 @@ export default function RootLayout({
                     </div>
                     <Footer />
                     <UADialog />
-                    <Toaster />
+                    <Toaster richColors/>
                 </body>
             </html>
         </ClerkProvider>

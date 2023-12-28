@@ -75,3 +75,5 @@ export const uuid = () => {
     const randomLetter = String.fromCharCode(Math.round(Math.random() * 25) + 65);
     return randomLetter + Date.now().toString(36);
 };
+
+export const delay = (ms:number) => new Promise(res => setTimeout(res, ms));
