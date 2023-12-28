@@ -343,7 +343,7 @@ const SubmitPage = ({ params }: { params: any }) => {
                                                 </FormControl>
                                                 <FormMessage />
                                                 <div className='px-3'>
-                                                    <div className='text-sm'> {`${['None', 'Waste of time', 'Not useful', 'Not quite', 'Easy', 'Very easy'][field.value]}`}</div>
+                                                    <div className='text-sm'> {`${['None', 'Waste of time', 'Not useful', 'Not quite', 'Useful', 'Very useful'][field.value]}`}</div>
                                                     <div className='text-xs text-muted-foreground'>{`${['未選擇', '完全浪費時間', '意義不大', '有一點意義', '比較實用', '非常實用'][field.value]}`}</div>
                                                 </div>
                                             </div>
