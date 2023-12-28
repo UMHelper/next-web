@@ -376,8 +376,8 @@ const SubmitPage = ({ params }: { params: any }) => {
                                 ) :
                                     <FormDescription className=' text-red-400'>
                                         <span>
-                                            You must <SignInButton mode='modal'><span className='underline'>Sign in (click here)</span></SignInButton> to upload an image for our content safety. <br />
-                                            為保證內容安全，您必須 <SignInButton mode='modal'><span className='underline'>登入 (點擊此處)</span></SignInButton> 以上載圖像。
+                                            You must <SignInButton mode='modal'><span className='underline hover:cursor-pointer'>Sign in (click here)</span></SignInButton> to upload an image for our content safety. <br />
+                                            為保證內容安全，您必須 <SignInButton mode='modal'><span className='underline hover:cursor-pointer'>登入 (點擊此處)</span></SignInButton> 以上載圖像。
                                         </span>
 
                                     </FormDescription>
