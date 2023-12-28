@@ -26,7 +26,7 @@ const UADialog = () => {
     })
     useEffect(() => {
         setIs(ua_check(navigator.userAgent))
-        // setIs(true)
+        setIs(false)
     }, [setIs])
     if (!is) return null;
     return (
