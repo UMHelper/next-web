@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from "react"
 import { Masonry } from "@/components/masonry"
-import CourseCard from "@/components/course_card"
+import CourseCard from "@/components/course-card"
 import { countUniqueValues, courseKeysToCount, CourseFilterName } from "@/lib/count-unique-values"
 import { SelectValue, Select, SelectTrigger, SelectContent, SelectGroup, SelectItem } from "@/components/ui/select"
 

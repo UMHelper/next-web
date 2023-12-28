@@ -1,4 +1,4 @@
-import ProfCard from "@/components/prof_card";
+import ProfCard from "@/components/prof-card";
 import { Masonry } from "@/components/masonry";
 
 import Toolbar from "@/components/toolbar";

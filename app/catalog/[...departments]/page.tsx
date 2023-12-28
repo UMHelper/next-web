@@ -1,4 +1,4 @@
-import CourseFilter from '@/components/course_filter';
+import CourseFilter from '@/components/course-filter';
 import { faculty, faculty_dept } from '@/lib/consant';
 import { fetchCatalogList } from '@/lib/database/get-course-info';
 

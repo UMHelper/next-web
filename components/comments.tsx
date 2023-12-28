@@ -1,5 +1,5 @@
 import { Masonry } from "@/components/masonry"
-import { CommentCard } from "@/components/comment_card"
+import { CommentCard } from "@/components/comment-card"
 import Link from "next/link"
 
 const Comments = ({ comments, course_id }: { comments: any[], course_id: string }) => {

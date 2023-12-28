@@ -1,4 +1,4 @@
-import CourseCard from "@/components/course_card"
+import CourseCard from "@/components/course-card"
 import { Masonry } from "@/components/masonry"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { fetchInstructorFuzzySearch } from "@/lib/database/get-fuzzy-search"

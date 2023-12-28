@@ -1,5 +1,5 @@
 import { Masonry } from '@/components/masonry';
-import { ProfCourseCard } from '@/components/prof_card';
+import { ProfCourseCard } from '@/components/prof-card';
 import supabase from '@/lib/database/database';
 import { fetchCourseListByProf } from '@/lib/database/get-course-info';
 

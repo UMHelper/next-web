@@ -1,4 +1,4 @@
-import CourseFilter from "@/components/course_filter";
+import CourseFilter from "@/components/course-filter";
 import { fetchCourseFuzzySearch } from "@/lib/database/get-fuzzy-search";
 
 export function generateMetadata(
