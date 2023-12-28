@@ -1,8 +1,8 @@
 export const menuList:MenuItem[]=[
-    {
-        name:'Home',
-        href:"/"
-    },
+    // {
+    //     name:'Home',
+    //     href:"/"
+    // },
     {
         name:'Catalog',
         href:"/catalog"
@@ -14,11 +14,11 @@ export const menuList:MenuItem[]=[
     {
         name:'Timetable',
         href:"/timetable"
-    },
-    {
-        name:'Blog',
-        href:"/blog"
     }
+    // {
+    //     name:'Blog',
+    //     href:"/blog"
+    // }
 ]
 
 export const faculty=[
