@@ -14,7 +14,8 @@ import { UploadCloud } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
 import { toast } from '@/components/ui/use-toast';
 import { useRouter } from 'next/navigation';
-import { useUser } from "@clerk/nextjs";
+import { SignInButton, useUser } from "@clerk/nextjs";
+import { Rating, Heart } from '@smastrom/react-rating';
 
 const MAX_FILE_SIZE = 5000000;
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
@@ -42,16 +43,18 @@ const SubmitPage = ({ params }: { params: any }) => {
             prof: params.prof.replaceAll("%20", " ").replaceAll('$', '/').toUpperCase(),
             attendance: '3',
             pre: '3',
-            grade: 3,
-            hard: 3,
-            reward: 3,
-            assignment: 3,
-            recommend: 3,
+            grade: 0,
+            hard: 0,
+            reward: 0,
+            assignment: 0,
+            recommend: 0,
             content: '',
         }
     })
     const route = useRouter()
     const submit = (values: any) => {
+
+        //console.log(values)
 
         let data = new FormData()
         for (const key in values) {
@@ -91,7 +94,6 @@ const SubmitPage = ({ params }: { params: any }) => {
             description: "Thank you for your comments!",
             duration: 5000,
         })
-        //console.log(data)
         fetch(`/api/comment/${params.code}/${params.prof}`, {
             body: data,
             method: 'POST',
@@ -132,7 +134,7 @@ const SubmitPage = ({ params }: { params: any }) => {
                                 )}
                             />
                         </div>
-                        <div className='grid grid-cols-1 md:grid-cols-2 md:space-x-8 space-y-4 md:space-y-0'>
+                        <div className='grid grid-cols-1 md:grid-cols-2 md:space-x-8 space-y-4 md:space-y-0 hidden'>
                             <FormField
                                 control={form.control}
                                 name="attendance"
@@ -144,16 +146,16 @@ const SubmitPage = ({ params }: { params: any }) => {
                                                 onValueChange={field.onChange}
                                                 value={field.value}
                                             >
-                                                <div className='flex flex-row space-y-1 justify-between flex-wrap'>
-                                                    <div className="flex items-center space-x-2">
+                                                <div className='flex flex-row flex-wrap'>
+                                                    <div className="flex items-center ps-1 pe-5 pb-1 space-x-1">
                                                         <RadioGroupItem value="1" id="attend-1" />
                                                         <Label htmlFor="attend-1">Always 經常</Label>
                                                     </div>
-                                                    <div className="flex items-center space-x-2">
+                                                    <div className="flex items-center ps-1 pe-5 pb-1 space-x-1">
                                                         <RadioGroupItem value="3" id="attend-3" />
                                                         <Label htmlFor="attend-3">Sometimes 有時</Label>
                                                     </div>
-                                                    <div className="flex items-center space-x-2">
+                                                    <div className="flex items-center ps-1 pe-5 pb-1 space-x-1">
                                                         <RadioGroupItem value="5" id="attend-5" />
                                                         <Label htmlFor="attend-5">Never 從未</Label>
                                                     </div>
@@ -174,16 +176,16 @@ const SubmitPage = ({ params }: { params: any }) => {
                                                 onValueChange={field.onChange}
                                                 value={field.value}
                                             >
-                                                <div className='flex flex-row space-y-1 justify-between flex-wrap'>
-                                                    <div className="flex items-center space-x-2">
+                                                <div className='flex flex-row flex-wrap'>
+                                                    <div className="flex items-center ps-1 pe-5 pb-1 space-x-1">
                                                         <RadioGroupItem value="1" id="pre-1" />
                                                         <Label htmlFor="pre-1">Multiple 多次</Label>
                                                     </div>
-                                                    <div className="flex items-center space-x-2">
+                                                    <div className="flex items-center ps-1 pe-5 pb-1 space-x-1">
                                                         <RadioGroupItem value="3" id="pre-3" />
                                                         <Label htmlFor="pre-3">Once 一次</Label>
                                                     </div>
-                                                    <div className="flex items-center space-x-2">
+                                                    <div className="flex items-center ps-1 pe-5 pb-1 space-x-1">
                                                         <RadioGroupItem value="5" id="pre-5" />
                                                         <Label htmlFor="pre-5">Never 從未</Label>
                                                     </div>
@@ -195,168 +197,195 @@ const SubmitPage = ({ params }: { params: any }) => {
                             />
                         </div>
 
-                        <div className='grid grid-cols-1 md:grid-cols-3 md:space-x-8'>
+                        <div>
+                            <FormField
+                                control={form.control}
+                                name="recommend"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <div>
+                                            <FormLabel>Overall Recommend 總體推薦程度</FormLabel>
+                                        </div>
+
+                                        <div className="inline-flex items-center">
+                                            <FormControl>
+                                                <Rating
+                                                    style={{ width: 180 }}
+                                                    value={field.value}
+                                                    onChange={field.onChange}
+                                                    itemStyles={{
+                                                        itemShapes: Heart,
+                                                        activeFillColor: '#F05941',
+                                                        inactiveFillColor: '#FFEEF4',
+                                                    }}
+                                                    isRequired
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                            <div className='px-3'>
+                                                <div className='text-sm'> {`${['None', 'Never!', 'Better not', 'Alright', 'Recommend', 'Completely'][field.value]}`}</div>
+                                                <div className='text-xs text-muted-foreground'>{`${['未選擇', '絕不推薦', '比較不推薦', '無所謂', '比較推薦', '非常推薦'][field.value]}`}</div>
+                                            </div>
+                                        </div>
+                                    </FormItem>
+                                )}
+                            />
+                        </div>
+                        <div className='grid grid-cols-1 md:grid-cols-2'>
+
                             <div>
-                                <div>
-                                    <FormField
-                                        control={form.control}
-                                        name="grade"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <div>
-                                                    <FormLabel>Grades Obtained 獲得的成績</FormLabel>
-                                                    <div className='flex flex-row justify-between mt-2'>
-                                                        <div className='text-xs'>😡 F</div>
-                                                        <div className='text-xs'>😋 A</div>
-                                                    </div>
-                                                </div>
+                                <FormField
+                                    control={form.control}
+                                    name="grade"
+                                    render={({ field }) => (
+                                        <FormItem className="pb-3">
+                                            <div>
+                                                <FormLabel>Grades Obtained 獲得的成績</FormLabel>
+                                            </div>
+
+                                            <div className="inline-flex items-center">
                                                 <FormControl>
-                                                    <Slider
-                                                        max={5}
-                                                        min={1}
-                                                        step={1}
-                                                        defaultValue={[field.value]}
-                                                        onValueChange={(e)=>{
-                                                            field.onChange(e[0])
-                                                        }} />
+                                                    <Rating
+                                                        style={{ width: 180 }}
+                                                        value={field.value}
+                                                        onChange={field.onChange}
+                                                        isRequired
+                                                    />
                                                 </FormControl>
                                                 <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                </div>
-                                <div>
-                                    <FormField
-                                        control={form.control}
-                                        name="assignment"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <div>
-                                                    <FormLabel>Workload 課程工作量</FormLabel>
-                                                    <div className='flex flex-row justify-between mt-2'>
-                                                        <div className='text-xs'>😩 Very heavy 繁重</div>
-                                                        <div className='text-xs'>💃 No assignments 輕鬆</div>
-                                                    </div>
+                                                <div className='px-3'>
+                                                    <div className='text-sm'> {`${['None', 'F', 'D', 'C', 'B', 'A'][field.value]}`}</div>
+                                                    <div className='text-xs text-muted-foreground'>{`${['未選擇', 'or NP', 'or D-/+', 'or C-/+', 'or B-/+', 'or A-/P'][field.value]}`}</div>
                                                 </div>
+                                            </div>
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
+
+                            <div>
+                                <FormField
+                                    control={form.control}
+                                    name="assignment"
+                                    render={({ field }) => (
+                                        <FormItem className="pb-3">
+                                            <div>
+                                                <FormLabel>Workload 課程工作量</FormLabel>
+                                            </div>
+
+                                            <div className="inline-flex items-center">
                                                 <FormControl>
-                                                    <Slider
-                                                        max={5}
-                                                        min={1}
-                                                        step={1}
-                                                        defaultValue={[field.value]}
-                                                        onValueChange={(e)=>{
-                                                            field.onChange(e[0])
-                                                        }} />
+                                                    <Rating
+                                                        style={{ width: 180 }}
+                                                        value={field.value}
+                                                        onChange={field.onChange}
+                                                        isRequired
+                                                    />
                                                 </FormControl>
-                                                {/* <FormDescription>
-                                                The higher the better grade.
-                                            </FormDescription> */}
                                                 <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                </div>
+                                                <div className='px-3'>
+                                                    <div className='text-sm'> {`${['None', 'Very heavy', 'Busy', 'OK', 'Light', 'No effort'][field.value]}`}</div>
+                                                    <div className='text-xs text-muted-foreground'>{`${['未選擇', '非常繁重', '繁重', '普通', '輕鬆', '毫無壓力'][field.value]}`}</div>
+                                                </div>
+                                            </div>
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
+
+                            <div>
+                                <FormField
+                                    control={form.control}
+                                    name="hard"
+                                    render={({ field }) => (
+                                        <FormItem className="pb-3">
+                                            <div>
+                                                <FormLabel>Difficulty 難易程度</FormLabel>
+                                            </div>
+
+                                            <div className="inline-flex items-center">
+                                                <FormControl>
+                                                    <Rating
+                                                        style={{ width: 180 }}
+                                                        value={field.value}
+                                                        onChange={field.onChange}
+                                                        isRequired
+                                                    />
+                                                </FormControl>
+                                                <FormMessage />
+                                                <div className='px-3'>
+                                                    <div className='text-sm'> {`${['None', 'Very hard', 'Hard', 'Moderate', 'Easy', 'Very easy'][field.value]}`}</div>
+                                                    <div className='text-xs text-muted-foreground'>{`${['未選擇', '難以理解', '困難', '適當', '簡單', '非常簡單'][field.value]}`}</div>
+                                                </div>
+                                            </div>
+                                        </FormItem>
+                                    )}
+                                />
                             </div>
                             <div>
-                                <div>
-                                    <FormField
-                                        control={form.control}
-                                        name="hard"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <div>
-                                                    <FormLabel>Course Difficulty 內容難易程度</FormLabel>
-                                                    <div className='flex flex-row justify-between mt-2'>
-                                                        <div className='text-xs'>🤯 Hard 難以理解</div>
-                                                        <div className='text-xs'>👨‍🎓 Easy 簡單易懂</div>
-                                                    </div>
-                                                </div>
+                                <FormField
+                                    control={form.control}
+                                    name="reward"
+                                    render={({ field }) => (
+                                        <FormItem className="pb-3">
+                                            <div>
+                                                <FormLabel>Usefulness 課程實用性</FormLabel>
+                                            </div>
+
+                                            <div className="inline-flex items-center">
                                                 <FormControl>
-                                                    <Slider
-                                                        max={5}
-                                                        min={1}
-                                                        step={1}
-                                                        defaultValue={[field.value]}
-                                                        onValueChange={(e)=>{
-                                                            field.onChange(e[0])
-                                                        }} />
+                                                    <Rating
+                                                        style={{ width: 180 }}
+                                                        value={field.value}
+                                                        onChange={field.onChange}
+                                                        isRequired
+                                                    />
                                                 </FormControl>
-                                                {/* <FormDescription>
-                                                The higher the better grade.
-                                            </FormDescription> */}
                                                 <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                </div>
-                                <div>
-                                    <FormField
-                                        control={form.control}
-                                        name="recommend"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <div>
-                                                    <FormLabel>Recommand 推薦程度</FormLabel>
-                                                    <div className='flex flex-row justify-between mt-2'>
-                                                        <div className='text-xs'>👎 No</div>
-                                                        <div className='text-xs'>👍 Yes!</div>
-                                                    </div>
+                                                <div className='px-3'>
+                                                    <div className='text-sm'> {`${['None', 'Waste of time', 'Not useful', 'Not quite', 'Easy', 'Very easy'][field.value]}`}</div>
+                                                    <div className='text-xs text-muted-foreground'>{`${['未選擇', '完全浪費時間', '意義不大', '有一點意義', '比較實用', '非常實用'][field.value]}`}</div>
                                                 </div>
-                                                <FormControl>
-                                                    <Slider
-                                                        max={5}
-                                                        min={1}
-                                                        step={1}
-                                                        defaultValue={[field.value]}
-                                                        onValueChange={(e)=>{
-                                                            field.onChange(e[0])
-                                                        }} />
-                                                </FormControl>
-                                                {/* <FormDescription>
-                                                The higher the better grade.
-                                            </FormDescription> */}
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                </div>
-                            </div>
-                            <div>
-                                <div>
-                                    <FormField
-                                        control={form.control}
-                                        name="reward"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <div>
-                                                    <FormLabel>Usefulness 課程實用性</FormLabel>
-                                                    <div className='flex flex-row justify-between mt-2'>
-                                                        <div className='text-xs'>👶 Useless 完全無用</div>
-                                                        <div className='text-xs'>🧠 Valuable! 十分有價值</div>
-                                                    </div>
-                                                </div>
-                                                <FormControl>
-                                                    <Slider
-                                                        max={5}
-                                                        min={1}
-                                                        step={1}
-                                                        defaultValue={[field.value]}
-                                                        onValueChange={(e)=>{
-                                                            field.onChange(e[0])
-                                                        }} />
-                                                </FormControl>
-                                                {/* <FormDescription>
-                                                The higher the better grade.
-                                            </FormDescription> */}
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                </div>
+                                            </div>
+                                        </FormItem>
+                                    )}
+                                />
                             </div>
                         </div>
 
                         <div className=' space-y-2'>
+                            <FormItem>
+                                <FormLabel>Image Upload 上載圖像 (optional)</FormLabel>
+                                <FormControl>
+                                    <Input type='file' onChange={
+                                        (e) => {
+
+                                            setImage(e.target.files?.[0])
+                                        }
+                                    }
+                                        disabled={!isSignedIn}
+                                    />
+                                </FormControl>
+                            </FormItem>
+
+                            {
+                                isSignedIn ? (
+                                    <FormDescription>
+                                        Note: The comment will be posted anonymously (logged in as {user?.firstName} {user?.lastName}).
+                                    </FormDescription>
+                                ) :
+                                    <FormDescription className=' text-red-400'>
+                                        <span>
+                                            You must <SignInButton mode='modal'><span className='underline'>Sign in (click here)</span></SignInButton> to upload an image for our content safety. <br />
+                                            為保證內容安全，您必須 <SignInButton mode='modal'><span className='underline'>登入 (點擊此處)</span></SignInButton> 以上載圖像。
+                                        </span>
+
+                                    </FormDescription>
+                            }
+                        </div>
+
+                        <div className=' space-y-2'>
+
                             <FormField
                                 control={form.control}
                                 name="content"
@@ -364,19 +393,17 @@ const SubmitPage = ({ params }: { params: any }) => {
                                     <FormItem>
                                         <FormLabel>Comment on the instructor of this course</FormLabel>
                                         <div className="text-sm text-muted-foreground">
-                                            <p>When you are writing your comment, please consider the following questions:</p>
+                                            <p>When you are writing your comment, consider these problems and possible improvements:</p>
                                             <br />
                                             <ul className=' list-inside list-disc'>
-                                                <li>How is the course arranged and why do you like or dislike it? </li>
-                                                <li>What have you learned from this course? </li>
-                                                <li>Did the teaching of the instructor in this course make your learning more passionate?</li>
-                                                <li>Why do you recommend this course or not? </li>
-                                                <br/>
-                                                
-                                                <li>這門課程的安排如何，以及你為何喜歡或不喜歡其中的哪些？</li>
-                                                <li>這門課是否讓你受益匪淺？</li>
-                                                <li>你是否對這門課的學習一直保持熱情？</li>
-                                                <li>為何你推薦或不推薦同學選修這門課？</li>
+                                                <li>Does the course cover useful topics and content? </li>
+                                                <li>Is the assessment reasonably arranged (assignments, exams, etc.)? </li>
+                                                <li>Did the teaching of the instructor make your learning more passionate?</li>
+                                                <br />
+
+                                                <li>這門課程的內容包含什麼，這些內容是否合理和有意義？</li>
+                                                <li>這門課的評核（作業，考試等）是否合理？</li>
+                                                <li>這門課的講師的授課是否使你對學習保持熱情？</li>
 
                                             </ul>
                                             <br />
@@ -405,42 +432,11 @@ const SubmitPage = ({ params }: { params: any }) => {
 
                         <div className=' space-y-6'>
 
-                            <FormItem>
-                                <FormLabel>Image Upload 上載圖像 (optional)</FormLabel>
-                                <FormControl>
-                                    <Input type='file' onChange={
-                                        (e) => {
-
-                                            setImage(e.target.files?.[0])
-                                        }
-                                    }
-                                        disabled={!isSignedIn}
-                                    />
-                                </FormControl>
-                                {
-                                    !isSignedIn ? (
-                                        <FormDescription className=' text-red-400'>
-                                            <span>
-                                                Please sign in to upload an image.<br />
-                                                您必須登入以上載圖像。
-                                            </span>
-                                        </FormDescription>
-                                    ) : null
-                                }
-                            </FormItem>
-
-                            {
-                                isSignedIn ? (
-                                    <FormDescription>
-                                        NOTE: You will submit this comment as {user?.firstName} {user?.lastName}. You can change this display name in user settings.
-                                    </FormDescription>
-                                ) : null
-                            }
                             <Button type="submit" className='space-x-2 bg-gradient-to-r from-violet-500 to-fuchsia-500'>
                                 <UploadCloud size={18} strokeWidth={2.5} />
                                 <span>Submit</span>
                             </Button>
-                            <div className='py-2 text-xs text-red-500 break-words'>
+                            <div className='py-2 text-xs break-words'>
                                 <p>New comments are usually published in 3 minutes. </p>
                                 <p>新發表的評價通常在 3 分鐘內公開展示。</p>
                             </div>

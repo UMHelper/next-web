@@ -28,8 +28,7 @@ const Comments = ({ comments, course_id }: { comments: any[], course_id: string 
             </Masonry>
             {non_reply_comments.length == 0 ? (
                 <div className="bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent text-xl font-black mt-4">
-                    No comment yet. <br/>
-                    Ask your questions at <Link className="self-center text-2xl font-black whitespace-nowrap bg-gradient-to-r from-sky-500 to-indigo-600 bg-clip-text text-transparent" href="https://whole.umeh.top/public/t/adddrop">WHOLE</Link> student community, and be the first one to comment!
+                    No comment yet. Be the first to sumbit your review! <br/>
                 </div>
             ) : null}
         </>
