@@ -2,6 +2,7 @@ import { Masonry } from "@/components/masonry"
 import { CommentCard } from "@/components/comment-card"
 import Link from "next/link"
 import { getVoteHistory } from "@/lib/database/get-comment-list"
+import { REACTION_EMOJI_LIST } from "@/lib/consant"
 
 const Comments = async ({ comments, course_id }: { comments: any[], course_id: string }) => {
     
@@ -12,6 +13,13 @@ const Comments = async ({ comments, course_id }: { comments: any[], course_id: s
         comment.vote_history = vote_history?.filter((vote) => vote.comment_id == comment.id)
         comment.upvote=comment.vote_history.filter((vote:any) => vote.offset == 1).length
         comment.downvote=comment.vote_history.filter((vote:any) => vote.offset == -1).length
+        comment.emoji_vote=REACTION_EMOJI_LIST.map((emoji) => {
+            return {
+                emoji: emoji,
+                count: comment.vote_history.filter((vote:any) => vote.emoji == emoji).length
+            }
+        })
+        // console.log(comment.emoji_vote)
         return comment
     })
 

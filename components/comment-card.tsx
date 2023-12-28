@@ -4,7 +4,7 @@ import "@fancyapps/ui/dist/fancybox/fancybox.css";
 import { Card, CardHeader, CardContent } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { cn, get_bg, get_gpa } from '@/lib/utils'
-import { Angry, BadgeCheck, Flag, ThumbsDown, ThumbsUp } from 'lucide-react'
+import { Angry, BadgeCheck, Flag, SmilePlus, ThumbsDown, ThumbsUp } from 'lucide-react'
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { toast } from "sonner"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 Fancybox.bind("[data-fancybox]", {
     compact: true,
@@ -145,19 +146,29 @@ export const CommentCard = (
     { comment, reply_comment }: { comment: any, reply_comment: any[] }
 ) => {
     const pathname = usePathname()
-    
+
     const { isSignedIn, user, isLoaded } = useUser();
 
     const [voteHistory, setVoteHistory] = useState<any>(null)
+    const [emojiHistory, setEmojiHistory] = useState<any>([])
     useEffect(() => {
-        const voteHistory = comment.vote_history.filter((vote: any) => vote.created_by == user?.id)
+        const voteHistory = comment.vote_history.filter((vote: any) => vote.created_by == user?.id && vote.offset != 0)
         if (voteHistory.length > 0) {
             // console.log(voteHistory[0])
             setVoteHistory(voteHistory[0])
         }
+        if (!isSignedIn) {
+            setEmojiHistory([])
+            return
+        }
+        const emojiHistory = comment.vote_history.filter((vote: any) => vote.created_by == user?.id && vote.offset == 0)
+        if (emojiHistory.length > 0) {
+            // console.log(emojiHistory)
+            setEmojiHistory(emojiHistory)
+        }
     }, [user, comment])
-
-    const handleVote = (offset:number) => {
+    const [isVoting, setIsVoting] = useState<boolean>(false)
+    const handleVote = (offset: number, emoji?: string) => {
         if (!isSignedIn) {
             toast(
                 (
@@ -174,14 +185,26 @@ export const CommentCard = (
             )
             return
         }
-        if (voteHistory != null) {
+        if (isVoting) {
+            return
+        }
+        setIsVoting(true)
+        if (voteHistory != null && offset != 0) {
             toast.error("You have already voted!",
                 {
                     description: "👮‍♀️",
                 })
             return
         }
-
+        if (offset == 0) {
+            if (emojiHistory.filter((emojiH: any) => emojiH.emoji === emoji).length > 0) {
+                toast.error("You have already voted!",
+                    {
+                        description: "👮‍♀️",
+                    })
+                return
+            }
+        }
         toast.promise(
             fetch(`/api/vote/${comment.id}`, {
                 method: 'POST',
@@ -189,19 +212,31 @@ export const CommentCard = (
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    comment:comment.id,
+                    comment: comment.id,
                     offset: offset,
-                    created_by: user?.id
+                    created_by: user?.id,
+                    emoji: emoji
                 })
             }).then(res => res.json()).then(res => {
                 // console.log(res)
-                setVoteHistory(res)
-                if (offset===1){
-                    comment.upvote+=res.offset
+                if (offset != 0) {
+                    setVoteHistory(res)
+                    if (offset === 1) {
+                        comment.upvote += res.offset
+                    }
+                    else {
+                        comment.downvote += res.offset
+                    }
                 }
-                else{
-                    comment.downvote+=res.offset
+                else {
+                    setEmojiHistory((pre: any[]) => [...pre, res])
+                    comment.emoji_vote.map((emoji: any) => {
+                        if (emoji.emoji == res.emoji) {
+                            emoji.count += 1
+                        }
+                    })
                 }
+                setIsVoting(false)
             }),
             {
                 loading: 'Voting...',
@@ -209,6 +244,7 @@ export const CommentCard = (
                 error: 'Error',
             }
         )
+
     }
     return (
         <Card className=' hover:shadow-lg mx-auto'>
@@ -273,8 +309,67 @@ export const CommentCard = (
                         </div>
                     </div>
 
+                    
+
+                </div>
+                <div className="flex justify-start pt-1 space-x-2 items-center">
+                    {comment.emoji_vote.map((emoji: any, index: number) => {
+                        if (emoji.count == 0) {
+                            return null
+                        }
+                        return (
+                            <div
+                                className={cn('flex items-center space-x-1 px-2 rounded-full', emojiHistory.filter((emojiH: any) => emojiH.emoji === emoji.emoji).length > 0 ? 'bg-blue-600 text-white' : ' bg-blue-200 text-blue-600 hover:bg-blue-400 hover:text-white')}
+                                onClick={() => handleVote(0, emoji.emoji)}
+                                key={index}
+                            >
+                                <div className='text-sm'>
+                                    {emoji.emoji}
+                                </div>
+                                <div className='text-xs'>
+                                    {emoji.count}
+                                </div>
+                            </div>
+                        )
+                    })}
+                    {
+                        comment.emoji_vote.filter((emoji: any) => emoji.count === 0).length > 0 ? (
+                            
+                                <Popover>
+                                    <PopoverTrigger>
+                                        <div className='flex items-center space-x-1 px-2 py-1 rounded-full  bg-blue-200 text-blue-600 hover:bg-blue-400 hover:text-white'>
+                                        <SmilePlus size={12} strokeWidth={2.5} />
+                                        </div>
+                                    </PopoverTrigger>
+                                    <PopoverContent className=" w-fit">
+                                        <div className="flex space-x-2">
+                                            {comment.emoji_vote.map((emoji: any, index: number) => {
+                                                if (emoji.count != 0) {
+                                                    return null
+                                                }
+                                                return (
+                                                    <div
+                                                        className={cn('flex items-center space-x-1 px-2 py-1 rounded-full', emojiHistory.filter((emojiH: any) => emojiH.emoji === emoji.emoji).length > 0 ? 'bg-blue-600 text-white' : ' bg-blue-200 text-blue-600 hover:bg-blue-400 hover:text-white')}
+                                                        onClick={() => handleVote(0, emoji.emoji)}
+                                                        key={index}
+                                                    >
+                                                        <div className='text-base'>
+                                                            {emoji.emoji}
+                                                        </div>
+                                                        {/* <div className='text-xs'>
+                                                            {emoji.count}
+                                                        </div> */}
+                                                    </div>
+                                                )
+                                            })}
+                                        </div>
+                                    </PopoverContent>
+                                </Popover>
+                            
+                        ) : null
+                    }
                     {/* Button to upvotw */}
-                    <div className='flex flex-row space-x-1 items-center'>
+                    <div className='flex flex-row space-x-1 items-center text-xs font-semibold'>
                         {
                             voteHistory != null && voteHistory.offset == -1 ?
                                 <div className="text-gray-200">
@@ -303,7 +398,7 @@ export const CommentCard = (
                                     voteHistory != null && voteHistory.offset == -1 ?
                                         'text-rose-600' :
                                         'hover:rotate-12 text-gray-400 hover:text-rose-600'
-                                } onClick={()=>handleVote(-1)}>
+                                } onClick={() => handleVote(-1)}>
                                     <ThumbsDown size={16} strokeWidth={1.75} absoluteStrokeWidth />
                                 </div>
                         }
@@ -329,7 +424,6 @@ export const CommentCard = (
 
                         </div> */}
                     </div>
-
                 </div>
                 {/* Reply comment */}
                 {
