@@ -198,7 +198,7 @@ const SearchBar = () => {
                     control={form.control}
                     name="is_prof"
                     render={({ field }) => (
-                        <FormItem className="flex flex-row items-center space-x-2 mb-1">
+                        <FormItem className="hidden md:block flex flex-row items-center space-x-2 mb-1">
                             <div className='my-0 flex items-center space-x-2'>
                                 <div>
                                     <FormLabel className="text-base">
