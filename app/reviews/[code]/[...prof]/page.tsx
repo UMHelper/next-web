@@ -131,7 +131,7 @@ const ReviewPage = async ({ params }: { params: { code: string, prof: string[] }
                                     </div>
                                     <div className='space-y-2 text-sm'>
                                         <div>
-                                            收穫 Outcome
+                                            實用性 Usefulness
                                         </div>
                                         <Progress value={prof_info['reward'] * 20} className='h-2' />
                                     </div>

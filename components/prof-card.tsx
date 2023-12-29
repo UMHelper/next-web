@@ -44,7 +44,7 @@ const ProfCard= async ({data,code}:{data:any,code:any})=>{
 
                         <div>
                             <div className='text-gray-400'>
-                                Easy
+                                Difficulty
                             </div>
                             <div className={cn(get_bg(data.hard),'bg-clip-text text-transparent')}>
                                 {get_gpa(data.hard)}
@@ -53,7 +53,7 @@ const ProfCard= async ({data,code}:{data:any,code:any})=>{
 
                         <div>
                             <div className='text-gray-400'>
-                                Outcome
+                                Useful
                             </div>
                             <div className={cn(get_bg(data.reward),'bg-clip-text text-transparent')}>
                                 {get_gpa(data.reward)}

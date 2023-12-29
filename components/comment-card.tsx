@@ -163,8 +163,8 @@ export const CommentCard = (
                 (
                     <div className="flex justify-between w-full items-center">
                         <div>
-                            <div>Please sign in to vote!</div>
-                            <div className='text-xs text-gray-400'>👮‍♀️</div>
+                            <div>You must sign in to vote!</div>
+                            <div className='text-xs text-gray-400'>您必須登入以投票。</div>
                         </div>
                         <div className='py-1 px-2 ml-2 rounded bg-gradient-to-r from-blue-600 to-indigo-500 text-white'>
                             <SignInButton mode="modal" redirectUrl={pathname} />
@@ -177,7 +177,7 @@ export const CommentCard = (
         if (voteHistory != null) {
             toast.error("You have already voted!",
                 {
-                    description: "👮‍♀️",
+                    description: "您已經投票過",
                 })
             return
         }
@@ -200,7 +200,7 @@ export const CommentCard = (
                     comment.upvote+=res.offset
                 }
                 else{
-                    comment.downvote+=res.offset
+                    comment.downvote-=res.offset
                 }
             }),
             {
@@ -266,7 +266,7 @@ export const CommentCard = (
 
                     <div>
                         <div className='text-gray-400'>
-                            Outcome
+                            Useful
                         </div>
                         <div className={cn(get_bg(comment.reward), 'bg-clip-text text-transparent')}>
                             {get_gpa(comment.reward)}
