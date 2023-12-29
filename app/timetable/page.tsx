@@ -194,6 +194,47 @@ const SearchBar = () => {
                         <Search size={20} /> Search
                     </ShadcnButton>
                 </form>
+                <FormField
+                    control={form.control}
+                    name="is_prof"
+                    render={({ field }) => (
+                        <FormItem className="hidden md:block flex flex-row items-center space-x-2 mb-1">
+                            <div className='my-0 flex items-center space-x-2'>
+                                <div>
+                                    <FormLabel className="text-base">
+                                        <FormField
+                                            control={form.control}
+                                            name="is_prof"
+                                            render={({ field }) => (
+                                                <FormItem className="flex flex-row items-center space-x-2 mb-1">
+                                                    <FormControl>
+                                                        <Switch
+                                                            checked={field.value}
+                                                            onCheckedChange={(e) => {
+                                                                field.onChange(e)
+                                                                set_is_prof(!is_prof)
+                                                            }}
+                                                        />
+                                                    </FormControl>
+                                                    <div className='my-0 flex items-center space-x-2'>
+                                                        <div>
+                                                            <FormLabel className="text-base">
+                                                                Search Instructors
+                                                            </FormLabel>
+                                                            <FormDescription >
+                                                                搜索講師
+                                                            </FormDescription>
+                                                        </div>
+                                                    </div>
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </FormLabel>
+                                </div>
+                            </div>
+                        </FormItem>
+                    )}
+                />
             </div>
         </Form>
     )
