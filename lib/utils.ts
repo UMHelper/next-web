@@ -9,12 +9,15 @@ export const get_bg = (n: number) => {
     let result_bg = "bg-gradient-to-r from-gray-400 to-gray-500"
     if (n > 0) {
         result_bg = 'bg-gradient-to-r from-rose-900 to-fuchsia-800'
+        // 1 - 2.3
     }
-    if (n >= 2.7) {
+    if (n >= 2.3) {
         result_bg = 'bg-gradient-to-r from-amber-500 to-orange-500'
+        // 2.3 - 3.6
     }
-    if (n >= 3.3) {
+    if (n >= 3.6) {
         result_bg = 'bg-gradient-to-r from-green-400 to-emerald-500'
+        // 3.6 - 5.0
     }
     return result_bg
 }
@@ -27,34 +30,34 @@ export const get_gpa = (n: number) => {
     if (n >= 4.7) {
         return 'A'
     }
-    if (n >= 4.3) {
+    if (n >= 4.4) {
         return 'A-'
     }
-    if (n >= 4.0) {
+    if (n >= 4.1) {
         return 'B+'
     }
     if (n >= 3.7) {
         return 'B'
     }
-    if (n >= 3.3) {
+    if (n >= 3.4) {
         return 'B-'
     }
-    if (n >= 3.0) {
+    if (n >= 3.1) {
         return 'C+'
     }
     if (n >= 2.7) {
         return 'C'
     }
-    if (n >= 2.3) {
+    if (n >= 2.4) {
         return 'C-'
     }
-    if (n >= 2.0) {
+    if (n >= 2.1) {
         return 'D+'
     }
     if (n >= 1.7) {
         return 'D'
     }
-    if (n >= 1.3) {
+    if (n >= 1.4) {
         return 'D-'
     }
     if (n > 0) {
