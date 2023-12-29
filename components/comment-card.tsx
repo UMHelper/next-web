@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Rating, ThinStar } from "@smastrom/react-rating";
 
 Fancybox.bind("[data-fancybox]", {
     compact: true,
@@ -118,7 +119,7 @@ const CommentDetail = ({ comment, env }: { comment: any, env: string }) => {
             {
                 comment.img ? (
                     env != 'review' ? (
-                        <div className='w-fit py-2'>
+                        <div className='w-fit my-2'>
                             <img
                                 alt={comment.content}
                                 src={comment.img}
@@ -126,7 +127,7 @@ const CommentDetail = ({ comment, env }: { comment: any, env: string }) => {
                             />
                         </div >
                     ) : (
-                        <div className='w-fit'>
+                        <div className='w-fit my-2'>
                             <a href={comment.img} data-fancybox={comment.img} data-caption={comment.content + env}>
                                 <img
                                     alt={comment.content}
@@ -200,7 +201,7 @@ export const CommentCard = (
             if (emojiHistory.filter((emojiH: any) => emojiH.emoji === emoji).length > 0) {
                 toast.error("You have already voted!",
                     {
-                        description: "👮‍♀️",
+                        description: "您已經投票過",
                     })
                 return
             }
@@ -248,70 +249,106 @@ export const CommentCard = (
     }
     return (
         <Card className=' hover:shadow-lg mx-auto'>
-            <CardHeader className='pb-0.5 pt-4'  >
+            <CardHeader className='pb-2 pt-4'  >
                 <div className='flex justify-between'>
-                    <div className='text-gray-400 text-xs'>
-                        {/* convert 2022-10-20T03:44:32.219061 to 2022-10-20 */}
-                        {comment.pub_time.split('T')[0]}
-                    </div>
-                    {/* if comment.isCurrentUserVoted  show badge*/}
                     <TooltipProvider delayDuration={0}>
                         <Tooltip>
-                            <TooltipTrigger>
-                                <div className={
-                                    comment.verify === 1 ?
-                                        'text-green-600 text-xs flex' :
-                                        'hidden'
-                                }>
-                                    <BadgeCheck size={16} strokeWidth={1.75} absoluteStrokeWidth />
-                                    <div className='px-1 italic'>
-                                        Verified
-                                    </div>
-                                </div>
+                            <TooltipTrigger >
+                                <Rating
+                                    style={{ width: 100 }}
+                                    value={comment.recommend}
+                                    itemStyles={{
+                                        itemShapes: ThinStar,
+                                        activeBoxColor: ['#e7040f', '#ff6300', '#ffde37', '#61bb00', '#19a974'],
+                                        inactiveBoxColor: '#C7C7C7',
+                                        inactiveFillColor: 'white',
+                                        activeFillColor: 'white',
+                                    }}
+                                    spaceBetween="small"
+                                    halfFillMode="box"
+                                    readOnly
+                                />
                             </TooltipTrigger>
                             <TooltipContent>
-                                <p className='text-xs'>Verified User(logged in)</p>
+                                <div className='grid grid-cols-3 gap-4 text-sm'>
+                                    <div className='text-gray-400 col-span-2 '>
+                                        <div >
+                                            Recommend: 
+                                        </div>
+                                        <div >
+                                            Grade: 
+                                        </div>
+                                        <div >
+                                            Workload: 
+                                        </div>
+                                        <div>
+                                            Difficulty: 
+                                        </div>
+                                        <div>
+                                            Usefulness: 
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <div className={cn(get_bg(comment.hard), 'bg-clip-text text-transparent')}>
+                                            {get_gpa(comment.recommend)}
+                                        </div>
+                                        <div className={cn(get_bg(comment.hard), 'bg-clip-text text-transparent')}>
+                                            {get_gpa(comment.grade)}
+                                        </div>
+                                        <div className={cn(get_bg(comment.hard), 'bg-clip-text text-transparent')}>
+                                            {get_gpa(comment.assignment)}
+                                        </div>
+                                        <div className={cn(get_bg(comment.hard), 'bg-clip-text text-transparent')}>
+                                            {get_gpa(comment.hard)}
+                                        </div>
+                                        <div className={cn(get_bg(comment.hard), 'bg-clip-text text-transparent')}>
+                                            {get_gpa(comment.reward)}
+                                        </div>
+                                    </div>
+
+
+                                </div>
                             </TooltipContent>
                         </Tooltip>
                     </TooltipProvider>
 
+                    {/* if comment.isCurrentUserVoted  show badge*/}
+                    <TooltipProvider delayDuration={0}>
+                        <Tooltip>
+                            <TooltipTrigger className="inline-flex">
 
+                                <span className='text-gray-400 text-xs'>
+                                    {/* convert 2022-10-20T03:44:32.219061 to 2022-10-20 */}
+                                    {comment.pub_time.split('T')[0]}
+                                </span>
+                                <span className={
+                                    comment.verify === 1 ?
+                                        'text-green-600 text-xs flex mx-2' :
+                                        'hidden'
+                                }>
+                                    <BadgeCheck size={16} strokeWidth={1.75} absoluteStrokeWidth />
+
+                                    {/*<div className='px-1 italic'>
+                                        Verified
+                                    </div>*/}
+                                </span>
+
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p className='text-xs'>{
+                                    comment.verify === 1 ?
+                                        'Verified user (logged in)' :
+                                        'Not verified'
+                                }</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
                 </div>
-                <CommentDetail comment={comment} env={'review'} />
             </CardHeader>
             <CardContent>
-                <Separator className='my-1' />
-                <div className='flex flex-row text-xs font-semibold space-x-1 flex-wrap justify-between'>
-                    <div>
-                        <div className='text-gray-400'>
-                            Recommend
-                        </div>
-                        <div className={cn(get_bg(comment.recommend), 'bg-clip-text text-transparent')}>
-                            {get_gpa(comment.recommend)}
-                        </div>
-                    </div>
-
-                    <div>
-                        <div className='text-gray-400'>
-                            Difficulty
-                        </div>
-                        <div className={cn(get_bg(comment.hard), 'bg-clip-text text-transparent')}>
-                            {get_gpa(comment.hard)}
-                        </div>
-                    </div>
-
-                    <div>
-                        <div className='text-gray-400'>
-                            Useful
-                        </div>
-                        <div className={cn(get_bg(comment.reward), 'bg-clip-text text-transparent')}>
-                            {get_gpa(comment.reward)}
-                        </div>
-                    </div>
-
-                    
-
-                </div>
+                <CommentDetail comment={comment} env={'review'} />
+                <Separator className='my-2' />
                 <div className="flex justify-start pt-1 space-x-2 items-center">
                     {comment.emoji_vote.map((emoji: any, index: number) => {
                         if (emoji.count == 0) {
@@ -334,41 +371,41 @@ export const CommentCard = (
                     })}
                     {
                         comment.emoji_vote.filter((emoji: any) => emoji.count === 0).length > 0 ? (
-                            
-                                <Popover>
-                                    <PopoverTrigger>
-                                        <div className='flex items-center space-x-1 px-2 py-1 rounded-full  bg-blue-200 text-blue-600 hover:bg-blue-400 hover:text-white'>
+
+                            <Popover>
+                                <PopoverTrigger>
+                                    <div className='flex items-center space-x-1 px-2 py-1 rounded-full  bg-blue-200 text-blue-600 hover:bg-blue-400 hover:text-white'>
                                         <SmilePlus size={12} strokeWidth={2.5} />
-                                        </div>
-                                    </PopoverTrigger>
-                                    <PopoverContent className=" w-fit">
-                                        <div className="flex space-x-2">
-                                            {comment.emoji_vote.map((emoji: any, index: number) => {
-                                                if (emoji.count != 0) {
-                                                    return null
-                                                }
-                                                return (
-                                                    <div
-                                                        className={cn('flex items-center space-x-1 px-2 py-1 rounded-full', emojiHistory.filter((emojiH: any) => emojiH.emoji === emoji.emoji).length > 0 ? 'bg-blue-600 text-white' : ' bg-blue-200 text-blue-600 hover:bg-blue-400 hover:text-white')}
-                                                        onClick={() => handleVote(0, emoji.emoji)}
-                                                        key={index}
-                                                    >
-                                                        <div className='text-base'>
-                                                            {emoji.emoji}
-                                                        </div>
-                                                        {/* <div className='text-xs'>
+                                    </div>
+                                </PopoverTrigger>
+                                <PopoverContent className=" w-fit">
+                                    <div className="flex space-x-2">
+                                        {comment.emoji_vote.map((emoji: any, index: number) => {
+                                            if (emoji.count != 0) {
+                                                return null
+                                            }
+                                            return (
+                                                <div
+                                                    className={cn('flex items-center space-x-1 px-2 py-1 rounded-full', emojiHistory.filter((emojiH: any) => emojiH.emoji === emoji.emoji).length > 0 ? 'bg-blue-600 text-white' : ' bg-blue-200 text-blue-600 hover:bg-blue-400 hover:text-white')}
+                                                    onClick={() => handleVote(0, emoji.emoji)}
+                                                    key={index}
+                                                >
+                                                    <div className='text-base'>
+                                                        {emoji.emoji}
+                                                    </div>
+                                                    {/* <div className='text-xs'>
                                                             {emoji.count}
                                                         </div> */}
-                                                    </div>
-                                                )
-                                            })}
-                                        </div>
-                                    </PopoverContent>
-                                </Popover>
-                            
+                                                </div>
+                                            )
+                                        })}
+                                    </div>
+                                </PopoverContent>
+                            </Popover>
+
                         ) : null
                     }
-                    {/* Button to upvotw */}
+                    {/* Button to upvote
                     <div className='flex flex-row space-x-1 items-center text-xs font-semibold'>
                         {
                             voteHistory != null && voteHistory.offset == -1 ?
@@ -402,7 +439,7 @@ export const CommentCard = (
                                     <ThumbsDown size={16} strokeWidth={1.75} absoluteStrokeWidth />
                                 </div>
                         }
-                        {/* <div >
+                         <div >
                             <TooltipProvider delayDuration={0}>
                                 <Tooltip>
                                     <TooltipTrigger>
@@ -422,8 +459,8 @@ export const CommentCard = (
                                 </Tooltip>
                             </TooltipProvider>
 
-                        </div> */}
-                    </div>
+                        </div> 
+                    </div>*/}
                 </div>
                 {/* Reply comment */}
                 {

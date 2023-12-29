@@ -15,7 +15,7 @@ import { Slider } from '@/components/ui/slider';
 import { toast } from "sonner"
 import { useRouter } from 'next/navigation';
 import { SignInButton, useUser } from "@clerk/nextjs";
-import { Rating, Heart } from '@smastrom/react-rating';
+import { Rating, ThinStar } from '@smastrom/react-rating';
 
 const MAX_FILE_SIZE = 5000000;
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
@@ -209,15 +209,20 @@ const SubmitPage = ({ params }: { params: any }) => {
 
                                         <div className="inline-flex items-center">
                                             <FormControl>
+                                                
                                                 <Rating
                                                     style={{ width: 180 }}
                                                     value={field.value}
                                                     onChange={field.onChange}
                                                     itemStyles={{
-                                                        itemShapes: Heart,
-                                                        activeFillColor: '#F05941',
-                                                        inactiveFillColor: '#FFEEF4',
-                                                    }}
+                                                        itemShapes: ThinStar,
+                                                        activeBoxColor: ['#e7040f', '#ff6300', '#ffde37', '#61bb00', '#19a974'],
+                                                        inactiveBoxColor: '#C7C7C7',
+                                                        inactiveFillColor: 'white',
+                                                        activeFillColor: 'white',
+                                                      }}
+                                                    spaceBetween="small"
+                                                    halfFillMode="box"
                                                     isRequired
                                                 />
                                             </FormControl>
