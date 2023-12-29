@@ -11,6 +11,7 @@ export async function POST(request: Request){
         offset:body.offset,
         created_by:body.created_by,
         created_at:new Date().toISOString().slice(0, 19).replace('T', ' '),
+        emoji:body.emoji || null
     }]).select()
     // console.log(data,error);
     return NextResponse.json(body,{status:200})
