@@ -8,10 +8,10 @@ export function cn(...inputs: ClassValue[]) {
 export const get_bg = (n: number) => {
     let result_bg = "bg-gradient-to-r from-gray-400 to-gray-500"
     if (n > 0) {
-        result_bg = 'bg-gradient-to-r from-amber-500 to-orange-500'
+        result_bg = 'bg-gradient-to-r from-rose-900 to-fuchsia-800'
     }
     if (n >= 2.7) {
-        result_bg = 'bg-gradient-to-r from-rose-900 to-fuchsia-800'
+        result_bg = 'bg-gradient-to-r from-amber-500 to-orange-500'
     }
     if (n >= 3.3) {
         result_bg = 'bg-gradient-to-r from-green-400 to-emerald-500'
