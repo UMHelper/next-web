@@ -15,15 +15,10 @@ const Navbar = () => {
                 <NavbarList />
                 </div>
                 <div className=" space-x-2 flex flex-row justify-end items-center">
-                    <div className=" hidden md:flex flex-row space-x-2 items-center">
+                    <div className="flex flex-row space-x-3 items-center">
                         <SearchButton />
                         <TimetableCart />
                         <NavbarAvatar />
-                    </div>
-                    <div className="md:hidden flex items-center space-x-2">
-                        <SearchButton />
-                        <TimetableCart />
-                        <UserButton afterSignOutUrl={'/'} />
                     </div>
                 </div>
             </div>
