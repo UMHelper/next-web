@@ -55,4 +55,4 @@ export const NO_ROOT_LAYOUT_LIST=[
     'sign-up',
 ]
 
-export const REACTION_EMOJI_LIST=['🤣','🤬','💩','❤️️','👍']
+export const REACTION_EMOJI_LIST=['👍','👎','🤣','🤬','💩','❤️️']
