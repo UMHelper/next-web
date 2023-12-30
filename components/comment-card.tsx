@@ -350,14 +350,14 @@ export const CommentCard = (
             <CardContent>
                 <CommentDetail comment={comment} env={'review'} />
                 <Separator className='my-2' />
-                <div className="flex justify-start pt-1 space-x-2 items-center  text-xs overflow-x-auto">
+                <div className="flex flex-wrap justify-start pt-1 items-center  text-xs ">
                     {comment.emoji_vote.map((emoji: any, index: number) => {
                         if (emoji.count == 0) {
                             return null
                         }
                         return (
                             <div
-                                className={cn('flex items-center space-x-1 px-2 rounded-full',
+                                className={cn('flex items-center me-2 mb-1 space-x-1 px-2 rounded-full',
                                     emojiHistory.filter((emojiH: any) => emojiH.emoji === emoji.emoji).length > 0 ?
                                         'bg-sky-100 text-sky-600  border-sky-600 border hover:bg-blue-200' :
                                         'bg-white text-gray-800 border-gray-300 border hover:bg-gray-200'
@@ -379,7 +379,7 @@ export const CommentCard = (
 
                             <Popover>
                                 <PopoverTrigger>
-                                    <div className='flex items-center space-x-1 px-2 py-1 rounded-full bg-gray-100 text-gray-800 border-gray-300 border hover:bg-gray-300'>
+                                    <div className='flex items-center me-2 mb-1 px-2 py-1 rounded-full bg-gray-100 text-gray-800 border-gray-300 border hover:bg-gray-300'>
                                         <SmilePlus size={12} strokeWidth={2.5} />
                                     </div>
                                 </PopoverTrigger>
@@ -391,7 +391,7 @@ export const CommentCard = (
                                             }
                                             return (
                                                 <div
-                                                    className={cn('flex items-center space-x-1 px-2 py-1 rounded-full',
+                                                    className={cn('flex items-center px-2 py-1 rounded-full',
                                                         emojiHistory.filter((emojiH: any) =>
                                                             emojiH.emoji === emoji.emoji).length > 0 ?
                                                             'bg-sky-100 text-sky-600  border-sky-600 border hover:bg-blue-200' :
