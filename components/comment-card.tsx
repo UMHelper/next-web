@@ -15,6 +15,7 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Rating, ThinStar } from "@smastrom/react-rating";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
 
 Fancybox.bind("[data-fancybox]", {
     compact: true,
@@ -22,58 +23,199 @@ Fancybox.bind("[data-fancybox]", {
     contentDblClick: 'close',
 });
 const ReplyCard = ({ reply }: { reply: any }) => {
-    // console.log(reply)
-    const [account, setAccount] = useState<any>(null)
+    const pathname = usePathname()
+
+    const { isSignedIn, user, isLoaded } = useUser();
+
+    const [voteHistory, setVoteHistory] = useState<any>(null)
+    const [emojiHistory, setEmojiHistory] = useState<any>([])
+
     useEffect(() => {
-        fetch(`/api/user?` + new URLSearchParams({ id: reply.verify_account })).then(res => res.json()).then(res => setAccount(res))
-    }, [reply])
+        const voteHistory = reply.vote_history.filter((vote: any) => vote.created_by == user?.id && vote.offset != 0)
+        if (voteHistory.length > 0) {
+            // console.log(voteHistory[0])
+            setVoteHistory(voteHistory[0])
+        }
+        if (!isSignedIn) {
+            setEmojiHistory([])
+            return
+        }
+        const emojiHistory = reply.vote_history.filter((vote: any) => vote.created_by == user?.id && vote.offset == 0)
+        if (emojiHistory.length > 0) {
+            // console.log(emojiHistory)
+            setEmojiHistory(emojiHistory)
+        }
+    }, [user, reply, isSignedIn])
+    const [isVoting, setIsVoting] = useState<boolean>(false)
+    const handleVote = (offset: number, emoji?: string) => {
+        if (!isSignedIn) {
+            toast(
+                (
+                    <div className="flex justify-between w-full items-center">
+                        <div>
+                            <div>You must sign in to vote!</div>
+                            <div className='text-xs text-gray-400'>您必須登入以投票。</div>
+                        </div>
+                        <div className='py-1 px-2 ml-2 rounded bg-gradient-to-r from-blue-600 to-indigo-500 text-white'>
+                            <SignInButton mode="modal" redirectUrl={pathname} />
+                        </div>
+                    </div>
+                )
+            )
+            return
+        }
+        if (isVoting) {
+            return
+        }
+        setIsVoting(true)
+        if (voteHistory != null && offset != 0) {
+            toast.error("You have already voted!",
+                {
+                    description: "您已經投票過",
+                })
+            return
+        }
+        if (offset == 0) {
+            if (emojiHistory.filter((emojiH: any) => emojiH.emoji === emoji).length > 0) {
+                toast.error("You have already voted for " + emoji + "!",
+                    {
+                        description: "您已經投票過 " + emoji,
+                    })
+                return
+            }
+        }
+        toast.promise(
+            fetch(`/api/vote/${reply.id}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    comment: reply.id,
+                    offset: offset,
+                    created_by: user?.id,
+                    emoji: emoji
+                })
+            }).then(res => res.json()).then(res => {
+                // console.log(res)
+                if (offset != 0) {
+                    setVoteHistory(res)
+                    if (offset === 1) {
+                        reply.upvote += res.offset
+                    }
+                    else {
+                        reply.downvote += res.offset
+                    }
+                }
+                else {
+                    setEmojiHistory((pre: any[]) => [...pre, res])
+                    reply.emoji_vote.map((emoji: any) => {
+                        if (emoji.emoji == res.emoji) {
+                            emoji.count += 1
+                        }
+                    })
+                }
+                setIsVoting(false)
+            }),
+            {
+                loading: 'Voting...',
+                success: 'Thanks for your vote!',
+                error: 'Error',
+            }
+        )
 
-    if (account) {
-        return (
-            <div className="flex flex-row space-x-1">
-                <div>
-                    <img
-                        alt={account.fullName}
-                        src={account.imageUrl}
-                        className='rounded-full border-2 border-slate-100'
-                        width={32}
-                        height={32}
-                    />
+    }
+    return (
+        <div className=" space-y-1 ">
+            <div className='text-xs text-gray-400'>
+                {reply.pub_time.split('T')[0]}
+            </div>
+            <div className='text-sm'>
+                {reply.content}
+            </div>
+            <div className="flex flex-wrap justify-start pt-1 items-center  text-xs ">
+                    {reply.emoji_vote.map((emoji: any, index: number) => {
+                        if (emoji.count == 0) {
+                            return null
+                        }
+                        return (
+                            <div
+                                className={cn('flex items-center me-2 mb-1 space-x-1 px-2 rounded-full',
+                                    emojiHistory.filter((emojiH: any) => emojiH.emoji === emoji.emoji).length > 0 ?
+                                        'bg-sky-100 text-sky-600  border-sky-600 border hover:bg-blue-200' :
+                                        'bg-white text-gray-800 border-gray-300 border hover:bg-gray-200'
+                                )}
+                                onClick={() => handleVote(0, emoji.emoji)}
+                                key={index}
+                            >
+                                <div className='text-sm'>
+                                    {emoji.emoji}
+                                </div>
+                                <div className='text-xs'>
+                                    {emoji.count}
+                                </div>
+                            </div>
+                        )
+                    })}
+                    {
+                        reply.emoji_vote.filter((emoji: any) => emoji.count === 0).length > 0 ? (
+
+                            <Popover>
+                                <PopoverTrigger>
+                                    <div className='flex items-center me-2 mb-1 px-2 py-1 rounded-full bg-gray-100 text-gray-800 border-gray-300 border hover:bg-gray-300'>
+                                        <SmilePlus size={12} strokeWidth={2.5} />
+                                    </div>
+                                </PopoverTrigger>
+                                <PopoverContent className=" w-fit">
+                                    <div className="flex space-x-2 text-sm">
+                                        {reply.emoji_vote.map((emoji: any, index: number) => {
+                                            if (emoji.count != 0) {
+                                                return null
+                                            }
+                                            return (
+                                                <div
+                                                    className={cn('flex items-center px-2 py-1 rounded-full',
+                                                        emojiHistory.filter((emojiH: any) =>
+                                                            emojiH.emoji === emoji.emoji).length > 0 ?
+                                                            'bg-sky-100 text-sky-600  border-sky-600 border hover:bg-blue-200' :
+                                                            'bg-white text-gray-800 border-gray-300 border hover:bg-gray-200'
+                                                    )}
+                                                    onClick={() => handleVote(0, emoji.emoji)}
+                                                    key={index}
+                                                >
+                                                    <div className='text-base'>
+                                                        {emoji.emoji}
+                                                    </div>
+                                                </div>
+                                            )
+                                        })}
+                                    </div>
+                                </PopoverContent>
+                            </Popover>
+
+                        ) : null
+                    }
                 </div>
-                <div>
-                    <div className="flex space-x-1">
-                        <div className='text-xs'>
-                            {account.firstName} {account.lastName}
-                        </div>
+        </div>
+    )
 
-                        <div className='text-xs text-gray-400'>
-                            {reply.pub_time.split('T')[0]}
-                        </div>
-                    </div>
-
-
-                    <div className='text-sm'>
-                        {reply.content}
-                    </div>
+}
+const ReplySubmit = ({ comment }: { comment: any }) => {
+    const { isSignedIn, user } = useUser();
+    useEffect(() => {
+        console.log(user)
+        console.log(isSignedIn)
+    }, [user, isSignedIn])
+    if (!isSignedIn) {
+        return (
+            <div>
+                <div className='text-gray-400 text-xs'>
+                    Please login to reply
                 </div>
             </div>
         )
     }
-    return (
-        <div>
-            Loading
-        </div>
-    )
-}
-const ReplySubmit = ({ comment }: { comment: any }) => {
-    const { isSignedIn, user } = useUser();
-    if (!isSignedIn) {
-        <div>
-            <div className='text-gray-400 text-xs'>
-                Please login to reply
-            </div>
-        </div>
-    }
+
     return (
         <div className=" space-y-1">
             <div className='text-gray-400 text-xs'>
@@ -89,24 +231,37 @@ const ReplySubmit = ({ comment }: { comment: any }) => {
 }
 const ReplyDialog = ({ comment, reply_comment }: { comment: any, reply_comment: any[] }) => {
     return (
-        <DialogContent>
-            <DialogHeader>
-                <DialogTitle>Review Detail</DialogTitle>
-            </DialogHeader>
-            <div>
-                <CommentDetail comment={comment} env={'detail'} />
+        <DrawerContent className="">
+            <DrawerHeader>
+                <DrawerTitle>Review Detail</DrawerTitle>
+            </DrawerHeader>
+            <div className="px-4 pb-4" style={{
+                maxHeight: '70vh',
+                height: 'fit-content',
+                overflowY: 'scroll',
+            }}>
+                <div>
+                    <CommentDetail comment={comment} env={'detail'} />
+                </div>
+                <div>
+                    <ReplySubmit comment={comment} />
+                </div>
+                <div className=" space-y-2 pt-2">
+                    {reply_comment.map((reply, index) => {
+                        return (
+                            <div key={index} className=" space-y-1">
+                                <ReplyCard reply={reply} />
+                                {
+                                    index != reply_comment.length - 1 ? (
+                                        <Separator className='my-2' />
+                                    ) : null
+                                }
+                            </div>
+                        )
+                    })}
+                </div>
             </div>
-            <div>
-                <ReplySubmit comment={comment} />
-            </div>
-            <div className=" space-y-1">
-                {reply_comment.map((reply, index) => {
-                    return (
-                        <ReplyCard reply={reply} key={index} />
-                    )
-                })}
-            </div>
-        </DialogContent>
+        </DrawerContent>
     )
 }
 
@@ -119,7 +274,9 @@ const CommentDetail = ({ comment, env }: { comment: any, env: string }) => {
             {
                 comment.img ? (
                     env != 'review' ? (
-                        <div className='w-fit my-2'>
+                        <div className='w-fit my-2' style={{
+                            maxWidth: '50vw',
+                        }}>
                             <img
                                 alt={comment.content}
                                 src={comment.img}
@@ -167,7 +324,7 @@ export const CommentCard = (
             // console.log(emojiHistory)
             setEmojiHistory(emojiHistory)
         }
-    }, [user, comment])
+    }, [user, comment, isSignedIn])
     const [isVoting, setIsVoting] = useState<boolean>(false)
     const handleVote = (offset: number, emoji?: string) => {
         if (!isSignedIn) {
@@ -475,14 +632,14 @@ export const CommentCard = (
                 {/* Reply comment */}
                 {
                     reply_comment.length > 0 ? (
-                        <Dialog>
-                            <DialogTrigger>
+                        <Drawer>
+                            <DrawerTrigger>
                                 <div>
                                     <span className=" text-xs text-gray-800 hover:text-blue-500 hover:cursor-pointer">{`${reply_comment.length} ${reply_comment.length === 1 ? "Reply" : "Replies"}`}</span>
                                 </div>
-                            </DialogTrigger>
+                            </DrawerTrigger>
                             <ReplyDialog comment={comment} reply_comment={reply_comment} />
-                        </Dialog>
+                        </Drawer>
 
                     ) : null
                 }
