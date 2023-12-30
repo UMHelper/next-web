@@ -10,10 +10,13 @@ import { getReviewInfo } from "@/lib/database/get-prof-info";
 import Link from "next/link";
 import { notFound } from 'next/navigation'
 
-import { getCourseInfo } from "@/lib/database/get-course-info";
+import { fetchCourseInfo, getCourseInfo } from "@/lib/database/get-course-info";
 import getScheduleList from "@/lib/database/get-schedule-list";
 import { Comments } from "@/components/comments";
 import { BBSAd } from "@/components/bbs-updates";
+import { Masonry } from "@/components/masonry";
+import ProfCard from "@/components/prof-card";
+import { SwpierProfList } from "@/components/swiper-prof-list";
 
 export const revalidate = 0
 export const dynamic = "force-dynamic";
@@ -32,6 +35,17 @@ const ReviewPage = async ({ params }: { params: { code: string, prof: string[] }
     const code = params.code.toUpperCase();
     const prof = params.prof.join('/').replaceAll('%2C', ",").toUpperCase();
     // console.log(prof);
+
+    const {
+        course,
+        profList,
+        isOffer
+    }: {
+        course: any,
+        profList: any[],
+        isOffer: boolean
+    }
+        = await fetchCourseInfo(code)
 
     const prof_info = await getReviewInfo(code, decodeURI(prof.replaceAll('$', '/')));
     if (prof_info == undefined) {
@@ -105,6 +119,19 @@ const ReviewPage = async ({ params }: { params: { code: string, prof: string[] }
                                         :
                                         <></>
                                 }
+
+                                {
+                                    profList.filter((prof_item) => prof_item['prof_id'] != prof).length > 0 ? (
+                                        <SwpierProfList
+                                            profList={profList.filter((prof_item) => prof_item['prof_id'] != prof_info['prof_id']).map(async (data, index) => {
+                                                return (
+                                                    <div key={index}>
+                                                        <ProfCard data={data} code={course['courseCode']} />
+                                                    </div>
+                                                )
+                                            })} />
+                                    ) : null
+                                }
                             </div>
                             {/* <Toolbar course={course_info} prof={undefined} /> */}
                         </div>
@@ -142,9 +169,11 @@ const ReviewPage = async ({ params }: { params: { code: string, prof: string[] }
                     </div>
                 </div>
             </div>
-            <BBSAd/>
+            <BBSAd />
+
+
             <div>
-                <div className='max-w-screen-xl mx-auto p-4'>
+                <div className='max-w-screen-xl mx-auto px-4 pt-1'>
                     <Comments comments={comment} course_id={course_info.id} />
                 </div>
             </div>

@@ -4,6 +4,7 @@ import {Separator} from "@/components/ui/separator";
 import Link from "next/link";
 import { getCommentNumber } from "@/lib/database/get-comment-list";
 
+
 const ProfCard= async ({data,code}:{data:any,code:any})=>{
 
     return(
