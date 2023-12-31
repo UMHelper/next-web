@@ -56,7 +56,7 @@ const ReplySubmit = ({ comment, onSubmit }: { comment: any, onSubmit: any }) => 
                 <Textarea
                     placeholder="Reply this review" onChange={(e) => {
                         setReply(e.target.value)
-                    }} />
+                    }} value={reply}/>
                 <div className="flex items-end space-x-1">
                     <Button variant="outline" size='xs' onClick={() => {
                         const t_reply = reply
@@ -118,7 +118,7 @@ const ReplyComponent = ({ comment, reply_comment }: { comment: any, reply_commen
                 })
             }).then(res => res.json()).then(res => {
                 // console.log(res)
-                setCurrentReply((pre: any[]) => [...pre, res])
+                setCurrentReply((pre: any[]) => [res,...pre])
                 setIsReplySubmitOpen(false)
                 setIsReplyOpen(true)
             }),
