@@ -33,7 +33,7 @@ const ReplyCard = ({ reply }: { reply: any }) => {
                             {reply.pub_time.split('T')[0]}
                         </span>
                     </TooltipTrigger>
-                    <TooltipContent>
+                    <TooltipContent side="right">
                         <p className='text-xs text-gray-400'>#{
                             reply.id
                         }</p>
