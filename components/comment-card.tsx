@@ -4,7 +4,7 @@ import "@fancyapps/ui/dist/fancybox/fancybox.css";
 import { Card, CardHeader, CardContent } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { cn, get_bg, get_gpa } from '@/lib/utils'
-import { Angry, BadgeCheck, Flag, SmilePlus, ThumbsDown, ThumbsUp } from 'lucide-react'
+import { Angry, BadgeCheck, Flag, SmilePlus, ThumbsDown, ThumbsUp, MessageSquare, Reply } from 'lucide-react'
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { toast } from "sonner"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -23,189 +23,35 @@ Fancybox.bind("[data-fancybox]", {
     contentDblClick: 'close',
 });
 const ReplyCard = ({ reply }: { reply: any }) => {
-    const pathname = usePathname()
-
-    const { isSignedIn, user, isLoaded } = useUser();
-
-    const [voteHistory, setVoteHistory] = useState<any>(null)
-    const [emojiHistory, setEmojiHistory] = useState<any>([])
-
-    useEffect(() => {
-        const voteHistory = reply.vote_history.filter((vote: any) => vote.created_by == user?.id && vote.offset != 0)
-        if (voteHistory.length > 0) {
-            // console.log(voteHistory[0])
-            setVoteHistory(voteHistory[0])
-        }
-        if (!isSignedIn) {
-            setEmojiHistory([])
-            return
-        }
-        const emojiHistory = reply.vote_history.filter((vote: any) => vote.created_by == user?.id && vote.offset == 0)
-        if (emojiHistory.length > 0) {
-            // console.log(emojiHistory)
-            setEmojiHistory(emojiHistory)
-        }
-    }, [user, reply, isSignedIn])
-    const [isVoting, setIsVoting] = useState<boolean>(false)
-    const handleVote = (offset: number, emoji?: string) => {
-        if (!isSignedIn) {
-            toast(
-                (
-                    <div className="flex justify-between w-full items-center">
-                        <div>
-                            <div>You must sign in to vote!</div>
-                            <div className='text-xs text-gray-400'>您必須登入以投票。</div>
-                        </div>
-                        <div className='py-1 px-2 ml-2 rounded bg-gradient-to-r from-blue-600 to-indigo-500 text-white'>
-                            <SignInButton mode="modal" redirectUrl={pathname} />
-                        </div>
-                    </div>
-                )
-            )
-            return
-        }
-        if (isVoting) {
-            return
-        }
-        setIsVoting(true)
-        if (voteHistory != null && offset != 0) {
-            toast.error("You have already voted!",
-                {
-                    description: "您已經投票過",
-                })
-            return
-        }
-        if (offset == 0) {
-            if (emojiHistory.filter((emojiH: any) => emojiH.emoji === emoji).length > 0) {
-                toast.error("You have already voted for " + emoji + "!",
-                    {
-                        description: "您已經投票過 " + emoji,
-                    })
-                return
-            }
-        }
-        toast.promise(
-            fetch(`/api/vote/${reply.id}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    comment: reply.id,
-                    offset: offset,
-                    created_by: user?.id,
-                    emoji: emoji
-                })
-            }).then(res => res.json()).then(res => {
-                // console.log(res)
-                if (offset != 0) {
-                    setVoteHistory(res)
-                    if (offset === 1) {
-                        reply.upvote += res.offset
-                    }
-                    else {
-                        reply.downvote += res.offset
-                    }
-                }
-                else {
-                    setEmojiHistory((pre: any[]) => [...pre, res])
-                    reply.emoji_vote.map((emoji: any) => {
-                        if (emoji.emoji == res.emoji) {
-                            emoji.count += 1
-                        }
-                    })
-                }
-                setIsVoting(false)
-            }),
-            {
-                loading: 'Voting...',
-                success: 'Thanks for your vote!',
-                error: 'Error',
-            }
-        )
-
-    }
     return (
         <div className=" space-y-1 ">
-            <div className='text-xs text-gray-400'>
-                {reply.pub_time.split('T')[0]}
-            </div>
-            <div className='text-sm'>
+            <TooltipProvider delayDuration={0}>
+                <Tooltip>
+                    <TooltipTrigger className="inline-flex">
+                        <span className='text-gray-400 text-xs'>
+                            {/* convert 2022-10-20T03:44:32.219061 to 2022-10-20 */}
+                            {reply.pub_time.split('T')[0]}
+                        </span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p className='text-xs text-gray-400'>#{
+                            reply.id
+                        }</p>
+                    </TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
+            <div className='text-sm break-all'>
                 {reply.content}
             </div>
-            <div className="flex flex-wrap justify-start pt-1 items-center  text-xs ">
-                    {reply.emoji_vote.map((emoji: any, index: number) => {
-                        if (emoji.count == 0) {
-                            return null
-                        }
-                        return (
-                            <div
-                                className={cn('flex items-center me-2 mb-1 space-x-1 px-2 rounded-full',
-                                    emojiHistory.filter((emojiH: any) => emojiH.emoji === emoji.emoji).length > 0 ?
-                                        'bg-sky-100 text-sky-600  border-sky-600 border hover:bg-blue-200' :
-                                        'bg-white text-gray-800 border-gray-300 border hover:bg-gray-200'
-                                )}
-                                onClick={() => handleVote(0, emoji.emoji)}
-                                key={index}
-                            >
-                                <div className='text-sm'>
-                                    {emoji.emoji}
-                                </div>
-                                <div className='text-xs'>
-                                    {emoji.count}
-                                </div>
-                            </div>
-                        )
-                    })}
-                    {
-                        reply.emoji_vote.filter((emoji: any) => emoji.count === 0).length > 0 ? (
-
-                            <Popover>
-                                <PopoverTrigger>
-                                    <div className='flex items-center me-2 mb-1 px-2 py-1 rounded-full bg-gray-100 text-gray-800 border-gray-300 border hover:bg-gray-300'>
-                                        <SmilePlus size={12} strokeWidth={2.5} />
-                                    </div>
-                                </PopoverTrigger>
-                                <PopoverContent className=" w-fit">
-                                    <div className="flex space-x-2 text-sm">
-                                        {reply.emoji_vote.map((emoji: any, index: number) => {
-                                            if (emoji.count != 0) {
-                                                return null
-                                            }
-                                            return (
-                                                <div
-                                                    className={cn('flex items-center px-2 py-1 rounded-full',
-                                                        emojiHistory.filter((emojiH: any) =>
-                                                            emojiH.emoji === emoji.emoji).length > 0 ?
-                                                            'bg-sky-100 text-sky-600  border-sky-600 border hover:bg-blue-200' :
-                                                            'bg-white text-gray-800 border-gray-300 border hover:bg-gray-200'
-                                                    )}
-                                                    onClick={() => handleVote(0, emoji.emoji)}
-                                                    key={index}
-                                                >
-                                                    <div className='text-base'>
-                                                        {emoji.emoji}
-                                                    </div>
-                                                </div>
-                                            )
-                                        })}
-                                    </div>
-                                </PopoverContent>
-                            </Popover>
-
-                        ) : null
-                    }
-                </div>
+            <EmojiVote comment={reply} />
         </div>
     )
 
 }
-const ReplySubmit = ({ comment }: { comment: any }) => {
+const ReplySubmit = ({ comment, onSubmit }: { comment: any, onSubmit: any }) => {
     const { isSignedIn, user } = useUser();
-    useEffect(() => {
-        console.log(user)
-        console.log(isSignedIn)
-    }, [user, isSignedIn])
+
+    const [reply, setReply] = useState<string>("")
     if (!isSignedIn) {
         return (
             <div>
@@ -218,42 +64,154 @@ const ReplySubmit = ({ comment }: { comment: any }) => {
 
     return (
         <div className=" space-y-1">
-            <div className='text-gray-400 text-xs'>
-                Reply as <span className=" text-blue-500">{user?.fullName}</span>
-            </div>
             <div className=" space-y-1">
                 <Textarea
-                    placeholder="Reply this review" />
-                <Button variant="outline" size='xs'>Reply</Button>
+                    placeholder="Reply this review"
+                    onChange={(e) => {
+                        setReply(e.target.value)
+                    }}
+                    value={reply}
+                    className=" focus-visible:ring-0 resize-none w-full h-20"
+                />
+                <div className="flex items-end space-x-1">
+                    <Button variant="outline" className="w-full" size='xs' onClick={() => {
+                        const t_reply = reply
+                        setReply("")
+                        onSubmit(t_reply)
+                    }}>Reply</Button>
+                    {/* <div className='text-gray-400 text-xs'>
+                        as <span className=" text-blue-500">{user?.fullName}</span>
+                    </div> */}
+                </div>
             </div>
         </div>
     )
 }
-const ReplyDialog = ({ comment, reply_comment }: { comment: any, reply_comment: any[] }) => {
+const ReplyComponent = ({ comment, reply_comment }: { comment: any, reply_comment: any[] }) => {
+    const pathname = usePathname()
+    const { isSignedIn, user } = useUser();
+
+    const [currentReply, setCurrentReply] = useState<any[]>(reply_comment)
+
+    const [isReplyOpen, setIsReplyOpen] = useState<boolean>(false)
+    const [isReplySubmitOpen, setIsReplySubmitOpen] = useState<boolean>(false)
+
+    const openReplySubmition = () => {
+        if (!isSignedIn) {
+            toast(
+                (
+                    <div className="flex justify-between w-full items-center">
+                        <div>
+                            <div>You must sign in to reply!</div>
+                            <div className='text-xs text-gray-400'>您必須登入以回覆。</div>
+                        </div>
+                        <div className='py-1 px-2 ml-2 rounded bg-gradient-to-r from-blue-600 to-indigo-500 text-white'>
+                            <SignInButton mode="modal" redirectUrl={pathname} />
+                        </div>
+                    </div>
+                )
+            )
+            return
+        }
+        setIsReplySubmitOpen(!isReplySubmitOpen)
+    }
+
+    const submitReply = (reply: any) => {
+        let body = { ...comment }
+        body.content = reply
+        body.replyto = comment.id
+        body.verify = 1
+        body.verify_account = user?.id
+        body.pub_time = new Date().toISOString().slice(0, 19).replace('T', ' ')
+        toast.promise(
+            fetch(`/api/reply/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    ...body
+                })
+            }).then(res => res.json()).then(res => {
+                // console.log(res)
+                setCurrentReply((pre: any[]) => [res, ...pre])
+                setIsReplySubmitOpen(false)
+                setIsReplyOpen(true)
+            }),
+            {
+                loading: 'Submiting...',
+                success: 'Thanks for your reply!',
+                error: 'Error',
+            }
+        )
+    }
+
+    if (currentReply.length === 0) {
+        return (
+            <div>
+                <div className="flex justify-between">
+                    <div className=" text-xs text-gray-400 flex space-x-1 items-center">
+                        <MessageSquare size={12} strokeWidth={2.5} />
+                        <div>
+                            No Reply
+                        </div>
+                    </div>
+
+                    <div
+                        onClick={openReplySubmition}
+                        className={cn(" text-xs hover:text-blue-500 hover:cursor-pointer flex space-x-1 items-center",
+                            isReplySubmitOpen ? 'text-blue-500' : ' text-gray-800')}
+                    >
+                        <Reply size={14} strokeWidth={2.5} />
+                        <div>
+                            Reply
+                        </div>
+                    </div>
+                </div>
+                <div className={cn(!isReplySubmitOpen ? 'hidden' : "", 'pt-1')}>
+                    <ReplySubmit comment={comment} onSubmit={submitReply} />
+                </div>
+            </div>
+        )
+    }
+
     return (
-        <DrawerContent className="">
-            <DrawerHeader>
-                <DrawerTitle>Review Detail</DrawerTitle>
-            </DrawerHeader>
-            <div className="px-4 pb-4" style={{
-                maxHeight: '70vh',
-                height: 'fit-content',
-                overflowY: 'scroll',
-            }}>
-                <div>
-                    <CommentDetail comment={comment} env={'detail'} />
+        <div>
+            <div className="flex justify-between">
+                <div onClick={() => {
+                    setIsReplyOpen(!isReplyOpen)
+                }}
+                    className={cn(" text-xs hover:text-blue-500 hover:cursor-pointer flex space-x-1 items-center",
+                        isReplyOpen ? 'text-blue-500' : ' text-gray-800')}
+                >
+                    <MessageSquare size={12} strokeWidth={2.5} />
+                    <div>
+                        {`${currentReply.length} ${currentReply.length === 1 ? "Reply" : "Replies"}`}
+                    </div>
                 </div>
-                <div>
-                    <ReplySubmit comment={comment} />
+                <div
+                    onClick={openReplySubmition}
+                    className={cn(" text-xs hover:text-blue-500 hover:cursor-pointer flex space-x-1 items-center",
+                        isReplySubmitOpen ? 'text-blue-500' : ' text-gray-800')}
+                >
+                    <Reply size={14} strokeWidth={2.5} />
+                    <div>
+                        Reply
+                    </div>
                 </div>
+            </div>
+            <div className={cn(!isReplySubmitOpen ? 'hidden' : "", 'pt-1')}>
+                <ReplySubmit comment={comment} onSubmit={submitReply} />
+            </div>
+            <div className={cn(!isReplyOpen ? 'hidden' : "")}>
                 <div className=" space-y-2 pt-2">
-                    {reply_comment.map((reply, index) => {
+                    {currentReply.map((reply, index) => {
                         return (
                             <div key={index} className=" space-y-1">
                                 <ReplyCard reply={reply} />
                                 {
-                                    index != reply_comment.length - 1 ? (
-                                        <Separator className='my-2' />
+                                    index != currentReply.length - 1 ? (
+                                        <Separator className='my-2' decorative />
                                     ) : null
                                 }
                             </div>
@@ -261,7 +219,8 @@ const ReplyDialog = ({ comment, reply_comment }: { comment: any, reply_comment: 
                     })}
                 </div>
             </div>
-        </DrawerContent>
+        </div>
+
     )
 }
 
@@ -300,15 +259,14 @@ const CommentDetail = ({ comment, env }: { comment: any, env: string }) => {
     )
 }
 
-export const CommentCard = (
-    { comment, reply_comment }: { comment: any, reply_comment: any[] }
-) => {
+const EmojiVote = ({ comment }: { comment: any }) => {
     const pathname = usePathname()
 
     const { isSignedIn, user, isLoaded } = useUser();
 
     const [voteHistory, setVoteHistory] = useState<any>(null)
     const [emojiHistory, setEmojiHistory] = useState<any>([])
+
     useEffect(() => {
         const voteHistory = comment.vote_history.filter((vote: any) => vote.created_by == user?.id && vote.offset != 0)
         if (voteHistory.length > 0) {
@@ -404,6 +362,75 @@ export const CommentCard = (
         )
 
     }
+    return (
+        <div className="flex flex-wrap justify-start pt-1 items-center  text-xs pb-1">
+            {comment.emoji_vote.map((emoji: any, index: number) => {
+                if (emoji.count == 0) {
+                    return null
+                }
+                return (
+                    <div
+                        className={cn('flex items-center me-2 mb-1 space-x-1 px-2 rounded-full',
+                            emojiHistory.filter((emojiH: any) => emojiH.emoji === emoji.emoji).length > 0 ?
+                                'bg-sky-100 text-sky-600  border-sky-600 border hover:bg-blue-200' :
+                                'bg-white text-gray-800 border-gray-300 border hover:bg-gray-200'
+                        )}
+                        onClick={() => handleVote(0, emoji.emoji)}
+                        key={index}
+                    >
+                        <div className='text-sm'>
+                            {emoji.emoji}
+                        </div>
+                        <div className='text-xs'>
+                            {emoji.count}
+                        </div>
+                    </div>
+                )
+            })}
+            {
+                comment.emoji_vote.filter((emoji: any) => emoji.count === 0).length > 0 ? (
+
+                    <Popover>
+                        <PopoverTrigger>
+                            <div className='flex items-center me-2 mb-1 px-2 py-1 rounded-full bg-gray-100 text-gray-800 border-gray-300 border hover:bg-gray-300'>
+                                <SmilePlus size={12} strokeWidth={2.5} />
+                            </div>
+                        </PopoverTrigger>
+                        <PopoverContent className=" w-fit">
+                            <div className="flex space-x-2 text-sm">
+                                {comment.emoji_vote.map((emoji: any, index: number) => {
+                                    if (emoji.count != 0) {
+                                        return null
+                                    }
+                                    return (
+                                        <div
+                                            className={cn('flex items-center px-2 py-1 rounded-full',
+                                                emojiHistory.filter((emojiH: any) =>
+                                                    emojiH.emoji === emoji.emoji).length > 0 ?
+                                                    'bg-sky-100 text-sky-600  border-sky-600 border hover:bg-blue-200' :
+                                                    'bg-white text-gray-800 border-gray-300 border hover:bg-gray-200'
+                                            )}
+                                            onClick={() => handleVote(0, emoji.emoji)}
+                                            key={index}
+                                        >
+                                            <div className='text-base'>
+                                                {emoji.emoji}
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        </PopoverContent>
+                    </Popover>
+
+                ) : null
+            }
+        </div>
+    )
+}
+export const CommentCard = (
+    { comment, reply_comment }: { comment: any, reply_comment: any[] }
+) => {
     return (
         <Card className=' hover:shadow-lg mx-auto'>
             <CardHeader className='pb-2 pt-4'  >
@@ -507,142 +534,9 @@ export const CommentCard = (
             <CardContent>
                 <CommentDetail comment={comment} env={'review'} />
                 <Separator className='my-2' />
-                <div className="flex flex-wrap justify-start pt-1 items-center  text-xs ">
-                    {comment.emoji_vote.map((emoji: any, index: number) => {
-                        if (emoji.count == 0) {
-                            return null
-                        }
-                        return (
-                            <div
-                                className={cn('flex items-center me-2 mb-1 space-x-1 px-2 rounded-full',
-                                    emojiHistory.filter((emojiH: any) => emojiH.emoji === emoji.emoji).length > 0 ?
-                                        'bg-sky-100 text-sky-600  border-sky-600 border hover:bg-blue-200' :
-                                        'bg-white text-gray-800 border-gray-300 border hover:bg-gray-200'
-                                )}
-                                onClick={() => handleVote(0, emoji.emoji)}
-                                key={index}
-                            >
-                                <div className='text-sm'>
-                                    {emoji.emoji}
-                                </div>
-                                <div className='text-xs'>
-                                    {emoji.count}
-                                </div>
-                            </div>
-                        )
-                    })}
-                    {
-                        comment.emoji_vote.filter((emoji: any) => emoji.count === 0).length > 0 ? (
+                <EmojiVote comment={comment} />
+                <ReplyComponent comment={comment} reply_comment={reply_comment} />
 
-                            <Popover>
-                                <PopoverTrigger>
-                                    <div className='flex items-center me-2 mb-1 px-2 py-1 rounded-full bg-gray-100 text-gray-800 border-gray-300 border hover:bg-gray-300'>
-                                        <SmilePlus size={12} strokeWidth={2.5} />
-                                    </div>
-                                </PopoverTrigger>
-                                <PopoverContent className=" w-fit">
-                                    <div className="flex space-x-2 text-sm">
-                                        {comment.emoji_vote.map((emoji: any, index: number) => {
-                                            if (emoji.count != 0) {
-                                                return null
-                                            }
-                                            return (
-                                                <div
-                                                    className={cn('flex items-center px-2 py-1 rounded-full',
-                                                        emojiHistory.filter((emojiH: any) =>
-                                                            emojiH.emoji === emoji.emoji).length > 0 ?
-                                                            'bg-sky-100 text-sky-600  border-sky-600 border hover:bg-blue-200' :
-                                                            'bg-white text-gray-800 border-gray-300 border hover:bg-gray-200'
-                                                    )}
-                                                    onClick={() => handleVote(0, emoji.emoji)}
-                                                    key={index}
-                                                >
-                                                    <div className='text-base'>
-                                                        {emoji.emoji}
-                                                    </div>
-                                                    {/* <div className='text-xs'>
-                                                            {emoji.count}
-                                                        </div> */}
-                                                </div>
-                                            )
-                                        })}
-                                    </div>
-                                </PopoverContent>
-                            </Popover>
-
-                        ) : null
-                    }
-                    {/* Button to upvote
-                    <div className='flex flex-row space-x-1 items-center text-xs font-semibold'>
-                        {
-                            voteHistory != null && voteHistory.offset == -1 ?
-                                <div className="text-gray-200">
-                                    <ThumbsUp size={16} strokeWidth={1.75} absoluteStrokeWidth />
-                                </div>
-                                :
-                                <div className={
-                                    voteHistory != null && voteHistory.offset == 1 ?
-                                        'text-lime-600' :
-                                        'hover:rotate-12 text-gray-400 hover:text-lime-600'
-                                } onClick={() => handleVote(1)}>
-                                    <ThumbsUp size={16} strokeWidth={1.75} absoluteStrokeWidth />
-                                </div>
-
-                        }
-                        <div className='text-gray-400'>
-                            {comment.upvote - comment.downvote}
-                        </div>
-                        {
-                            voteHistory != null && voteHistory.offset == 1 ?
-                                <div className="text-gray-200">
-                                    <ThumbsDown size={16} strokeWidth={1.75} absoluteStrokeWidth />
-                                </div>
-                                :
-                                <div className={
-                                    voteHistory != null && voteHistory.offset == -1 ?
-                                        'text-rose-600' :
-                                        'hover:rotate-12 text-gray-400 hover:text-rose-600'
-                                } onClick={() => handleVote(-1)}>
-                                    <ThumbsDown size={16} strokeWidth={1.75} absoluteStrokeWidth />
-                                </div>
-                        }
-                         <div >
-                            <TooltipProvider delayDuration={0}>
-                                <Tooltip>
-                                    <TooltipTrigger>
-                                        <div className='text-gray-400 px-2 hover:rotate-180 hover:text-red-600 duration-1000 ease-in-out' onClick={() => {
-                                            toast({
-                                                title: "Thanks for your report!",
-                                                description: "👮‍♀️",
-                                                duration: 5000,
-                                            })
-                                        }}>
-                                            <Flag size={14} strokeWidth={1.75} absoluteStrokeWidth />
-                                        </div>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                        <p className='text-xs font-normal'> 👮‍♀️ Report this comment.</p>
-                                    </TooltipContent>
-                                </Tooltip>
-                            </TooltipProvider>
-
-                        </div> 
-                    </div>*/}
-                </div>
-                {/* Reply comment */}
-                {
-                    reply_comment.length > 0 ? (
-                        <Drawer>
-                            <DrawerTrigger>
-                                <div>
-                                    <span className=" text-xs text-gray-800 hover:text-blue-500 hover:cursor-pointer">{`${reply_comment.length} ${reply_comment.length === 1 ? "Reply" : "Replies"}`}</span>
-                                </div>
-                            </DrawerTrigger>
-                            <ReplyDialog comment={comment} reply_comment={reply_comment} />
-                        </Drawer>
-
-                    ) : null
-                }
             </CardContent>
         </Card>
     )
