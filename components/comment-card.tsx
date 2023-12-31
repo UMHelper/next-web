@@ -93,7 +93,7 @@ const ReplyComponent = ({ comment, reply_comment }: { comment: any, reply_commen
 
     const [currentReply, setCurrentReply] = useState<any[]>(reply_comment)
 
-    const [isReplyOpen, setIsReplyOpen] = useState<boolean>(false)
+    const [isReplyOpen, setIsReplyOpen] = useState<boolean>(reply_comment.length <=3)
     const [isReplySubmitOpen, setIsReplySubmitOpen] = useState<boolean>(false)
 
     const openReplySubmition = () => {
