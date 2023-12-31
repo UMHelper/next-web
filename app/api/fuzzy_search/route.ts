@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
     const keyword = searchParams.get('keyword')?.toUpperCase() || ""
     if (keyword === "" || type === "") return new NextResponse(JSON.stringify({ error: "keyword or type is empty" }))
     if (type === "course" || type == "instructor") {
-        console.log(type, keyword)
+        // console.log(type, keyword)
         const data = await fuzzySearch(keyword, type)
         return new NextResponse(JSON.stringify(data))
     }
