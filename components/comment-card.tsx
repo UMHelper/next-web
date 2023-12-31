@@ -25,10 +25,22 @@ Fancybox.bind("[data-fancybox]", {
 const ReplyCard = ({ reply }: { reply: any }) => {
     return (
         <div className=" space-y-1 ">
-            <div className='text-xs text-gray-400'>
-                {reply.pub_time.split('T')[0]}
-            </div>
-            <div className='text-sm'>
+            <TooltipProvider delayDuration={0}>
+                <Tooltip>
+                    <TooltipTrigger className="inline-flex">
+                        <span className='text-gray-400 text-xs'>
+                            {/* convert 2022-10-20T03:44:32.219061 to 2022-10-20 */}
+                            {reply.pub_time.split('T')[0]}
+                        </span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p className='text-xs text-gray-400'>#{
+                            reply.id
+                        }</p>
+                    </TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
+            <div className='text-sm break-all'>
                 {reply.content}
             </div>
             <EmojiVote comment={reply} />
@@ -54,11 +66,15 @@ const ReplySubmit = ({ comment, onSubmit }: { comment: any, onSubmit: any }) => 
         <div className=" space-y-1">
             <div className=" space-y-1">
                 <Textarea
-                    placeholder="Reply this review" onChange={(e) => {
+                    placeholder="Reply this review"
+                    onChange={(e) => {
                         setReply(e.target.value)
-                    }} value={reply}/>
+                    }}
+                    value={reply}
+                    className=" focus-visible:ring-0 resize-none w-full h-20"
+                />
                 <div className="flex items-end space-x-1">
-                    <Button variant="outline" size='xs' onClick={() => {
+                    <Button variant="outline" className="w-full" size='xs' onClick={() => {
                         const t_reply = reply
                         setReply("")
                         onSubmit(t_reply)
@@ -118,7 +134,7 @@ const ReplyComponent = ({ comment, reply_comment }: { comment: any, reply_commen
                 })
             }).then(res => res.json()).then(res => {
                 // console.log(res)
-                setCurrentReply((pre: any[]) => [res,...pre])
+                setCurrentReply((pre: any[]) => [res, ...pre])
                 setIsReplySubmitOpen(false)
                 setIsReplyOpen(true)
             }),
@@ -195,7 +211,7 @@ const ReplyComponent = ({ comment, reply_comment }: { comment: any, reply_commen
                                 <ReplyCard reply={reply} />
                                 {
                                     index != currentReply.length - 1 ? (
-                                        <Separator className='my-2' />
+                                        <Separator className='my-2' decorative />
                                     ) : null
                                 }
                             </div>
