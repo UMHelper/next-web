@@ -4,7 +4,7 @@ import "@fancyapps/ui/dist/fancybox/fancybox.css";
 import { Card, CardHeader, CardContent, CardFooter } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { cn, get_bg, get_gpa } from '@/lib/utils'
-import { Angry, BadgeCheck, Flag, SmilePlus, ThumbsDown, ThumbsUp, MessageSquare, Reply } from 'lucide-react'
+import { Angry, BadgeCheck, Flag, SmilePlus, ThumbsDown, ThumbsUp, MessageSquare, Reply, ChevronsDown } from 'lucide-react'
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { toast } from "sonner"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -183,7 +183,7 @@ const ReplyComponent = ({ comment, reply_comment }: { comment: any, reply_commen
 
     return (
         <div>
-            <div className="flex justify-between">
+            <div className="flex justify-between my-2">
                 <div onClick={() => {
                     setIsReplyOpen(!isReplyOpen)
                 }}
@@ -193,6 +193,7 @@ const ReplyComponent = ({ comment, reply_comment }: { comment: any, reply_commen
                     <MessageSquare size={12} strokeWidth={2.5} />
                     <div>
                         {`${currentReply.length === 0 ? "No " : currentReply.length} ${currentReply.length === 1 ? "Reply" : "Replies"}`}
+                        {currentReply.length > 0 && isReplyOpen ? " (hide)" : ""}
                     </div>
                 </div>
                 <div
@@ -211,8 +212,8 @@ const ReplyComponent = ({ comment, reply_comment }: { comment: any, reply_commen
             </div>
 
             {currentReply.length > 0 ?
-                <div className={cn(!isReplyOpen ? 'hidden' : "")}>
-                    <div className=" space-y-2 pt-2 pe-2 max-h-[600px] overflow-y-auto">
+                <div className={cn(!isReplyOpen ? 'max-h-[150px] overflow-y-hidden ' : "max-h-[600px] overflow-y-auto")}>
+                    <div className=" space-y-2 py-2 pe-3">
                         {currentReply.map((reply, index) => {
                             return (
                                 <div key={index} className=" space-y-1">
@@ -228,6 +229,20 @@ const ReplyComponent = ({ comment, reply_comment }: { comment: any, reply_commen
                     </div>
                 </div> : null}
 
+                {currentReply.length > 0 ?
+                <div className={cn(!isReplyOpen ? 'block ' : "hidden")}>
+                    <div onClick={() => {
+                    setIsReplyOpen(!isReplyOpen)
+                }}
+                    className={cn("py-2 place-content-center text-xs hover:text-blue-500 hover:cursor-pointer flex space-x-1 items-center text-blue-500" )}
+                >
+                    <ChevronsDown size={12} strokeWidth={2.5} />
+                    <div>
+                        View more
+                    </div>
+                </div>
+                </div> : null}
+
         </div>
 
     )
@@ -235,8 +250,8 @@ const ReplyComponent = ({ comment, reply_comment }: { comment: any, reply_commen
 
 const CommentDetail = ({ comment, env }: { comment: any, env: string }) => {
     return (
-        <div className='flex flex-col justify-between'>
-            <p className='break-words max-h-[500px] overflow-y-auto'>
+        <div className='flex flex-col justify-between max-h-[500px] overflow-y-auto'>
+            <p className='break-words '>
                 {comment.content}
             </p>
             {
@@ -542,7 +557,7 @@ export const CommentCard = (
             </CardContent>
             {//<Separator className='my-2' />
             }
-            <CardFooter className='block bg-gray-50 pt-2 pb-3'>
+            <CardFooter className='block bg-gray-50 py-1'>
                 <ReplyComponent comment={comment} reply_comment={reply_comment} />
             </CardFooter>
         </Card>
