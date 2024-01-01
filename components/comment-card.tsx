@@ -193,7 +193,7 @@ const ReplyComponent = ({ comment, reply_comment }: { comment: any, reply_commen
                     <MessageSquare size={12} strokeWidth={2.5} />
                     <div>
                         {`${currentReply.length === 0 ? "No " : currentReply.length} ${currentReply.length === 1 ? "Reply" : "Replies"}`}
-                        {currentReply.length > 0 && isReplyOpen ? " (hide)" : ""}
+                        {currentReply.length > 2 && isReplyOpen ? " (hide)" : ""}
                     </div>
                 </div>
                 <div
@@ -229,7 +229,7 @@ const ReplyComponent = ({ comment, reply_comment }: { comment: any, reply_commen
                     </div>
                 </div> : null}
 
-                {currentReply.length > 2 ?
+                {currentReply.length > 0 ?
                 <div className={cn(!isReplyOpen ? 'block ' : "hidden")}>
                     <div onClick={() => {
                     setIsReplyOpen(!isReplyOpen)
