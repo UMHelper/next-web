@@ -229,7 +229,7 @@ const ReplyComponent = ({ comment, reply_comment }: { comment: any, reply_commen
                     </div>
                 </div> : null}
 
-                {currentReply.length > 0 ?
+                {currentReply.length > 2 ?
                 <div className={cn(!isReplyOpen ? 'block ' : "hidden")}>
                     <div onClick={() => {
                     setIsReplyOpen(!isReplyOpen)
