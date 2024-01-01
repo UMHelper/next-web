@@ -38,16 +38,16 @@ const HashEmojiAvatar = ({ user_id }: { user_id: string }) => {
     }
 
     hash = ((hash % AVATAR_EMOJI_LIST.length) + AVATAR_EMOJI_LIST.length) % AVATAR_EMOJI_LIST.length
-    console.log(user_id + ', ' + hash + ', '+AVATAR_EMOJI_LIST[hash])
+    // console.log(user_id + ', ' + hash + ', '+AVATAR_EMOJI_LIST[hash])
     return (AVATAR_EMOJI_LIST[hash])
 
 }
 
 const ReplyCard = ({ reply }: { reply: any }) => {
     return (
-        <div className="flex -ms-1 ">
+        <div className="flex ">
 
-            <Avatar className="w-9 h-9">
+            <Avatar className="w-8 h-8">
                 <AvatarFallback className="text-sm">{HashEmojiAvatar({user_id: reply.verify_account})}</AvatarFallback>
             </Avatar>
             <div className="ms-2 min-w-0">
@@ -146,7 +146,7 @@ const ReplyComponent = ({ comment, reply_comment }: { comment: any, reply_commen
     const submitReply = (reply: any) => {
         let body = { ...comment }
 
-        if (reply.length < 10 || reply.length > 150) {
+        if (reply.length < 10 || reply.length > 250) {
             toast.error('Reply too short or too long! No spam allowed. ',
                 {
                     description: "回覆太短或太長！禁止無意義垃圾回復。",
@@ -172,6 +172,7 @@ const ReplyComponent = ({ comment, reply_comment }: { comment: any, reply_commen
                 setCurrentReply((pre: any[]) => [res, ...pre])
                 setIsReplySubmitOpen(false)
                 setIsReplyOpen(true)
+                document.getElementById(`reply${comment.id}`)?.scrollTo({ top: 0})
             }),
             {
                 loading: 'Submiting...',
@@ -180,11 +181,15 @@ const ReplyComponent = ({ comment, reply_comment }: { comment: any, reply_commen
             }
         )
     }
+    useEffect(()=>{
+        document.getElementById(`reply${comment.id}`)?.scrollTo({ top: 0})
+    },[comment])
 
     return (
         <div>
-            <div className="flex justify-between my-2">
+            <div className="flex justify-between mt-3 mb-2 pl-1">
                 <div onClick={() => {
+                    document.getElementById(`reply${comment.id}`)?.scrollTo({ top: 0})
                     setIsReplyOpen(!isReplyOpen)
                 }}
                     className={cn(" text-xs hover:text-blue-500 hover:cursor-pointer flex space-x-1 items-center",
@@ -207,12 +212,12 @@ const ReplyComponent = ({ comment, reply_comment }: { comment: any, reply_commen
                     </div>
                 </div>
             </div>
-            <div className={cn(!isReplySubmitOpen ? 'hidden' : "", 'pt-1')}>
+            <div className={cn(!isReplySubmitOpen ? 'hidden' : "", 'pl-1')}>
                 <ReplySubmit comment={comment} onSubmit={submitReply} />
             </div>
 
             {currentReply.length > 0 ?
-                <div className={cn(!isReplyOpen ? 'max-h-[150px] overflow-y-hidden ' : "max-h-[600px] overflow-y-auto")}>
+                <div id={`reply${comment.id}`} className={cn(!isReplyOpen ? 'max-h-[150px] overflow-y-hidden ' : "max-h-[600px] overflow-y-auto",'-py-1')}>
                     <div className=" space-y-2 py-2 pe-3">
                         {currentReply.map((reply, index) => {
                             return (
@@ -233,6 +238,7 @@ const ReplyComponent = ({ comment, reply_comment }: { comment: any, reply_commen
                 <div className={cn(!isReplyOpen ? 'block ' : "hidden")}>
                     <div onClick={() => {
                     setIsReplyOpen(!isReplyOpen)
+                    document.getElementById(`reply${comment.id}`)?.scrollTo({ top: 0})
                 }}
                     className={cn("py-2 place-content-center text-xs hover:text-blue-500 hover:cursor-pointer flex space-x-1 items-center text-blue-500" )}
                 >
@@ -557,7 +563,7 @@ export const CommentCard = (
             </CardContent>
             {//<Separator className='my-2' />
             }
-            <CardFooter className='block bg-gray-50 py-1'>
+            <CardFooter className='block bg-gray-50 py-1 pl-5'>
                 <ReplyComponent comment={comment} reply_comment={reply_comment} />
             </CardFooter>
         </Card>
