@@ -16,37 +16,55 @@ import { usePathname } from "next/navigation";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Rating, ThinStar } from "@smastrom/react-rating";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 Fancybox.bind("[data-fancybox]", {
     compact: true,
     contentClick: 'close',
     contentDblClick: 'close',
 });
+
+const HashEmojiAvatar = ({ user_id }: { user_id: any }) => {
+    
+    return (
+        <Avatar className="w-9 h-9">
+            <AvatarFallback className="text-sm">🐶</AvatarFallback>
+        </Avatar>
+    )
+
+}
+
 const ReplyCard = ({ reply }: { reply: any }) => {
     return (
-        <div className=" space-y-1 ">
-            <Popover>
-                <PopoverTrigger className="inline-flex">
-                    <span className='text-gray-400 text-xs'>
-                        {/* convert 2022-10-20T03:44:32.219061 to 2022-10-20 */}
-                        {reply.pub_time.split('T')[0]}
-                    </span>
-                </PopoverTrigger>
-                <PopoverContent side="right">
-                    <p className='text-xs text-gray-400'>#{
-                        reply.id
-                    }</p>
-                </PopoverContent>
-            </Popover>
-            <div className='text-sm break-all'>
-                {reply.content}
+        <div className="flex -ms-1 ">
+            <Avatar className="w-9 h-9">
+                <AvatarFallback className="text-sm">🐶</AvatarFallback>
+            </Avatar>
+            <div className="ms-2 min-w-0">
+                <Popover>
+                    <PopoverTrigger className="inline-flex">
+                        <span className='text-gray-400 text-xs'>
+                            {/* convert 2022-10-20T03:44:32.219061 to 2022-10-20 */}
+                            {reply.pub_time.split('T')[0]}
+                        </span>
+                    </PopoverTrigger>
+                    <PopoverContent side="right" className=" w-fit">
+                        <p className='text-xs text-gray-400'>Reply #{
+                            reply.id
+                        }</p>
+                    </PopoverContent>
+                </Popover>
+                <div className='text-sm break-words'>
+                    {reply.content}
+                </div>
+                {//<EmojiVote comment={reply} />
+                }
             </div>
-            {//<EmojiVote comment={reply} />
-            }
         </div>
     )
 
 }
+
 const ReplySubmit = ({ comment, onSubmit }: { comment: any, onSubmit: any }) => {
     const { isSignedIn, user } = useUser();
 
@@ -62,10 +80,10 @@ const ReplySubmit = ({ comment, onSubmit }: { comment: any, onSubmit: any }) => 
     }
 
     return (
-        <div className=" space-y-1">
+        <div className="my-2 space-y-1">
             <div className=" space-y-1">
                 <Textarea
-                    placeholder="Reply this review"
+                    placeholder="Reply to this review"
                     onChange={(e) => {
                         setReply(e.target.value)
                     }}
@@ -92,7 +110,7 @@ const ReplyComponent = ({ comment, reply_comment }: { comment: any, reply_commen
 
     const [currentReply, setCurrentReply] = useState<any[]>(reply_comment)
 
-    const [isReplyOpen, setIsReplyOpen] = useState<boolean>(reply_comment.length <= 3)
+    const [isReplyOpen, setIsReplyOpen] = useState<boolean>(reply_comment.length <= 3 && reply_comment.length > 0)
     const [isReplySubmitOpen, setIsReplySubmitOpen] = useState<boolean>(false)
 
     const openReplySubmition = () => {
@@ -117,6 +135,14 @@ const ReplyComponent = ({ comment, reply_comment }: { comment: any, reply_commen
 
     const submitReply = (reply: any) => {
         let body = { ...comment }
+
+        if (reply.length < 10 || reply.length > 150) {
+            toast.error('Reply too short or too long! No spam allowed. ',
+                {
+                    description: "回覆太短或太長！禁止無意義垃圾回復。",
+                })
+            return
+        }
         body.content = reply
         body.replyto = comment.id
         body.verify = 1
@@ -145,35 +171,6 @@ const ReplyComponent = ({ comment, reply_comment }: { comment: any, reply_commen
         )
     }
 
-    if (currentReply.length === 0) {
-        return (
-            <div>
-                <div className="flex justify-between">
-                    <div className=" text-xs text-gray-400 flex space-x-1 items-center">
-                        <MessageSquare size={12} strokeWidth={2.5} />
-                        <div>
-                            No Reply
-                        </div>
-                    </div>
-
-                    <div
-                        onClick={openReplySubmition}
-                        className={cn(" text-xs hover:text-blue-500 hover:cursor-pointer flex space-x-1 items-center",
-                            isReplySubmitOpen ? 'text-blue-500' : ' text-gray-800')}
-                    >
-                        <Reply size={14} strokeWidth={2.5} />
-                        <div>
-                            Reply
-                        </div>
-                    </div>
-                </div>
-                <div className={cn(!isReplySubmitOpen ? 'hidden' : "", 'pt-1')}>
-                    <ReplySubmit comment={comment} onSubmit={submitReply} />
-                </div>
-            </div>
-        )
-    }
-
     return (
         <div>
             <div className="flex justify-between">
@@ -185,7 +182,7 @@ const ReplyComponent = ({ comment, reply_comment }: { comment: any, reply_commen
                 >
                     <MessageSquare size={12} strokeWidth={2.5} />
                     <div>
-                        {`${currentReply.length} ${currentReply.length === 1 ? "Reply" : "Replies"}`}
+                        {`${currentReply.length === 0 ? "No " : currentReply.length} ${currentReply.length === 1 ? "Reply" : "Replies"}`}
                     </div>
                 </div>
                 <div
@@ -202,22 +199,25 @@ const ReplyComponent = ({ comment, reply_comment }: { comment: any, reply_commen
             <div className={cn(!isReplySubmitOpen ? 'hidden' : "", 'pt-1')}>
                 <ReplySubmit comment={comment} onSubmit={submitReply} />
             </div>
-            <div className={cn(!isReplyOpen ? 'hidden' : "")}>
-                <div className=" space-y-2 pt-2">
-                    {currentReply.map((reply, index) => {
-                        return (
-                            <div key={index} className=" space-y-1">
-                                <ReplyCard reply={reply} />
-                                {
-                                    index != currentReply.length - 1 ? (
-                                        <Separator className='my-2' decorative />
-                                    ) : null
-                                }
-                            </div>
-                        )
-                    })}
-                </div>
-            </div>
+
+            {currentReply.length > 0 ?
+                <div className={cn(!isReplyOpen ? 'hidden' : "")}>
+                    <div className=" space-y-2 pt-2 pe-2 max-h-[600px] overflow-y-auto">
+                        {currentReply.map((reply, index) => {
+                            return (
+                                <div key={index} className=" space-y-1">
+                                    <ReplyCard reply={reply} />
+                                    {/*
+                                        index != currentReply.length - 1 ? (
+                                            <Separator className='my-2' decorative />
+                                        ) : null
+                                        */}
+                                </div>
+                            )
+                        })}
+                    </div>
+                </div> : null}
+
         </div>
 
     )
@@ -226,15 +226,13 @@ const ReplyComponent = ({ comment, reply_comment }: { comment: any, reply_commen
 const CommentDetail = ({ comment, env }: { comment: any, env: string }) => {
     return (
         <div className='flex flex-col justify-between'>
-            <p className='break-words'>
+            <p className='break-words max-h-[500px] overflow-y-auto'>
                 {comment.content}
             </p>
             {
                 comment.img ? (
                     env != 'review' ? (
-                        <div className='w-fit my-2' style={{
-                            maxWidth: '50vw',
-                        }}>
+                        <div className='w-fit my-2 max-w-[50vw]'>
                             <img
                                 alt={comment.content}
                                 src={comment.img}
@@ -362,7 +360,7 @@ const EmojiVote = ({ comment }: { comment: any }) => {
 
     }
     return (
-        <div className="flex flex-wrap justify-start py-3 items-center text-xs">
+        <div className="flex flex-wrap justify-start my-2 items-center text-xs">
             {comment.emoji_vote.map((emoji: any, index: number) => {
                 if (emoji.count == 0) {
                     return null
@@ -515,7 +513,7 @@ export const CommentCard = (
                             </span>
 
                         </PopoverTrigger>
-                        <PopoverContent>
+                        <PopoverContent className=" w-fit">
                             <p className='text-xs text-gray-400'>Comment #{
                                 comment.id
                             }</p>
