@@ -64,10 +64,10 @@ export default function BbsUpdates() {
 
                     <div className="flex flex-wrap items-center justify-start pb-2">
                         <Cat size={24} strokeWidth={2} color='rgb(14 165 233)' className="me-2" />
-                        <Link href="https://whole.umeh.top" className="flex mr-10">
+                        <a href="https://whole.umeh.top" className="flex mr-10">
                             <span className="self-center text-2xl font-bold font-black whitespace-nowrap bg-gradient-to-r from-sky-500 to-indigo-600 bg-clip-text text-transparent">WHOLE</span>
                             <ArrowUpRightSquare className="ms-2 text-indigo-600" size={14} />
-                        </Link>
+                        </a>
                     </div>
 
                     <div className='text-xl bg-gradient-to-r from-sky-500 to-indigo-600 bg-clip-text text-transparent'>
@@ -79,8 +79,8 @@ export default function BbsUpdates() {
                     </div>
                     <div className='hidden md:block text-base text-slate-800	'>
                         識朋友，揾同好，傾學業✅ <br />
-                        快來加入我哋嘅 <Link
-                            href="https://whole.umeh.top" className="text-sky-800"> Whole @UM 社群 </Link>
+                        快來加入我哋嘅 <a
+                            href="https://whole.umeh.top" className="text-sky-800"> Whole @UM 社群 </a>
                     </div>
                 </div>
                 <div className='w-full md:w-3/5'>
@@ -89,7 +89,7 @@ export default function BbsUpdates() {
                         {
                             data.map((item: any) => (
                                 <div key={item.url}>
-                                    <Link href={item.url}>
+                                    <a href={item.url}>
                                         <div className="bg-white w-full space-y-1 mt-2 px-4 py-1">
                                             <div className="flex w-full justify-between items-center" >
                                                 <div className="text-sm text-slate-700">{item.date} </div>
@@ -103,7 +103,7 @@ export default function BbsUpdates() {
                                                 {item.title}
                                             </div>
                                         </div>
-                                    </Link>
+                                    </a>
                                     <Separator className="mt-2" />
                                 </div>
 
@@ -119,9 +119,9 @@ export default function BbsUpdates() {
 export const BBSAd = () => {
     return (
         <div className='w-full px-1 py-2 flex justify-center items-center bg-slate-100 text-slate-500 text-xs'>
-            <span>對課程有疑問？歡迎前往 <Link href="https://whole.umeh.top" className=" self-center font-semibold whitespace-nowrap bg-gradient-to-r from-sky-500 to-indigo-600 bg-clip-text text-transparent px-1">
+            <span>對課程有疑問？歡迎前往 <a href="https://whole.umeh.top" className=" self-center font-semibold whitespace-nowrap bg-gradient-to-r from-sky-500 to-indigo-600 bg-clip-text text-transparent px-1">
                 WHOLE @UM
-            </Link>討論區提問</span>
+            </a>討論區提問</span>
         </div>
     )
 }
