@@ -1,7 +1,7 @@
 'use client'
 import { Fancybox } from "@fancyapps/ui";
 import "@fancyapps/ui/dist/fancybox/fancybox.css";
-import { Card, CardHeader, CardContent } from '@/components/ui/card'
+import { Card, CardHeader, CardContent, CardFooter } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { cn, get_bg, get_gpa } from '@/lib/utils'
 import { Angry, BadgeCheck, Flag, SmilePlus, ThumbsDown, ThumbsUp, MessageSquare, Reply } from 'lucide-react'
@@ -25,25 +25,24 @@ Fancybox.bind("[data-fancybox]", {
 const ReplyCard = ({ reply }: { reply: any }) => {
     return (
         <div className=" space-y-1 ">
-            <TooltipProvider delayDuration={0}>
-                <Tooltip>
-                    <TooltipTrigger className="inline-flex">
-                        <span className='text-gray-400 text-xs'>
-                            {/* convert 2022-10-20T03:44:32.219061 to 2022-10-20 */}
-                            {reply.pub_time.split('T')[0]}
-                        </span>
-                    </TooltipTrigger>
-                    <TooltipContent side="right">
-                        <p className='text-xs text-gray-400'>#{
-                            reply.id
-                        }</p>
-                    </TooltipContent>
-                </Tooltip>
-            </TooltipProvider>
+            <Popover>
+                <PopoverTrigger className="inline-flex">
+                    <span className='text-gray-400 text-xs'>
+                        {/* convert 2022-10-20T03:44:32.219061 to 2022-10-20 */}
+                        {reply.pub_time.split('T')[0]}
+                    </span>
+                </PopoverTrigger>
+                <PopoverContent side="right">
+                    <p className='text-xs text-gray-400'>#{
+                        reply.id
+                    }</p>
+                </PopoverContent>
+            </Popover>
             <div className='text-sm break-all'>
                 {reply.content}
             </div>
-            <EmojiVote comment={reply} />
+            {//<EmojiVote comment={reply} />
+            }
         </div>
     )
 
@@ -93,7 +92,7 @@ const ReplyComponent = ({ comment, reply_comment }: { comment: any, reply_commen
 
     const [currentReply, setCurrentReply] = useState<any[]>(reply_comment)
 
-    const [isReplyOpen, setIsReplyOpen] = useState<boolean>(reply_comment.length <=3)
+    const [isReplyOpen, setIsReplyOpen] = useState<boolean>(reply_comment.length <= 3)
     const [isReplySubmitOpen, setIsReplySubmitOpen] = useState<boolean>(false)
 
     const openReplySubmition = () => {
@@ -363,7 +362,7 @@ const EmojiVote = ({ comment }: { comment: any }) => {
 
     }
     return (
-        <div className="flex flex-wrap justify-start pt-1 items-center  text-xs pb-1">
+        <div className="flex flex-wrap justify-start py-3 items-center text-xs">
             {comment.emoji_vote.map((emoji: any, index: number) => {
                 if (emoji.count == 0) {
                     return null
@@ -496,48 +495,48 @@ export const CommentCard = (
                     </Popover>
 
                     {/* if comment.isCurrentUserVoted  show badge*/}
-                    <TooltipProvider delayDuration={0}>
-                        <Tooltip>
-                            <TooltipTrigger className="inline-flex">
+                    <Popover>
+                        <PopoverTrigger className="inline-flex">
 
-                                <span className='text-gray-400 text-xs'>
-                                    {/* convert 2022-10-20T03:44:32.219061 to 2022-10-20 */}
-                                    {comment.pub_time.split('T')[0]}
-                                </span>
-                                <span className={
-                                    comment.verify === 1 ?
-                                        'text-green-600 text-xs flex mx-2' :
-                                        'hidden'
-                                }>
-                                    <BadgeCheck size={16} strokeWidth={1.75} absoluteStrokeWidth />
+                            <span className='text-gray-400 text-xs'>
+                                {/* convert 2022-10-20T03:44:32.219061 to 2022-10-20 */}
+                                {comment.pub_time.split('T')[0]}
+                            </span>
+                            <span className={
+                                comment.verify === 1 ?
+                                    'text-green-600 text-xs flex mx-2' :
+                                    'hidden'
+                            }>
+                                <BadgeCheck size={16} strokeWidth={1.75} absoluteStrokeWidth />
 
-                                    {/*<div className='px-1 italic'>
+                                {/*<div className='px-1 italic'>
                                         Verified
                                     </div>*/}
-                                </span>
+                            </span>
 
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                <p className='text-xs text-gray-400'>Comment #{
-                                    comment.id
-                                }</p>
-                                <p className='text-xs'>{
-                                    comment.verify === 1 ?
-                                        'Verified user (logged in)' :
-                                        'Not verified'
-                                }</p>
-                            </TooltipContent>
-                        </Tooltip>
-                    </TooltipProvider>
+                        </PopoverTrigger>
+                        <PopoverContent>
+                            <p className='text-xs text-gray-400'>Comment #{
+                                comment.id
+                            }</p>
+                            <p className='text-xs'>{
+                                comment.verify === 1 ?
+                                    'Verified user (logged in)' :
+                                    'Not verified'
+                            }</p>
+                        </PopoverContent>
+                    </Popover>
                 </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className='pt-2 pb-1'>
                 <CommentDetail comment={comment} env={'review'} />
-                <Separator className='my-2' />
                 <EmojiVote comment={comment} />
-                <ReplyComponent comment={comment} reply_comment={reply_comment} />
-
             </CardContent>
+            {//<Separator className='my-2' />
+            }
+            <CardFooter className='block bg-gray-50 pt-2 pb-3'>
+                <ReplyComponent comment={comment} reply_comment={reply_comment} />
+            </CardFooter>
         </Card>
     )
 }
