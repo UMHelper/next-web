@@ -17,6 +17,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Rating, ThinStar } from "@smastrom/react-rating";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { AVATAR_EMOJI_LIST } from "@/lib/consant";
 
 Fancybox.bind("[data-fancybox]", {
     compact: true,
@@ -24,21 +25,30 @@ Fancybox.bind("[data-fancybox]", {
     contentDblClick: 'close',
 });
 
-const HashEmojiAvatar = ({ user_id }: { user_id: any }) => {
+const HashEmojiAvatar = ({ user_id }: { user_id: string }) => {
     
-    return (
-        <Avatar className="w-9 h-9">
-            <AvatarFallback className="text-sm">🐶</AvatarFallback>
-        </Avatar>
-    )
+    let hash = 0;
+ 
+    if (user_id.length == 0) return hash;
+ 
+    for (let i = 0; i < user_id.length; i++) {
+        let char = user_id.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash;
+    }
+
+    hash = ((hash % AVATAR_EMOJI_LIST.length) + AVATAR_EMOJI_LIST.length) % AVATAR_EMOJI_LIST.length
+    console.log(user_id + ', ' + hash + ', '+AVATAR_EMOJI_LIST[hash])
+    return (AVATAR_EMOJI_LIST[hash])
 
 }
 
 const ReplyCard = ({ reply }: { reply: any }) => {
     return (
         <div className="flex -ms-1 ">
+
             <Avatar className="w-9 h-9">
-                <AvatarFallback className="text-sm">🐶</AvatarFallback>
+                <AvatarFallback className="text-sm">{HashEmojiAvatar({user_id: reply.verify_account})}</AvatarFallback>
             </Avatar>
             <div className="ms-2 min-w-0">
                 <Popover>
@@ -73,7 +83,7 @@ const ReplySubmit = ({ comment, onSubmit }: { comment: any, onSubmit: any }) => 
         return (
             <div>
                 <div className='text-gray-400 text-xs'>
-                    Please login to reply
+                    You must sign in to reply!
                 </div>
             </div>
         )
@@ -83,7 +93,7 @@ const ReplySubmit = ({ comment, onSubmit }: { comment: any, onSubmit: any }) => 
         <div className="my-2 space-y-1">
             <div className=" space-y-1">
                 <Textarea
-                    placeholder="Reply to this review"
+                    placeholder={"Reply to this review. You will reply as " + HashEmojiAvatar({user_id: user?.id})}
                     onChange={(e) => {
                         setReply(e.target.value)
                     }}
