@@ -20,6 +20,7 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {
     title: 'Home | What2Reg @ UM 澳大選咩課',
     description: 'Course review platform for University of Macau',
+    viewport: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no',
 }
 
 export default function RootLayout({
@@ -39,7 +40,6 @@ export default function RootLayout({
 
                     <meta name='theme-color' content='#2563EB' />
                     <meta name='apple-mobile-web-app-status-bar-style' content='#2563EB' />
-                    <meta name='viewport' content='width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no' />
                     <link rel="manifest" href="/manifest.webmanifest" />
                     <link rel="icon" href="/favicon.png" sizes="any" />
                     <link
