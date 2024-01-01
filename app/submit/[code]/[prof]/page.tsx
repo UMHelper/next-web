@@ -33,7 +33,7 @@ const SubmitPage = ({ params }: { params: any }) => {
         reward: z.number().min(1).max(5),
         assignment: z.number().min(1).max(5),
         recommend: z.number().min(1).max(5),
-        content: z.string().min(10).max(1000),
+        content: z.string().min(10).max(2000),
     })
 
     const form = useForm<z.infer<typeof formSchema>>({
@@ -94,7 +94,7 @@ const SubmitPage = ({ params }: { params: any }) => {
             }),
             {
                 loading: 'Submitting...',
-                success: 'Submitted!',
+                success: 'Submitted! It will show up in a few minutes. ',
                 error: 'Failed to submit.',
             }
         )

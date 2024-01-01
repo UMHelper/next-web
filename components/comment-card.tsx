@@ -1,7 +1,7 @@
 'use client'
 import { Fancybox } from "@fancyapps/ui";
 import "@fancyapps/ui/dist/fancybox/fancybox.css";
-import { Card, CardHeader, CardContent } from '@/components/ui/card'
+import { Card, CardHeader, CardContent, CardFooter } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { cn, get_bg, get_gpa } from '@/lib/utils'
 import { Angry, BadgeCheck, Flag, SmilePlus, ThumbsDown, ThumbsUp, MessageSquare, Reply } from 'lucide-react'
@@ -16,38 +16,65 @@ import { usePathname } from "next/navigation";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Rating, ThinStar } from "@smastrom/react-rating";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { AVATAR_EMOJI_LIST } from "@/lib/consant";
 
 Fancybox.bind("[data-fancybox]", {
     compact: true,
     contentClick: 'close',
     contentDblClick: 'close',
 });
+
+const HashEmojiAvatar = ({ user_id }: { user_id: string }) => {
+    
+    let hash = 0;
+ 
+    if (user_id.length == 0) return hash;
+ 
+    for (let i = 0; i < user_id.length; i++) {
+        let char = user_id.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash;
+    }
+
+    hash = ((hash % AVATAR_EMOJI_LIST.length) + AVATAR_EMOJI_LIST.length) % AVATAR_EMOJI_LIST.length
+    console.log(user_id + ', ' + hash + ', '+AVATAR_EMOJI_LIST[hash])
+    return (AVATAR_EMOJI_LIST[hash])
+
+}
+
 const ReplyCard = ({ reply }: { reply: any }) => {
     return (
-        <div className=" space-y-1 ">
-            <TooltipProvider delayDuration={0}>
-                <Tooltip>
-                    <TooltipTrigger className="inline-flex">
+        <div className="flex -ms-1 ">
+
+            <Avatar className="w-9 h-9">
+                <AvatarFallback className="text-sm">{HashEmojiAvatar({user_id: reply.verify_account})}</AvatarFallback>
+            </Avatar>
+            <div className="ms-2 min-w-0">
+                <Popover>
+                    <PopoverTrigger className="inline-flex">
                         <span className='text-gray-400 text-xs'>
                             {/* convert 2022-10-20T03:44:32.219061 to 2022-10-20 */}
                             {reply.pub_time.split('T')[0]}
                         </span>
-                    </TooltipTrigger>
-                    <TooltipContent side="right">
-                        <p className='text-xs text-gray-400'>#{
+                    </PopoverTrigger>
+                    <PopoverContent side="right" className=" w-fit">
+                        <p className='text-xs text-gray-400'>Reply #{
                             reply.id
                         }</p>
-                    </TooltipContent>
-                </Tooltip>
-            </TooltipProvider>
-            <div className='text-sm break-all'>
-                {reply.content}
+                    </PopoverContent>
+                </Popover>
+                <div className='text-sm break-words'>
+                    {reply.content}
+                </div>
+                {//<EmojiVote comment={reply} />
+                }
             </div>
-            <EmojiVote comment={reply} />
         </div>
     )
 
 }
+
 const ReplySubmit = ({ comment, onSubmit }: { comment: any, onSubmit: any }) => {
     const { isSignedIn, user } = useUser();
 
@@ -56,17 +83,17 @@ const ReplySubmit = ({ comment, onSubmit }: { comment: any, onSubmit: any }) => 
         return (
             <div>
                 <div className='text-gray-400 text-xs'>
-                    Please login to reply
+                    You must sign in to reply!
                 </div>
             </div>
         )
     }
 
     return (
-        <div className=" space-y-1">
+        <div className="my-2 space-y-1">
             <div className=" space-y-1">
                 <Textarea
-                    placeholder="Reply this review"
+                    placeholder={"Reply to this review. You will reply as " + HashEmojiAvatar({user_id: user?.id})}
                     onChange={(e) => {
                         setReply(e.target.value)
                     }}
@@ -93,7 +120,7 @@ const ReplyComponent = ({ comment, reply_comment }: { comment: any, reply_commen
 
     const [currentReply, setCurrentReply] = useState<any[]>(reply_comment)
 
-    const [isReplyOpen, setIsReplyOpen] = useState<boolean>(reply_comment.length <=3)
+    const [isReplyOpen, setIsReplyOpen] = useState<boolean>(reply_comment.length <= 3 && reply_comment.length > 0)
     const [isReplySubmitOpen, setIsReplySubmitOpen] = useState<boolean>(false)
 
     const openReplySubmition = () => {
@@ -118,6 +145,14 @@ const ReplyComponent = ({ comment, reply_comment }: { comment: any, reply_commen
 
     const submitReply = (reply: any) => {
         let body = { ...comment }
+
+        if (reply.length < 10 || reply.length > 150) {
+            toast.error('Reply too short or too long! No spam allowed. ',
+                {
+                    description: "回覆太短或太長！禁止無意義垃圾回復。",
+                })
+            return
+        }
         body.content = reply
         body.replyto = comment.id
         body.verify = 1
@@ -146,35 +181,6 @@ const ReplyComponent = ({ comment, reply_comment }: { comment: any, reply_commen
         )
     }
 
-    if (currentReply.length === 0) {
-        return (
-            <div>
-                <div className="flex justify-between">
-                    <div className=" text-xs text-gray-400 flex space-x-1 items-center">
-                        <MessageSquare size={12} strokeWidth={2.5} />
-                        <div>
-                            No Reply
-                        </div>
-                    </div>
-
-                    <div
-                        onClick={openReplySubmition}
-                        className={cn(" text-xs hover:text-blue-500 hover:cursor-pointer flex space-x-1 items-center",
-                            isReplySubmitOpen ? 'text-blue-500' : ' text-gray-800')}
-                    >
-                        <Reply size={14} strokeWidth={2.5} />
-                        <div>
-                            Reply
-                        </div>
-                    </div>
-                </div>
-                <div className={cn(!isReplySubmitOpen ? 'hidden' : "", 'pt-1')}>
-                    <ReplySubmit comment={comment} onSubmit={submitReply} />
-                </div>
-            </div>
-        )
-    }
-
     return (
         <div>
             <div className="flex justify-between">
@@ -186,7 +192,7 @@ const ReplyComponent = ({ comment, reply_comment }: { comment: any, reply_commen
                 >
                     <MessageSquare size={12} strokeWidth={2.5} />
                     <div>
-                        {`${currentReply.length} ${currentReply.length === 1 ? "Reply" : "Replies"}`}
+                        {`${currentReply.length === 0 ? "No " : currentReply.length} ${currentReply.length === 1 ? "Reply" : "Replies"}`}
                     </div>
                 </div>
                 <div
@@ -203,22 +209,25 @@ const ReplyComponent = ({ comment, reply_comment }: { comment: any, reply_commen
             <div className={cn(!isReplySubmitOpen ? 'hidden' : "", 'pt-1')}>
                 <ReplySubmit comment={comment} onSubmit={submitReply} />
             </div>
-            <div className={cn(!isReplyOpen ? 'hidden' : "")}>
-                <div className=" space-y-2 pt-2">
-                    {currentReply.map((reply, index) => {
-                        return (
-                            <div key={index} className=" space-y-1">
-                                <ReplyCard reply={reply} />
-                                {
-                                    index != currentReply.length - 1 ? (
-                                        <Separator className='my-2' decorative />
-                                    ) : null
-                                }
-                            </div>
-                        )
-                    })}
-                </div>
-            </div>
+
+            {currentReply.length > 0 ?
+                <div className={cn(!isReplyOpen ? 'hidden' : "")}>
+                    <div className=" space-y-2 pt-2 pe-2 max-h-[600px] overflow-y-auto">
+                        {currentReply.map((reply, index) => {
+                            return (
+                                <div key={index} className=" space-y-1">
+                                    <ReplyCard reply={reply} />
+                                    {/*
+                                        index != currentReply.length - 1 ? (
+                                            <Separator className='my-2' decorative />
+                                        ) : null
+                                        */}
+                                </div>
+                            )
+                        })}
+                    </div>
+                </div> : null}
+
         </div>
 
     )
@@ -227,15 +236,13 @@ const ReplyComponent = ({ comment, reply_comment }: { comment: any, reply_commen
 const CommentDetail = ({ comment, env }: { comment: any, env: string }) => {
     return (
         <div className='flex flex-col justify-between'>
-            <p className='break-words'>
+            <p className='break-words max-h-[500px] overflow-y-auto'>
                 {comment.content}
             </p>
             {
                 comment.img ? (
                     env != 'review' ? (
-                        <div className='w-fit my-2' style={{
-                            maxWidth: '50vw',
-                        }}>
+                        <div className='w-fit my-2 max-w-[50vw]'>
                             <img
                                 alt={comment.content}
                                 src={comment.img}
@@ -363,7 +370,7 @@ const EmojiVote = ({ comment }: { comment: any }) => {
 
     }
     return (
-        <div className="flex flex-wrap justify-start pt-1 items-center  text-xs pb-1">
+        <div className="flex flex-wrap justify-start my-2 items-center text-xs">
             {comment.emoji_vote.map((emoji: any, index: number) => {
                 if (emoji.count == 0) {
                     return null
@@ -496,48 +503,48 @@ export const CommentCard = (
                     </Popover>
 
                     {/* if comment.isCurrentUserVoted  show badge*/}
-                    <TooltipProvider delayDuration={0}>
-                        <Tooltip>
-                            <TooltipTrigger className="inline-flex">
+                    <Popover>
+                        <PopoverTrigger className="inline-flex">
 
-                                <span className='text-gray-400 text-xs'>
-                                    {/* convert 2022-10-20T03:44:32.219061 to 2022-10-20 */}
-                                    {comment.pub_time.split('T')[0]}
-                                </span>
-                                <span className={
-                                    comment.verify === 1 ?
-                                        'text-green-600 text-xs flex mx-2' :
-                                        'hidden'
-                                }>
-                                    <BadgeCheck size={16} strokeWidth={1.75} absoluteStrokeWidth />
+                            <span className='text-gray-400 text-xs'>
+                                {/* convert 2022-10-20T03:44:32.219061 to 2022-10-20 */}
+                                {comment.pub_time.split('T')[0]}
+                            </span>
+                            <span className={
+                                comment.verify === 1 ?
+                                    'text-green-600 text-xs flex mx-2' :
+                                    'hidden'
+                            }>
+                                <BadgeCheck size={16} strokeWidth={1.75} absoluteStrokeWidth />
 
-                                    {/*<div className='px-1 italic'>
+                                {/*<div className='px-1 italic'>
                                         Verified
                                     </div>*/}
-                                </span>
+                            </span>
 
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                <p className='text-xs text-gray-400'>Comment #{
-                                    comment.id
-                                }</p>
-                                <p className='text-xs'>{
-                                    comment.verify === 1 ?
-                                        'Verified user (logged in)' :
-                                        'Not verified'
-                                }</p>
-                            </TooltipContent>
-                        </Tooltip>
-                    </TooltipProvider>
+                        </PopoverTrigger>
+                        <PopoverContent className=" w-fit">
+                            <p className='text-xs text-gray-400'>Comment #{
+                                comment.id
+                            }</p>
+                            <p className='text-xs'>{
+                                comment.verify === 1 ?
+                                    'Verified user (logged in)' :
+                                    'Not verified'
+                            }</p>
+                        </PopoverContent>
+                    </Popover>
                 </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className='pt-2 pb-1'>
                 <CommentDetail comment={comment} env={'review'} />
-                <Separator className='my-2' />
                 <EmojiVote comment={comment} />
-                <ReplyComponent comment={comment} reply_comment={reply_comment} />
-
             </CardContent>
+            {//<Separator className='my-2' />
+            }
+            <CardFooter className='block bg-gray-50 pt-2 pb-3'>
+                <ReplyComponent comment={comment} reply_comment={reply_comment} />
+            </CardFooter>
         </Card>
     )
 }
