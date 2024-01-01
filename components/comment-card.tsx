@@ -143,6 +143,26 @@ const ReplyComponent = ({ comment, reply_comment }: { comment: any, reply_commen
         setIsReplySubmitOpen(!isReplySubmitOpen)
     }
 
+    const openReply = () => {
+        if (!isSignedIn) {
+            toast(
+                (
+                    <div className="flex justify-between w-full items-center">
+                        <div>
+                            <div>You must sign in to view all replies!</div>
+                            <div className='text-xs text-gray-400'>您必須登入以瀏覽全部回覆。</div>
+                        </div>
+                        <div className='py-1 px-2 ml-2 rounded bg-gradient-to-r from-blue-600 to-indigo-500 text-white'>
+                            <SignInButton mode="modal" redirectUrl={pathname} />
+                        </div>
+                    </div>
+                )
+            )
+            return
+        }
+        setIsReplyOpen(!isReplyOpen)
+    }
+
     const submitReply = (reply: any) => {
         let body = { ...comment }
 
@@ -189,8 +209,9 @@ const ReplyComponent = ({ comment, reply_comment }: { comment: any, reply_commen
         <div>
             <div className="flex justify-between mt-3 mb-2 pl-1">
                 <div onClick={() => {
+                    openReply()
                     document.getElementById(`reply${comment.id}`)?.scrollTo({ top: 0})
-                    setIsReplyOpen(!isReplyOpen)
+                    
                 }}
                     className={cn(" text-xs hover:text-blue-500 hover:cursor-pointer flex space-x-1 items-center",
                         isReplyOpen ? 'text-blue-500' : ' text-gray-800')}
@@ -217,7 +238,7 @@ const ReplyComponent = ({ comment, reply_comment }: { comment: any, reply_commen
             </div>
 
             {currentReply.length > 0 ?
-                <div id={`reply${comment.id}`} className={cn(!isReplyOpen ? 'max-h-[150px] overflow-y-hidden ' : "max-h-[600px] overflow-y-auto",'-py-1')}>
+                <div id={`reply${comment.id}`} className={cn(!isReplyOpen  ? 'max-h-[150px] overflow-y-hidden ' : "max-h-[600px] overflow-y-auto",'-py-1')}>
                     <div className=" space-y-2 py-2 pe-3">
                         {currentReply.map((reply, index) => {
                             return (
@@ -237,7 +258,7 @@ const ReplyComponent = ({ comment, reply_comment }: { comment: any, reply_commen
                 {currentReply.length > 0 ?
                 <div className={cn(!isReplyOpen ? 'block ' : "hidden")}>
                     <div onClick={() => {
-                    setIsReplyOpen(!isReplyOpen)
+                    openReply()
                     document.getElementById(`reply${comment.id}`)?.scrollTo({ top: 0})
                 }}
                     className={cn("py-2 place-content-center text-xs hover:text-blue-500 hover:cursor-pointer flex space-x-1 items-center text-blue-500" )}
