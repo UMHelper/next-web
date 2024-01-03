@@ -91,6 +91,8 @@ const SubmitPage = ({ params }: { params: any }) => {
             fetch(`/api/comment/${params.code}/${params.prof}`, {
                 body: data,
                 method: 'POST',
+            }).then((res) => {
+                route.push(`/reviews/${params.code}/${params.prof}`)
             }),
             {
                 loading: 'Submitting...',
@@ -98,7 +100,6 @@ const SubmitPage = ({ params }: { params: any }) => {
                 error: 'Failed to submit.',
             }
         )
-        route.push(`/reviews/${params.code}/${params.prof}`)
     }
     return (
         <div className='max-w-screen-xl mx-auto p-10 md:p-20'>
