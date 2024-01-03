@@ -96,7 +96,7 @@ const SubmitPage = ({ params }: { params: any }) => {
             }),
             {
                 loading: 'Submitting...',
-                success: 'Submitted! It will show up in a few minutes. ',
+                success: 'Submitted!',
                 error: 'Failed to submit.',
             }
         )
@@ -442,10 +442,10 @@ const SubmitPage = ({ params }: { params: any }) => {
                                 <UploadCloud size={18} strokeWidth={2.5} />
                                 <span>Submit</span>
                             </Button>
-                            <div className='py-2 text-xs break-words'>
+                            {/* <div className='py-2 text-xs break-words'>
                                 <p>New comments are usually published in 3 minutes. </p>
                                 <p>新發表的評價通常在 3 分鐘內公開展示。</p>
-                            </div>
+                            </div> */}
                         </div>
                     </form>
                 </Form>
