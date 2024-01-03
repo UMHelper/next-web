@@ -13,5 +13,5 @@ export const getCommentNumber = async (course_id: string,prof:string) => {
 export const getVoteHistory = async (comment_id_array:string[]) => {
     const {data, error} = await supabase.from('vote').select('*').in('comment_id', comment_id_array)
     // console.log(data)
-    return data
+    return data as any[]
 }

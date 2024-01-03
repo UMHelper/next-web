@@ -1,13 +1,22 @@
+'use client'
 import { Masonry } from "@/components/masonry"
 import { CommentCard } from "@/components/comment-card"
-import Link from "next/link"
-import { getVoteHistory } from "@/lib/database/get-comment-list"
 import { REACTION_EMOJI_LIST } from "@/lib/consant"
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useEffect } from "react"
 
-const Comments = async ({ comments, course_id }: { comments: any[], course_id: string }) => {
-    
-    const comments_id_array = comments.map((comment) => comment.id)
-    const vote_history = await getVoteHistory(comments_id_array)
+const Comments = ({ comments, course_id, vote_history }: { comments: any[], course_id: string,vote_history:any[] }) => {
+    const route = useRouter()
+    const searchParams = useSearchParams();
+    const pathname=usePathname()
+    useEffect(() => {
+        if (searchParams.get('reload')==='1'){
+            route.refresh()
+            route.replace(pathname)
+        }
+    }, [searchParams,route,pathname])
+    // const comments_id_array = comments.map((comment) => comment.id)
+    // const vote_history = await getVoteHistory(comments_id_array)
     
     const edited_comments:any[] = comments.map((comment) => {
         comment.vote_history = vote_history?.filter((vote) => vote.comment_id == comment.id)

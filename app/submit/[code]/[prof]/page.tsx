@@ -92,7 +92,7 @@ const SubmitPage = ({ params }: { params: any }) => {
                 body: data,
                 method: 'POST',
             }).then((res) => {
-                route.push(`/reviews/${params.code}/${params.prof}`)
+                route.push(`/reviews/${params.code}/${params.prof}?reload=1`)
             }),
             {
                 loading: 'Submitting...',

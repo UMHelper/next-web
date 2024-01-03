@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { CalendarRange, Cat, ChevronRightCircle, ClipboardEdit } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { TimetableCard } from "@/components/timetable-card";
-import { getCommentList } from "@/lib/database/get-comment-list";
+import { getCommentList, getVoteHistory } from "@/lib/database/get-comment-list";
 import { getReviewInfo } from "@/lib/database/get-prof-info";
 import Link from "next/link";
 import { notFound } from 'next/navigation'
@@ -46,7 +46,9 @@ const ReviewPage = async ({ params }: { params: { code: string, prof: string[] }
     const course_info = await getCourseInfo(code);
     // console.log(course_info);
 
-    const comment = await getCommentList(code, prof.replaceAll('$', '/'));
+    const comments:any[] = await getCommentList(code, prof.replaceAll('$', '/'));
+    const comments_id_array = comments.map((comment) => comment.id)
+    const vote_history:any[] = await getVoteHistory(comments_id_array)
 
     const timetable = await getScheduleList(params.code, params.prof.join('/'));
 
@@ -146,7 +148,7 @@ const ReviewPage = async ({ params }: { params: { code: string, prof: string[] }
             <BBSAd/>
             <div>
                 <div className='max-w-screen-xl mx-auto p-4'>
-                    <Comments comments={comment} course_id={course_info.id} />
+                    <Comments comments={comments} course_id={course_info.id} vote_history={vote_history}/>
                 </div>
             </div>
         </>
