@@ -6,12 +6,14 @@ import { uuid } from "@/lib/utils";
 
 export async function POST(request: Request){
     let body = await request.formData()
+    // console.log(body)
     const course=await getReviewInfo(body.get('code') as string,body.get('prof') as string)
-    // //console.log(course)
+    // console.log(course)
     // delete body.code
     // delete body.prof
     let data:any={}
     data.course_id=course.id
+    // console.log(data)
     data.result=(parseFloat(body.get('attendance') as string)+
                 parseFloat(body.get('pre') as string)+
                 parseFloat(body.get('grade') as string)+
@@ -30,7 +32,7 @@ export async function POST(request: Request){
     // // 2021-10-10T16:00:00.000Z
     data.pub_time=new Date().toISOString().slice(0, 19).replace('T', ' ')
     const id:any=await supabase.from('comment').select('*', { count: 'exact', head: true })
-    data.id=27734+id.count+100
+    data.id=27734+id.count+200
     // console.log(body.get('image'))
     if (body.get('verify')==="1"){
         data.verify=1
@@ -57,7 +59,7 @@ export async function POST(request: Request){
             }
         })
         const json=await response.json()
-        console.log(json)
+        // console.log(json)
         data.img=json.data.link
         
     }
