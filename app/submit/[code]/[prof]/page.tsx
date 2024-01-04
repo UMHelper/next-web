@@ -1,7 +1,7 @@
 "use client"
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Input } from "@/components/ui/input";
 import * as z from "zod"
@@ -51,6 +51,15 @@ const SubmitPage = ({ params }: { params: any }) => {
             content: '',
         }
     })
+
+    useEffect(()=>{
+        console.log(form.formState.errors)
+        if (Object.keys(form.formState.errors).length===0) return
+        toast.error('Please fill in all required field.',
+        {
+            description: "請填寫所有的必填項目，並符合其要求。",
+        })
+    },[form.formState.errors])
     const route = useRouter()
     const submit = (values: any) => {
 
