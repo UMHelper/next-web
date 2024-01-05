@@ -14,6 +14,7 @@ import { getCourseInfo } from "@/lib/database/get-course-info";
 import getScheduleList from "@/lib/database/get-schedule-list";
 import { Comments } from "@/components/comments";
 import { BBSAd } from "@/components/bbs-updates";
+import { Viewport } from "next";
 
 export const revalidate = 0
 export const dynamic = "force-dynamic";
@@ -24,9 +25,15 @@ export function generateMetadata(
 
     return {
         title: title,
-        viewport: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no',
     }
 
+}
+
+export const viewport: Viewport = {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 1,
+    userScalable: false,
 }
 
 const ReviewPage = async ({ params }: { params: { code: string, prof: string[] } }) => {

@@ -1,5 +1,4 @@
 /** @type {import('next').NextConfig} */
-const { withContentlayer } = require("next-contentlayer")
 const nextConfig = {
     images: {
         domains: ['img.clerk.com','erdqyqa4vgrnyxnx.public.blob.vercel-storage.com'],
@@ -12,7 +11,7 @@ const pwaConfig = {
     mode: 'production'
 };
 // const withPWA = require('next-pwa')(pwaConfig)
-module.exports = withContentlayer(nextConfig)
+module.exports = nextConfig
 
 
 // Injected content via Sentry wizard below

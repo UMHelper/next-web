@@ -14,13 +14,20 @@ import { ClerkProvider } from '@clerk/nextjs';
 import Link from 'next/link';
 import UADialog from '@/components/ua-dialog';
 import CsBanner from '@/components/cs-banner';
+import type { Viewport } from 'next'
 
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
     title: 'Home | What2Reg @ UM 澳大選咩課',
     description: 'Course review platform for University of Macau',
-    viewport: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no',
+}
+
+export const viewport: Viewport = {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 1,
+    userScalable: false,
 }
 
 export default function RootLayout({

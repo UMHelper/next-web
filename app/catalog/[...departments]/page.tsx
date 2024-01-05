@@ -1,6 +1,7 @@
 import CourseFilter from '@/components/course-filter';
 import { faculty, faculty_dept } from '@/lib/consant';
 import { fetchCatalogList } from '@/lib/database/get-course-info';
+import { Viewport } from 'next';
 
 export function generateMetadata(
     {params}:{params:any}) {
@@ -8,9 +9,15 @@ export function generateMetadata(
 
     return {
         title: title,
-        viewport: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no',
     }
 
+}
+
+export const viewport: Viewport = {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 1,
+    userScalable: false,
 }
 
 export async function generateStaticParams() {

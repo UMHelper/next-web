@@ -11,6 +11,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import Script from "next/script";
 import supabase from '@/lib/database/database';
 import { BBSAd } from "@/components/bbs-updates";
+import { Viewport } from "next";
 
 export function generateMetadata(
     { params }: { params: any }) {
@@ -18,9 +19,15 @@ export function generateMetadata(
 
     return {
         title: title,
-        viewport: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no',
     }
 
+}
+
+export const viewport: Viewport = {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 1,
+    userScalable: false,
 }
 
 export async function generateStaticParams() {
