@@ -23,6 +23,7 @@ const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/web
 const SubmitPage = ({ params }: { params: any }) => {
     const { isSignedIn, user } = useUser();
     const [image, setImage] = useState<File | null | undefined>(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const formSchema = z.object({
         code: z.string().length(8).default(params.code),
         prof: z.string().default(params.prof.replaceAll("%20", " ").replaceAll('$', '/')),
@@ -64,6 +65,8 @@ const SubmitPage = ({ params }: { params: any }) => {
     const submit = (values: any) => {
 
         //console.log(values)
+        if (isSubmitting) return
+        setIsSubmitting(true)
 
         let data = new FormData()
         for (const key in values) {
@@ -109,6 +112,7 @@ const SubmitPage = ({ params }: { params: any }) => {
                 error: 'Failed to submit.',
             }
         )
+        setIsSubmitting(false)
     }
     return (
         <div className='max-w-screen-xl mx-auto p-10 md:p-20'>
