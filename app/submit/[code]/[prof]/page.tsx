@@ -63,9 +63,12 @@ const SubmitPage = ({ params }: { params: any }) => {
     },[form.formState.errors])
     const route = useRouter()
     const submit = (values: any) => {
-
+        console.log(isSubmitting)
         //console.log(values)
-        if (isSubmitting) return
+        if (isSubmitting) {
+            console.log('submitting')
+            return
+        }
         setIsSubmitting(true)
 
         let data = new FormData()
@@ -104,6 +107,7 @@ const SubmitPage = ({ params }: { params: any }) => {
                 body: data,
                 method: 'POST',
             }).then((res) => {
+                setIsSubmitting(false)
                 route.push(`/reviews/${params.code}/${params.prof}?reload=1`)
             }),
             {
@@ -112,7 +116,7 @@ const SubmitPage = ({ params }: { params: any }) => {
                 error: 'Failed to submit.',
             }
         )
-        setIsSubmitting(false)
+        
     }
     return (
         <div className='max-w-screen-xl mx-auto p-10 md:p-20'>
@@ -451,7 +455,7 @@ const SubmitPage = ({ params }: { params: any }) => {
 
                         <div className=' space-y-6'>
 
-                            <Button type="submit" className='space-x-2 bg-gradient-to-r from-violet-500 to-fuchsia-500'>
+                            <Button type="submit" className='space-x-2 bg-gradient-to-r from-violet-500 to-fuchsia-500' disabled={isSubmitting}>
                                 <UploadCloud size={18} strokeWidth={2.5} />
                                 <span>Submit</span>
                             </Button>
