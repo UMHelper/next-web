@@ -1,21 +1,9 @@
-'use client'
 import { Masonry } from "@/components/masonry"
 import { CommentCard } from "@/components/comment-card"
 import { REACTION_EMOJI_LIST } from "@/lib/consant"
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useEffect } from "react"
 
 
 const Comments = ({ comments, course_id, vote_history }: { comments: any[], course_id: string, vote_history: any[] }) => {
-    const route = useRouter()
-    const searchParams = useSearchParams();
-    const pathname = usePathname()
-    useEffect(() => {
-        if (searchParams.get('reload') === '1') {
-            route.refresh()
-            route.replace(pathname)
-        }
-    }, [searchParams, route, pathname])
     // const comments_id_array = comments.map((comment) => comment.id)
     // const vote_history = await getVoteHistory(comments_id_array)
 

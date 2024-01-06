@@ -1,7 +1,7 @@
 import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 
 export const ReviewPagination =
-    async ({
+    ({
         page_num,
         total_page,
         code,
@@ -13,63 +13,63 @@ export const ReviewPagination =
         prof: string
     }) => {
         return (
-                <Pagination>
-                    <PaginationContent>
-                        {
-                            page_num > 1 ? (
-                                    <PaginationPrevious href={`/reviews/${code}/${prof}/${page_num - 1}`} />
-                            ) : null
-                        }
-                        {
-                            page_num > 3 ? (
-                                    <PaginationLink size='xs' href={`/reviews/${code}/${prof}`}>1</PaginationLink>
-                            ) : null
+            <Pagination>
+                <PaginationContent>
+                    {
+                        page_num > 1 ? (
+                            <PaginationPrevious href={`/reviews/${code}/${prof}/${page_num - 1}`} />
+                        ) : null
+                    }
+                    {
+                        page_num > 3 ? (
+                            <PaginationLink size='xs' href={`/reviews/${code}/${prof}`}>1</PaginationLink>
+                        ) : null
 
-                        }
-                        {
-                            page_num > 3 ? (
-                                <PaginationItem>
-                                    <PaginationEllipsis />
-                                </PaginationItem>
-                            ) : null
+                    }
+                    {
+                        page_num > 3 ? (
+                            <PaginationItem>
+                                <PaginationEllipsis />
+                            </PaginationItem>
+                        ) : null
 
-                        }
+                    }
 
-                        {
-                            page_num - 1 > 0 ? (
-                                    <PaginationLink size='xs' href={`/reviews/${code}/${prof}/${page_num - 1}`}>{page_num - 1}</PaginationLink>
-                            ) : null
-                        }
+                    {
+                        page_num - 1 > 0 ? (
+                            <PaginationLink size='xs' href={`/reviews/${code}/${prof}/${page_num - 1}`}>{page_num - 1}</PaginationLink>
+                        ) : null
+                    }
 
-                            <PaginationLink isActive size='xs' href={`/reviews/${code}/${prof}/${page_num}`}>{page_num}</PaginationLink>
+                    <PaginationLink isActive size='xs' href={`/reviews/${code}/${prof}/${page_num}`}>{page_num}</PaginationLink>
 
-                        {
-                            page_num + 1 <= total_page ? (
-                                    <PaginationLink size='xs' href={`/reviews/${code}/${prof}/${page_num + 1}`}>{page_num + 1}</PaginationLink>
-                            ) : null
-                        }
+                    {
+                        page_num + 1 <= total_page ? (
+                            <PaginationLink size='xs' href={`/reviews/${code}/${prof}/${page_num + 1}`}>{page_num + 1}</PaginationLink>
+                        ) : null
+                    }
 
-                        {
-                            total_page - page_num > 3 ? (
-                                <PaginationItem>
-                                    <PaginationEllipsis />
-                                </PaginationItem>
-                            ) : null
+                    {
+                        total_page - page_num > 3 ? (
+                            <PaginationItem>
+                                <PaginationEllipsis />
+                            </PaginationItem>
+                        ) : null
 
-                        }
-                        {
-                            total_page - page_num > 3 ? (
-                                    <PaginationLink size='xs' href={`/reviews/${code}/${prof}/${total_page}`}>{total_page}</PaginationLink>
-                            ) : null
+                    }
+                    {
+                        total_page - page_num > 3 ? (
+                            <PaginationLink size='xs' href={`/reviews/${code}/${prof}/${total_page}`}>{total_page}</PaginationLink>
+                        ) : null
 
-                        }
-                        {
-                            page_num < total_page ? (
-                                    <PaginationNext href={`/reviews/${code}/${prof}/${page_num + 1}`} />
-                            ) : null
-                        }
-                    </PaginationContent>
-                </Pagination>
+                    }
+                    {
+                        page_num < total_page ? (
+                            <PaginationNext href={`/reviews/${code}/${prof}/${page_num + 1}`} />
+                        ) : null
+                    }
+                </PaginationContent>
+            </Pagination>
 
         )
     }

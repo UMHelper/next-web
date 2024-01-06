@@ -16,6 +16,7 @@ import { Comments } from "@/components/comments";
 import { BBSAd } from "@/components/bbs-updates";
 import { Viewport } from "next";
 import { ReviewPagination } from "@/components/review-pagination";
+import { ReviewReload } from "@/components/review-reload";
 
 export const revalidate = 0
 export const dynamic = "force-dynamic";
@@ -172,6 +173,7 @@ const ReviewPage = async ({ params }: { params: { code: string, prof: string[] }
                     <ReviewPagination code={code} prof={prof} page_num={page_num} total_page={Math.ceil(prof_info.comments / 10)} />
                 </div>
             </div>
+            <ReviewReload/>
         </>
     )
 }
