@@ -12,9 +12,10 @@ import { notFound } from 'next/navigation'
 
 import { getCourseInfo } from "@/lib/database/get-course-info";
 import getScheduleList from "@/lib/database/get-schedule-list";
-import { Comments, ReviewPagination } from "@/components/comments";
+import { Comments } from "@/components/comments";
 import { BBSAd } from "@/components/bbs-updates";
 import { Viewport } from "next";
+import { ReviewPagination } from "@/components/review-pagination";
 
 export const revalidate = 0
 export const dynamic = "force-dynamic";
