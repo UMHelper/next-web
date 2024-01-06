@@ -22,7 +22,13 @@ export const dynamic = "force-dynamic";
 
 export function generateMetadata(
     { params }: { params: any }) {
-    const title = `${params.prof.join('/').replaceAll('%20', " ").replaceAll("%2C", ",").toUpperCase()} | ${params.code.toUpperCase()} | What2Reg @ UM 澳大選咩課`
+    let page_num = 1;
+    let prof = params.prof.join('/').replaceAll('%2C', ",").toUpperCase();
+    if (!Number.isNaN(parseInt(params.prof[params.prof.length - 1]))) {
+        page_num = parseInt(params.prof.pop() as string);
+        prof = params.prof.join('/').replaceAll('%2C', ",").toUpperCase();
+    }
+    const title = `${prof.replaceAll('%20', " ")} | ${params.code.toUpperCase()} | What2Reg @ UM 澳大選咩課`
 
     return {
         title: title,
@@ -40,7 +46,7 @@ export const viewport: Viewport = {
 const ReviewPage = async ({ params }: { params: { code: string, prof: string[] } }) => {
     const code = params.code.toUpperCase();
     // check prof list last one is number:
-    let page_num=1;
+    let page_num = 1;
     let prof = params.prof.join('/').replaceAll('%2C', ",").toUpperCase();
     if (!Number.isNaN(parseInt(params.prof[params.prof.length - 1]))) {
         page_num = parseInt(params.prof.pop() as string);
@@ -59,9 +65,9 @@ const ReviewPage = async ({ params }: { params: { code: string, prof: string[] }
     const course_info = await getCourseInfo(code);
     // console.log(course_info);
 
-    const comments:any[] = await getComentListByCourseIDAndPage(prof_info.id, page_num-1);
+    const comments: any[] = await getComentListByCourseIDAndPage(prof_info.id, page_num - 1);
     const comments_id_array = comments.map((comment) => comment.id)
-    const vote_history:any[] = await getVoteHistory(comments_id_array)
+    const vote_history: any[] = await getVoteHistory(comments_id_array)
 
     const timetable = await getScheduleList(params.code, params.prof.join('/'));
 
@@ -158,12 +164,12 @@ const ReviewPage = async ({ params }: { params: { code: string, prof: string[] }
                     </div>
                 </div>
             </div>
-            <BBSAd/>
+            <BBSAd />
             <div>
                 <div className='max-w-screen-xl mx-auto p-4'>
-                    <ReviewPagination code={code} prof={prof} page_num={page_num} total_page={Math.ceil(prof_info.comments/10)}/>
-                    <Comments comments={comments} course_id={course_info.id} vote_history={vote_history}/>
-                    <ReviewPagination code={code} prof={prof} page_num={page_num} total_page={Math.ceil(prof_info.comments/10)}/>
+                    <ReviewPagination code={code} prof={prof} page_num={page_num} total_page={Math.ceil(prof_info.comments / 10)} />
+                    <Comments comments={comments} course_id={course_info.id} vote_history={vote_history} />
+                    <ReviewPagination code={code} prof={prof} page_num={page_num} total_page={Math.ceil(prof_info.comments / 10)} />
                 </div>
             </div>
         </>
