@@ -6,7 +6,10 @@ export async function POST(request: Request){
     const body=await request.json();
 
     const id:any=await supabase.from('comment').select('*', { count: 'exact', head: true })
-    body.id=27734+id.count+100
+    
+    // DO NOT CHANGE THIS ID 
+    // check comment API 
+    body.id=27734+id.count+200
     delete body.emoji_vote
     delete body.vote_history
 

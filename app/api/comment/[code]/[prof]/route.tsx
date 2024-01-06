@@ -32,7 +32,11 @@ export async function POST(request: Request){
     // // 2021-10-10T16:00:00.000Z
     data.pub_time=new Date().toISOString().slice(0, 19).replace('T', ' ')
     const id:any=await supabase.from('comment').select('*', { count: 'exact', head: true })
+
+    // DO NOT CHANGE THIS ID 
+    // check reply API 
     data.id=27734+id.count+200
+
     // console.log(body.get('image'))
     if (body.get('verify')==="1"){
         data.verify=1
