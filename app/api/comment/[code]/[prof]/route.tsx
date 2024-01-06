@@ -31,11 +31,11 @@ export async function POST(request: Request){
     data.content=body.get('content') as string
     // // 2021-10-10T16:00:00.000Z
     data.pub_time=new Date().toISOString().slice(0, 19).replace('T', ' ')
-    const id:any=await supabase.from('comment').select('*', { count: 'exact', head: true })
-
+    const id:any=await supabase.from('comment').select('id').order('id',{ascending:false}).limit(1)
+    
     // DO NOT CHANGE THIS ID 
     // check reply API 
-    data.id=27734+id.count+300
+    data.id=id.data[0].id+1
 
     // console.log(body.get('image'))
     if (body.get('verify')==="1"){
