@@ -9,7 +9,7 @@ export async function POST(request: Request){
     
     // DO NOT CHANGE THIS ID 
     // check comment API 
-    body.id=27734+id.count+200
+    body.id=27734+id.count+300
     delete body.emoji_vote
     delete body.vote_history
 

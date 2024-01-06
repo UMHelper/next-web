@@ -35,7 +35,7 @@ export async function POST(request: Request){
 
     // DO NOT CHANGE THIS ID 
     // check reply API 
-    data.id=27734+id.count+200
+    data.id=27734+id.count+300
 
     // console.log(body.get('image'))
     if (body.get('verify')==="1"){
