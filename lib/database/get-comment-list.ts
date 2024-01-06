@@ -15,3 +15,9 @@ export const getVoteHistory = async (comment_id_array:string[]) => {
     // console.log(data)
     return data as any[]
 }
+
+export const getComentListByCourseIDAndPage = async (course_id: string, page: number) => {
+    const {data, error} =await supabase.from('comment').select('*').eq('course_id', course_id).neq('hidden',1).order('pub_time', {ascending: false}).range(page*10, (page+1)*10-1)
+    // console.log(data)
+    return data as any[] as any[]
+}

@@ -4,28 +4,104 @@ import { CommentCard } from "@/components/comment-card"
 import { REACTION_EMOJI_LIST } from "@/lib/consant"
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect } from "react"
+import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 
-const Comments = ({ comments, course_id, vote_history }: { comments: any[], course_id: string,vote_history:any[] }) => {
+const ReviewPagination =
+    ({
+        page_num,
+        total_page,
+        code,
+        prof
+    }: {
+        page_num: number,
+        total_page: number,
+        code: string,
+        prof: string
+    }) => {
+        console.log(page_num, total_page, code, prof)
+        return (
+            <div className="pb-1">
+                <Pagination>
+                    <PaginationContent>
+                        {
+                            page_num > 1 ? (
+                                <PaginationItem>
+                                    <PaginationPrevious href={`/reviews/${code}/${prof}/${page_num - 1}`} />
+                                </PaginationItem>
+                            ) : null
+                        }
+                        {
+                            page_num > 2 ? (
+                                <PaginationItem>
+                                    <PaginationEllipsis />
+                                </PaginationItem>
+                            ) : null
+
+                        }
+
+                        {
+                            page_num - 1 > 0 ? (
+                                <PaginationItem>
+                                    <PaginationLink size='xs' href={`/reviews/${code}/${prof}/${page_num - 1}`}>{page_num - 1}</PaginationLink>
+                                </PaginationItem>
+                            ) : null
+                        }
+
+                        <PaginationItem>
+                            <PaginationLink size='xs' href={`/reviews/${code}/${prof}/${page_num}`}>{page_num}</PaginationLink>
+                        </PaginationItem>
+
+                        {
+                            page_num + 1 <= total_page ? (
+                                <PaginationItem>
+                                    <PaginationLink size='xs' href={`/reviews/${code}/${prof}/${page_num + 1}`}>{page_num + 1}</PaginationLink>
+                                </PaginationItem>
+                            ) : null
+                        }
+
+                        {
+                            total_page - page_num > 2 ? (
+                                <PaginationItem>
+                                    <PaginationEllipsis />
+                                </PaginationItem>
+                            ) : null
+
+                        }
+                        {
+                            page_num < total_page ? (
+                                <PaginationItem>
+                                    <PaginationNext href={`/reviews/${code}/${prof}/${page_num + 1}`} />
+                                </PaginationItem>
+                            ) : null
+                        }
+                    </PaginationContent>
+                </Pagination>
+            </div>
+
+        )
+    }
+
+const Comments = ({ comments, course_id, vote_history }: { comments: any[], course_id: string, vote_history: any[] }) => {
     const route = useRouter()
     const searchParams = useSearchParams();
-    const pathname=usePathname()
+    const pathname = usePathname()
     useEffect(() => {
-        if (searchParams.get('reload')==='1'){
+        if (searchParams.get('reload') === '1') {
             route.refresh()
             route.replace(pathname)
         }
-    }, [searchParams,route,pathname])
+    }, [searchParams, route, pathname])
     // const comments_id_array = comments.map((comment) => comment.id)
     // const vote_history = await getVoteHistory(comments_id_array)
-    
-    const edited_comments:any[] = comments.map((comment) => {
+
+    const edited_comments: any[] = comments.map((comment) => {
         comment.vote_history = vote_history?.filter((vote) => vote.comment_id == comment.id)
-        comment.upvote=comment.vote_history.filter((vote:any) => vote.offset == 1).length
-        comment.downvote=comment.vote_history.filter((vote:any) => vote.offset == -1).length
-        comment.emoji_vote=REACTION_EMOJI_LIST.map((emoji) => {
+        comment.upvote = comment.vote_history.filter((vote: any) => vote.offset == 1).length
+        comment.downvote = comment.vote_history.filter((vote: any) => vote.offset == -1).length
+        comment.emoji_vote = REACTION_EMOJI_LIST.map((emoji) => {
             return {
                 emoji: emoji,
-                count: comment.vote_history.filter((vote:any) => vote.emoji == emoji).length
+                count: comment.vote_history.filter((vote: any) => vote.emoji == emoji).length
             }
         })
         // console.log(comment.emoji_vote)
@@ -34,7 +110,7 @@ const Comments = ({ comments, course_id, vote_history }: { comments: any[], cour
 
     const non_reply_comments = edited_comments.filter((comment) => comment.replyto === null)
     const reply_comment = edited_comments.filter((comment) => comment.replyto !== null)
-    
+
     return (
         <>
             <Masonry col={3} className="">
@@ -57,11 +133,11 @@ const Comments = ({ comments, course_id, vote_history }: { comments: any[], cour
             </Masonry>
             {non_reply_comments.length == 0 ? (
                 <div className="bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent text-xl font-black mt-4">
-                    No comment yet. Be the first to sumbit your review! <br/>
+                    No comment yet. Be the first to sumbit your review! <br />
                 </div>
             ) : null}
         </>
     )
 }
 
-export { Comments }
+export { Comments, ReviewPagination }
