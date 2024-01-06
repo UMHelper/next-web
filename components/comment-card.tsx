@@ -166,7 +166,7 @@ const ReplyComponent = ({ comment, reply_comment }: { comment: any, reply_commen
     const submitReply = (reply: any) => {
         let body = { ...comment }
 
-        if (reply.length < 10 || reply.length > 250) {
+        if (reply.length < 5 || reply.length > 250) {
             toast.error('Reply too short or too long! No spam allowed. ',
                 {
                     description: "回覆太短或太長！禁止無意義垃圾回復。",
