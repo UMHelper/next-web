@@ -32,7 +32,7 @@ export async function POST(request: Request){
     // // 2021-10-10T16:00:00.000Z
     data.pub_time=new Date().toISOString().slice(0, 19).replace('T', ' ')
     const id:any=await supabase.from('comment').select('*', { count: 'exact', head: true })
-    data.id=27734+id.count+200
+    data.id=27734+id.count+300
     // console.log(body.get('image'))
     if (body.get('verify')==="1"){
         data.verify=1
@@ -65,7 +65,7 @@ export async function POST(request: Request){
     }
     // console.log(data)
     const {data : res,error}:{data:any, error:any}= await supabase.from('comment').insert([data]).select()
-    // console.log(res,error)
+    console.log(res,error)
     const course_id=res.course_id
 
 
