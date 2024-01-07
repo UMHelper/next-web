@@ -71,7 +71,7 @@ export default function RootLayout({
                         </div>
                     </div>
                     <Footer />
-                    <UADialog />
+                    {/* <UADialog /> */}
                     <Toaster richColors/>
                 </body>
             </html>
