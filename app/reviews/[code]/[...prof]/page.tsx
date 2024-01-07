@@ -168,9 +168,9 @@ const ReviewPage = async ({ params }: { params: { code: string, prof: string[] }
             <BBSAd />
             <div>
                 <div className='max-w-screen-xl mx-auto p-4'>
-                    <ReviewPagination code={code} prof={prof} page_num={page_num} total_page={Math.ceil(prof_info.comments / 10)} />
+                    {/* <ReviewPagination code={code} prof={prof} page_num={page_num} total_page={Math.ceil(prof_info.comments / 10)} /> */}
                     <Comments comments={comments} course_id={course_info.id} vote_history={vote_history} />
-                    <ReviewPagination code={code} prof={prof} page_num={page_num} total_page={Math.ceil(prof_info.comments / 10)} />
+                    <ReviewPagination code={code} prof={prof} page_num={page_num} total_page={Math.ceil(prof_info.comments / 20)} />
                 </div>
             </div>
             <ReviewReload/>

@@ -13,7 +13,7 @@ export const ReviewPagination =
         prof: string
     }) => {
         return (
-            <Pagination>
+            <Pagination className="py-1">
                 <PaginationContent>
                     {
                         page_num > 1 ? (
