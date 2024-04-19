@@ -87,7 +87,9 @@ export async function fetchCourseInfo(code: string) {
             break
         }
     }
-    ////console.log(course)
+    
+    const course_offer:any=await supabase.from('course_noporf').select('Is_Offered').eq('New_code',code)
+    isOffer=course_offer.data[0].Is_Offered===1 || isOffer
     return { course, profList, isOffer }
 }
 
