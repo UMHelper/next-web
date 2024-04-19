@@ -16,7 +16,7 @@ const ProfCard= async ({data,code}:{data:any,code:any})=>{
                         </div>
                         <div className='text-white flex flex-col'>
                             {
-                                parseInt(code[4])<=4 && (data.is_offered?
+                                (parseInt(code[4])<=4 && !process.env.IS_PREENROLLMENT_OPEN) && (data.is_offered?
                                     <div className='text-xs font-semibold rounded-3xl bg-gradient-to-r from-green-600 to-green-600 h-fit py-0.5 px-2 shadow'> Offered</div>
                                     :
                                     <div className='text-xs font-semibold rounded-3xl bg-gradient-to-r from-neutral-700 to-stone-900 h-fit py-0.5 px-2 shadow'> Not Offered</div>)

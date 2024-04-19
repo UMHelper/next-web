@@ -100,10 +100,14 @@ const ReviewPage = async ({ params }: { params: { code: string, prof: string[] }
                                     {/* <ChevronRightCircle size={16} strokeWidth={1.5} /> */}
                                 </Link>
                                 {(
-                                    is_offered ?
-                                        <div className='text-sm font-semibold rounded-3xl bg-gradient-to-r from-green-600 to-green-600 h-fit py-0.5 px-2 shadow'> Offered</div>
+                                    !process.env.IS_PREENROLLMENT_OPEN ?
+                                        (is_offered ?
+                                            <div className='text-sm font-semibold rounded-3xl bg-gradient-to-r from-green-600 to-green-600 h-fit py-0.5 px-2 shadow'> Offered</div>
+                                            :
+                                            <div className='text-sm font-semibold rounded-3xl bg-gradient-to-r from-neutral-700 to-stone-900 h-fit py-0.5 px-2 shadow'> Not Offered</div>
+                                        )
                                         :
-                                        <div className='text-sm font-semibold rounded-3xl bg-gradient-to-r from-neutral-700 to-stone-900 h-fit py-0.5 px-2 shadow'> Not Offered</div>
+                                        null
                                 )}
                             </div>
                             <div className='flex-row flex space-x-2'>
