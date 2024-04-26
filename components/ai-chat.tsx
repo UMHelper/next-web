@@ -145,7 +145,7 @@ const AiChatBot=()=>{
                                 }
                                 setMessages([...messages, 
                                     <HumanMessage message={currentMessage} t_key={messages.length} key={messages.length}/>,
-                                    <AIMessage userMessage={currentMessage} t_key={messages.length+1} setIsGenerating={setIsGenerating} key={messages.length+1} setIsGenerating={setIsGenerating}/>])
+                                    <AIMessage userMessage={currentMessage} t_key={messages.length+1} setIsGenerating={setIsGenerating} key={messages.length+1}/>])
                                     setCurrentMessage('')
                                 }
                                 
