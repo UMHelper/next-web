@@ -15,6 +15,7 @@ import Link from 'next/link';
 import UADialog from '@/components/ua-dialog';
 import CsBanner from '@/components/cs-banner';
 import type { Viewport } from 'next'
+import AiChatBot from '@/components/ai-chat';
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -56,6 +57,7 @@ export default function RootLayout({
                 </head>
                 <body className={cn(inter.className)}>
                     <div className='min-h-screen min-w-full'>
+                        <AiChatBot />
                         <Navbar />
                         {/* <div className='w-full px-1 py-2 flex flex-col justify-center items-center bg-slate-100 text-slate-800 text-xs space-y-1'>
                             <div>
