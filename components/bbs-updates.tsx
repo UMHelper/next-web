@@ -89,7 +89,7 @@ export default function BbsTopPosts() {
                             {
                                 data.data.map((comment: any) => (
 
-                                    <CarouselItem className="basis-2/3 md:basis-2/5 lg:basis-1/3">
+                                    <CarouselItem className="basis-2/3 md:basis-2/5 lg:basis-1/3" key={comment.id}>
 
                                         <Link href={"https://whole.umeh.top"}>
                                             <Card className=' hover:shadow-lg mx-auto'>
