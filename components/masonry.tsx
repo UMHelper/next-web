@@ -2,6 +2,7 @@
 import { cn } from "@/lib/utils";
 import React, {ReactElement, ReactNode, useEffect, useState} from "react";
 import AdBanner from "@/components/ad";
+import { BbsCard, fetchBbsUpdates } from "@/components/bbs-updates";
 
 export const MasonryRow=({children,className}:{children:ReactNode,className:any})=>{
     return (
@@ -32,7 +33,7 @@ export const MasonryCol=(
     )
 }
 
-const colListGen=(col_num:number,children:ReactElement[])=>{
+const colListGen=(col_num:number,children:ReactElement[],bbsdata:any)=>{
     let colList:ReactNode[][]=[]
     for (let i = 0; i < col_num; i++) {
         colList.push([])
@@ -43,9 +44,12 @@ const colListGen=(col_num:number,children:ReactElement[])=>{
             colList[j].push(children[i+j])
 
             if (Math.random()>0.8){
+                // rondomly choose one form bbsdata.data
+                let bbs = bbsdata.data[Math.floor(Math.random()*bbsdata.data.length)]
                 colList[j].push(
                     <div key={"gad-"+i+j}>
                        <AdBanner/> 
+                        <BbsCard comment={bbs} is_ad={true}/>
                     </div>
                 )
             }
@@ -68,6 +72,12 @@ export const Masonry=(
     const [curCol,setCurCol]=useState(col)
     const [colList,setColList]=useState<Array<any>>([])
 
+    const [bbsdata, setBbsData] = useState({ "data": [{ "id": 1, "content": "One second...", "verify_account": "placeholder", "title": "Loading", "pub_time": "1985-01-01T00:00:01" }], "code": 1 })
+    useEffect(() => {
+        fetchBbsUpdates().then((data) => {
+            setBbsData(data)
+        })
+    }, [])
     useEffect(()=>{
         let h = window.innerWidth;
         if (h<900 && h>=530){
@@ -82,8 +92,8 @@ export const Masonry=(
     },[col])
 
     useEffect(()=>{
-        setColList(colListGen(curCol,children))
-    },[curCol,children])
+        setColList(colListGen(curCol,children,bbsdata))
+    },[curCol,children,bbsdata])
 
     useEffect(() => {
         const windowResizeUpdate = () => {

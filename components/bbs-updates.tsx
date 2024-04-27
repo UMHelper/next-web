@@ -13,8 +13,9 @@ import { comment } from "postcss";
 import { AVATAR_EMOJI_LIST } from "@/lib/consant";
 import Link from "next/link";
 import { Button } from "./ui/button";
+import { cn } from "@/lib/utils";
 
-async function fetchBbsUpdates() {
+export async function fetchBbsUpdates() {
     return axios
         .get('https://whole.umeh.top/api/top-posts')
         .then(async response => {
@@ -44,6 +45,96 @@ const convertIsoTimeToMacauTime = (isoTime: string) => {
     const today = new Date(isoTime);
     today.setHours(today.getHours() + 8);
     return today.toISOString().slice(0, 16).replace('T', ' · ')
+}
+
+export const BbsCard = ({ comment, is_ad }: { comment: any, is_ad:boolean }) => {
+    return (
+        <Link href={"https://whole.umeh.top"}>
+            <Card className={cn(' hover:shadow-lg mx-auto', is_ad?"":"h-full")}>
+                <CardHeader className='pb-2 pt-4'  >
+                    <div className='flex justify-between'>
+
+                        <div className='flex space-x-2 items-center'>
+                            <div>
+                                <Avatar className="w-8 h-8">
+                                    <AvatarFallback className="text-sm">{HashEmojiAvatar({ user_id: comment.verify_account })}</AvatarFallback>
+                                </Avatar>
+                            </div>
+
+                            <div className='text-sm font-semibold text-gray-500'>Post #{
+                                comment.id
+                            }</div>
+                        </div>
+
+                        {/* if comment.isCurrentUserVoted  show badge*/}
+
+                            <div className="flex space-x-1 items-center text-gray-400 text-xs">
+                                {
+                                    is_ad?
+                                    (
+                                        <div className="border rounded p-1">
+                                            WHOLE
+                                        </div>
+                                    ):(
+                                <div className=''>
+                                    {
+                                        convertIsoTimeToMacauTime(comment.pub_time + 'Z')
+                                    }
+                                </div>
+                                    )
+                                }
+                                
+                            </div>
+
+                    </div>
+                </CardHeader>
+                <CardContent className='pt-1 pb-1'>
+
+                    <div className={cn('flex flex-col overflow-y-hidden', is_ad?'max-h-[180px]':'h-[180px]')}>
+                        {comment.title ?
+                            <p className='break-words font-semibold my-2'>
+                                {comment.title}
+                            </p> : null}
+
+                        <p className='break-words '>
+                            {comment.content}
+                        </p>
+                    </div >
+
+                    <div className="flex flex-wrap justify-start my-2 items-center text-xs">
+
+                        <div className='flex items-center me-2 my-1 px-2 py-1 rounded-full bg-gray-100 text-gray-800 border-gray-300 border hover:bg-gray-300'>
+                            <SmilePlus size={12} strokeWidth={2.5} />
+                        </div>
+                    </div>
+                </CardContent>
+
+                <CardFooter className='block bg-gray-50 py-1 pl-5'>
+
+                    <div>
+                        <div className="flex justify-between mt-3 mb-2 pl-1">
+                            <div className='text-xs hover:text-blue-500 hover:cursor-pointer flex space-x-1 items-center text-gray-800'
+                            >
+                                <MessageSquare size={12} strokeWidth={2.5} />
+                                <div>
+                                    Replies
+                                </div>
+                            </div>
+                            <div
+                                className=" text-xs hover:text-blue-500 hover:cursor-pointer flex space-x-1 items-center text-blue-500"
+                            >
+                                <Reply size={14} strokeWidth={2.5} />
+                                <div>
+                                    Reply
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </CardFooter>
+            </Card>
+        </Link>
+    )
 }
 
 export default function BbsTopPosts() {
@@ -90,84 +181,7 @@ export default function BbsTopPosts() {
                                 data.data.map((comment: any) => (
 
                                     <CarouselItem className="basis-2/3 md:basis-2/5 lg:basis-1/3" key={comment.id}>
-
-                                        <Link href={"https://whole.umeh.top"}>
-                                            <Card className=' hover:shadow-lg mx-auto'>
-                                                <CardHeader className='pb-2 pt-4'  >
-                                                    <div className='flex justify-between'>
-
-                                                        <div className='flex space-x-2 items-center'>
-                                                            <div>
-                                                                <Avatar className="w-8 h-8">
-                                                                    <AvatarFallback className="text-sm">{HashEmojiAvatar({ user_id: comment.verify_account })}</AvatarFallback>
-                                                                </Avatar>
-                                                            </div>
-
-                                                            <div className='text-sm font-semibold text-gray-500'>Post #{
-                                                                comment.id
-                                                            }</div>
-                                                        </div>
-
-                                                        {/* if comment.isCurrentUserVoted  show badge*/}
-                                                        <Popover>
-                                                            <PopoverTrigger className="inline-flex items-center">
-
-                                                                <span className='text-gray-400 text-xs'>
-                                                                    {
-                                                                        convertIsoTimeToMacauTime(comment.pub_time + 'Z')
-                                                                    }
-                                                                </span>
-
-                                                            </PopoverTrigger>
-                                                        </Popover>
-                                                    </div>
-                                                </CardHeader>
-                                                <CardContent className='pt-1 p3-1'>
-
-                                                    <div className='flex flex-col justify-between max-h-[180px] overflow-y-hidden'>
-                                                        {comment.title ?
-                                                            <p className='break-words font-semibold my-2'>
-                                                                {comment.title}
-                                                            </p> : null}
-
-                                                        <p className='break-words '>
-                                                            {comment.content}
-                                                        </p>
-                                                    </div >
-
-                                                    <div className="flex flex-wrap justify-start my-2 items-center text-xs">
-
-                                                        <div className='flex items-center me-2 my-1 px-2 py-1 rounded-full bg-gray-100 text-gray-800 border-gray-300 border hover:bg-gray-300'>
-                                                            <SmilePlus size={12} strokeWidth={2.5} />
-                                                        </div>
-                                                    </div>
-                                                </CardContent>
-
-                                                <CardFooter className='block bg-gray-50 py-1 pl-5'>
-
-                                                    <div>
-                                                        <div className="flex justify-between mt-3 mb-2 pl-1">
-                                                            <div className='text-xs hover:text-blue-500 hover:cursor-pointer flex space-x-1 items-center text-gray-800'
-                                                            >
-                                                                <MessageSquare size={12} strokeWidth={2.5} />
-                                                                <div>
-                                                                    Replies
-                                                                </div>
-                                                            </div>
-                                                            <div
-                                                                className=" text-xs hover:text-blue-500 hover:cursor-pointer flex space-x-1 items-center text-blue-500"
-                                                            >
-                                                                <Reply size={14} strokeWidth={2.5} />
-                                                                <div>
-                                                                    Reply
-                                                                </div>
-                                                            </div>
-                                                        </div>
-
-                                                    </div>
-                                                </CardFooter>
-                                            </Card>
-                                        </Link>
+                                        <BbsCard comment={comment} is_ad={false}/>
                                     </CarouselItem>
 
 
