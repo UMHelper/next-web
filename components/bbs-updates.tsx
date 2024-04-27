@@ -124,7 +124,7 @@ export default function BbsTopPosts() {
                                                 </CardHeader>
                                                 <CardContent className='pt-1 p3-1'>
 
-                                                    <div className='flex flex-col justify-between max-h-[500px] overflow-y-auto'>
+                                                    <div className='flex flex-col justify-between max-h-[180px] overflow-y-hidden'>
                                                         {comment.title ?
                                                             <p className='break-words font-semibold my-2'>
                                                                 {comment.title}
