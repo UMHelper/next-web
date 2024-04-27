@@ -258,7 +258,7 @@ export default function BbsTopPosts() {
 // }
 
 export const BBSAd = () => {
-    return null
+    //return null
     return (
         <div className='w-full px-1 py-2 flex justify-center items-center bg-slate-100 text-slate-500 text-xs'>
             <span>對課程有疑問？歡迎前往 <a href="https://whole.umeh.top" className=" self-center font-semibold whitespace-nowrap bg-gradient-to-r from-sky-500 to-indigo-600 bg-clip-text text-transparent px-1">
