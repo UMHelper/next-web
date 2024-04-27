@@ -26,7 +26,7 @@ const ChatMessage=({message, type, t_key}:{message:string, type:'AI'|'HUMAN', t_
 }
 
 const AIMessage=({userMessage, t_key, setIsGenerating}:{userMessage:string, t_key:number, setIsGenerating:any})=>{
-    const [message, setMessage]=useState('Generating response...')
+    const [message, setMessage]=useState('Genius is thinking...')
 
     const initialized = useRef(false)
     useEffect(()=>{
@@ -103,7 +103,7 @@ const HumanMessage=({message, t_key}:{message:string,t_key:number})=>{
 }
 
 const AiChatBot=()=>{
-    const [isOpen, setIsOpen]=useState(true);
+    const [isOpen, setIsOpen]=useState(false);
     const [isGenerating, setIsGenerating]=useState(false)
 
     const [currentMessage, setCurrentMessage]=useState('');
@@ -119,8 +119,8 @@ const AiChatBot=()=>{
             </div>
             <div 
                 className={cn(
-                    'fixed bottom-28 lg:left-4 left-1 z-50 shadow-lg border bg-white h-2/3 lg:w-1/4 md:w-1/3 w-1/2 rounded-lg my-8 py-1', 
-                    isOpen?'block':'hidden')}>
+                    'fixed bottom-28 lg:left-4 left-1 z-50 shadow-lg border bg-white h-2/3 lg:w-1/4 md:w-1/3 w-1/2 rounded-lg my-8 py-1 transition-opacity duration-200 ease-linear', 
+                    isOpen?' opacity-100':'opacity-0')}>
                 <div className='px-2 overflow-scroll h-full'>
                     <div className='text-xs text-slate-400 text-center'>
                         Powered by ChatGPT
