@@ -1,8 +1,10 @@
 'use client'
 import { cn } from "@/lib/utils";
-import React, {ReactElement, ReactNode, useEffect, useState} from "react";
+import React, {ReactElement, ReactNode, useEffect, useState, useRef} from "react";
 import AdBanner from "@/components/ad";
 import { BbsCard, fetchBbsUpdates } from "@/components/bbs-updates";
+
+import autoAnimate from '@formkit/auto-animate'
 
 export const MasonryRow=({children,className}:{children:ReactNode,className:any})=>{
     return (
@@ -48,8 +50,8 @@ const colListGen=(col_num:number,children:ReactElement[],bbsdata:any)=>{
                 let bbs = bbsdata.data[Math.floor(Math.random()*bbsdata.data.length)]
                 colList[j].push(
                     <div key={"gad-"+i+j}>
-                       <AdBanner/> 
                         <BbsCard comment={bbs} is_ad={true}/>
+                        <AdBanner/> 
                     </div>
                 )
             }
@@ -73,6 +75,13 @@ export const Masonry=(
     const [colList,setColList]=useState<Array<any>>([])
 
     const [bbsdata, setBbsData] = useState({ "data": [{ "id": 1, "content": "One second...", "verify_account": "placeholder", "title": "Loading", "pub_time": "1985-01-01T00:00:01" }], "code": 1 })
+    const parent = useRef(null)
+    
+    useEffect(() => {
+        parent.current && autoAnimate(parent.current)
+    }, [parent])
+
+      
     useEffect(() => {
         fetchBbsUpdates().then((data) => {
             setBbsData(data)
@@ -116,7 +125,9 @@ export const Masonry=(
 
     return(
         <div className={cn(
-            'grid','gap-4',"grid-cols-"+(curCol))}>
+            'grid','gap-4',"grid-cols-"+(curCol))}
+            ref={parent}
+            >
             {colList.map((col:ReactNode[],index:number)=>{
                 return (
                     <MasonryCol key={"col"+index} className={className}>
