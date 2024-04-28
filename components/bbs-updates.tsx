@@ -17,7 +17,15 @@ import { cn } from "@/lib/utils";
 
 export async function fetchBbsUpdates() {
     return axios
-        .get('https://whole.umeh.top/api/top-posts')
+        .get('https://whole.umeh.top/api/post/top-posts')
+        .then(async response => {
+            return response.data
+        })
+}
+
+export async function fetchBbsUpdatesRandom() {
+    return axios
+        .get('https://whole.umeh.top/api/post/random-posts')
         .then(async response => {
             return response.data
         })

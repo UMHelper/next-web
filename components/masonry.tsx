@@ -1,8 +1,8 @@
 'use client'
-import { cn } from "@/lib/utils";
+import { cn, delay } from "@/lib/utils";
 import React, {ReactElement, ReactNode, useEffect, useState, useRef} from "react";
 import AdBanner from "@/components/ad";
-import { BbsCard, fetchBbsUpdates } from "@/components/bbs-updates";
+import { BbsCard, fetchBbsUpdatesRandom } from "@/components/bbs-updates";
 
 import autoAnimate from '@formkit/auto-animate'
 
@@ -83,7 +83,7 @@ export const Masonry=(
 
       
     useEffect(() => {
-        fetchBbsUpdates().then((data) => {
+        fetchBbsUpdatesRandom().then((data) => {
             setBbsData(data)
         })
     }, [])
