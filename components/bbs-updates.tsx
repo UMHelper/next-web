@@ -78,7 +78,7 @@ export const BbsCard = ({ comment, is_ad }: { comment: any, is_ad:boolean }) => 
 
                             <div className="flex space-x-1 items-center text-gray-400 text-xs">
                                 {
-                                    is_ad?
+                                    true ? //is_ad?
                                     (
                                         <div className="border rounded p-1">
                                             WHOLE
@@ -125,7 +125,7 @@ export const BbsCard = ({ comment, is_ad }: { comment: any, is_ad:boolean }) => 
                             >
                                 <MessageSquare size={12} strokeWidth={2.5} />
                                 <div>
-                                    Replies
+                                    See Replies
                                 </div>
                             </div>
                             <div
@@ -148,7 +148,7 @@ export const BbsCard = ({ comment, is_ad }: { comment: any, is_ad:boolean }) => 
 export default function BbsTopPosts() {
     const [data, setData] = useState({ "data": [{ "id": 1, "content": "One second...", "verify_account": "placeholder", "title": "Loading", "pub_time": "1985-01-01T00:00:01" }], "code": 1 })
     useEffect(() => {
-        fetchBbsUpdates().then((data) => {
+        fetchBbsUpdatesRandom().then((data) => {
             setData(data)
         })
     }, [])
@@ -188,7 +188,7 @@ export default function BbsTopPosts() {
                             {
                                 data.data.map((comment: any) => (
 
-                                    <CarouselItem className="basis-2/3 md:basis-2/5 lg:basis-1/3" key={comment.id}>
+                                    <CarouselItem className="basis-4/5 md:basis-2/5 lg:basis-1/3" key={comment.id}>
                                         <BbsCard comment={comment} is_ad={false}/>
                                     </CarouselItem>
 
