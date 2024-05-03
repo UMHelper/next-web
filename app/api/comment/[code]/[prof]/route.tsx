@@ -13,21 +13,40 @@ export async function POST(request: Request){
     // delete body.prof
     let data:any={}
     data.course_id=course.id
+    
+    // ensure score is between 1 to 5
+    let regularizeScore = (score: any) => {
+        let scoreFloat = parseFloat(score as string);
+        if (scoreFloat < 1) return 1
+        if (scoreFloat > 5) return 5
+        return scoreFloat
+    }
+    
     // console.log(data)
-    data.result=(parseFloat(body.get('attendance') as string)+
-                parseFloat(body.get('pre') as string)+
-                parseFloat(body.get('grade') as string)+
-                parseFloat(body.get("hard") as string)+
-                parseFloat(body.get('reward') as string)+
-                parseFloat(body.get('assignment') as string)+
-                parseFloat(body.get('recommend') as string))/7
-    data.attendance=parseFloat(body.get('attendance') as string)
-    data.pre=parseFloat(body.get('pre') as string)
-    data.grade=parseFloat(body.get('grade') as string)
-    data.hard=parseFloat(body.get("hard") as string)
-    data.reward=parseFloat(body.get('reward') as string)
-    data.assignment=parseFloat(body.get('assignment') as string)
-    data.recommend=parseFloat(body.get('recommend') as string)
+
+    data.attendance=regularizeScore(body.get('attendance'))
+    data.pre=regularizeScore(body.get('pre'))
+    data.grade=regularizeScore(body.get('grade'))
+    data.hard=regularizeScore(body.get("hard"))
+    data.reward=regularizeScore(body.get('reward'))
+    data.assignment=regularizeScore(body.get('assignment'))
+    data.recommend=regularizeScore(body.get('recommend'))
+    data.result=(data.attendance+data.pre+data.grade+data.hard+data.reward+data.assignment+data.recommend)/7
+
+    // data.result=(parseFloat(body.get('attendance') as string)+
+    //             parseFloat(body.get('pre') as string)+
+    //             parseFloat(body.get('grade') as string)+
+    //             parseFloat(body.get("hard") as string)+
+    //             parseFloat(body.get('reward') as string)+
+    //             parseFloat(body.get('assignment') as string)+
+    //             parseFloat(body.get('recommend') as string))/7
+    // data.attendance=parseFloat(body.get('attendance') as string)
+    // data.pre=parseFloat(body.get('pre') as string)
+    // data.grade=parseFloat(body.get('grade') as string)
+    // data.hard=parseFloat(body.get("hard") as string)
+    // data.reward=parseFloat(body.get('reward') as string)
+    // data.assignment=parseFloat(body.get('assignment') as string)
+    // data.recommend=parseFloat(body.get('recommend') as string)
     data.content=body.get('content') as string
     // // 2021-10-10T16:00:00.000Z
     data.pub_time=new Date().toISOString().slice(0, 19).replace('T', ' ')
@@ -42,6 +61,11 @@ export async function POST(request: Request){
         data.verify=1
         data.verify_account=body.get('verify_account') as string
     }
+    else{
+        data.verify=0
+        data.verify_account=null
+    }
+
     if (body.get('verify')==="1" && body.get('image')!=""){
         const image:any=(await body.get('image'))
         // const ext=image.name.split('.').pop()
@@ -64,7 +88,13 @@ export async function POST(request: Request){
         })
         const json=await response.json()
         // console.log(json)
-        data.img=json.data.link
+        
+        if (json.success){
+            data.img=json.data.link
+        }
+        else{
+            return new NextResponse(null,{status:400})
+        }
         
     }
     // console.log(data)

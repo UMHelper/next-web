@@ -13,6 +13,7 @@ export async function POST(request: Request){
     body.id=id.data[0].id+1
     delete body.emoji_vote
     delete body.vote_history
+    delete body.img
 
     const {data,error}:{data:any,error:any}=await supabase.from('comment').insert([body]).select()
 

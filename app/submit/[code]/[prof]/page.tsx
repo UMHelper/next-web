@@ -113,7 +113,7 @@ const SubmitPage = ({ params }: { params: any }) => {
             {
                 loading: 'Submitting...',
                 success: 'Submitted!',
-                error: 'Failed to submit.',
+                error: 'Failed to submit.'
             }
         )
         
