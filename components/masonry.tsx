@@ -45,7 +45,7 @@ const colListGen=(col_num:number,children:ReactElement[],bbsdata:any)=>{
         for (let j = 0; j < col_num; j++) {
             colList[j].push(children[i+j])
 
-            if (Math.random()>0.8){
+            if (Math.random()>0.9){
                 // rondomly choose one form bbsdata.data
                 let bbs = bbsdata.data[Math.floor(Math.random()*bbsdata.data.length)]
                 colList[j].push(

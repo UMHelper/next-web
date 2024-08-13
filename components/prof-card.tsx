@@ -5,7 +5,7 @@ import Link from "next/link";
 import { getCommentNumber } from "@/lib/database/get-comment-list";
 
 const ProfCard= async ({data,code}:{data:any,code:any})=>{
-
+    console.log(Number(process.env.IS_PREENROLLMENT_OPEN)==0)
     return(
         <Link href={'/reviews/'+code+'/'+data.prof_id}>
             <Card className='hover:cursor-pointer hover:shadow-lg'>
@@ -16,7 +16,7 @@ const ProfCard= async ({data,code}:{data:any,code:any})=>{
                         </div>
                         <div className='text-white flex flex-col'>
                             {
-                                (parseInt(code[4])<=4 && !process.env.IS_PREENROLLMENT_OPEN) && (data.is_offered?
+                                (parseInt(code[4])<=4 && Number(process.env.IS_PREENROLLMENT_OPEN)==0) && (data.is_offered?
                                     <div className='text-xs font-semibold rounded-3xl bg-gradient-to-r from-green-600 to-green-600 h-fit py-0.5 px-2 shadow'> Offered</div>
                                     :
                                     <div className='text-xs font-semibold rounded-3xl bg-gradient-to-r from-neutral-700 to-stone-900 h-fit py-0.5 px-2 shadow'> Not Offered</div>)
