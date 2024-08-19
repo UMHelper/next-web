@@ -4,9 +4,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { menuList as menu } from "@/lib/consant";
 
+import { Badge } from "@/components/ui/badge"
+import { useLocalStorage } from 'usehooks-ts'
+
 export default function NavbarList() {
     const pathname = usePathname()
     const menuList = menu
+    const [timetableCart, setTimetableCart] = useLocalStorage<any[]>('timetableCart', [])
 
     return (
         <div className="flex flex-wrap items-center justify-start ">
@@ -18,13 +22,17 @@ export default function NavbarList() {
                 <div className="font-medium flex flex-col p-4 md:p-0 mt-4 border border-gray-100 rounded-lg bg-gray-50 md:flex-row md:space-x-8 md:mt-0 md:border-0 md:bg-white">
                     {menuList.map((menu: MenuItem) => {
                         return (
+                            <div className="flex flex-row items-center justify-start space-x-0.5">
                             <Link href={menu.href}
                                 className={menu.href === pathname ? "text-blue-700 px-1 rounded" :
                                     "text-gray-900 hover:bg-gray-100 hover:text-blue-500 px-1 rounded"}
                                 key={menu.href}
                             >
                                 {menu.name}
+
                             </Link>
+                                {menu.name==="Timetable" && timetableCart.length!=0 ? <Badge variant={'umeh'}>{timetableCart.length}</Badge>: null}
+                            </div>
                         )
                     })}
                 </div>
