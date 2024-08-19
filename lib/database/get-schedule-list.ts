@@ -21,6 +21,12 @@ const getScheduleList = async (code: string, prof: string) => {
                 time: entry.times,
                 location: entry.location
             });
+            // remove duplicate schedules
+            sectionEntry.schedules = sectionEntry.schedules.filter((schedule: any, index: number, self: any) =>
+                index === self.findIndex((t: any) => (
+                    t.date === schedule.date && t.time === schedule.time && t.location === schedule.location
+                ))
+            )
         }
     });
     return res;
