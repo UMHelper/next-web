@@ -63,7 +63,7 @@ export async function POST(request: Request){
     }
     else{
         data.verify=0
-        data.verify_account=null
+        data.verify_account=""
     }
 
     if (body.get('verify')==="1" && body.get('image')!=""){
