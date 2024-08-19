@@ -22,7 +22,7 @@ export default function NavbarList() {
                 <div className="font-medium flex flex-col p-4 md:p-0 mt-4 border border-gray-100 rounded-lg bg-gray-50 md:flex-row md:space-x-8 md:mt-0 md:border-0 md:bg-white">
                     {menuList.map((menu: MenuItem) => {
                         return (
-                            <div className="flex flex-row items-center justify-start space-x-0.5">
+                            <div className="flex flex-row items-center justify-start space-x-0.5" key={menu.href}>
                             <Link href={menu.href}
                                 className={menu.href === pathname ? "text-blue-700 px-1 rounded" :
                                     "text-gray-900 hover:bg-gray-100 hover:text-blue-500 px-1 rounded"}
