@@ -5,7 +5,7 @@ import Link from "next/link";
 import { getCommentNumber } from "@/lib/database/get-comment-list";
 
 const ProfCard= async ({data,code}:{data:any,code:any})=>{
-    console.log(Number(process.env.IS_PREENROLLMENT_OPEN)==0)
+    // console.log(Number(process.env.IS_PREENROLLMENT_OPEN)==0)
     return(
         <Link href={'/reviews/'+code+'/'+data.prof_id}>
             <Card className='hover:cursor-pointer hover:shadow-lg'>

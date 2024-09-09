@@ -56,7 +56,7 @@ async function CoursePage({ params }: { params: { code: string } }) {
         isOffer: boolean
     }
         = await fetchCourseInfo(code)
-    //console.log(course)
+        
     return (
         <>
             <div className='bg-gradient-to-r from-blue-600 to-indigo-500 text-white p-3'>
