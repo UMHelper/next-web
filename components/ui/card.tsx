@@ -1,19 +1,28 @@
+"use client"
 import * as React from "react"
 
 import { cn } from "@/lib/utils"
+
+import Tilt from 'react-parallax-tilt';
 
 const Card = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    className={cn(
-      "rounded-lg border bg-card text-card-foreground shadow-sm",
-      className
-    )}
-    {...props}
-  />
+  <Tilt
+    scale={1.05}
+    tiltMaxAngleX={10}
+    tiltMaxAngleY={10}
+  >
+    <div
+      ref={ref}
+      className={cn(
+        "rounded-lg border bg-card text-card-foreground shadow-sm",
+        className
+      )}
+      {...props}
+      />
+  </Tilt>
 ))
 Card.displayName = "Card"
 
