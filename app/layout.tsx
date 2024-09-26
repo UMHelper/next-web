@@ -57,14 +57,14 @@ export default function RootLayout({
                 <body className={cn(inter.className)}>
                     <div className='min-h-screen min-w-full'>
                         <Navbar />
-                        {/* <div className='w-full px-1 py-2 flex flex-col justify-center items-center bg-slate-100 text-slate-800 text-xs space-y-1'>
+                        <div className='w-full px-1 py-2 flex flex-col justify-center items-center bg-slate-100 text-slate-800 text-xs space-y-1'>
                             <div>
-                                課表數據庫已更新至 <span className='font-semibold bg-gradient-to-r from-sky-500 to-indigo-600 bg-clip-text text-transparent'>2023/2024 學年 第二學期</span>
+                                本網站與澳門大學不隸屬、關聯、授權、認可或以任何方式正式關聯。
                             </div>
                             <div>
-                                歡迎使用 <span className='font-semibold bg-gradient-to-r from-sky-500 to-indigo-600 bg-clip-text text-transparent'><Link href='/timetable'>課表模擬助手</Link></span>
+                                This website is not affiliated, associated, authorized, endorsed by, or in any way officially connected with the University of Macau.
                             </div>
-                        </div> */}
+                        </div>
                         {/* <CsBanner /> */}
                         <div>
                             {children}
