@@ -3,7 +3,7 @@ import '@smastrom/react-rating/style.css'
 
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
-import React from "react";
+import React, { useState, useEffect } from "react";
 
 import Navbar from "@/components/navbar";
 import { cn } from "@/lib/utils";
@@ -35,6 +35,20 @@ export default function RootLayout({
 }: {
     children: React.ReactNode
 }) {
+    const [isDarkMode, setIsDarkMode] = useState(false);
+
+    useEffect(() => {
+        if (isDarkMode) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    }, [isDarkMode]);
+
+    const toggleDarkMode = () => {
+        setIsDarkMode(!isDarkMode);
+    };
+
     return (
         <ClerkProvider>
             <html lang="en">
@@ -56,7 +70,7 @@ export default function RootLayout({
                 </head>
                 <body className={cn(inter.className)}>
                     <div className='min-h-screen min-w-full'>
-                        <Navbar />
+                        <Navbar isDarkMode={isDarkMode} toggleDarkMode={toggleDarkMode} />
                         <div className='w-full px-1 py-2 flex flex-col justify-center items-center bg-slate-100 text-slate-800 text-xs space-y-1'>
                             <div>
                                 本網站與澳門大學不隸屬、關聯、授權、認可或以任何方式正式關聯。

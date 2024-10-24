@@ -7,7 +7,7 @@ export default async function CommentBank() {
     const statistics:any = await getStatistics();
     return (
         <div className="flex flex-wrap justify-center	">
-            <Card className="flex flex-col items-center p-4 m-2 min-w-[20%] dark:bg-gray-800 rounded-lg shadow-md ">
+            <Card className="flex flex-col items-center p-4 m-2 min-w-[20%] dark:bg-gray-800 rounded-lg shadow-md dark:bg-gray-800 dark:text-white">
                 <Newspaper size={80} strokeWidth={1} className="pb-3" />
                 <Link href="https://www.umeh.top/catalog/FAH" className="text-lg">
                     FAH
@@ -19,7 +19,7 @@ export default async function CommentBank() {
                     {statistics[0].comment_num} comments
                 </div>
             </Card>
-            <Card className="flex flex-col items-center p-4 m-2 min-w-[20%] dark:bg-gray-800 rounded-lg shadow-md ">
+            <Card className="flex flex-col items-center p-4 m-2 min-w-[20%] dark:bg-gray-800 rounded-lg shadow-md dark:bg-gray-800 dark:text-white">
                 <CircleDollarSign size={80} strokeWidth={1} className="pb-3 " />
                 <Link href="https://www.umeh.top/catalog/FBA" className="text-lg">
                     FBA
@@ -31,7 +31,7 @@ export default async function CommentBank() {
                     {statistics[1].comment_num} comments
                 </div>
             </Card>
-            <Card className="flex flex-col items-center p-4 m-2 min-w-[20%] dark:bg-gray-800 rounded-lg shadow-md ">
+            <Card className="flex flex-col items-center p-4 m-2 min-w-[20%] dark:bg-gray-800 rounded-lg shadow-md dark:bg-gray-800 dark:text-white">
                 <School size={80} strokeWidth={1} className="pb-3 " />
                 <Link href="https://www.umeh.top/catalog/FED" className="text-lg">
                     FED
@@ -43,7 +43,7 @@ export default async function CommentBank() {
                     {statistics[2].comment_num} comments
                 </div>
             </Card>
-            <Card className="flex flex-col items-center p-4 m-2 min-w-[20%] dark:bg-gray-800 rounded-lg shadow-md ">
+            <Card className="flex flex-col items-center p-4 m-2 min-w-[20%] dark:bg-gray-800 rounded-lg shadow-md dark:bg-gray-800 dark:text-white">
                 <Microscope size={80} strokeWidth={1} className="pb-3 " />
                 <Link href="https://www.umeh.top/catalog/FHS" className="text-lg">
                     FHS
@@ -55,7 +55,7 @@ export default async function CommentBank() {
                     {statistics[3].comment_num} comments
                 </div>
             </Card>
-            <Card className="flex flex-col items-center p-4 m-2 min-w-[20%] dark:bg-gray-800 rounded-lg shadow-md ">
+            <Card className="flex flex-col items-center p-4 m-2 min-w-[20%] dark:bg-gray-800 rounded-lg shadow-md dark:bg-gray-800 dark:text-white">
                 <Scale size={80} strokeWidth={1} className="pb-3 " />
                 <Link href="https://www.umeh.top/catalog/FLL" className="text-lg">
                     FLL
@@ -67,7 +67,7 @@ export default async function CommentBank() {
                     {statistics[4].comment_num} comments
                 </div>
             </Card>
-            <Card className="flex flex-col items-center p-4 m-2 min-w-[20%] dark:bg-gray-800 rounded-lg shadow-md ">
+            <Card className="flex flex-col items-center p-4 m-2 min-w-[20%] dark:bg-gray-800 rounded-lg shadow-md dark:bg-gray-800 dark:text-white">
                 <BookMarked size={80} strokeWidth={1} className="pb-3 " />
                 <Link href="https://www.umeh.top/catalog/FSS" className="text-lg">
                     FSS
@@ -79,7 +79,7 @@ export default async function CommentBank() {
                     {statistics[5].comment_num} comments
                 </div>
             </Card>
-            <Card className="flex flex-col items-center p-4 m-2 min-w-[20%] dark:bg-gray-800 rounded-lg shadow-md ">
+            <Card className="flex flex-col items-center p-4 m-2 min-w-[20%] dark:bg-gray-800 rounded-lg shadow-md dark:bg-gray-800 dark:text-white">
                 <Bot size={80} strokeWidth={1} className="pb-3 " />
                 <Link href="https://www.umeh.top/catalog/FST" className="text-lg">
                     FST

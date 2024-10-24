@@ -4,9 +4,21 @@ import NavbarAvatar from '@/components/navbar-avatar';
 import TimetableCart from "@/components/timetable-cart";
 import { UserButton } from "@clerk/nextjs";
 import SearchButton from "@/components/search-button";
-
+import { Switch } from "@/components/ui/switch";
+import { useState } from "react";
 
 const Navbar = () => {
+    const [isDarkMode, setIsDarkMode] = useState(false);
+
+    const toggleDarkMode = () => {
+        setIsDarkMode(!isDarkMode);
+        if (isDarkMode) {
+            document.documentElement.classList.remove('dark');
+        } else {
+            document.documentElement.classList.add('dark');
+        }
+    };
+
     return (
         <div className="bg-white border-gray-200 max-w-screen-xl mx-auto p-4 ">
             <div className='flex flex-row justify-between'>
@@ -19,6 +31,7 @@ const Navbar = () => {
                         <SearchButton />
                         <TimetableCart />
                         <NavbarAvatar />
+                        <Switch checked={isDarkMode} onCheckedChange={toggleDarkMode} />
                     </div>
                 </div>
             </div>

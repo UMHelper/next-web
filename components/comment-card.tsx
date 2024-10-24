@@ -481,7 +481,7 @@ export const CommentCard = (
     { comment, reply_comment }: { comment: any, reply_comment: any[] }
 ) => {
     return (
-        <Card className=' hover:shadow-lg mx-auto'>
+        <Card className=' hover:shadow-lg mx-auto dark:bg-gray-800 dark:text-white'>
             <CardHeader className='pb-2 pt-4'  >
                 <div className='flex justify-between'>
                     <Popover>
@@ -584,7 +584,7 @@ export const CommentCard = (
             </CardContent>
             {//<Separator className='my-2' />
             }
-            <CardFooter className='block bg-gray-50 py-1 pl-5'>
+            <CardFooter className='block bg-gray-50 py-1 pl-5 dark:bg-gray-700'>
                 <ReplyComponent comment={comment} reply_comment={reply_comment} />
             </CardFooter>
         </Card>
