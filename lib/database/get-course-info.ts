@@ -21,14 +21,14 @@ const allowLegacyRenegotiationOptions = {
         secureOptions: crypto.constants.SSL_OP_LEGACY_SERVER_CONNECT,
     }),
     headers: {
-        Authorization: 'Bearer bfa9b6c0-3f4f-3b1f-92c4-1bdd885a1ca2',
+        Authorization: 'f5aaa86cc5b4424aa621538fceaab34f',
     },
 };
 
 
 export async function fetchCourseInfoByUMAPI(code: string) {
     return await axios
-        .get('https://api.data.um.edu.mo/service/academic/course_catalog/v1.0.0/all?course_code=' + code.toUpperCase(), allowLegacyRenegotiationOptions)
+        .get('https://api.data.um.edu.mo/service/academic/course_catalog/all?course_code=' + code.toUpperCase(), allowLegacyRenegotiationOptions)
         .then(async response => {
             if (response.data['_embedded'][0] != undefined)
                 return response.data['_embedded'][0];
@@ -73,6 +73,7 @@ export async function fetchCourseInfoByUMAPI(code: string) {
 }
 
 export async function fetchCourseInfo(code: string) {
+    console.log('fetching course info for ' + code)
     const course:any = await fetchCourseInfoByUMAPI(code)
     const profList: any = await getProfListByCourse(code)
     profList.sort((a: any, b: any) => {
@@ -90,6 +91,8 @@ export async function fetchCourseInfo(code: string) {
     
     const course_offer:any=await supabase.from('course_noporf').select('Is_Offered').eq('New_code',code)
     isOffer=course_offer.data[0].Is_Offered===1 || isOffer
+
+    console.log(course)
     return { course, profList, isOffer }
 }
 
