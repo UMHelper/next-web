@@ -13,7 +13,7 @@ export default function NavbarAvatar() {
     const pathname = usePathname()
     // console.log(pathname)
     return (
-        <div className="flex md:justify-center items-center">
+        <div className="flex md:justify-center items-center dark:bg-gray-800 dark:text-white">
             <SignedIn>
                 {/* Mount the UserButton component */}
                 <UserButton afterSignOutUrl={pathname}/>
