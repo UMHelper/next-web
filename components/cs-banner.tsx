@@ -23,7 +23,7 @@ const CsBanner = () => {
     if (!isCS) return null
     return (
         <div className='w-full px-1 py-2 flex justify-center items-center bg-slate-100 text-black text-xs break-words flex-wrap'>
-            💻 如果你喜歡coding，有興趣為 <span className="font-semibold bg-gradient-to-r from-sky-500 to-indigo-600 bg-clip-text text-transparent">What2Reg @ UM</span> 出一分力，歡迎你<Link href="https://github.com/UMHelper/Feedback-and-Join-Us" className=" underline">加入我們</Link>！💻
+            💻 如果你有興趣參與 <span className="font-semibold bg-gradient-to-r from-sky-500 to-indigo-600 bg-clip-text text-transparent">What2Reg @ UM</span> 開發中，歡迎你 <Link href="https://github.com/UMHelper/Feedback-and-Join-Us" className=" underline">加入UMHelper Dev Group</Link>！我們使用 Next.js 進行全棧開發 💻
         </div>
     )
 }

@@ -6,7 +6,7 @@ export async function POST(request: Request){
     const body=await request.json();
 
     const id:any=await supabase.from('comment').select('id').order('id',{ascending:false}).limit(1)
-    console.log(id)
+    // console.log(id)
     
     // DO NOT CHANGE THIS ID 
     // check comment API 
@@ -17,7 +17,7 @@ export async function POST(request: Request){
 
     const {data,error}:{data:any,error:any}=await supabase.from('comment').insert([body]).select()
 
-    console.log(data,error)
+    // console.log(data,error)
     let reply=data[0]
     reply.emoji_vote=REACTION_EMOJI_LIST.map((emoji:string)=>({emoji:emoji,count:0}))
     reply.vote_history=[]

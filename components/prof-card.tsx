@@ -4,6 +4,8 @@ import {Separator} from "@/components/ui/separator";
 import Link from "next/link";
 import { getCommentNumber } from "@/lib/database/get-comment-list";
 
+import { SparklesText } from "@/components/magicui/sparkles-text";
+
 const ProfCard= async ({data,code}:{data:any,code:any})=>{
     // console.log(Number(process.env.IS_PREENROLLMENT_OPEN)==0)
     return(
@@ -17,9 +19,9 @@ const ProfCard= async ({data,code}:{data:any,code:any})=>{
                         <div className='text-white flex flex-col'>
                             {
                                 (parseInt(code[4])<=4 && Number(process.env.IS_PREENROLLMENT_OPEN)==0) && (data.is_offered?
-                                    <div className='text-xs font-semibold rounded-3xl bg-gradient-to-r from-green-600 to-green-600 h-fit py-0.5 px-2 shadow'> Offered</div>
-                                    :
-                                    <div className='text-xs font-semibold rounded-3xl bg-gradient-to-r from-neutral-700 to-stone-900 h-fit py-0.5 px-2 shadow'> Not Offered</div>)
+                                    <SparklesText className='text-xs font-semibold rounded-3xl bg-gradient-to-r from-green-600 to-green-600 h-fit py-0.5 px-2 shadow font-normal' sparklesCount={3}> Offered</SparklesText>
+                                    : null)
+                                    // <div className='text-xs font-semibold rounded-3xl bg-gradient-to-r from-neutral-700 to-stone-900 h-fit py-0.5 px-2 shadow'> Not Offered</div>)
                             }
                         </div>
                     </div>

@@ -13,6 +13,8 @@ import supabase from '@/lib/database/database';
 import { BBSAd } from "@/components/bbs-updates";
 import { Viewport } from "next";
 
+import { SparklesText } from "@/components/magicui/sparkles-text";
+
 export function generateMetadata(
     { params }: { params: any }) {
     const title = `${params.code.toUpperCase()} | What2Reg @ UM 澳大選咩課`
@@ -82,9 +84,9 @@ async function CoursePage({ params }: { params: { code: string } }) {
                                 </div>
                                 {
                                     parseInt(course['courseCode'][4]) <= 4 && (isOffer ?
-                                        <div className='text-sm font-semibold rounded-3xl bg-gradient-to-r from-green-600 to-green-600 h-fit py-0.5 px-2 shadow'> Offered</div>
-                                        :
-                                        <div className='text-sm font-semibold rounded-3xl bg-gradient-to-r from-neutral-700 to-stone-900 h-fit py-0.5 px-2 shadow'> Not Offered</div>)
+                                        <SparklesText className='text-sm font-semibold rounded-3xl bg-gradient-to-r from-green-600 to-green-600 h-fit py-0.5 px-2 shadow font-normal' sparklesCount={3}> Offered</SparklesText>
+                                        : null)
+                                        // <div className='text-sm font-semibold rounded-3xl bg-gradient-to-r from-neutral-700 to-stone-900 h-fit py-0.5 px-2 shadow'> Not Offered</div>)
                                 }
                             </div>
                             <div className='text-xl font-semibold'>{course["courseTitle"]}</div>

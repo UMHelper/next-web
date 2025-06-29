@@ -47,10 +47,10 @@ const colListGen=(col_num:number,children:ReactElement[],bbsdata:any)=>{
 
             if (Math.random()>0.9){
                 // rondomly choose one form bbsdata.data
-                let bbs = bbsdata.data[Math.floor(Math.random()*bbsdata.data.length)]
+                // let bbs = bbsdata.data[Math.floor(Math.random()*bbsdata.data.length)]
                 colList[j].push(
                     <div key={"gad-"+i+j}>
-                        <BbsCard comment={bbs} is_ad={true}/>
+                        {/* <BbsCard comment={bbs} is_ad={true}/> */}
                         <AdBanner/> 
                     </div>
                 )
@@ -74,7 +74,7 @@ export const Masonry=(
     const [curCol,setCurCol]=useState(col)
     const [colList,setColList]=useState<Array<any>>([])
 
-    const [bbsdata, setBbsData] = useState({ "data": [{ "id": 1, "content": "One second...", "verify_account": "placeholder", "title": "Loading", "pub_time": "1985-01-01T00:00:01" }], "code": 1 })
+    // const [bbsdata, setBbsData] = useState({ "data": [{ "id": 1, "content": "One second...", "verify_account": "placeholder", "title": "Loading", "pub_time": "1985-01-01T00:00:01" }], "code": 1 })
     const parent = useRef(null)
     
     useEffect(() => {
@@ -82,11 +82,11 @@ export const Masonry=(
     }, [parent])
 
       
-    useEffect(() => {
-        fetchBbsUpdatesRandom().then((data) => {
-            setBbsData(data)
-        })
-    }, [])
+    // useEffect(() => {
+    //     fetchBbsUpdatesRandom().then((data) => {
+    //         setBbsData(data)
+    //     })
+    // }, [])
     useEffect(()=>{
         let h = window.innerWidth;
         if (h<900 && h>=530){
@@ -101,8 +101,8 @@ export const Masonry=(
     },[col])
 
     useEffect(()=>{
-        setColList(colListGen(curCol,children,bbsdata))
-    },[curCol,children,bbsdata])
+        setColList(colListGen(curCol,children,[]))
+    },[curCol,children])
 
     useEffect(() => {
         const windowResizeUpdate = () => {

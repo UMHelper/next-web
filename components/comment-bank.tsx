@@ -6,7 +6,7 @@ import Link from "next/link";
 export default async function CommentBank() {
     const statistics:any = await getStatistics();
     return (
-        <div className="flex flex-wrap justify-center	">
+        <div className="flex flex-wrap justify-center">
             <Card className="flex flex-col items-center p-4 m-2 min-w-[20%] dark:bg-gray-800 rounded-lg shadow-md ">
                 <Newspaper size={80} strokeWidth={1} className="pb-3" />
                 <Link href="https://www.umeh.top/catalog/FAH" className="text-lg">

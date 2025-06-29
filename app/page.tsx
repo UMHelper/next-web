@@ -10,7 +10,7 @@ function HomePage() {
     return (
         <>
             <SearchComp />
-            <BbsUpdates />
+            {/* <BbsUpdates /> */}
 
             <div className='max-w-screen-xl mx-auto p-4'>
                 <div className='grid grid-cols-1 md:grid-cols-2 mx-4 py-8 gap-y-8 gap-x-16'>

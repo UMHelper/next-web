@@ -54,7 +54,7 @@ const SubmitPage = ({ params }: { params: any }) => {
     })
 
     useEffect(()=>{
-        console.log(form.formState.errors)
+        // console.log(form.formState.errors)
         if (Object.keys(form.formState.errors).length===0) return
         toast.error('Please fill in all required field.',
         {
@@ -63,10 +63,10 @@ const SubmitPage = ({ params }: { params: any }) => {
     },[form.formState.errors])
     const route = useRouter()
     const submit = (values: any) => {
-        console.log(isSubmitting)
+        // console.log(isSubmitting)
         //console.log(values)
         if (isSubmitting) {
-            console.log('submitting')
+            // console.log('submitting')
             return
         }
         setIsSubmitting(true)

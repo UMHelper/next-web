@@ -3,17 +3,17 @@ import * as React from "react"
 
 import { cn } from "@/lib/utils"
 
-import Tilt from 'react-parallax-tilt';
+// import Tilt from 'react-parallax-tilt';
 
 const Card = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, ...props }, ref) => (
-  <Tilt
-    scale={1.05}
-    tiltMaxAngleX={10}
-    tiltMaxAngleY={10}
-  >
+//   <Tilt
+//     scale={1.05}
+//     tiltMaxAngleX={10}
+//     tiltMaxAngleY={10}
+//   >
     <div
       ref={ref}
       className={cn(
@@ -22,7 +22,7 @@ const Card = React.forwardRef<
       )}
       {...props}
       />
-  </Tilt>
+//   </Tilt>
 ))
 Card.displayName = "Card"
 

@@ -27,6 +27,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 
+// import RotatingText from "@/components/RotatingText/RotatingText";
+import { SparklesText } from "@/components/magicui/sparkles-text";
+
 const formSchema = z.object({
     code: z.string()
         .min(4, {
@@ -63,17 +66,49 @@ export default function SearchComp() {
                 <div className='flex justify-between mx-2 py-10 md:py-8 '>
                     <div className='md:flex flex-col justify-center text-white hidden space-y-2  p-6'>
                         <h1 className='text-4xl'>
-                            What2Reg @UM
+                            <SparklesText 
+                                className="text-5xl font-medium"
+                                sparklesCount={5}
+                            >
+                                    What2Reg @UM
+                            </SparklesText>
+                            {/* What2Reg @UM */}
                         </h1>
                         <h1 className='text-3xl'>
-                            澳大選咩課
-                        </h1><br></br>
+                            <SparklesText 
+                                className="text-4xl font-medium"
+                                sparklesCount={5}
+                            >
+                                澳大選咩課
+                            </SparklesText>
+                            {/* 澳大選咩課 */}
+                        </h1>
+                        <br></br>
                         <h2 className='text-base'>
                             Course review platform for University of Macau
+                            {/* <RotatingText
+                                texts={['Find a code and pick your class!', 'See what others are saying!', 'Try the enrollment simulator!', 'Share your thoughts!']}
+                                mainClassName="bg-transparent text-base text-white overflow-hidden"
+                                staggerFrom={"last"}
+                                staggerDuration={0.025}
+                                splitLevelClassName="overflow-hidden text-xl "
+                                transition={{ type: "spring", damping: 30, stiffness: 400 }}
+                                rotationInterval={3000}
+                                /> */}
                         </h2>
                         <h2 className='text-base'>
                             專為澳大學生而設的課程評價網站
+                            {/* <RotatingText
+                                texts={['搵Code揀課啦！', '睇清楚人哋點評！', '試下選課模擬器！', '講幾句你嘅諗法啦！']}
+                                mainClassName="bg-transparent text-base text-white overflow-hidden"
+                                staggerFrom={"last"}
+                                staggerDuration={0.025}
+                                splitLevelClassName="overflow-hidden text-lg"
+                                transition={{ type: "spring", damping: 30, stiffness: 400 }}
+                                rotationInterval={3000}
+                            /> */}
                         </h2>
+
                     </div>
                     <Card className="md:mx-8 md:w-96 w-full mx-0 backdrop-blur-3xl bg-transparent border-none">
                         <CardHeader>

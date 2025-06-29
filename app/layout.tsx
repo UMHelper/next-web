@@ -15,6 +15,8 @@ import Link from 'next/link';
 import UADialog from '@/components/ua-dialog';
 import CsBanner from '@/components/cs-banner';
 import type { Viewport } from 'next'
+import { Banner } from '@/components/banner';
+
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -57,14 +59,24 @@ export default function RootLayout({
                 <body className={cn(inter.className)}>
                     <div className='min-h-screen min-w-full'>
                         <Navbar />
-                        <div className='w-full px-1 py-2 flex flex-col justify-center items-center bg-slate-100 text-slate-800 text-xs space-y-1'>
-                            <div>
+                        <Banner />
+                        {/* <div className='w-full px-1 py-2 flex flex-col justify-center items-center bg-slate-100 text-slate-800 text-xs space-y-1'>
+                            <RotatingText
+                                texts={['本網站與澳門大學不隸屬、關聯、授權、認可或以任何方式正式關聯。', 'This website is not affiliated, associated, authorized, endorsed by, or in any way officially connected with the University of Macau.',]}
+                                mainClassName="text-black overflow-hidden"
+                                staggerFrom={"last"}
+                                staggerDuration={0.025}
+                                splitLevelClassName="overflow-hidden"
+                                transition={{ type: "spring", damping: 30, stiffness: 400 }}
+                                rotationInterval={2000}
+                            />
+                            {/* <div>
                                 本網站與澳門大學不隸屬、關聯、授權、認可或以任何方式正式關聯。
                             </div>
                             <div>
                                 This website is not affiliated, associated, authorized, endorsed by, or in any way officially connected with the University of Macau.
-                            </div>
-                        </div>
+                            </div> */}
+                        {/* </div> */}
                         {/* <CsBanner /> */}
                         <div>
                             {children}

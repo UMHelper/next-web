@@ -1,5 +1,8 @@
 import {Card, CardDescription, CardFooter, CardHeader, CardTitle} from "@/components/ui/card";
 import Link from "next/link";
+
+import { SparklesText } from "@/components/magicui/sparkles-text";
+
 const CourseCard=({data}:{data:any})=>{
     return(
         <Link href={'/course/'+data.New_code}>
@@ -13,9 +16,9 @@ const CourseCard=({data}:{data:any})=>{
                                 </div>
                                 {
                                     parseInt(data.New_code[4])<=4 && (data.Is_Offered===1 ?
-                                        <div className='text-white text-xs rounded-3xl bg-gradient-to-r from-green-600 to-green-600 h-fit py-0.5 px-2 shadow'> Offered</div>
-                                        :
-                                        <div className='text-white text-xs rounded-3xl bg-gradient-to-r from-neutral-700 to-stone-900 h-fit py-0.5 px-2 shadow'> Not Offered</div>)
+                                        <SparklesText className='text-white text-xs rounded-3xl bg-gradient-to-r from-green-600 to-green-600 h-fit py-0.5 px-2 shadow font-normal' sparklesCount={3}> Offered</SparklesText>
+                                        : null)
+                                        // <div className='text-white text-xs rounded-3xl bg-gradient-to-r from-neutral-700 to-stone-900 h-fit py-0.5 px-2 shadow'> Not Offered</div>)
                                 }
                             
                         </CardTitle>
