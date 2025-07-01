@@ -16,7 +16,7 @@ function HomePage() {
                 <div className='grid grid-cols-1 md:grid-cols-2 mx-4 py-8 gap-y-8 gap-x-16'>
                     <div className='flex flex-col justify-center space-y-8 items-center md:items-start'>
                         <div className='text-2xl font-bold'>
-                            Suggesstions or feedback?
+                            Suggestions or feedback?
                         </div>
                         <Card className="flex items-center space-x-4 p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md w-full justify-between ">
                             <div className="flex items-center space-x-4 " >
