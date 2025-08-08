@@ -186,7 +186,7 @@ export default function SearchComp() {
                             <div className='max-w-sm'>Search by course codes/titles, or name of instructors (partial search supported)</div>
                             <div>鍵入部分課程代碼/名稱或講師姓名</div><br></br>
                             <div className='italic'>Data Source: reg.um.edu.mo</div>
-                            <div className='italic'>Last updated on: 2025-04-23</div>
+                            <div className='italic'>Last updated on: {process.env.NEXT_PUBLIC_DATABASE_LAST_UPDATE}</div>
                         </CardFooter>
                     </Card>
                 </div>
