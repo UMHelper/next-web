@@ -20,6 +20,8 @@ import { ReviewReload } from "@/components/review-reload";
 
 import { SparklesText } from "@/components/magicui/sparkles-text";
 
+import { ReviewNotice } from "@/components/review-notice";
+
 export const revalidate = 0
 export const dynamic = "force-dynamic";
 
@@ -62,7 +64,6 @@ const ReviewPage = async ({ params }: { params: { code: string, prof: string[] }
             notFound()
         )
     }
-    // console.log(prof_info);
     const is_offered = prof_info['is_offered'];
 
     const course_info = await getCourseInfo(code);
@@ -180,6 +181,7 @@ const ReviewPage = async ({ params }: { params: { code: string, prof: string[] }
                 </div>
             </div>
             <ReviewReload/>
+            <ReviewNotice admin_note={prof_info.admin_note} admin_note_en={prof_info.admin_note_en}/>
         </>
     )
 }
