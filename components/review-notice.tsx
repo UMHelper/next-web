@@ -17,8 +17,8 @@ export function ReviewNotice({admin_note, admin_note_en}: {admin_note: string|nu
     //         return null
     //     }
     // });
-
-    toast.info(
+    
+    toast.error(
         title,
         {
             description: <div><p>{admin_note_en ?? "No additional information provided."}</p><p>{admin_note ?? "沒有提供額外資訊。"}</p></div>,

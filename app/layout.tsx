@@ -85,7 +85,16 @@ export default function RootLayout({
                     <Footer />
                     {/* <UADialog /> */}
                     <Toaster richColors/>
-                    <Toaster id="admin_notice" position="top-center" closeButton richColors visibleToasts={1}/>
+                    <Toaster 
+                        id="admin_notice" 
+                        position="top-center" 
+                        closeButton 
+                        richColors 
+                        visibleToasts={1}
+                        icons={{
+                            error: null
+                        }}
+                    />
                 </body>
             </html>
         </ClerkProvider>
