@@ -83,7 +83,7 @@ export default function RootLayout({
                         </div>
                     </div>
                     <Footer />
-                    {/* <UADialog /> */}
+                    <UADialog />
                     <Toaster richColors/>
                     <Toaster 
                         id="admin_notice" 
