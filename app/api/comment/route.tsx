@@ -7,7 +7,8 @@ import { getComentListByCourseIDAndPage, getCommentList, getVoteHistory } from "
 import getScheduleList from "@/lib/database/get-schedule-list";
 
 export async function POST(request: Request) {
-    
+
+    return new NextResponse("ok")
     let body = await request.formData()
 
     const code = body.get('code') as string
