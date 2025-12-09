@@ -17,11 +17,14 @@ export const Banner = () => {
                 rotationInterval={6000}
                 /> */}
             <div>
-                                本網站與澳門大學不隸屬、關聯、授權、認可或以任何方式正式關聯。
-                                </div>
-                                <div>
-                                This website is not affiliated, associated, authorized, endorsed by, or in any way officially connected with the University of Macau.
-                                </div>
+                本網站與澳門大學不隸屬、關聯、授權、認可或以任何方式正式關聯。
+            </div>
+            <div className="text-center whitespace-pre-line break-words">
+                如果您經由其他網站或者應用程式訪問本網站，請注意您的個人信息安全。UMHelper 團隊與本網站並不對其他網站或者應用程式的安全性與信息準確性負責。
+            </div>
+            {/* <div>
+                This website is not affiliated, associated, authorized, endorsed by, or in any way officially connected with the University of Macau.
+            </div> */}
         </div>
         <CsBanner />
         </>

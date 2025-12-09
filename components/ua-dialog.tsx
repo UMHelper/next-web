@@ -80,7 +80,7 @@ export const UAText = () => {
     const userAgent = navigator.userAgent
 
     return (
-        <p>{userAgent}</p>
+        <p>{userAgent}||{navigator.standalone}</p>
     )
 
 }
