@@ -49,7 +49,7 @@ const Footer = async () => {
                     <div className='text-gray-500 text-xs'>
                         <UAText/>
                     </div>
-                    <span className='text-gray-500 text-xs'>© 2021-{new Date().getFullYear()} UMHelper Team. All rights reserved.</span>
+                    <span className='text-gray-500 text-xs'>© 2020-{new Date().getFullYear()} UMHelper Team. All rights reserved.</span>
                 </div>
             </div>
             <div className="grid-cols-1">
