@@ -76,4 +76,13 @@ const UADialog = () => {
 
 }
 
+export const UAText = () => {
+    const userAgent = navigator.userAgent
+
+    return (
+        <p>{userAgent}</p>
+    )
+
+}
+
 export default UADialog

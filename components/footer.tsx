@@ -1,6 +1,7 @@
 import { Cat } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { UAText } from "./ua-dialog";
+
 async function fetchGitData() {
     const response = await fetch("https://api.github.com/repos/UMHelper/next-web/branches/main",
         {
@@ -42,6 +43,13 @@ const Footer = async () => {
                 </div>
                 <div className='text-gray-500 text-xs'>
                     Version &quot;Next&quot;. Latest update <Link className='text-black font-semibold underline underline-offset-1' href={git['commit']['html_url']}>{git['commit']['commit']['author']['date']}</Link> licensed under <Link className='text-black font-semibold underline underline-offset-1' href='/'>GNU General Public License v3.0</Link> .
+                </div>
+
+                <div>
+                    <div className='text-gray-500 text-xs'>
+                        <UAText/>
+                    </div>
+                    <span className='text-gray-500 text-xs'>© 2021-{new Date().getFullYear()} UMHelper Team. All rights reserved.</span>
                 </div>
             </div>
             <div className="grid-cols-1">
