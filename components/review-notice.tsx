@@ -18,6 +18,7 @@ export function ReviewNotice({admin_note, admin_note_en}: {admin_note: string|nu
     //     }
     // });
     
+    console.log("Showing review notice toast")
     toast.error(
         title,
         {
