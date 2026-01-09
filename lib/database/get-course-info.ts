@@ -75,7 +75,16 @@ export async function fetchCourseInfoByUMAPI(code: string) {
 export async function fetchCourseInfo(code: string) {
     // console.log('fetching course info for ' + code)
     const course:any = await fetchCourseInfoByUMAPI(code)
-    const profList: any = await getProfListByCourse(code)
+    let profList: any = await getProfListByCourse(code)
+    // 去除重复的prof_id，只保留一个
+    const seenProfIds = new Set()
+    profList = profList.filter((prof: any) => {
+        if (seenProfIds.has(prof['prof_id'])) {
+            return false
+        }
+        seenProfIds.add(prof['prof_id'])
+        return true
+    })
     profList.sort((a: any, b: any) => {
         if (a['is_offered'] && !b['is_offered']) return -1
         else if (!a['is_offered'] && b['is_offered']) return 1
@@ -88,6 +97,8 @@ export async function fetchCourseInfo(code: string) {
             break
         }
     }
+
+
     
     const course_offer:any=await supabase.from('course_noporf').select('Is_Offered').eq('New_code',code)
     isOffer=course_offer.data[0].Is_Offered===1 || isOffer
