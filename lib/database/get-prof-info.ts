@@ -6,10 +6,11 @@ export const getReviewInfo = async (code: string,prof:string) => {
                             .select('*')
                             .eq('course_id', code)
                             .eq('prof_id', prof.replaceAll("%20"," ").replaceAll('%24', '/'))
-                            // .single()
-    if (data && data?.length > 1) {
-        return data[0]
-    }
+                            .limit(1)
+                            .single()
+    // if (data && data?.length > 1) {
+    //     return data[0]
+    // }
     console.log(data,error)
     return data
 }
