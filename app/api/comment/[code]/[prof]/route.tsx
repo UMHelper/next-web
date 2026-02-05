@@ -1,7 +1,6 @@
 import {NextResponse} from "next/server";;
 import supabase from '@/lib/database/database';
 import { getReviewInfo } from "@/lib/database/get-prof-info";
-import { put } from '@vercel/blob';
 import { uuid } from "@/lib/utils";
 
 export async function POST(request: Request){

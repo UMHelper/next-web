@@ -5,18 +5,28 @@
   "scripts": {
     "dev": "next dev --turbo",
     "build": "next build",
+    "build:pages": "next build && opennextjs-cloudflare build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "upload": "opennextjs-cloudflare build && opennextjs-cloudflare upload",
+    "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
   },
   "dependencies": {
     "@aldabil/react-scheduler": "^2.7.26",
     "@clerk/backend": "^0.34.1",
     "@clerk/nextjs": "^4.27.1",
+    "@date-io/date-fns": "^3.2.1",
     "@emotion/react": "^11.11.1",
     "@emotion/styled": "^11.11.0",
     "@fancyapps/ui": "github:fancyapps/ui",
     "@formkit/auto-animate": "^0.8.2",
     "@hookform/resolvers": "^3.3.1",
+    "@mui/icons-material": "^5.18.0",
+    "@mui/material": "^5.18.0",
+    "@mui/system": "^5.18.0",
+    "@mui/x-date-pickers": "^6.20.2",
     "@radix-ui/react-accordion": "^1.1.2",
     "@radix-ui/react-avatar": "^1.0.4",
     "@radix-ui/react-dialog": "^1.0.5",
@@ -43,19 +53,18 @@
     "@types/node": "20.6.0",
     "@types/react": "18.2.21",
     "@types/react-dom": "18.2.7",
-    "@vercel/blob": "^0.15.1",
     "autoprefixer": "10.4.15",
     "axios": "^1.6.0",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.0.0",
+    "date-fns": "^3.6.0",
     "embla-carousel-react": "^8.0.2",
-    "eslint": "8.49.0",
     "eslint-config-next": "^14.0.4",
     "framer-motion": "^12.19.2",
     "hastscript": "^8.0.0",
     "lucide-react": "^0.276.0",
     "motion": "^12.19.2",
-    "next": "^14.0.4",
+    "next": "^14.2.35",
     "next-themes": "^0.2.1",
     "postcss": "8.4.29",
     "react": "^18.2.0",
@@ -79,5 +88,10 @@
     "usehooks-ts": "^2.9.1",
     "vaul": "^0.8.0",
     "zod": "^3.22.2"
+  },
+  "devDependencies": {
+    "@opennextjs/cloudflare": "^1.14.10",
+    "eslint": "^8.57.1",
+    "wrangler": "^4.62.0"
   }
 }

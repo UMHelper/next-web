@@ -1,5 +1,6 @@
 import { Radar, Github, Quote, UserPlus } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import CommentBank from "@/components/comment-bank";
 import { Card } from "@/components/ui/card";
 import SearchComp from "@/components/search";
@@ -53,7 +54,7 @@ function HomePage() {
                                             <DrawerDescription>請使用手機微信掃描</DrawerDescription>
                                         </DrawerHeader>
                                         <div className='flex justify-center pb-4'>
-                                            <img src='/qrcode.jpeg' className='w-64' />
+                                            <Image src='/qrcode.jpeg' alt='QR Code' width={256} height={256} className='w-64' />
                                         </div>
                                     </DrawerContent>
                                 </Drawer>

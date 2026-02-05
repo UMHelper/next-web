@@ -35,7 +35,7 @@ yarn-error.log*
 next-env.d.ts
 
 /.idea
-
+.vscode
 
 .contentlayer
 blog/test.mdx
@@ -45,3 +45,5 @@ public/workbox-*
 
 # Sentry Config File
 .sentryclirc
+
+.open-next

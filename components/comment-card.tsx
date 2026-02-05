@@ -1,4 +1,5 @@
 'use client'
+import Image from 'next/image';
 import { Fancybox } from "@fancyapps/ui";
 import "@fancyapps/ui/dist/fancybox/fancybox.css";
 import { Card, CardHeader, CardContent, CardFooter } from '@/components/ui/card'
@@ -19,11 +20,13 @@ import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger } from 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { AVATAR_EMOJI_LIST } from "@/lib/consant";
 
-Fancybox.bind("[data-fancybox]", {
+const _fancyboxOptions: any = {
     compact: true,
     contentClick: 'close',
     contentDblClick: 'close',
-});
+};
+
+Fancybox.bind("[data-fancybox]", _fancyboxOptions);
 
 const HashEmojiAvatar = ({ user_id }: { user_id: string }) => {
     
@@ -285,7 +288,7 @@ const CommentDetail = ({ comment, env }: { comment: any, env: string }) => {
                 comment.img ? (
                     env != 'review' ? (
                         <div className='w-fit my-2 max-w-[50vw]'>
-                            <img
+                            <Image
                                 alt={comment.content}
                                 src={comment.img}
                                 className='rounded'
@@ -294,7 +297,7 @@ const CommentDetail = ({ comment, env }: { comment: any, env: string }) => {
                     ) : (
                         <div className='w-fit my-2'>
                             <a href={comment.img} data-fancybox={comment.img} data-caption={comment.content + env}>
-                                <img
+                                <Image
                                     alt={comment.content}
                                     src={comment.img}
                                     className='rounded'
