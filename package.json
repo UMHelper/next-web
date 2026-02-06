@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev --turbo",
     "build": "next build",
-    "build:pages": "next build && opennextjs-cloudflare build",
+    "build:pages": "opennextjs-cloudflare build",
     "start": "next start",
     "lint": "next lint",
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
@@ -89,9 +89,9 @@
     "vaul": "^0.8.0",
     "zod": "^3.22.2"
   },
-  "devDependencies": {    
+  "devDependencies": {
     "@opennextjs/cloudflare": "^1.16.2",
     "eslint": "^9.11.0",
-    "wrangler": "^4.62.0"
+    "wrangler": "^4.63.0"
   }
 }
