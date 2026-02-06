@@ -1,6 +1,6 @@
 import { Cat } from "lucide-react";
 import Link from "next/link";
-import { UAText } from "./ua-dialog";
+// import { UAText } from "./ua-dialog";
 
 async function fetchGitData() {
     const response = await fetch("https://api.github.com/repos/UMHelper/next-web/branches/main",
@@ -46,9 +46,9 @@ const Footer = async () => {
                 </div>
 
                 <div>
-                    <div className='text-gray-500 text-xs'>
+                    {/* <div className='text-gray-500 text-xs'>
                         <UAText/>
-                    </div>
+                    </div> */}
                     <span className='text-gray-500 text-xs'>© 2020-{new Date().getFullYear()} UMHelper Team. All rights reserved.</span>
                 </div>
             </div>

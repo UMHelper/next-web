@@ -13,8 +13,21 @@ export const generateStaticParams = async () => {
     })
 }
 
-const ProfessorPage = async ({ params: { name } }: { params: { name: string[] } }) => {
-    const prof_name=name.join("/").replaceAll("%20", " ").replaceAll('%24', '/').toUpperCase()
+const ProfessorPage = async (props: { params: any }) => {
+    const params = await props.params
+    const name = params?.name
+    const names = Array.isArray(name) ? name : [name].filter(Boolean)
+    if (!names || names.length === 0) {
+        return (
+            <div className="w-full flex justify-center items-center flex-col space-y-8 my-20">
+                <div className="text-9xl font-black">Oops :(</div>
+                <div className="text-sm text-gray-400">Invalid professor name.</div>
+            </div>
+        )
+    }
+
+    const joined = names.join('/')
+    const prof_name = decodeURIComponent(joined).replaceAll('$', '/').toUpperCase()
     const {data, error}:{data:any,error:any} = await fetchCourseListByProf({name: prof_name})
     if (error){
         // TODO: add error page
@@ -25,7 +38,7 @@ const ProfessorPage = async ({ params: { name } }: { params: { name: string[] } 
             <div className='bg-gradient-to-r from-blue-600 to-indigo-500 text-white p-3'>
                 <div className='max-w-screen-xl mx-auto p-4'>
                     <div className='break-words text-3xl font-semibold'>
-                        {prof_name.toUpperCase().replaceAll("%20", " ").replaceAll('%24', '/')}
+                        {prof_name}
                     </div>
                 </div>
             </div>

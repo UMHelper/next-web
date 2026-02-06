@@ -136,7 +136,7 @@ const ReplyComponent = ({ comment, reply_comment }: { comment: any, reply_commen
                             <div className='text-xs text-gray-400'>您必須登入以回覆。</div>
                         </div>
                         <div className='py-1 px-2 ml-2 rounded bg-gradient-to-r from-blue-600 to-indigo-500 text-white'>
-                            <SignInButton mode="modal" redirectUrl={pathname} />
+                            <SignInButton mode="modal" forceRedirectUrl={pathname} />
                         </div>
                     </div>
                 )
@@ -156,7 +156,7 @@ const ReplyComponent = ({ comment, reply_comment }: { comment: any, reply_commen
                             <div className='text-xs text-gray-400'>您必須登入以瀏覽全部回覆。</div>
                         </div>
                         <div className='py-1 px-2 ml-2 rounded bg-gradient-to-r from-blue-600 to-indigo-500 text-white'>
-                            <SignInButton mode="modal" redirectUrl={pathname} />
+                            <SignInButton mode="modal" forceRedirectUrl={pathname} />
                         </div>
                     </div>
                 )
@@ -288,19 +288,24 @@ const CommentDetail = ({ comment, env }: { comment: any, env: string }) => {
                 comment.img ? (
                     env != 'review' ? (
                         <div className='w-fit my-2 max-w-[50vw]'>
-                            <Image
+                            <img
                                 alt={comment.content}
                                 src={comment.img}
                                 className='rounded'
+                                loading='lazy'
+                                decoding='async'
+                                style={{ maxWidth: '50vw', height: 'auto' }}
                             />
                         </div >
                     ) : (
                         <div className='w-fit my-2'>
                             <a href={comment.img} data-fancybox={comment.img} data-caption={comment.content + env}>
-                                <Image
+                                <img
                                     alt={comment.content}
                                     src={comment.img}
                                     className='rounded'
+                                    loading='lazy'
+                                    decoding='async'
                                 />
                             </a>
                         </div >
@@ -346,7 +351,7 @@ const EmojiVote = ({ comment }: { comment: any }) => {
                             <div className='text-xs text-gray-400'>您必須登入以投票。</div>
                         </div>
                         <div className='py-1 px-2 ml-2 rounded bg-gradient-to-r from-blue-600 to-indigo-500 text-white'>
-                            <SignInButton mode="modal" redirectUrl={pathname} />
+                            <SignInButton mode="modal" forceRedirectUrl={pathname} />
                         </div>
                     </div>
                 )

@@ -265,7 +265,10 @@ const TimetablePage = () => {
                 <div className="text-xl font-bold">Timetable</div>
                 <SearchBar />
                 <div className='pt-20 text-center text-2xl font-black racking-widest bg-gradient-to-r from-teal-400 via-violet-400 to-blue-500 bg-clip-text text-transparent'>
-                    NO course in your timetable cart, add some!
+                    Empty
+                </div>
+                <div className='text-center text-sm text-gray-400'>
+                    Please add course sessions to your timetable cart first.
                 </div>
             </div>
         )

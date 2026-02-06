@@ -2,12 +2,12 @@ import CourseFilter from "@/components/course-filter";
 import { fetchCourseFuzzySearch } from "@/lib/database/get-fuzzy-search";
 import { Viewport } from "next";
 
-export function generateMetadata(
-    {params}:{params:any}) {
-    const title = `Searching for ${params.code.toUpperCase()} | What2Reg @ UM 澳大選咩課`
+export async function generateMetadata(props:{params:any}) {
+    const params = await props.params
+    const code = params?.code ? String(params.code).toUpperCase() : 'Search'
 
     return {
-        title: title,
+        title: `Searching for ${code} | What2Reg @ UM 澳大選咩課`,
     }
 
 }
@@ -19,8 +19,10 @@ export const viewport: Viewport = {
     userScalable: false,
 }
 
-async function CourseSearchPage({params}:{params:{code:string}}){
-    const courseList:any[] = await fetchCourseFuzzySearch(params.code.toUpperCase())
+async function CourseSearchPage(props:{params:any}){
+    const params = await props.params
+    const code = params?.code ? String(params.code).toUpperCase() : ''
+    const courseList:any[] = await fetchCourseFuzzySearch(code)
     return(
         <div>
             <CourseFilter data={courseList}/>

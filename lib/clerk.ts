@@ -1,3 +1,3 @@
-import { Clerk } from '@clerk/backend';
+import { createClerkClient } from '@clerk/backend';
 
-export const clerk = Clerk({ secretKey: process.env.CLERK_SECRET_KEY });
+export const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });

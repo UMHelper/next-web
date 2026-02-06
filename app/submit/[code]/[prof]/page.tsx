@@ -22,11 +22,30 @@ const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/web
 
 const SubmitPage = ({ params }: { params: any }) => {
     const { isSignedIn, user } = useUser();
+    const paramsObj = React.use(params) as { code?: string; prof?: string }
+    const code = paramsObj?.code ? String(paramsObj.code).toUpperCase() : 'ERROR'
+    const rawProf = paramsObj?.prof ? String(paramsObj.prof) : ''
+    const fullyDecode = (s: string) => {
+        try {
+            let prev = null
+            let cur = s
+            // decode repeatedly until stable (handles double-encoding like %2520)
+            while (cur !== prev) {
+                prev = cur
+                cur = decodeURIComponent(cur)
+            }
+            return cur
+        } catch (e) {
+            return s
+        }
+    }
+    const profDecoded = fullyDecode(rawProf)
+    const profNormalized = profDecoded.replaceAll('$', '/').toUpperCase()
     const [image, setImage] = useState<File | null | undefined>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const formSchema = z.object({
-        code: z.string().length(8).default(params.code),
-        prof: z.string().default(params.prof.replaceAll("%20", " ").replaceAll('$', '/')),
+        code: z.string().length(8).default(code),
+        prof: z.string().default(profNormalized),
         attendance: z.enum(['1', '3', '5']).default('3'),
         pre: z.enum(['1', '3', '5']).default('3'),
         grade: z.number().min(1).max(5),
@@ -40,8 +59,8 @@ const SubmitPage = ({ params }: { params: any }) => {
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
-            code: params.code.toUpperCase(),
-            prof: params.prof.replaceAll("%20", " ").replaceAll('$', '/').toUpperCase(),
+            code: code,
+            prof: profNormalized,
             attendance: '3',
             pre: '3',
             grade: 0,
@@ -102,13 +121,13 @@ const SubmitPage = ({ params }: { params: any }) => {
         else {
             data.append('verify', '0')
         }
-        toast.promise(
-            fetch(`/api/comment/${params.code}/${params.prof}`, {
+            toast.promise(
+            fetch(`/api/comment/${encodeURIComponent(code)}/${encodeURIComponent(profDecoded)}`, {
                 body: data,
                 method: 'POST',
             }).then((res) => {
                 setIsSubmitting(false)
-                route.push(`/reviews/${params.code}/${params.prof}?reload=1`)
+                route.push(`/reviews/${encodeURIComponent(code)}/${encodeURIComponent(profDecoded)}?reload=1`)
             }),
             {
                 loading: 'Submitting...',
@@ -121,7 +140,7 @@ const SubmitPage = ({ params }: { params: any }) => {
     return (
         <div className='max-w-screen-xl mx-auto p-10 md:p-20'>
             <div className='text-3xl antialiased mb-4'>
-                Commenting on {params.prof.replaceAll("%20", " ").replaceAll('$', '/')} for {params.code}
+                Commenting on {profDecoded.replaceAll('$','/')} for {code}
             </div>
             <div>
                 <Form {...form}>

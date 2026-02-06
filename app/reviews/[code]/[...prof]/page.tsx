@@ -25,15 +25,18 @@ import { ReviewNotice } from "@/components/review-notice";
 export const revalidate = 0
 export const dynamic = "force-dynamic";
 
-export function generateMetadata(
-    { params }: { params: any }) {
+export async function generateMetadata(props: { params: any }) {
+    const params = await props.params
+    const profs = Array.isArray(params?.prof) ? params.prof : [params?.prof].filter(Boolean)
     let page_num = 1;
-    let prof = params.prof.join('/').replaceAll('%2C', ",").toUpperCase();
-    if (!Number.isNaN(parseInt(params.prof[params.prof.length - 1]))) {
-        page_num = parseInt(params.prof.pop() as string);
-        prof = params.prof.join('/').replaceAll('%2C', ",").toUpperCase();
+    let prof = profs.join('/')
+    if (profs.length > 0 && !Number.isNaN(parseInt(profs[profs.length - 1]))) {
+        page_num = parseInt(profs[profs.length - 1] as string);
+        prof = profs.slice(0, -1).join('/');
     }
-    const title = `${prof.replaceAll('%20', " ")} | ${params.code.toUpperCase()} | What2Reg @ UM 澳大選咩課`
+    const code = params?.code ? String(params.code).toUpperCase() : ''
+    const profDecoded = decodeURIComponent(prof).replaceAll('$', '/').toUpperCase()
+    const title = `${profDecoded.replaceAll('%20', " ")} | ${code} | What2Reg @ UM 澳大選咩課`
 
     return {
         title: title,
@@ -48,17 +51,20 @@ export const viewport: Viewport = {
     userScalable: false,
 }
 
-const ReviewPage = async ({ params }: { params: { code: string, prof: string[] } }) => {
-    const code = params.code.toUpperCase();
+const ReviewPage = async (props: { params: { code: string, prof: string[] | string } }) => {
+    const params = await props.params
+    const code = params?.code ? String(params.code).toUpperCase() : '';
     // check prof list last one is number:
+    const profs = Array.isArray(params?.prof) ? params.prof : [params?.prof].filter(Boolean)
     let page_num = 1;
-    let prof = params.prof.join('/').replaceAll('%2C', ",").toUpperCase();
-    if (!Number.isNaN(parseInt(params.prof[params.prof.length - 1]))) {
-        page_num = parseInt(params.prof.pop() as string);
-        prof = params.prof.join('/').replaceAll('%2C', ",").toUpperCase();
+    let prof = profs.join('/');
+    if (profs.length > 0 && !Number.isNaN(parseInt(profs[profs.length - 1]))) {
+        page_num = parseInt(profs[profs.length - 1] as string);
+        prof = profs.slice(0, -1).join('/');
     }
 
-    const prof_info = await getReviewInfo(code, decodeURI(prof.replaceAll('$', '/')));
+    const profDecoded = decodeURIComponent(prof.replaceAll('$', '/'))
+    const prof_info = await getReviewInfo(code, profDecoded.toUpperCase());
     if (prof_info == undefined) {
         return (
             notFound()
@@ -73,7 +79,9 @@ const ReviewPage = async ({ params }: { params: { code: string, prof: string[] }
     const comments_id_array = comments.map((comment) => comment.id)
     const vote_history: any[] = await getVoteHistory(comments_id_array)
 
-    const timetable = await getScheduleList(params.code, params.prof.join('/'));
+    const profPath = Array.isArray(params.prof) ? params.prof.join('/') : String(params.prof ?? '');
+    const profPathDecoded = decodeURIComponent(profPath)
+    const timetable = await getScheduleList(params.code, profPathDecoded);
 
     return (
         <>
@@ -114,7 +122,7 @@ const ReviewPage = async ({ params }: { params: { code: string, prof: string[] }
                                 )}
                             </div>
                             <div className='flex-row flex space-x-2'>
-                                <Link href={'/submit/' + params.code + '/' + params.prof}>
+                                <Link href={'/submit/' + encodeURIComponent(code) + '/' + encodeURIComponent(prof)}>
                                     <Button className='text-sm px-2 hover:shadow-lg bg-white text-blue-800 hover:bg-gray-200'>
                                         <ClipboardEdit size={16} /><span> Submit Review</span>
                                     </Button>

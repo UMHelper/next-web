@@ -15,12 +15,12 @@ import { Viewport } from "next";
 
 import { SparklesText } from "@/components/magicui/sparkles-text";
 
-export function generateMetadata(
-    { params }: { params: any }) {
-    const title = `${params.code.toUpperCase()} | What2Reg @ UM 澳大選咩課`
+export async function generateMetadata(props: { params: any }) {
+    const params = await props.params
+    const code = params?.code ? String(params.code).toUpperCase() : 'Course'
 
     return {
-        title: title,
+        title: `${code} | What2Reg @ UM 澳大選咩課`,
     }
 
 }
@@ -32,22 +32,19 @@ export const viewport: Viewport = {
     userScalable: false,
 }
 
-export async function generateStaticParams() {
-    const { data: courses } = await supabase.from('course_noporf').select('New_code')
-    if (!courses) {
-        return []
+const CoursePage = async (props: { params: any }) => {
+    const params = await props.params
+    const rawCode = Array.isArray(params?.code) ? params.code.join('/') : String(params?.code ?? '')
+
+    if (!rawCode) {
+        return (
+            <div className="w-full flex justify-center items-center flex-col space-y-8 my-20">
+                <div className="text-9xl font-black">Oops :(</div>
+                <div className="text-sm text-gray-400">Invalid course code.</div>
+            </div>
+        )
     }
-    // console.log(courses[0])
-    return courses.map((course) => {
-        return {
-            code: course['New_code']
-        }
-    })
-}
-
-async function CoursePage({ params }: { params: { code: string } }) {
-
-    const code = params.code.toUpperCase()
+    const code = String(rawCode).toUpperCase()
     const {
         course,
         profList,
@@ -58,7 +55,7 @@ async function CoursePage({ params }: { params: { code: string } }) {
         isOffer: boolean
     }
         = await fetchCourseInfo(code)
-        
+
     return (
         <>
             <div className='bg-gradient-to-r from-blue-600 to-indigo-500 text-white p-3'>
@@ -86,7 +83,7 @@ async function CoursePage({ params }: { params: { code: string } }) {
                                     parseInt(course['courseCode'][4]) <= 4 && (isOffer ?
                                         <SparklesText className='text-sm font-semibold rounded-3xl bg-gradient-to-r from-green-600 to-green-600 h-fit py-0.5 px-2 shadow font-normal' sparklesCount={3}> Offered</SparklesText>
                                         : null)
-                                        // <div className='text-sm font-semibold rounded-3xl bg-gradient-to-r from-neutral-700 to-stone-900 h-fit py-0.5 px-2 shadow'> Not Offered</div>)
+                                    // <div className='text-sm font-semibold rounded-3xl bg-gradient-to-r from-neutral-700 to-stone-900 h-fit py-0.5 px-2 shadow'> Not Offered</div>)
                                 }
                             </div>
                             <div className='text-xl font-semibold'>{course["courseTitle"]}</div>
@@ -196,7 +193,7 @@ async function CoursePage({ params }: { params: { code: string } }) {
                     </div>
                 </div>
             </div>
-            <BBSAd/>
+            <BBSAd />
             <div className='max-w-screen-xl mx-auto p-4'>
 
                 <div id="googleBotCourseInfo" className="space-y-3 my-3 hidden">

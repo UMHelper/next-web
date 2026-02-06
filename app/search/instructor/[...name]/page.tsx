@@ -4,9 +4,11 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { fetchInstructorFuzzySearch } from "@/lib/database/get-fuzzy-search"
 import { Viewport } from "next"
 
-export function generateMetadata(
-    {params}:{params:any}) {
-    const name=decodeURI(params.name.join('/')).toUpperCase()
+export async function generateMetadata(
+    { params }: { params: any }) {
+    const p = await params
+    const raw = Array.isArray(p?.name) ? p.name.join('/') : String(p?.name ?? '')
+    const name = decodeURI(raw).toUpperCase()
     const title = `Searching for ${name} | What2Reg @ UM 澳大選咩課`
 
     return {
@@ -23,8 +25,11 @@ export const viewport: Viewport = {
 }
 
 
-async function InstructorSearchPage({ params }: { params: { name: string[] } }) {
-    const data = await fetchInstructorFuzzySearch(decodeURI(params.name.join('/')).toUpperCase())
+async function InstructorSearchPage(props: { params: any }) {
+    const params = await props.params
+    const raw = Array.isArray(params?.name) ? params.name.join('/') : String(params?.name ?? '')
+    const name = decodeURI(raw).toUpperCase()
+    const data = await fetchInstructorFuzzySearch(name)
     if (data.length === 0) {
         return (
             <div className="mt-20">
