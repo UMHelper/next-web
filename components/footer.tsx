@@ -1,19 +1,19 @@
 import { Cat } from "lucide-react";
 import Link from "next/link";
-import { UAText } from "./ua-dialog";
+// import { UAText } from "./ua-dialog";
 
-async function fetchGitData() {
-    const response = await fetch("https://api.github.com/repos/UMHelper/next-web/branches/main",
-        {
-            next: {
-                revalidate: 3600, // 1 hour
-            }
-        })
-    const data = await response.json()
-    return data
-}
+// async function fetchGitData() {
+//     const response = await fetch("https://api.github.com/repos/UMHelper/next-web/branches/main",
+//         {
+//             next: {
+//                 revalidate: 3600, // 1 hour
+//             }
+//         })
+//     const data = await response.json()
+//     return data
+// }
 const Footer = async () => {
-    const git = await fetchGitData();
+    // const git = await fetchGitData();
     return (
         <div className='bg-gray-300/10'>
             <div className='max-w-screen-xl mx-auto px-6 py-10 space-y-4 '>
@@ -39,16 +39,14 @@ const Footer = async () => {
                     </Link>
                 </div>
                 <div className='text-gray-500 text-xs'>
-                    Designed and built by the <Link className='text-black font-semibold underline underline-offset-1' href='https://github.com/UMHelper/Feedback-and-Join-Us/blob/master/Join.md'>UMHelper</Link> team with the help of our contributors.
-                </div>
-                <div className='text-gray-500 text-xs'>
-                    Version &quot;Next&quot;. Latest update <Link className='text-black font-semibold underline underline-offset-1' href={git['commit']['html_url']}>{git['commit']['commit']['author']['date']}</Link> licensed under <Link className='text-black font-semibold underline underline-offset-1' href='/'>GNU General Public License v3.0</Link> .
+                    Version &quot;Next&quot; licensed under <Link className='text-black font-semibold underline underline-offset-1' href='/'>GNU General Public License v3.0</Link>. Designed and built by the <Link className='text-black font-semibold underline underline-offset-1' href='https://github.com/UMHelper/Feedback-and-Join-Us/blob/master/Join.md'>UMHelper</Link> team with the help of our contributors.
+                    {/* Latest update <Link className='text-black font-semibold underline underline-offset-1' href={git['commit']['html_url']}>{git['commit']['commit']['author']['date']}</Link>  */}
                 </div>
 
                 <div>
-                    <div className='text-gray-500 text-xs'>
+                    {/* <div className='text-gray-500 text-xs'>
                         <UAText/>
-                    </div>
+                    </div> */}
                     <span className='text-gray-500 text-xs'>© 2020-{new Date().getFullYear()} UMHelper Team. All rights reserved.</span>
                 </div>
             </div>
