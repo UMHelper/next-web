@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { BarChart3, CalendarDays, GraduationCap, UserRound } from 'lucide-react';
+import { BarChart3, CalendarDays, GraduationCap, User } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { getHomeCommentAnalytics } from '@/lib/database/get-home-comment-analytics';
 
@@ -116,13 +116,13 @@ export default async function HomeCommentAnalytics() {
           <TrendBars title="每月新增評論趨勢 / Monthly New Comments" icon={<CalendarDays size={18} />} points={analytics.monthlyTrend} />
           <RankBars
             title="最近 7 天：老師新增評論 Top / Last 7 Days Teacher Top"
-            icon={<UserRound size={18} />}
+            icon={<User size={18} />}
             points={analytics.weeklyTeacherTop}
             emptyText="最近 7 天暫無老師新增評論資料 / No teacher data in last 7 days"
           />
           <RankBars
             title="最近 30 天：老師新增評論 Top / Last 30 Days Teacher Top"
-            icon={<UserRound size={18} />}
+            icon={<User size={18} />}
             points={analytics.monthlyTeacherTop}
             emptyText="最近 30 天暫無老師新增評論資料 / No teacher data in last 30 days"
           />
