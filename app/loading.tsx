@@ -9,7 +9,7 @@ export default function LoadingPage() {
       <UseAnimations animation={loading} size={80} />
       </div>
       <div className="text-2xl font-black racking-widest bg-gradient-to-r from-teal-400 via-violet-400 to-blue-500 bg-clip-text text-transparent">
-        AI model is thinking...
+        AI Agent is thinking...
       </div>
     </div>
   )
