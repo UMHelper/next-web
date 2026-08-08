@@ -185,8 +185,11 @@ export default function SearchComp() {
                         <CardFooter className='text-xs text-white/80 flex flex-col items-start space-y-1'>
                             <div className='max-w-sm'>Search by course codes/titles, or name of instructors (partial search supported)</div>
                             <div>鍵入部分課程代碼/名稱或講師姓名</div><br></br>
+
+                            <div className=''>{process.env.NEXT_PUBLIC_CURRENT_YEAR}/{Number(process.env.NEXT_PUBLIC_CURRENT_YEAR)+1} AC Sem {process.env.NEXT_PUBLIC_CURRENT_SEM}</div>
                             <div className='italic'>Data Source: reg.um.edu.mo</div>
                             <div className='italic'>Last updated on: {process.env.NEXT_PUBLIC_DATABASE_LAST_UPDATE}</div>
+                            
                         </CardFooter>
                     </Card>
                 </div>

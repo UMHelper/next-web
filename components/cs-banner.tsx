@@ -20,6 +20,7 @@ const CsBanner = () => {
             setIsCS(false)
         }
     }, [pathname])
+    return null
     if (!isCS) return null
     return (
         <div className='w-full px-1 py-2 flex justify-center items-center bg-slate-100 text-black text-xs break-words flex-wrap'>
