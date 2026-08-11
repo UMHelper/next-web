@@ -186,9 +186,9 @@ export default function SearchComp() {
                             <div className='max-w-sm'>Search by course codes/titles, or name of instructors (partial search supported)</div>
                             <div>鍵入部分課程代碼/名稱或講師姓名</div><br></br>
 
-                            <div className=''>{process.env.NEXT_PUBLIC_CURRENT_YEAR}/{Number(process.env.NEXT_PUBLIC_CURRENT_YEAR)+1} AY Sem {process.env.NEXT_PUBLIC_CURRENT_SEM}</div>
+                            <div className=''>{process.env.NEXT_PUBLIC_CURRENT_YEAR ? process.env.NEXT_PUBLIC_CURRENT_YEAR : "2026"}/{Number(process.env.NEXT_PUBLIC_CURRENT_YEAR ? process.env.NEXT_PUBLIC_CURRENT_YEAR : "2026") + 1} AY Sem {process.env.NEXT_PUBLIC_CURRENT_SEM ? process.env.NEXT_PUBLIC_CURRENT_SEM : "1"}</div>
                             <div className='italic'>Data Source: reg.um.edu.mo</div>
-                            <div className='italic'>Last updated on: {process.env.NEXT_PUBLIC_DATABASE_LAST_UPDATE}</div>
+                            <div className='italic'>Last updated on: {process.env.NEXT_PUBLIC_DATABASE_LAST_UPDATE ? process.env.NEXT_PUBLIC_DATABASE_LAST_UPDATE : "2026-08-08"}</div>
                             
                         </CardFooter>
                     </Card>
