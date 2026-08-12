@@ -1,24 +1,21 @@
 import { REACTION_EMOJI_LIST } from '@/lib/consant';
-import supabase from '@/lib/database/database';
+import supabaseAdmin from '@/lib/supabase/admin';
 import { NextResponse } from 'next/server';
 
 export async function POST(request: Request){
     const body=await request.json();
-
-    const id:any=await supabase.from('comment').select('id').order('id',{ascending:false}).limit(1)
-    // console.log(id)
-    
-    // DO NOT CHANGE THIS ID 
-    // check comment API 
-    body.id=id.data[0].id+1
     delete body.emoji_vote
     delete body.vote_history
     delete body.img
 
-    const {data,error}:{data:any,error:any}=await supabase.from('comment').insert([body]).select()
+    const {data,error}:{data:any,error:any}=await supabaseAdmin.from('comment').insert([body]).select().single()
+    if (error || !data) {
+        console.error(error)
+        return new NextResponse(null,{status:500})
+    }
 
     // console.log(data,error)
-    let reply=data[0]
+    let reply=data
     reply.emoji_vote=REACTION_EMOJI_LIST.map((emoji:string)=>({emoji:emoji,count:0}))
     reply.vote_history=[]
     return NextResponse.json(reply,{status:200})

@@ -26,8 +26,6 @@ const _fancyboxOptions: any = {
     contentDblClick: 'close',
 };
 
-Fancybox.bind("[data-fancybox]", _fancyboxOptions);
-
 const HashEmojiAvatar = ({ user_id }: { user_id: string }) => {
     
     let hash = 0;
@@ -278,6 +276,17 @@ const ReplyComponent = ({ comment, reply_comment }: { comment: any, reply_commen
     )
 }
 
+const useFancybox = () => {
+    useEffect(() => {
+        Fancybox.bind("[data-fancybox]", _fancyboxOptions);
+
+        return () => {
+            Fancybox.unbind("[data-fancybox]");
+            Fancybox.close();
+        };
+    }, []);
+};
+
 const CommentDetail = ({ comment, env }: { comment: any, env: string }) => {
     return (
         <div className='flex flex-col justify-between max-h-[500px] overflow-y-auto'>
@@ -301,6 +310,8 @@ const CommentDetail = ({ comment, env }: { comment: any, env: string }) => {
                                     alt={comment.content}
                                     src={comment.img}
                                     className='rounded'
+                                    width={200}
+                                    height={200}
                                 />
                             </a>
                         </div >
@@ -483,6 +494,8 @@ const EmojiVote = ({ comment }: { comment: any }) => {
 export const CommentCard = (
     { comment, reply_comment }: { comment: any, reply_comment: any[] }
 ) => {
+    useFancybox();
+
     return (
         <Card className=' hover:shadow-lg mx-auto'>
             <CardHeader className='pb-2 pt-4'  >

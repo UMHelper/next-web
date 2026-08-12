@@ -1,9 +1,12 @@
 import { MetadataRoute } from 'next'
-import supabase from '@/lib/database/database';
+import supabaseServer from '@/lib/supabase/server';
 import { countUniqueValues, courseKeysToCount } from '@/lib/count-unique-values';
 import { faculty } from '@/lib/consant';
+
+export const revalidate = 86400;
+
 const fetchCourseSitemap = async () => {
-    const { data, error }:{data:any,error:any} = await supabase.from('course_noporf').select('New_code')
+    const { data, error }:{data:any,error:any} = await supabaseServer.from('course_noporf').select('New_code')
     let courseSitemap:any[]=[]
     data.map((course:any)=>{
         courseSitemap.push({
@@ -17,7 +20,7 @@ const fetchCourseSitemap = async () => {
 }
 
 const fetchReviewSitemap = async () => {
-    const { data, error }:{data:any,error:any} = await supabase.from('prof_with_course').select('course_id,prof_id')
+    const { data, error }:{data:any,error:any} = await supabaseServer.from('prof_with_course').select('course_id,prof_id')
     let reviewSitemap:any[]=[]
     data.map((review:any)=>{
         // return
@@ -34,14 +37,14 @@ const fetchReviewSitemap = async () => {
 
 const fetchCatalogSitemap = async () => {
     let catalogSitemap:any[]=[]
-    faculty.map(async (fac:any)=>{
+    for (const fac of faculty) {
         catalogSitemap.push({
             url: `https://umeh.top/catalog/${fac}`,
             lastModified: new Date(),
             changeFrequency: 'monthly',
             priority: 0.7,
         })
-        const { data, error }: { data: any, error: any } = await supabase.from('course_noporf')
+        const { data, error }: { data: any, error: any } = await supabaseServer.from('course_noporf')
             .select('')
             .eq('Offering_Unit', fac.toUpperCase())
         const option=countUniqueValues(data, courseKeysToCount)
@@ -54,7 +57,7 @@ const fetchCatalogSitemap = async () => {
                 priority: 0.7,
             })
         })
-    })
+    }
     return [...catalogSitemap]
 }
 

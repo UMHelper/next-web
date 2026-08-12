@@ -2,7 +2,6 @@ import {Card, CardContent, CardHeader} from "@/components/ui/card";
 import {cn, get_bg, get_gpa} from "@/lib/utils";
 import {Separator} from "@/components/ui/separator";
 import Link from "next/link";
-import { getCommentNumber } from "@/lib/database/get-comment-list";
 
 import { SparklesText } from "@/components/magicui/sparkles-text";
 
@@ -67,7 +66,7 @@ const ProfCard= async ({data,code}:{data:any,code:any})=>{
                                 Comments
                             </div>
                             <div className='text-black'>
-                                {await getCommentNumber(code,data.prof_id)}
+                                {data.comments}
                             </div>
                         </div>
                     </div>
@@ -138,7 +137,7 @@ export const ProfCourseCard= async ({data,code}:{data:any,code:any})=>{
                                 Comments
                             </div>
                             <div className='text-black'>
-                                {await getCommentNumber(code,data.prof_id)}
+                                {data.comments}
                             </div>
                         </div>
                     </div>
@@ -150,4 +149,3 @@ export const ProfCourseCard= async ({data,code}:{data:any,code:any})=>{
 }
 
 export default ProfCard
-

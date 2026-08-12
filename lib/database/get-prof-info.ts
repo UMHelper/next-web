@@ -1,8 +1,8 @@
-import supabase from '@/lib/database/database';
+import supabaseServer from '@/lib/supabase/server';
 
 export const getReviewInfo = async (code: string,prof:string) => {
     // console.log(code,prof.replaceAll("%20"," "))
-    const { data, error } = await supabase.from('prof_with_course')
+    const { data, error } = await supabaseServer.from('prof_with_course')
                             .select('*')
                             .eq('course_id', code)
                             .eq('prof_id', prof.replaceAll("%20"," ").replaceAll('%24', '/'))
@@ -17,8 +17,10 @@ export const getReviewInfo = async (code: string,prof:string) => {
 
 
 export const getProfListByCourse = async (code: string) => {
-    const { data, error } = await supabase.from('prof_with_course')
+    const { data, error } = await supabaseServer.from('prof_with_course')
                             .select('*')
                             .eq('course_id', code)
-    return data
+                            .order('is_offered', { ascending: false })
+                            .order('prof_id', { ascending: true })
+    return data ?? []
 }

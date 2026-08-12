@@ -1,17 +1,8 @@
 import { Masonry } from '@/components/masonry';
 import { ProfCourseCard } from '@/components/prof-card';
-import supabase from '@/lib/database/database';
 import { fetchCourseListByProf } from '@/lib/database/get-course-info';
 
-export const generateStaticParams = async () => {
-    const { data, error }:{data:any,error:any} = await supabase.from('prof_with_course')
-        .select('prof_id')
-    return Array.from(new Set(data)).map((prof: any) => {
-        return {
-            name: encodeURI(prof.prof_id.replaceAll(" ", "%20")).split("/"),
-        }
-    })
-}
+export const revalidate = 3600;
 
 const ProfessorPage = async ({ params: { name } }: { params: { name: string[] } }) => {
     const prof_name=name.join("/").replaceAll("%20", " ").replaceAll('%24', '/').toUpperCase()

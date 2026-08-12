@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
     images: {
-        domains: ['img.clerk.com','erdqyqa4vgrnyxnx.public.blob.vercel-storage.com'],
+        domains: ['img.clerk.com','erdqyqa4vgrnyxnx.public.blob.vercel-storage.com','i.imgur.com'],
     },
 }
 

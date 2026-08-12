@@ -1,8 +1,8 @@
-import supabase from '@/lib/database/database';
+import supabaseServer from '@/lib/supabase/server';
 
 export const getStatistics = async () => {
 
-    const { data, error } = await supabase.from('statistics')
+    const { data, error } = await supabaseServer.from('statistics')
                             .select('*')
         
     return data;

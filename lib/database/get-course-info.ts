@@ -1,4 +1,6 @@
-import supabase from '@/lib/database/database';
+import supabaseServer from '@/lib/supabase/server';
+import supabaseAdmin from '@/lib/supabase/admin';
+import { unstable_cache } from 'next/cache';
 
 import crypto from 'crypto';
 import https from 'https';
@@ -7,7 +9,7 @@ import axios from 'axios';
 import { getProfListByCourse } from "@/lib/database/get-prof-info";
 
 export const getCourseInfo = async (course_id: string) => {
-    const { data, error } = await supabase.from('course_noporf')
+    const { data, error } = await supabaseServer.from('course_noporf')
         .select('*')
         .eq('New_code', course_id)
 
@@ -15,127 +17,166 @@ export const getCourseInfo = async (course_id: string) => {
     return data ? data[0] : {}
 }
 
+const normalizeText = (value: unknown) => {
+    if (value == null) return null
+    const text = String(value).trim()
+    return text.length > 0 ? text : null
+}
+
+const normalizeLocalCourseInfo = (courseInfo: any, code: string) => ({
+    courseCode: code.toUpperCase(),
+    courseTitle: normalizeText(courseInfo['courseTitleEng']) ?? "Unknown Course",
+    offeringProgLevel: normalizeText(courseInfo['offeringProgLevel']) ?? "Unknown",
+    suggestedYearOfStudy: String(courseInfo['suggestedYearOfStudy'] ?? "0"),
+    credits: normalizeText(courseInfo['Credits']) ?? "0",
+    offeringDept: normalizeText(courseInfo['Offering_Department']) ?? "Unknown",
+    offeringUnit: normalizeText(courseInfo['Offering_Unit']) ?? "Unknown",
+    mediumOfInstruction: normalizeText(courseInfo['Medium_of_Instruction']) ?? "Unknown",
+    gradingSystem: normalizeText(courseInfo['gradingSystem']) ?? "Unknown",
+    courseType: normalizeText(courseInfo['courseType']) ?? "Unknown",
+    duration: normalizeText(courseInfo['Course_Duration']) ?? "Unknown",
+    courseDescription: normalizeText(courseInfo['courseDescription']) ?? null,
+    ilo: normalizeText(courseInfo['ilo']) ?? null,
+})
+
+const hasCompleteCourseInfo = (courseInfo: any) => {
+    return Boolean(
+        normalizeText(courseInfo['courseTitleEng']) &&
+        normalizeText(courseInfo['offeringProgLevel']) &&
+        normalizeText(courseInfo['Credits']) &&
+        normalizeText(courseInfo['Offering_Department']) &&
+        normalizeText(courseInfo['Offering_Unit']) &&
+        normalizeText(courseInfo['Medium_of_Instruction']) &&
+        normalizeText(courseInfo['gradingSystem']) &&
+        normalizeText(courseInfo['courseType']) &&
+        normalizeText(courseInfo['Course_Duration']) &&
+        normalizeText(courseInfo['courseDescription']) &&
+        normalizeText(courseInfo['ilo'])
+    )
+}
+
+const mapRemoteCourseInfoToLocalPatch = (courseInfo: any, localCourseInfo: any, code: string) => ({
+    New_code: code.toUpperCase(),
+    courseTitleEng: normalizeText(courseInfo['courseTitle']) ?? normalizeText(localCourseInfo['courseTitleEng']),
+    offeringProgLevel: normalizeText(courseInfo['offeringProgLevel']) ?? normalizeText(localCourseInfo['offeringProgLevel']),
+    suggestedYearOfStudy: courseInfo['suggestedYearOfStudy'] ?? localCourseInfo['suggestedYearOfStudy'],
+    Credits: normalizeText(courseInfo['credits']) ?? normalizeText(localCourseInfo['Credits']),
+    Offering_Department: normalizeText(courseInfo['offeringDept']) ?? normalizeText(localCourseInfo['Offering_Department']),
+    Offering_Unit: normalizeText(courseInfo['offeringUnit']) ?? normalizeText(localCourseInfo['Offering_Unit']),
+    Medium_of_Instruction: normalizeText(courseInfo['mediumOfInstruction']) ?? normalizeText(localCourseInfo['Medium_of_Instruction']),
+    gradingSystem: normalizeText(courseInfo['gradingSystem']) ?? normalizeText(localCourseInfo['gradingSystem']),
+    courseType: normalizeText(courseInfo['courseType']) ?? normalizeText(localCourseInfo['courseType']),
+    Course_Duration: normalizeText(courseInfo['duration']) ?? normalizeText(localCourseInfo['Course_Duration']),
+    courseDescription: normalizeText(courseInfo['courseDescription']) ?? normalizeText(localCourseInfo['courseDescription']),
+    ilo: normalizeText(courseInfo['ilo']) ?? normalizeText(localCourseInfo['ilo']),
+})
+
 
 const allowLegacyRenegotiationOptions = {
     httpsAgent: new https.Agent({
         secureOptions: crypto.constants.SSL_OP_LEGACY_SERVER_CONNECT,
     }),
+    timeout: 10000,
     headers: {
         Authorization: 'f5aaa86cc5b4424aa621538fceaab34f',
     },
 };
 
-
-export async function fetchCourseInfoByUMAPI(code: string) {
+const fetchCourseInfoByUMAPIUncached = async (code: string) => {
     return await axios
         .get('https://api.data.um.edu.mo/service/academic/course_catalog/all?course_code=' + code.toUpperCase(), allowLegacyRenegotiationOptions)
-        .then(async response => {
-            if (response.data['_embedded'][0] != undefined)
+        .then(response => {
+            if (response.data['_embedded'][0] != undefined) {
                 return response.data['_embedded'][0];
-            else {
-                // empty response, fallback to local data
-                const course_info = await getCourseInfo(code);
-                return ({
-                    'courseCode': code.toUpperCase(),
-                    'courseTitle': course_info['courseTitleEng'],
-                    'offeringProgLevel': course_info['offeringProgLevel'],
-                    'suggestedYearOfStudy': course_info['suggestedYearOfStudy'],
-                    'credits': course_info['Credits'],
-                    'offeringDept': course_info['Offering_Department'],
-                    'offeringUnit': course_info['Offering_Unit'],
-                    'mediumOfInstruction': course_info['Medium_of_Instruction'],
-                    'gradingSystem': course_info['gradingSystem'],
-                    'courseType': course_info['courseType'],
-                    'duration': course_info['Course_Duration'],
-                    'courseDescription': String(course_info['courseDescription']),
-                    'ilo': String(course_info['ilo']),
-                })
             }
-
+            return null
         })
         .catch(function (error) {
-            return ({
-                'courseCode': code.toUpperCase(),
-                'courseTitle': 'Error: ' + error.toString(),
-                'offeringProgLevel': 'Error',
-                'suggestedYearOfStudy': 'Error',
-                'credits': 'Error',
-                'offeringDept': 'Error',
-                'offeringUnit': 'Error',
-                'mediumOfInstruction': 'Error',
-                'gradingSystem': 'Error',
-                'courseType': 'Error',
-                'duration': 'Error',
-                'courseDescription': error.toString(),
-                'ilo': error.toString(),
-            })
+            console.error(error)
+            return null
         });
 }
 
+export const fetchCourseInfoByUMAPI = unstable_cache(
+    async (code: string) => fetchCourseInfoByUMAPIUncached(code),
+    ['um-course-catalog-fallback'],
+    { revalidate: 86400 }
+)
+
 export async function fetchCourseInfo(code: string) {
-    // console.log('fetching course info for ' + code)
-    const course:any = await fetchCourseInfoByUMAPI(code)
-    let profList: any = await getProfListByCourse(code)
-    // 去除重复的prof_id，只保留一个
-    const seenProfIds = new Set()
-    profList = profList.filter((prof: any) => {
-        if (seenProfIds.has(prof['prof_id'])) {
-            return false
-        }
-        seenProfIds.add(prof['prof_id'])
-        return true
-    })
-    profList.sort((a: any, b: any) => {
-        if (a['is_offered'] && !b['is_offered']) return -1
-        else if (!a['is_offered'] && b['is_offered']) return 1
-        else return 0
-    })
-    let isOffer = false
-    for (const prof of profList) {
-        if (prof['is_offered']) {
-            isOffer = true
-            break
+    const [localCourse, profList] = await Promise.all([
+        getCourseInfo(code),
+        getProfListByCourse(code),
+    ])
+
+    let course = normalizeLocalCourseInfo(localCourse, code)
+
+    if (!hasCompleteCourseInfo(localCourse)) {
+        const remoteCourse = await fetchCourseInfoByUMAPI(code)
+
+        if (remoteCourse) {
+            course = {
+                courseCode: code.toUpperCase(),
+                courseTitle: normalizeText(remoteCourse['courseTitle']) ?? course.courseTitle,
+                offeringProgLevel: normalizeText(remoteCourse['offeringProgLevel']) ?? course.offeringProgLevel,
+                suggestedYearOfStudy: String(remoteCourse['suggestedYearOfStudy'] ?? course.suggestedYearOfStudy),
+                credits: normalizeText(remoteCourse['credits']) ?? course.credits,
+                offeringDept: normalizeText(remoteCourse['offeringDept']) ?? course.offeringDept,
+                offeringUnit: normalizeText(remoteCourse['offeringUnit']) ?? course.offeringUnit,
+                mediumOfInstruction: normalizeText(remoteCourse['mediumOfInstruction']) ?? course.mediumOfInstruction,
+                gradingSystem: normalizeText(remoteCourse['gradingSystem']) ?? course.gradingSystem,
+                courseType: normalizeText(remoteCourse['courseType']) ?? course.courseType,
+                duration: normalizeText(remoteCourse['duration']) ?? course.duration,
+                courseDescription: normalizeText(remoteCourse['courseDescription']) ?? course.courseDescription,
+                ilo: normalizeText(remoteCourse['ilo']) ?? course.ilo,
+            }
+
+            const localPatch = mapRemoteCourseInfoToLocalPatch(course, localCourse, code)
+            const { error } = await supabaseAdmin.from('course_noporf').upsert([localPatch], {
+                onConflict: 'New_code',
+            })
+
+            if (error) {
+                console.error(error)
+            }
         }
     }
 
+    const isOffer = localCourse['Is_Offered'] === 1 || (profList ?? []).some((prof: any) => prof['is_offered'])
 
-    
-    const course_offer:any=await supabase.from('course_noporf').select('Is_Offered').eq('New_code',code)
-    isOffer=course_offer.data[0].Is_Offered===1 || isOffer
-
-    // console.log(course)
     return { course, profList, isOffer }
 }
 
 export const fetchCourseListByProf = async ({ name }:{name:string}) => {
-    const { data, error }:{data:any,error:any} = await supabase.from('prof_with_course')
+    const { data, error }:{data:any,error:any} = await supabaseServer.from('prof_with_course')
     .select('*')
     .eq('prof_id', name)
     // sort data by data.course_id
-    data.sort((a:any,b:any)=>a.course_id.localeCompare(b.course_id))
-    return {data, error}
+    const courseList = data ?? []
+    courseList.sort((a:any,b:any)=>a.course_id.localeCompare(b.course_id))
+    return {data: courseList, error}
 }
 
 export const fetchCatalogList = async (departments: string[]) => {
     if (departments.length === 1) {
         if (departments[0].toLowerCase()==='gecourse'){
-            const { data, error }: { data: any, error: any } = await supabase.from('course_noporf')
+            const { data, error }: { data: any, error: any } = await supabaseServer.from('course_noporf')
             .select('')
             .like('New_code', 'GE%')
             return data.sort((a: any, b: any) => a.New_code.localeCompare(b.New_code))
         }
-        const { data, error }: { data: any, error: any } = await supabase.from('course_noporf')
+        const { data, error }: { data: any, error: any } = await supabaseServer.from('course_noporf')
             .select('')
             .eq('Offering_Unit', departments[0].toUpperCase())
         return data.sort((a: any, b: any) => a.New_code.localeCompare(b.New_code))
     }
     if (departments[0]==='GECourse'){
-        const { data, error }: { data: any, error: any } = await supabase.from('course_noporf')
+        const { data, error }: { data: any, error: any } = await supabaseServer.from('course_noporf')
         .select('')
         .like('New_code', `${departments[1]}%`.toUpperCase())
         return data.sort((a: any, b: any) => a.New_code.localeCompare(b.New_code))
     }
-    const { data, error }: { data: any, error: any } = await supabase.from('course_noporf')
+    const { data, error }: { data: any, error: any } = await supabaseServer.from('course_noporf')
         .select('')
         .eq('Offering_Unit', departments[0].toUpperCase())
         .eq('Offering_Department', departments[1].toUpperCase())

@@ -1,7 +1,6 @@
 import {NextResponse} from "next/server";;
-import supabase from '@/lib/database/database';
+import supabaseAdmin from '@/lib/supabase/admin';
 import { getReviewInfo } from "@/lib/database/get-prof-info";
-import { uuid } from "@/lib/utils";
 
 export async function POST(request: Request){
     let body = await request.formData()
@@ -49,11 +48,6 @@ export async function POST(request: Request){
     data.content=body.get('content') as string
     // // 2021-10-10T16:00:00.000Z
     data.pub_time=new Date().toISOString().slice(0, 19).replace('T', ' ')
-    const id:any=await supabase.from('comment').select('id').order('id',{ascending:false}).limit(1)
-    
-    // DO NOT CHANGE THIS ID 
-    // check reply API 
-    data.id=id.data[0].id+1
 
     // console.log(body.get('image'))
     if (body.get('verify')==="1"){
@@ -96,21 +90,29 @@ export async function POST(request: Request){
         }
         
     }
-    // console.log(data)
-    const {data : res,error}:{data:any, error:any}= await supabase.from('comment').insert([data]).select()
+    const {data : res,error}:{data:any, error:any}= await supabaseAdmin.rpc(
+        'insert_comment_and_refresh_prof_stats',
+        {
+            target_course_id: course.id,
+            target_content: data.content,
+            target_attendance: data.attendance,
+            target_pre: data.pre,
+            target_grade: data.grade,
+            target_hard: data.hard,
+            target_reward: data.reward,
+            target_recommend: data.recommend,
+            target_assignment: data.assignment,
+            target_result: data.result,
+            target_pub_time: data.pub_time,
+            target_verify: data.verify,
+            target_verify_account: data.verify_account,
+            target_img: data.img ?? null,
+        }
+    ).single()
+    if (error || !res) {
+        console.error(error)
+        return new NextResponse(null,{status:500})
+    }
     console.log(res,error)
-    const course_id=res.course_id
-
-
-    course.comments=1+parseInt(course.comments)
-    course.result=(parseFloat(course.result)*parseInt(course.comments)+parseFloat(data.result))/parseInt(course.comments)
-    course.attendance=(parseFloat(course.attendance)*course.comments+parseFloat(data.attendance))/(course.comments)
-    course.grade=(parseFloat(course.grade)*course.comments+parseFloat(data.grade))/(course.comments)
-    course.hard=(parseFloat(course.hard)*course.comments+parseFloat(data.hard))/(course.comments)
-    course.reward=(parseFloat(course.reward)*course.comments+parseFloat(data.reward))/(course.comments)
-
-    // console.log(course)
-    const {data:update,error:update_error}=await supabase.from('prof_with_course').update({...course}).eq('id',course.id).select()
-    // console.log(update,update_error)
     return new NextResponse(null,{status:200})
 }

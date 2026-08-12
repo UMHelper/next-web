@@ -9,11 +9,12 @@ import { fetchCourseInfo } from "@/lib/database/get-course-info";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 import Script from "next/script";
-import supabase from '@/lib/database/database';
 import { BBSAd } from "@/components/bbs-updates";
 import { Viewport } from "next";
 
 import { SparklesText } from "@/components/magicui/sparkles-text";
+
+export const revalidate = 3600;
 
 export function generateMetadata(
     { params }: { params: any }) {
@@ -30,19 +31,6 @@ export const viewport: Viewport = {
     initialScale: 1,
     maximumScale: 1,
     userScalable: false,
-}
-
-export async function generateStaticParams() {
-    const { data: courses } = await supabase.from('course_noporf').select('New_code')
-    if (!courses) {
-        return []
-    }
-    // console.log(courses[0])
-    return courses.map((course) => {
-        return {
-            code: course['New_code']
-        }
-    })
 }
 
 async function CoursePage({ params }: { params: { code: string } }) {

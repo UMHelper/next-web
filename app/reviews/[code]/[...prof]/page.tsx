@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { CalendarRange, Cat, ChevronRightCircle, ClipboardEdit } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { TimetableCard } from "@/components/timetable-card";
-import { getComentListByCourseIDAndPage, getCommentList, getVoteHistory } from "@/lib/database/get-comment-list";
+import { getComentListByCourseIDAndPage } from "@/lib/database/get-comment-list";
 import { getReviewInfo } from "@/lib/database/get-prof-info";
 import Link from "next/link";
 import { notFound } from 'next/navigation'
@@ -70,8 +70,6 @@ const ReviewPage = async ({ params }: { params: { code: string, prof: string[] }
     // console.log(course_info);
 
     const comments: any[] = await getComentListByCourseIDAndPage(prof_info.id, page_num - 1);
-    const comments_id_array = comments.map((comment) => comment.id)
-    const vote_history: any[] = await getVoteHistory(comments_id_array)
 
     const timetable = await getScheduleList(params.code, params.prof.join('/'));
 
@@ -176,7 +174,7 @@ const ReviewPage = async ({ params }: { params: { code: string, prof: string[] }
             <div>
                 <div className='max-w-screen-xl mx-auto p-4'>
                     {/* <ReviewPagination code={code} prof={prof} page_num={page_num} total_page={Math.ceil(prof_info.comments / 10)} /> */}
-                    <Comments comments={comments} course_id={course_info.id} vote_history={vote_history} />
+                    <Comments comments={comments} />
                     <ReviewPagination code={code} prof={prof} page_num={page_num} total_page={Math.ceil(prof_info.comments / 20)} />
                 </div>
             </div>

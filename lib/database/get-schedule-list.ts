@@ -1,7 +1,7 @@
-import supabase from '@/lib/database/database';
+import supabaseServer from '@/lib/supabase/server';
 
 const getScheduleList = async (code: string, prof: string) => {
-    const { data, error }: { data: any, error: any } = await supabase.rpc('get_schedule_list', { course_code: code, prof: prof.replaceAll("%20", " ").replaceAll('$', '/') })
+    const { data, error }: { data: any, error: any } = await supabaseServer.rpc('get_schedule_list', { course_code: code, prof: prof.replaceAll("%20", " ").replaceAll('$', '/') })
     let res: any[] = []
     data.forEach((entry: any) => {
         if ((entry.year.toString() === (process.env.NEXT_PUBLIC_CURRENT_YEAR ?? "2026")) && (entry.sem.toString() === (process.env.NEXT_PUBLIC_CURRENT_SEM ?? "1"))) {
