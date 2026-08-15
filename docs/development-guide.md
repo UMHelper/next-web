@@ -11,20 +11,20 @@
 
 仓库里已经准备好的本地开发资产：
 
-- [supabase/schema.sql](/Users/box/UMHelper/next-web/supabase/schema.sql:1)
+- [supabase/schema.sql](../supabase/schema.sql)
   - 完整建表 SQL
-- [supabase/seed.sql](/Users/box/UMHelper/next-web/supabase/seed.sql:1)
+- [supabase/seed.sql](../supabase/seed.sql)
   - 最小种子数据
-- [supabase/config.toml](/Users/box/UMHelper/next-web/supabase/config.toml:1)
+- [supabase/config.toml](../supabase/config.toml)
   - 本地 Supabase 配置
-- [scripts/bootstrap-local-db.sh](/Users/box/UMHelper/next-web/scripts/bootstrap-local-db.sh:1)
+- [scripts/bootstrap-local-db.sh](../scripts/bootstrap-local-db.sh)
   - 一键导入脚本
-- [.env.example](/Users/box/UMHelper/next-web/.env.example:1)
+- [.env.example](../.env.example)
   - 本地环境变量模板
 
 另外，仓库里还有：
 
-- [supabase/migrations](/Users/box/UMHelper/next-web/supabase/migrations:1)
+- [supabase/migrations](../supabase/migrations)
   - 数据库增量变更历史
 
 这两类文件职责不同：
@@ -165,7 +165,7 @@ npm run dev
 - `supabase start` / `npx supabase start`
   - 起本地 Supabase 容器
 - `./scripts/bootstrap-local-db.sh` / `.\scripts\bootstrap-local-db.ps1`
-  - 把 [supabase/schema.sql](/Users/box/UMHelper/next-web/supabase/schema.sql:1) 和 [supabase/seed.sql](/Users/box/UMHelper/next-web/supabase/seed.sql:1) 导入本地库
+  - 把 [supabase/schema.sql](../supabase/schema.sql) 和 [supabase/seed.sql](../supabase/seed.sql) 导入本地库
 - `npm run dev`
   - 启动 Next.js
 
@@ -371,20 +371,20 @@ Copy-Item .env.example .env.local
 
 建表 SQL：
 
-- [supabase/schema.sql](/Users/box/UMHelper/next-web/supabase/schema.sql:1)
+- [supabase/schema.sql](../supabase/schema.sql)
 
 种子数据：
 
-- [supabase/seed.sql](/Users/box/UMHelper/next-web/supabase/seed.sql:1)
+- [supabase/seed.sql](../supabase/seed.sql)
 
 一键导入脚本：
 
-- [scripts/bootstrap-local-db.sh](/Users/box/UMHelper/next-web/scripts/bootstrap-local-db.sh:1)
-- [scripts/bootstrap-local-db.ps1](/Users/box/UMHelper/next-web/scripts/bootstrap-local-db.ps1:1)
+- [scripts/bootstrap-local-db.sh](../scripts/bootstrap-local-db.sh)
+- [scripts/bootstrap-local-db.ps1](../scripts/bootstrap-local-db.ps1)
 
 迁移历史：
 
-- [supabase/migrations](/Users/box/UMHelper/next-web/supabase/migrations:1)
+- [supabase/migrations](../supabase/migrations)
 
 注意：
 
@@ -414,7 +414,7 @@ SUPABASE_DB_URL=postgresql://postgres:postgres@127.0.0.1:5432/umhelper_local ./s
 
 Supabase 客户端入口：
 
-- [lib/supabase/shared.ts](/Users/box/UMHelper/next-web/lib/supabase/shared.ts:1)
+- [lib/supabase/shared.ts](../lib/supabase/shared.ts)
 
 职责分层：
 
@@ -656,10 +656,10 @@ Supabase 客户端入口：
 
 相关 migration 可参考：
 
-- [supabase/migrations/20260812_comment_page_rpc.sql](/Users/box/UMHelper/next-web/supabase/migrations/20260812_comment_page_rpc.sql:1)
-- [supabase/migrations/20260812_comment_write_rpc.sql](/Users/box/UMHelper/next-web/supabase/migrations/20260812_comment_write_rpc.sql:1)
-- [supabase/migrations/20260812_course_search_rpc.sql](/Users/box/UMHelper/next-web/supabase/migrations/20260812_course_search_rpc.sql:1)
-- [supabase/migrations/20260812_instructor_search_rpc.sql](/Users/box/UMHelper/next-web/supabase/migrations/20260812_instructor_search_rpc.sql:1)
+- [supabase/migrations/20260812_comment_page_rpc.sql](../supabase/migrations/20260812_comment_page_rpc.sql)
+- [supabase/migrations/20260812_comment_write_rpc.sql](../supabase/migrations/20260812_comment_write_rpc.sql)
+- [supabase/migrations/20260812_course_search_rpc.sql](../supabase/migrations/20260812_course_search_rpc.sql)
+- [supabase/migrations/20260812_instructor_search_rpc.sql](../supabase/migrations/20260812_instructor_search_rpc.sql)
 
 ## 10. 当前索引与查询设计重点
 
@@ -692,20 +692,20 @@ Supabase 客户端入口：
 
 优先看这些文件：
 
-- [lib/supabase/shared.ts](/Users/box/UMHelper/next-web/lib/supabase/shared.ts:1)
-- [lib/supabase/browser.ts](/Users/box/UMHelper/next-web/lib/supabase/browser.ts:1)
-- [lib/supabase/server.ts](/Users/box/UMHelper/next-web/lib/supabase/server.ts:1)
-- [lib/supabase/admin.ts](/Users/box/UMHelper/next-web/lib/supabase/admin.ts:1)
-- [lib/database/get-course-info.ts](/Users/box/UMHelper/next-web/lib/database/get-course-info.ts:1)
-- [lib/database/get-prof-info.ts](/Users/box/UMHelper/next-web/lib/database/get-prof-info.ts:1)
-- [lib/database/get-comment-list.ts](/Users/box/UMHelper/next-web/lib/database/get-comment-list.ts:1)
-- [lib/database/get-fuzzy-search.ts](/Users/box/UMHelper/next-web/lib/database/get-fuzzy-search.ts:1)
+- [lib/supabase/shared.ts](../lib/supabase/shared.ts)
+- [lib/supabase/browser.ts](../lib/supabase/browser.ts)
+- [lib/supabase/server.ts](../lib/supabase/server.ts)
+- [lib/supabase/admin.ts](../lib/supabase/admin.ts)
+- [lib/database/get-course-info.ts](../lib/database/get-course-info.ts)
+- [lib/database/get-prof-info.ts](../lib/database/get-prof-info.ts)
+- [lib/database/get-comment-list.ts](../lib/database/get-comment-list.ts)
+- [lib/database/get-fuzzy-search.ts](../lib/database/get-fuzzy-search.ts)
 
 写操作入口主要看：
 
-- [app/api/comment/[code]/[prof]/route.tsx](/Users/box/UMHelper/next-web/app/api/comment/[code]/[prof]/route.tsx:1)
-- [app/api/reply/route.ts](/Users/box/UMHelper/next-web/app/api/reply/route.ts:1)
-- [app/api/vote/[comment_id]/route.ts](/Users/box/UMHelper/next-web/app/api/vote/[comment_id]/route.ts:1)
+- [app/api/comment/[code]/[prof]/route.tsx](../app/api/comment/[code]/[prof]/route.tsx)
+- [app/api/reply/route.ts](../app/api/reply/route.ts)
+- [app/api/vote/[comment_id]/route.ts](../app/api/vote/[comment_id]/route.ts)
 
 ## 12. 当前 Supabase 安全状态
 
@@ -775,10 +775,10 @@ supabase db pull
 第一次接手这个项目，建议按这个顺序读：
 
 1. 本文
-2. [lib/supabase/shared.ts](/Users/box/UMHelper/next-web/lib/supabase/shared.ts:1)
-3. [lib/database/get-course-info.ts](/Users/box/UMHelper/next-web/lib/database/get-course-info.ts:1)
-4. [lib/database/get-comment-list.ts](/Users/box/UMHelper/next-web/lib/database/get-comment-list.ts:1)
-5. [app/api/comment/[code]/[prof]/route.tsx](/Users/box/UMHelper/next-web/app/api/comment/[code]/[prof]/route.tsx:1)
+2. [lib/supabase/shared.ts](../lib/supabase/shared.ts)
+3. [lib/database/get-course-info.ts](../lib/database/get-course-info.ts)
+4. [lib/database/get-comment-list.ts](../lib/database/get-comment-list.ts)
+5. [app/api/comment/[code]/[prof]/route.tsx](../app/api/comment/[code]/[prof]/route.tsx)
 6. `supabase/migrations/*.sql`
 
 如果你只想先搞懂业务主链路，只看这四张表就够了：

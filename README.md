@@ -4,14 +4,14 @@ UMHelper Next Web 是一个 `Next.js 14 + Supabase` 项目。
 
 仓库里已经包含本地开发所需的核心资产：
 
-- [docs/development-guide.md](/Users/box/UMHelper/next-web/docs/development-guide.md:1)
-- [supabase/schema.sql](/Users/box/UMHelper/next-web/supabase/schema.sql:1)
-- [supabase/seed.sql](/Users/box/UMHelper/next-web/supabase/seed.sql:1)
-- [supabase/migrations](/Users/box/UMHelper/next-web/supabase/migrations:1)
-- [supabase/config.toml](/Users/box/UMHelper/next-web/supabase/config.toml:1)
-- [.env.example](/Users/box/UMHelper/next-web/.env.example:1)
-- [scripts/bootstrap-local-db.sh](/Users/box/UMHelper/next-web/scripts/bootstrap-local-db.sh:1)
-- [scripts/bootstrap-local-db.ps1](/Users/box/UMHelper/next-web/scripts/bootstrap-local-db.ps1:1)
+- [docs/development-guide.md](docs/development-guide.md)
+- [supabase/schema.sql](supabase/schema.sql)
+- [supabase/seed.sql](supabase/seed.sql)
+- [supabase/migrations](supabase/migrations)
+- [supabase/config.toml](supabase/config.toml)
+- [.env.example](.env.example)
+- [scripts/bootstrap-local-db.sh](scripts/bootstrap-local-db.sh)
+- [scripts/bootstrap-local-db.ps1](scripts/bootstrap-local-db.ps1)
 
 ## Quick Start
 
@@ -69,11 +69,11 @@ npm run dev
 
 ## 关于 migrations
 
-仓库里有 [supabase/migrations](/Users/box/UMHelper/next-web/supabase/migrations:1)，但当前本地初始化流程不会逐条执行这些 migration。
+仓库里有 [supabase/migrations](supabase/migrations)，但当前本地初始化流程不会逐条执行这些 migration。
 
 原因是：
 
-- [supabase/schema.sql](/Users/box/UMHelper/next-web/supabase/schema.sql:1) 已经是包含这些 migration 结果的当前结构快照
+- [supabase/schema.sql](supabase/schema.sql) 已经是包含这些 migration 结果的当前结构快照
 - onboarding 的目标是先让新成员最快把本地库跑起来
 
 当前规则是：
@@ -86,16 +86,16 @@ npm run dev
 
 建表 SQL：
 
-- [supabase/schema.sql](/Users/box/UMHelper/next-web/supabase/schema.sql:1)
+- [supabase/schema.sql](supabase/schema.sql)
 
 种子数据：
 
-- [supabase/seed.sql](/Users/box/UMHelper/next-web/supabase/seed.sql:1)
+- [supabase/seed.sql](supabase/seed.sql)
 
 导入脚本：
 
-- macOS / Linux: [scripts/bootstrap-local-db.sh](/Users/box/UMHelper/next-web/scripts/bootstrap-local-db.sh:1)
-- Windows: [scripts/bootstrap-local-db.ps1](/Users/box/UMHelper/next-web/scripts/bootstrap-local-db.ps1:1)
+- macOS / Linux: [scripts/bootstrap-local-db.sh](scripts/bootstrap-local-db.sh)
+- Windows: [scripts/bootstrap-local-db.ps1](scripts/bootstrap-local-db.ps1)
 
 ## 备用方案
 
@@ -110,4 +110,4 @@ npm run dev
 
 跨平台完整文档见：
 
-- [docs/development-guide.md](/Users/box/UMHelper/next-web/docs/development-guide.md:1)
+- [docs/development-guide.md](docs/development-guide.md)
