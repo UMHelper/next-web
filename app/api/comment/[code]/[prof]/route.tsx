@@ -4,6 +4,7 @@ import { getReviewInfo } from "@/lib/database/get-prof-info";
 import { getComentListByCourseIDAndPage } from "@/lib/database/get-comment-list";
 import { getCourseInfo } from "@/lib/database/get-course-info";
 import getScheduleList from "@/lib/database/get-schedule-list";
+import { verifyIOSRequest, iosUnauthorized } from "@/lib/ios-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +22,9 @@ export const dynamic = "force-dynamic";
  * iOS 客户端（next-ios）使用。
  */
 export async function GET(request: Request, { params }: { params: { code: string, prof: string } }) {
+    // iOS 专用接口认证(2FA 时间戳签名)
+    if (!verifyIOSRequest(request)) return iosUnauthorized()
+
     const { searchParams } = new URL(request.url);
     const pageParam = parseInt(searchParams.get('page') ?? '1', 10);
     const page = Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1;

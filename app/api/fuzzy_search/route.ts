@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { fuzzySearch } from "@/lib/database/get-fuzzy-search";
+import { verifyIOSRequest, iosUnauthorized } from "@/lib/ios-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +13,9 @@ export const dynamic = "force-dynamic";
  * iOS 客户端（next-ios）使用。
  */
 export async function GET(request: NextRequest) {
+    // iOS 专用接口认证(2FA 时间戳签名)
+    if (!verifyIOSRequest(request)) return iosUnauthorized()
+
     const { searchParams } = new URL(request.url);
     const keyword = (searchParams.get("keyword") ?? "").trim();
     const type = (searchParams.get("type") ?? "course").trim();
