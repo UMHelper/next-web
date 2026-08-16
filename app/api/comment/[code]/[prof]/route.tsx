@@ -1,6 +1,59 @@
 import {NextResponse} from "next/server";;
 import supabaseAdmin from '@/lib/supabase/admin';
 import { getReviewInfo } from "@/lib/database/get-prof-info";
+import { getComentListByCourseIDAndPage } from "@/lib/database/get-comment-list";
+import { getCourseInfo } from "@/lib/database/get-course-info";
+import getScheduleList from "@/lib/database/get-schedule-list";
+
+export const dynamic = "force-dynamic";
+
+/**
+ * GET /api/comment/[code]/[prof]?page=1
+ *
+ * 一次返回评价页所需全部数据（与 Web 端 /reviews/[code]/[...prof] 页同款数据源）：
+ * - prof：prof_with_course 单行（聚合评分）
+ * - course：course_noporf 单行
+ * - comments：当前页评论 + 回复（含 vote_history），页大小 20
+ * - timetable：当前学期上课时间表
+ * - page / total_page：分页信息
+ *
+ * prof 编码规则与 Web 一致：空格用 %20，/ 用 $ 转义。
+ * iOS 客户端（next-ios）使用。
+ */
+export async function GET(request: Request, { params }: { params: { code: string, prof: string } }) {
+    const { searchParams } = new URL(request.url);
+    const pageParam = parseInt(searchParams.get('page') ?? '1', 10);
+    const page = Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1;
+
+    const code = decodeURIComponent(params.code).toUpperCase();
+    const prof = decodeURIComponent(params.prof)
+        .replaceAll('%20', ' ')
+        .replaceAll('$', '/')
+        .toUpperCase();
+
+    const prof_info = await getReviewInfo(code, prof);
+    if (!prof_info) {
+        return new NextResponse(JSON.stringify({ error: 'not found' }), { status: 404 });
+    }
+
+    const [course_info, comments, timetable] = await Promise.all([
+        getCourseInfo(code),
+        getComentListByCourseIDAndPage(prof_info.id, page - 1),
+        getScheduleList(code, prof),
+    ]);
+
+    return NextResponse.json(
+        {
+            prof: prof_info,
+            course: course_info,
+            comments,
+            timetable,
+            page,
+            total_page: Math.max(1, Math.ceil((prof_info.comments ?? 0) / 20)),
+        },
+        { headers: { "Cache-Control": "no-store, max-age=0" } },
+    );
+}
 
 export async function POST(request: Request){
     let body = await request.formData()
