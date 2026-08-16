@@ -26,6 +26,7 @@ const normalizeText = (value: unknown) => {
 const normalizeLocalCourseInfo = (courseInfo: any, code: string) => ({
     courseCode: code.toUpperCase(),
     courseTitle: normalizeText(courseInfo['courseTitleEng']) ?? "Unknown Course",
+    courseTitleChi: normalizeText(courseInfo['courseTitleChi']) ?? null,
     offeringProgLevel: normalizeText(courseInfo['offeringProgLevel']) ?? "Unknown",
     suggestedYearOfStudy: String(courseInfo['suggestedYearOfStudy'] ?? "0"),
     credits: normalizeText(courseInfo['Credits']) ?? "0",
@@ -118,6 +119,7 @@ export async function fetchCourseInfo(code: string) {
             course = {
                 courseCode: code.toUpperCase(),
                 courseTitle: normalizeText(remoteCourse['courseTitle']) ?? course.courseTitle,
+                courseTitleChi: course.courseTitleChi ?? null,
                 offeringProgLevel: normalizeText(remoteCourse['offeringProgLevel']) ?? course.offeringProgLevel,
                 suggestedYearOfStudy: String(remoteCourse['suggestedYearOfStudy'] ?? course.suggestedYearOfStudy),
                 credits: normalizeText(remoteCourse['credits']) ?? course.credits,
