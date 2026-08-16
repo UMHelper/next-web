@@ -61,7 +61,7 @@ export default function SearchComp() {
     }
     const [is_prof, set_is_prof] = useState(false)
     return (
-        <div className='bg-[url("/banner.jpg")] bg-cover'>
+        <div className='bg-[url("/felina2.jpeg")] bg-cover bg-center bg-no-repeat'>
             <div className='max-w-screen-xl mx-auto p-2'>
                 <div className='flex justify-between mx-2 py-10 md:py-8 '>
                     <div className='md:flex flex-col justify-center text-white hidden space-y-2  p-6'>
@@ -110,7 +110,7 @@ export default function SearchComp() {
                         </h2>
 
                     </div>
-                    <Card className="md:mx-8 md:w-96 w-full mx-0 backdrop-blur-3xl bg-transparent border-none">
+                    <Card className="md:mx-8 md:w-96 w-full mx-0 backdrop-blur bg-transparent border-none">
                         <CardHeader>
 
                         </CardHeader>
