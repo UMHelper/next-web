@@ -69,6 +69,24 @@
 > 设计原则：只读接口复用 Server Component 同款 `lib/database` 函数，保证两端数据一致；
 > 全部返回 JSON，`Cache-Control: no-store`（评论/时间表为动态数据）。
 
+### 3.1 认证（HMAC-SHA256 时间戳签名）
+
+本节的 6 个只读 GET 接口只向 iOS 客户端开放，浏览器/第三方直接调用一律返回 401。
+
+- 原理（2FA/TOTP 思路）：服务端与 iOS 客户端共享密钥；客户端对「方法 + 路径 + 时间戳」计算
+  HMAC-SHA256 签名放入请求头，服务端以 5 秒有效期窗口校验，防伪造与重放。
+- 请求头：
+  - `X-UM-Timestamp`：Unix 秒级时间戳
+  - `X-UM-Signature`：`HMAC-SHA256(secret, "METHOD\npathname\ntimestamp")` 的小写十六进制
+- 实现：`lib/ios-auth.ts`（`verifyIOSRequest()` / `iosUnauthorized()`）；
+  签名比对用 `crypto.timingSafeEqual` 防时序攻击；`|now - timestamp| > 5s` 返回 401。
+- 密钥：服务端环境变量 `UM_IOS_API_SECRET`（写入 `.env.local`，`.env.example` 仅空占位，
+  不提交仓库）；iOS 侧由构建脚本从本地 `Secrets/UMSecrets.local` 注入（详见 next-ios README 第 6 节）。
+- 三个 POST 接口（`/comment`、`/reply`、`/vote`）与 Web 共用，不做此校验。
+
+> 安全边界：客户端密钥可通过逆向二进制提取；本方案目标是阻止浏览器/第三方直接调用接口并保证
+> 密钥不进 git 仓库，需要更强防护时升级为 Apple DeviceCheck / App Attest。
+
 ### GET /api/course?code=ACCT1000
 返回课程详情与教授列表（对应 Web `/course/[code]` 页）：
 
@@ -132,6 +150,7 @@
 
 ## 5. 部署说明
 
-- 本地联调：`cd next-web && npm run dev`（:3000），iOS 模拟器直接访问 localhost
+- 本地联调：`cd next-web && npm run dev`（:3000），iOS 模拟器直接访问 localhost；
+  需在 `.env.local` 配置 `UM_IOS_API_SECRET`（与 iOS 侧 `Secrets/UMSecrets.local` 一致）
 - 线上：将 next-web 重新部署到 umeh.top（Vercel 或 Cloudflare Workers）后，iOS 切换
   `APIConfig.baseURL = https://umeh.top/api` 即可
