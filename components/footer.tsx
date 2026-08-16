@@ -1,5 +1,6 @@
 import { Cat } from "lucide-react";
 import Link from "next/link";
+import BrowserDiagnostics from "./browser-diagnostics";
 // import { UAText } from "./ua-dialog";
 
 // async function fetchGitData() {
@@ -37,6 +38,7 @@ const Footer = async () => {
                     <Link href='./sitemap.xml'>
                         Sitemap
                     </Link>
+                    <BrowserDiagnostics />
                 </div>
                 <div className='text-gray-500 text-xs'>
                     Version &quot;Next&quot; licensed under <Link className='text-black font-semibold underline underline-offset-1' href='/'>GNU General Public License v3.0</Link>. Designed and built by the <Link className='text-black font-semibold underline underline-offset-1' href='https://github.com/UMHelper/Feedback-and-Join-Us/blob/master/Join.md'>UMHelper</Link> team with the help of our contributors.
