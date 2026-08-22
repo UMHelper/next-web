@@ -12,7 +12,7 @@ import { Toaster } from "@/components/ui/sonner"
 import Script from 'next/script';
 import { ClerkProvider } from '@clerk/nextjs';
 import Link from 'next/link';
-import UADialog from '@/components/ua-dialog';
+import LayoutCompatibility from '@/components/layout-compatibility';
 import CsBanner from '@/components/cs-banner';
 import type { Viewport } from 'next'
 import { Banner } from '@/components/banner';
@@ -78,12 +78,12 @@ export default function RootLayout({
                             </div> */}
                         {/* </div> */}
                         {/* <CsBanner /> */}
-                        <div>
+                        <LayoutCompatibility contentTargetId="page-content" />
+                        <div id="page-content">
                             {children}
                         </div>
                     </div>
                     <Footer />
-                    <UADialog />
                     <Toaster richColors/>
                     <Toaster 
                         id="admin_notice" 

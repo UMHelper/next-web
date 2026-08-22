@@ -1,7 +1,6 @@
 import { Cat } from "lucide-react";
 import Link from "next/link";
 import BrowserDiagnostics from "./browser-diagnostics";
-// import { UAText } from "./ua-dialog";
 
 // async function fetchGitData() {
 //     const response = await fetch("https://api.github.com/repos/UMHelper/next-web/branches/main",
