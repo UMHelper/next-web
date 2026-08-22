@@ -5,6 +5,7 @@ import CommentBank from "@/components/comment-bank";
 import { Card } from "@/components/ui/card";
 import SearchComp from "@/components/search";
 import BbsUpdates from "@/components/bbs-updates";
+import HomeCommentAnalytics from "@/components/home-comment-analytics";
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
 
 function HomePage() {
@@ -107,6 +108,9 @@ function HomePage() {
 
                 </div>
             </div>
+
+
+            <HomeCommentAnalytics />
 
             <div className='max-w-screen-xl mx-auto p-4'>
                 <div className="py-8">
