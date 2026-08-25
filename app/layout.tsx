@@ -78,7 +78,7 @@ export default function RootLayout({
                             </div> */}
                         {/* </div> */}
                         {/* <CsBanner /> */}
-                        <LayoutCompatibility contentTargetId="page-content" />
+                        {/* <LayoutCompatibility contentTargetId="page-content" /> */}
                         <div id="page-content">
                             {children}
                         </div>
