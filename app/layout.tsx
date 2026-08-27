@@ -49,6 +49,8 @@ export default function RootLayout({
 
                     <meta name='theme-color' content='#2563EB' />
                     <meta name='apple-mobile-web-app-status-bar-style' content='#2563EB' />
+                    {/* TODO: 上架后把 app-id 替换成真实 App Store ID */}
+                    <meta name='apple-itunes-app' content='app-id=你的AppStoreID' />
                     <link rel="manifest" href="/manifest.webmanifest" />
                     <link rel="icon" href="/favicon.png" sizes="any" />
                     <link
