@@ -31,6 +31,9 @@ const Footer = async () => {
                     <Link href='https://whole.umeh.top/public/p/2-terms-of-service'>
                         Terms of Service
                     </Link>
+                    <Link href='/privacy-policy'>
+                        Privacy Policy
+                    </Link>
                     <Link href='https://docs.google.com/forms/d/1_HrH0jJ9Fyxu_dmW1xGsn9Hq1ZtN9nFG-Jangj_BNVk/'>
                         Feedback
                     </Link>
