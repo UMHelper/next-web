@@ -2,8 +2,8 @@ import type { Metadata, Viewport } from 'next'
 import PrivacyPolicyContent from '@/components/privacy-policy-content'
 
 export const metadata: Metadata = {
-    title: '隱私政策 | What2Reg @ UM 澳大選咩課',
-    description: 'What2Reg @ UM 澳大選咩課的隱私政策。',
+    title: 'Privacy Policy | What2Reg @ UM',
+    description: 'Privacy Policy for What2Reg @ UM, a course review platform for University of Macau students.',
 }
 
 export const viewport: Viewport = {
@@ -13,8 +13,8 @@ export const viewport: Viewport = {
     userScalable: false,
 }
 
-const PrivacyPolicyPage = () => {
-    return <PrivacyPolicyContent lang='zh' />
+const PrivacyPolicyEnPage = () => {
+    return <PrivacyPolicyContent lang='en' />
 }
 
-export default PrivacyPolicyPage
+export default PrivacyPolicyEnPage
