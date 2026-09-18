@@ -31,6 +31,10 @@ declare namespace Cloudflare {
 		SUPABASE_SECRET_KEY: string;
 		SUPABASE_JWT_SECRET: string;
 		UM_IOS_API_SECRET: string;
+		TELEGRAM_BOT_TOKEN: string;
+		TELEGRAM_REPORT_CHAT_ID: string;
+		TELEGRAM_REPORT_THREAD_ID: string;
+		TELEGRAM_API_BASE_URL: string;
 		WORKER_SELF_REFERENCE: Service<typeof import("./.open-next/worker").default>;
 		UI_PROFILE: Fetcher /* umeh-ui-profile */;
 	}

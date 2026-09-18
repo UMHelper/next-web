@@ -1,9 +1,9 @@
 # UMHelper next-web 实现方式调研与 iOS API 设计文档
 
-最后更新：2026-08-16
+最后更新：2026-09-18
 
 本文档记录对 `next-web` 现有实现的调研结论，以及为 iOS 客户端（`next-ios`）新增的 HTTP API 设计。
-所有新增 API 均为只读 GET 接口，与现有写入接口（POST）保持一致的数据源与字段语义。
+除只读 GET 接口外，另有 `POST /api/report` 举报接口（见 3.2）；所有接口均与现有数据源保持字段语义一致。
 
 ## 1. next-web 实现方式调研
 
@@ -71,7 +71,7 @@
 
 ### 3.1 认证（HMAC-SHA256 时间戳签名）
 
-本节的 6 个只读 GET 接口只向 iOS 客户端开放，浏览器/第三方直接调用一律返回 401。
+本节的 6 个只读 GET 接口以及 3.2 的 `POST /api/report` 举报接口只向 iOS 客户端开放，浏览器/第三方直接调用一律返回 401。
 
 - 原理（2FA/TOTP 思路）：服务端与 iOS 客户端共享密钥；客户端对「方法 + 路径 + 时间戳」计算
   HMAC-SHA256 签名放入请求头，服务端以 5 秒有效期窗口校验，防伪造与重放。
@@ -134,6 +134,63 @@
 
 ### GET /api/professor?name=CHAN WENG HANG
 返回该教授的 `prof_with_course` 全部行（按 course_id 排序），对应 Web `/professor/[...name]` 页。
+
+### POST /api/report（iOS 内置举报 → Telegram）
+
+iOS 评价卡片里的举报入口调用此接口；服务端会校验 iOS HMAC 签名，然后通过 Telegram Bot
+推送到 `TELEGRAM_REPORT_CHAT_ID` 指定的群组/话题。机器人创建与群组 ID 获取见
+[telegram-report-setup.md](./telegram-report-setup.md)。
+
+请求头（与只读接口一致）：
+
+- `X-UM-Timestamp`：Unix 秒级时间戳
+- `X-UM-Signature`：`HMAC-SHA256(secret, "POST\n/api/report\ntimestamp")` 的 hex
+
+请求 JSON：
+
+```json
+{
+  "source": "ios",
+  "targetType": "comment",
+  "targetId": 12345,
+  "courseCode": "ACCT1000",
+  "professor": "CHAN WENG HANG",
+  "reason": "spam",
+  "details": "可选补充说明",
+  "email": "可选邮箱",
+  "reporterId": "ios_xxx",
+  "appVersion": "1.0 (1)"
+}
+```
+
+字段说明：
+
+| 字段 | 必填 | 说明 |
+| --- | --- | --- |
+| `targetType` | 否 | 目前支持 `comment`；缺省为 `comment` |
+| `targetId` | 评论举报时必填 | 被举报评论/回复的 `comment.id` |
+| `reason` | 是 | `spam` / `harassment` / `hate` / `misinformation` / `privacy` / `other` |
+| `details` | `reason=other` 时必填 | 补充说明，最多 1000 字符 |
+| `email` | 否 | 可选邮箱，最多 100 字符；仅提供给管理员跟进 |
+| `courseCode` / `professor` | 否 | 评论详情查库失败时的回退展示信息 |
+| `reporterId` | 否 | 匿名客户端标识，用于排查与防滥用 |
+| `appVersion` | 否 | iOS App 版本号，用于排查问题 |
+
+服务端行为：
+
+- 根据 `targetId` 从 `comment` 表读取被举报内容，并关联 `prof_with_course` 得到课程与教授；
+- 组装包含评论 ID、课程、教授、举报原因、补充说明、原始评论内容的 Telegram HTML 消息；
+- 通过 Bot API `sendMessage` 推送到配置的群组；论坛群组可额外配置 `TELEGRAM_REPORT_THREAD_ID`。
+
+响应：
+
+```json
+{ "ok": true }
+```
+
+常见错误：`400` 参数缺失/非法；`401` HMAC 校验失败；`404` 评论不存在；
+`502` Telegram 推送失败；`503` 服务端未配置 Telegram 环境变量。
+
 
 ## 4. iOS 端迁移方案（What2REG@UM）
 
