@@ -3,8 +3,8 @@ import LegalContent from '@/components/legal-content'
 import { privacyPolicy } from '@/lib/privacy-policy'
 
 export const metadata: Metadata = {
-    title: 'Privacy Policy | What2Reg @ UM',
-    description: 'Privacy Policy for What2Reg @ UM, a course review platform for University of Macau students.',
+    title: '隱私政策 | What2Reg @ UM 澳大選咩課',
+    description: 'What2Reg @ UM 澳大選咩課的隱私政策。',
 }
 
 export const viewport: Viewport = {
@@ -14,14 +14,14 @@ export const viewport: Viewport = {
     userScalable: false,
 }
 
-const PrivacyPolicyPage = () => {
+const PrivacyPolicyZhPage = () => {
     return (
         <LegalContent
-            content={privacyPolicy.en}
-            switchHref='/privacy-policy/zh'
-            switchLabel='閱讀中文版本'
+            content={privacyPolicy.zh}
+            switchHref='/privacy-policy'
+            switchLabel='Read in English'
         />
     )
 }
 
-export default PrivacyPolicyPage
+export default PrivacyPolicyZhPage

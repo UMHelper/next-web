@@ -1,10 +1,10 @@
 import type { Metadata, Viewport } from 'next'
 import LegalContent from '@/components/legal-content'
-import { privacyPolicy } from '@/lib/privacy-policy'
+import { termsOfService } from '@/lib/terms-of-service'
 
 export const metadata: Metadata = {
-    title: 'Privacy Policy | What2Reg @ UM',
-    description: 'Privacy Policy for What2Reg @ UM, a course review platform for University of Macau students.',
+    title: 'Terms of Service | What2Reg @ UM',
+    description: 'Terms of Service for What2Reg @ UM, a course review platform for University of Macau students.',
 }
 
 export const viewport: Viewport = {
@@ -14,14 +14,14 @@ export const viewport: Viewport = {
     userScalable: false,
 }
 
-const PrivacyPolicyPage = () => {
+const TermsOfServicePage = () => {
     return (
         <LegalContent
-            content={privacyPolicy.en}
-            switchHref='/privacy-policy/zh'
+            content={termsOfService.en}
+            switchHref='/terms-of-service/zh'
             switchLabel='閱讀中文版本'
         />
     )
 }
 
-export default PrivacyPolicyPage
+export default TermsOfServicePage

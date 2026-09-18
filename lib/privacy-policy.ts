@@ -1,24 +1,6 @@
-export type PrivacyLanguage = 'zh' | 'en'
+import type { LegalContent, LegalLanguage } from './legal'
 
-export type PrivacySection = {
-    heading: string
-    paragraphs?: string[]
-    bullets?: string[]
-}
-
-export type PrivacyPolicyContent = {
-    title: string
-    updatedLabel: string
-    updatedDate: string
-    intro: string
-    sections: PrivacySection[]
-    contactHeading: string
-    contactPrefix: string
-    contactSuffix: string
-    contactLinkText: string
-}
-
-export const privacyPolicy: Record<PrivacyLanguage, PrivacyPolicyContent> = {
+export const privacyPolicy: Record<LegalLanguage, LegalContent> = {
     zh: {
         title: '隱私政策',
         updatedLabel: '最後更新日期：',
@@ -103,7 +85,7 @@ export const privacyPolicy: Record<PrivacyLanguage, PrivacyPolicyContent> = {
     },
     en: {
         title: 'Privacy Policy',
-        updatedLabel: 'Last updated:',
+        updatedLabel: 'Last updated: ',
         updatedDate: '2025-08-22',
         intro:
             'Welcome to What2Reg @ UM 澳大選咩課 ("the Website"). We value your privacy and are committed to handling personal data in a transparent and responsible manner. This Privacy Policy explains how we collect, use, store and protect your information.',

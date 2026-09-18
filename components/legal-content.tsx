@@ -1,21 +1,21 @@
 import Link from 'next/link'
-import { privacyPolicy, type PrivacyLanguage } from '@/lib/privacy-policy'
+import { FEEDBACK_FORM_URL, type LegalContent } from '@/lib/legal'
 
-const FEEDBACK_FORM_URL = 'https://docs.google.com/forms/d/1_HrH0jJ9Fyxu_dmW1xGsn9Hq1ZtN9nFG-Jangj_BNVk/'
+type LegalContentProps = {
+    content: LegalContent
+    switchHref: string
+    switchLabel: string
+}
 
-const PrivacyPolicyContent = ({ lang }: { lang: PrivacyLanguage }) => {
-    const t = privacyPolicy[lang]
-    const switchHref = lang === 'zh' ? '/privacy-policy/en' : '/privacy-policy'
-    const switchLabel = lang === 'zh' ? 'Read in English' : '閱讀中文版本'
-
+const LegalContent = ({ content, switchHref, switchLabel }: LegalContentProps) => {
     return (
         <div className='max-w-screen-xl mx-auto px-4 py-10'>
             <div className='max-w-3xl mx-auto space-y-8'>
                 <div className='flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between'>
                     <div className='space-y-2'>
-                        <h1 className='text-3xl font-bold tracking-tight'>{t.title}</h1>
+                        <h1 className='text-3xl font-bold tracking-tight'>{content.title}</h1>
                         <p className='text-sm text-muted-foreground'>
-                            {t.updatedLabel} {t.updatedDate}
+                            {content.updatedLabel}{content.updatedDate}
                         </p>
                     </div>
                     <Link
@@ -26,9 +26,9 @@ const PrivacyPolicyContent = ({ lang }: { lang: PrivacyLanguage }) => {
                     </Link>
                 </div>
 
-                <p>{t.intro}</p>
+                <p>{content.intro}</p>
 
-                {t.sections.map((section) => (
+                {content.sections.map((section) => (
                     <section key={section.heading} className='space-y-2'>
                         <h2 className='text-xl font-semibold'>{section.heading}</h2>
                         {section.paragraphs?.map((paragraph) => (
@@ -45,16 +45,16 @@ const PrivacyPolicyContent = ({ lang }: { lang: PrivacyLanguage }) => {
                 ))}
 
                 <section className='space-y-2'>
-                    <h2 className='text-xl font-semibold'>{t.contactHeading}</h2>
+                    <h2 className='text-xl font-semibold'>{content.contactHeading}</h2>
                     <p>
-                        {t.contactPrefix}
+                        {content.contactPrefix}
                         <Link
                             href={FEEDBACK_FORM_URL}
                             className='text-blue-600 underline underline-offset-2 hover:text-blue-800'
                         >
-                            {t.contactLinkText}
+                            {content.contactLinkText}
                         </Link>
-                        {t.contactSuffix}
+                        {content.contactSuffix}
                     </p>
                 </section>
             </div>
@@ -62,4 +62,4 @@ const PrivacyPolicyContent = ({ lang }: { lang: PrivacyLanguage }) => {
     )
 }
 
-export default PrivacyPolicyContent
+export default LegalContent

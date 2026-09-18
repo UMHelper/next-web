@@ -76,7 +76,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
             priority: 0.3,
         },
         {
-            url: 'https://umeh.top/privacy-policy/en',
+            url: 'https://umeh.top/privacy-policy/zh',
+            lastModified: new Date(),
+            changeFrequency: 'yearly',
+            priority: 0.3,
+        },
+        {
+            url: 'https://umeh.top/terms-of-service',
+            lastModified: new Date(),
+            changeFrequency: 'yearly',
+            priority: 0.3,
+        },
+        {
+            url: 'https://umeh.top/terms-of-service/zh',
             lastModified: new Date(),
             changeFrequency: 'yearly',
             priority: 0.3,
