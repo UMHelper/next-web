@@ -5,6 +5,7 @@ import { getComentListByCourseIDAndPage } from "@/lib/database/get-comment-list"
 import { getCourseInfo } from "@/lib/database/get-course-info";
 import getScheduleList from "@/lib/database/get-schedule-list";
 import { verifyIOSRequest, iosUnauthorized } from "@/lib/ios-auth";
+import { iosVersionGuard } from "@/lib/ios-version";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +25,10 @@ export const dynamic = "force-dynamic";
 export async function GET(request: Request, { params }: { params: { code: string, prof: string } }) {
     // iOS 专用接口认证(2FA 时间戳签名)
     if (!verifyIOSRequest(request)) return iosUnauthorized()
+
+    // 版本控制：版本过旧时返回 426，客户端弹出更新提醒。
+    const versionResponse = iosVersionGuard(request);
+    if (versionResponse) return versionResponse;
 
     const { searchParams } = new URL(request.url);
     const pageParam = parseInt(searchParams.get('page') ?? '1', 10);
@@ -60,6 +65,11 @@ export async function GET(request: Request, { params }: { params: { code: string
 }
 
 export async function POST(request: Request){
+    // 版本控制：评论接口为 Web/iOS 共用；Web 不发送版本头，因此允许缺少。
+    // iOS 客户端携带 X-UM-App-Version 时，过旧版本会被 426 拦截。
+    const versionResponse = iosVersionGuard(request, { allowMissingVersion: true });
+    if (versionResponse) return versionResponse;
+
     let body = await request.formData()
     // console.log(body)
     const course=await getReviewInfo(body.get('code') as string,body.get('prof') as string)

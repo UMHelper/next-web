@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { fetchCourseInfo } from "@/lib/database/get-course-info";
 import { verifyIOSRequest, iosUnauthorized } from "@/lib/ios-auth";
+import { iosVersionGuard } from "@/lib/ios-version";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +14,10 @@ export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
     // iOS 专用接口认证(2FA 时间戳签名)
     if (!verifyIOSRequest(request)) return iosUnauthorized()
+
+    // 版本控制：版本过旧时返回 426，客户端弹出更新提醒。
+    const versionResponse = iosVersionGuard(request);
+    if (versionResponse) return versionResponse;
 
     const { searchParams } = new URL(request.url);
     const code = (searchParams.get("code") ?? "").trim().toUpperCase();

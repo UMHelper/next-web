@@ -1,8 +1,13 @@
 import { delay } from "@/lib/utils";
+import { iosVersionGuard } from "@/lib/ios-version";
 import {NextResponse} from "next/server";
 import supabaseAdmin from '@/lib/supabase/admin';
 
 export async function POST(request: Request){
+    // 版本控制：投票接口为 Web/iOS 共用；仅当请求携带 iOS 版本头时检查。
+    const versionResponse = iosVersionGuard(request, { allowMissingVersion: true });
+    if (versionResponse) return versionResponse;
+
     const body=await request.json();
     // console.log(body);
     // await delay(2000)

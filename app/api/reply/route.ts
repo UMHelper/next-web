@@ -1,8 +1,13 @@
 import { REACTION_EMOJI_LIST } from '@/lib/consant';
+import { iosVersionGuard } from '@/lib/ios-version';
 import supabaseAdmin from '@/lib/supabase/admin';
 import { NextResponse } from 'next/server';
 
 export async function POST(request: Request){
+    // 版本控制：回复接口为 Web/iOS 共用；仅当请求携带 iOS 版本头时检查。
+    const versionResponse = iosVersionGuard(request, { allowMissingVersion: true });
+    if (versionResponse) return versionResponse;
+
     const body=await request.json();
     delete body.emoji_vote
     delete body.vote_history

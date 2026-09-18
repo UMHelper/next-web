@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { iosUnauthorized, verifyIOSRequest } from "@/lib/ios-auth";
+import { iosVersionGuard } from "@/lib/ios-version";
 import supabaseAdmin from "@/lib/supabase/admin";
 import { escapeTelegramHtml, sendTelegramMessage, truncateTelegramText } from "@/lib/telegram";
 
@@ -56,6 +57,10 @@ function readOptionalString(value: unknown, maxLength: number): string | undefin
 export async function POST(request: Request) {
     // 与其它 iOS 专用接口一致：HMAC-SHA256 时间戳签名。
     if (!verifyIOSRequest(request)) return iosUnauthorized();
+
+    // 版本控制：版本过旧时返回 426，客户端弹出更新提醒。
+    const versionResponse = iosVersionGuard(request);
+    if (versionResponse) return versionResponse;
 
     let rawBody: unknown;
     try {

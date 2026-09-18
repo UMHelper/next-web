@@ -31,6 +31,9 @@ declare namespace Cloudflare {
 		SUPABASE_SECRET_KEY: string;
 		SUPABASE_JWT_SECRET: string;
 		UM_IOS_API_SECRET: string;
+		UM_IOS_MIN_SUPPORTED_VERSION: string;
+		UM_IOS_LATEST_VERSION: string;
+		UM_IOS_UPDATE_URL: string;
 		TELEGRAM_BOT_TOKEN: string;
 		TELEGRAM_REPORT_CHAT_ID: string;
 		TELEGRAM_REPORT_THREAD_ID: string;

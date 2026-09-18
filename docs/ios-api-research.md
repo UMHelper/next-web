@@ -3,7 +3,7 @@
 最后更新：2026-09-18
 
 本文档记录对 `next-web` 现有实现的调研结论，以及为 iOS 客户端（`next-ios`）新增的 HTTP API 设计。
-除只读 GET 接口外，另有 `POST /api/report` 举报接口（见 3.2）；所有接口均与现有数据源保持字段语义一致。
+除只读 GET 接口外，另有 `POST /api/report` 举报接口（见 3.3）；所有接口均与现有数据源保持字段语义一致。
 
 ## 1. next-web 实现方式调研
 
@@ -71,7 +71,7 @@
 
 ### 3.1 认证（HMAC-SHA256 时间戳签名）
 
-本节的 6 个只读 GET 接口以及 3.2 的 `POST /api/report` 举报接口只向 iOS 客户端开放，浏览器/第三方直接调用一律返回 401。
+本节的 6 个只读 GET 接口以及 3.3 的 `POST /api/report` 举报接口只向 iOS 客户端开放，浏览器/第三方直接调用一律返回 401。
 
 - 原理（2FA/TOTP 思路）：服务端与 iOS 客户端共享密钥；客户端对「方法 + 路径 + 时间戳」计算
   HMAC-SHA256 签名放入请求头，服务端以 5 秒有效期窗口校验，防伪造与重放。
@@ -83,9 +83,36 @@
 - 密钥：服务端环境变量 `UM_IOS_API_SECRET`（写入 `.env.local`，`.env.example` 仅空占位，
   不提交仓库）；iOS 侧由构建脚本从本地 `Secrets/UMSecrets.local` 注入（详见 next-ios README 第 6 节）。
 - 三个 POST 接口（`/comment`、`/reply`、`/vote`）与 Web 共用，不做此校验。
+- 版本控制请求头（所有 iOS API 请求均携带，见 3.2）：
+  - `X-UM-App-Version`：App 市场版本号，如 `1.0`
+  - `X-UM-App-Build`：App build 号，如 `1`（可选，用于排查）
 
 > 安全边界：客户端密钥可通过逆向二进制提取；本方案目标是阻止浏览器/第三方直接调用接口并保证
 > 密钥不进 git 仓库，需要更强防护时升级为 Apple DeviceCheck / App Attest。
+
+### 3.2 版本控制与更新提醒
+
+- iOS 端从 `Bundle.main` 读取版本并放在所有请求的 `X-UM-App-Version` / `X-UM-App-Build` 头中。
+- 服务端通过环境变量控制版本策略：
+  - `UM_IOS_MIN_SUPPORTED_VERSION`：最低支持版本；留空表示关闭服务端拦截。
+  - `UM_IOS_LATEST_VERSION`：可选，返回给客户端用于展示。
+  - `UM_IOS_UPDATE_URL`：可选，App Store 更新链接。
+- 当最低版本非空且客户端版本低于该版本时，`lib/ios-version.ts` 会返回 HTTP `426 Upgrade Required`：
+  ```json
+  {
+    "error": "client_version_unsupported",
+    "message": "This version of What2REG@UM is no longer supported. Please update to continue.",
+    "currentVersion": "1.0.0",
+    "currentBuild": "1",
+    "minSupportedVersion": "1.1.0",
+    "latestVersion": "1.2.0",
+    "updateURL": "https://apps.apple.com/app/id1234567890"
+  }
+  ```
+  iOS `APIClient` 收到 426 后由 `AppUpdateCenter` 弹出更新提醒，所有后续 API 仍会被服务端拦截。
+- `GET /api/version`：启动时的轻量版本检查接口（同样使用 HMAC 认证）；版本过旧时也返回 426。
+- `/comment`、`/reply`、`/vote` 由 Web 与 iOS 共用，服务端仅在请求携带
+  `X-UM-App-Version` 时执行版本校验（Web 不发送该头，保持兼容）。
 
 ### GET /api/course?code=ACCT1000
 返回课程详情与教授列表（对应 Web `/course/[code]` 页）：
@@ -135,7 +162,7 @@
 ### GET /api/professor?name=CHAN WENG HANG
 返回该教授的 `prof_with_course` 全部行（按 course_id 排序），对应 Web `/professor/[...name]` 页。
 
-### POST /api/report（iOS 内置举报 → Telegram）
+### 3.3 POST /api/report（iOS 内置举报 → Telegram）
 
 iOS 评价卡片里的举报入口调用此接口；服务端会校验 iOS HMAC 签名，然后通过 Telegram Bot
 推送到 `TELEGRAM_REPORT_CHAT_ID` 指定的群组/话题。机器人创建与群组 ID 获取见
@@ -145,6 +172,7 @@ iOS 评价卡片里的举报入口调用此接口；服务端会校验 iOS HMAC 
 
 - `X-UM-Timestamp`：Unix 秒级时间戳
 - `X-UM-Signature`：`HMAC-SHA256(secret, "POST\n/api/report\ntimestamp")` 的 hex
+- `X-UM-App-Version` / `X-UM-App-Build`：客户端版本头（见 3.2）
 
 请求 JSON：
 
