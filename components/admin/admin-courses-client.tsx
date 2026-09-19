@@ -129,7 +129,12 @@ export default function AdminCoursesClient() {
     }
     toast.success("Course updated");
     setEditing(null);
-    await loadCourses(1, false);
+    const updated = body?.course as Course | undefined;
+    if (updated) {
+      setCourses((current) => current.map((course) => (
+        course.New_code === updated.New_code ? { ...course, ...updated } : course
+      )));
+    }
   }
 
   async function syncUm() {

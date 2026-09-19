@@ -124,7 +124,12 @@ export default function AdminCommentsClient() {
       if (!response.ok) throw new Error(body?.error?.message ?? `HTTP ${response.status}`);
       toast.success("Comment updated");
       setEditing(null);
-      await loadPage(1, false);
+      const updated = body?.comment;
+      if (updated) {
+        setComments((current) => current.map((comment) => (
+          comment.id === updated.id ? { ...comment, ...updated } : comment
+        )));
+      }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to update comment");
     }

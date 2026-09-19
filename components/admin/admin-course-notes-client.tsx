@@ -104,7 +104,12 @@ export default function AdminCourseNotesClient() {
     }
     toast.success("Notes updated");
     setEditingMapping(null);
-    await loadMappings(mappingPage, false);
+    const updated = body?.row as Mapping | undefined;
+    if (updated) {
+      setMappings((current) => current.map((mapping) => (
+        mapping.id === updated.id ? { ...mapping, ...updated } : mapping
+      )));
+    }
   }
 
   async function toggleMapping(mapping: Mapping) {
