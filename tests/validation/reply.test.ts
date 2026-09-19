@@ -6,12 +6,16 @@ describe("replySubmissionSchema", () => {
     expect(replySubmissionSchema.safeParse({ replyto: 12, content: "Thanks!" }).success).toBe(true);
   });
 
-  it("rejects extra client-controlled fields", () => {
+  it("strips extra client-controlled fields", () => {
     const result = replySubmissionSchema.safeParse({
       replyto: 12,
       content: "Thanks!",
       verify_account: "spoofed",
+      created_by: "spoofed",
     });
-    expect(result.success).toBe(false);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data).toEqual({ replyto: 12, content: "Thanks!" });
+    }
   });
 });
