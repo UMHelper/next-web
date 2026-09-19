@@ -66,6 +66,8 @@ Note: tag invalidation becomes durable only when OpenNext tag cache / R2 is conf
 - Added `npm run sync:um`
 - Added `tests/sync-um.test.ts`
 
+Page-time UM fallback has been removed from `lib/database/get-course-info.ts`; course pages now read PostgreSQL only. `scripts/sync-um.mjs` remains the only UM API caller.
+
 Still needs human-provided GitHub Actions secrets:
 
 - `NEXT_PUBLIC_SUPABASE_URL`
