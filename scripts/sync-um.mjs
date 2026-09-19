@@ -84,15 +84,46 @@ async function loadLocalCourse(client, code) {
   return data;
 }
 
+export function compactPatch(patch) {
+  return Object.fromEntries(
+    Object.entries(patch).filter(([, value]) => value !== null && value !== undefined),
+  );
+}
+
+export function buildInsertPatch(patch, code) {
+  return {
+    New_code: code.toUpperCase(),
+    Offering_Unit: "",
+    Offering_Department: "",
+    Old_code: "",
+    courseTitleEng: "",
+    courseTitleChi: "",
+    Credits: "",
+    Course_Duration: "",
+    Medium_of_Instruction: "",
+    Is_Offered: 0,
+    ...patch,
+  };
+}
+
 export async function syncCourseByCode(client, code) {
   const remote = await fetchUMCourse(code);
   if (!remote) return { code, status: "not_found" };
 
-  const local = (await loadLocalCourse(client, code)) ?? {};
-  const patch = mapRemoteCourseInfoToLocalPatch(remote, local, code);
-  const { error } = await client.from("course_noporf").upsert([patch], { onConflict: "New_code" });
+  const local = await loadLocalCourse(client, code);
+  const mapped = mapRemoteCourseInfoToLocalPatch(remote, local ?? {}, code);
+  const patch = compactPatch(mapped);
+
+  if (local) {
+    const { error } = await client.from("course_noporf").update(patch).eq("New_code", code);
+    if (error) return { code, status: "failed", error: error.message };
+    return { code, status: "updated" };
+  }
+
+  const insertPatch = buildInsertPatch(patch, code);
+  const { error } = await client.from("course_noporf").insert([insertPatch]);
   if (error) return { code, status: "failed", error: error.message };
-  return { code, status: "updated" };
+  return { code, status: "created" };
 }
 
 async function loadIncompleteCodes(client, limit) {
@@ -143,13 +174,14 @@ async function main() {
       ? await loadAllCodes(client, args.limit)
       : await loadIncompleteCodes(client, args.limit);
 
-  const stats = { scanned: codes.length, updated: 0, not_found: 0, failed: 0 };
+  const stats = { scanned: codes.length, updated: 0, created: 0, not_found: 0, failed: 0 };
   const startedAt = Date.now();
 
   for (const code of codes) {
     try {
       const result = await syncCourseByCode(client, code);
       if (result.status === "updated") stats.updated += 1;
+      else if (result.status === "created") stats.created += 1;
       else if (result.status === "not_found") stats.not_found += 1;
       else {
         stats.failed += 1;
