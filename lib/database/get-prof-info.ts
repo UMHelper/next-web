@@ -1,10 +1,11 @@
 import { unstable_cache } from "next/cache";
 
 import { CACHE_TAGS } from "@/lib/cache-tags";
+import type { ProfWithCourseRow } from "@/lib/database/types";
 import supabaseServer from "@/lib/supabase/server";
 
 export const getReviewInfo = unstable_cache(
-    async (code: string, prof: string) => {
+    async (code: string, prof: string): Promise<ProfWithCourseRow | null> => {
         const { data, error } = await supabaseServer
             .from("prof_with_course")
             .select("*")
@@ -18,14 +19,14 @@ export const getReviewInfo = unstable_cache(
             return null;
         }
 
-        return data;
+        return data as ProfWithCourseRow | null;
     },
     ["review-info"],
     { revalidate: 300, tags: [CACHE_TAGS.course, CACHE_TAGS.professor] },
 );
 
 export const getProfListByCourse = unstable_cache(
-    async (code: string) => {
+    async (code: string): Promise<ProfWithCourseRow[]> => {
         const { data, error } = await supabaseServer
             .from("prof_with_course")
             .select("*")
@@ -38,7 +39,7 @@ export const getProfListByCourse = unstable_cache(
             return [];
         }
 
-        return data ?? [];
+        return (data ?? []) as ProfWithCourseRow[];
     },
     ["course-prof-list"],
     { revalidate: 3600, tags: [CACHE_TAGS.course, CACHE_TAGS.professor] },

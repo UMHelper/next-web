@@ -3,10 +3,11 @@ import { unstable_cache } from 'next/cache';
 
 import { getProfListByCourse } from "@/lib/database/get-prof-info";
 import { CACHE_TAGS } from "@/lib/cache-tags";
+import type { CourseRow } from "@/lib/database/types";
 import { GE_COURSE_SLUG, normalizeFacultySlug } from "@/lib/consant";
 
 export const getCourseInfo = unstable_cache(
-    async (course_id: string) => {
+    async (course_id: string): Promise<CourseRow> => {
         const { data, error } = await supabaseServer
             .from("course_noporf")
             .select("*")
@@ -14,10 +15,10 @@ export const getCourseInfo = unstable_cache(
 
         if (error) {
             console.error("[getCourseInfo] query failed:", error.message);
-            return {};
+            return {} as CourseRow;
         }
 
-        return data?.[0] ?? {};
+        return (data?.[0] as CourseRow) ?? ({} as CourseRow);
     },
     ["course-info"],
     { revalidate: 3600, tags: [CACHE_TAGS.course, CACHE_TAGS.catalog] },
@@ -70,7 +71,7 @@ export const fetchCourseListByProf = unstable_cache(
             return { data: [], error };
         }
 
-        const courseList = data ?? [];
+        const courseList = (data ?? []) as unknown as CourseRow[];
         courseList.sort((a: any, b: any) => a.course_id.localeCompare(b.course_id));
         return { data: courseList, error: null };
     },
@@ -79,7 +80,7 @@ export const fetchCourseListByProf = unstable_cache(
 );
 
 export const fetchCatalogList = unstable_cache(
-    async (departments: string[]) => {
+    async (departments: string[]): Promise<CourseRow[]> => {
         let query = supabaseServer.from("course_noporf").select("");
 
         const unit = normalizeFacultySlug(departments[0]);
@@ -103,7 +104,7 @@ export const fetchCatalogList = unstable_cache(
             console.error("[fetchCatalogList] query failed:", error.message);
         }
 
-        const courseList = data ?? [];
+        const courseList = (data ?? []) as unknown as CourseRow[];
         return courseList.sort((a: any, b: any) => a.New_code.localeCompare(b.New_code));
     },
     ["catalog-list"],

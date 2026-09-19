@@ -1,4 +1,5 @@
 import supabaseServer from "@/lib/supabase/server";
+import type { CommentPageRow } from "@/lib/database/types";
 
 export const getComentListByCourseIDAndPage = async (
   courseId: number,
@@ -16,6 +17,6 @@ export const getComentListByCourseIDAndPage = async (
     throw new Error(`get_comment_page failed: ${error.message}`);
   }
 
-  return (data ?? []) as any[];
+  return (data ?? []) as CommentPageRow[];
 };
 
