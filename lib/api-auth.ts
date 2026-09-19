@@ -18,13 +18,47 @@ export type CommentIdentity = WriteIdentity | {
   id: string;
 };
 
-function getClientIp(request: Request) {
+export function getClientIp(request: Request) {
   return (
     request.headers.get("cf-connecting-ip")?.trim() ||
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
     request.headers.get("x-real-ip")?.trim() ||
     "unknown"
   );
+}
+
+export type ReportIdentity = WriteIdentity & {
+  source: "web" | "ios";
+};
+
+export async function resolveReportIdentity(
+  request: Request,
+): Promise<{ identity: ReportIdentity } | { response: NextResponse }> {
+  if (verifyIOSRequest(request)) {
+    const versionResponse = iosVersionGuard(request);
+    if (versionResponse) return { response: versionResponse };
+
+    return {
+      identity: {
+        platform: "ios",
+        id: `ip:${getClientIp(request)}`,
+        source: "ios",
+      },
+    };
+  }
+
+  const { userId } = auth();
+  if (!userId) {
+    return { response: apiError("unauthorized", "Sign in required", 401) };
+  }
+
+  return {
+    identity: {
+      platform: "web",
+      id: userId,
+      source: "web",
+    },
+  };
 }
 
 /**
@@ -79,6 +113,6 @@ export async function requireWriteIdentity(
   return { identity: { platform: "web", id: userId } };
 }
 
-export function rateLimitKey(identity: CommentIdentity, action: "comment" | "reply" | "vote") {
+export function rateLimitKey(identity: CommentIdentity, action: "comment" | "reply" | "vote" | "report") {
   return `${identity.platform}:${identity.id}:${action}`;
 }

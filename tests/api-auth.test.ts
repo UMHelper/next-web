@@ -10,7 +10,7 @@ vi.mock("@clerk/nextjs/server", () => ({ auth }));
 vi.mock("@/lib/ios-auth", () => ({ verifyIOSRequest }));
 vi.mock("@/lib/ios-version", () => ({ iosVersionGuard }));
 
-import { requireWriteIdentity } from "@/lib/api-auth";
+import { requireWriteIdentity, resolveReportIdentity } from "@/lib/api-auth";
 
 describe("requireWriteIdentity", () => {
   it("returns a web identity from Clerk", async () => {
@@ -47,5 +47,31 @@ describe("requireWriteIdentity", () => {
       platform: "ios",
       id: "123e4567-e89b-12d3-a456-426614174000",
     });
+  });
+});
+
+describe("resolveReportIdentity", () => {
+  it("returns a web identity for signed-in users", async () => {
+    verifyIOSRequest.mockReturnValue(false);
+    auth.mockReturnValue({ userId: "user_2abcDEF" });
+    const request = new Request("http://localhost/api/report", { method: "POST" });
+
+    const result = await resolveReportIdentity(request);
+
+    expect("identity" in result && result.identity).toEqual({
+      platform: "web",
+      id: "user_2abcDEF",
+      source: "web",
+    });
+  });
+
+  it("returns 401 for anonymous web users", async () => {
+    verifyIOSRequest.mockReturnValue(false);
+    auth.mockReturnValue({ userId: null });
+    const request = new Request("http://localhost/api/report", { method: "POST" });
+
+    const result = await resolveReportIdentity(request);
+
+    expect("response" in result && result.response.status).toBe(401);
   });
 });

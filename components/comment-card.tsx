@@ -19,6 +19,7 @@ import { Rating, ThinStar } from "@smastrom/react-rating";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { AVATAR_EMOJI_LIST } from "@/lib/consant";
+import { ReportDialog } from "@/components/report-dialog";
 
 const _fancyboxOptions: any = {
     compact: true,
@@ -68,6 +69,7 @@ const ReplyCard = ({ reply }: { reply: any }) => {
                 <div className='text-sm break-words'>
                     {reply.content}
                 </div>
+                {typeof reply.id === "number" ? <ReportDialog targetId={reply.id} className="mt-1 text-gray-400 hover:text-red-500" /> : null}
                 {//<EmojiVote comment={reply} />
                 }
             </div>
@@ -592,6 +594,7 @@ export const CommentCard = (
                             }</p>
                         </PopoverContent>
                     </Popover>
+                    <ReportDialog targetId={comment.id} />
                 </div>
             </CardHeader>
             <CardContent className='pt-2 pb-1'>

@@ -1,24 +1,13 @@
 import { NextResponse } from "next/server";
 
-import { iosUnauthorized, verifyIOSRequest } from "@/lib/ios-auth";
-import { iosVersionGuard } from "@/lib/ios-version";
+import { apiError, readJsonBody } from "@/lib/api-response";
+import { rateLimitKey, resolveReportIdentity } from "@/lib/api-auth";
+import { consumeRateLimit } from "@/lib/rate-limit";
 import supabaseAdmin from "@/lib/supabase/admin";
 import { escapeTelegramHtml, sendTelegramMessage, truncateTelegramText } from "@/lib/telegram";
+import { REPORT_REASONS, reportSubmissionSchema } from "@/lib/validation/report";
 
 export const dynamic = "force-dynamic";
-
-const REPORT_REASONS = {
-    spam: "Spam / advertising",
-    harassment: "Harassment / bullying",
-    hate: "Hate speech",
-    misinformation: "False information",
-    privacy: "Privacy violation",
-    other: "Other",
-} as const;
-
-type ReportReason = keyof typeof REPORT_REASONS;
-
-type ReportBody = Record<string, unknown>;
 
 type CommentTarget = {
     id: number;
@@ -33,131 +22,116 @@ type ProfTarget = {
     prof_id: string | null;
 };
 
-function badRequest(message: string) {
-    return NextResponse.json({ error: message }, { status: 400 });
-}
-
-function readString(value: unknown, maxLength: number): string | null {
-    if (typeof value !== "string") return null;
+function readOptionalString(value: unknown, maxLength: number): string {
+    if (typeof value !== "string") return "";
     const trimmed = value.trim();
-    if (!trimmed) return null;
+    if (!trimmed) return "";
     return trimmed.length > maxLength ? trimmed.slice(0, maxLength) : trimmed;
-}
-
-function readOptionalString(value: unknown, maxLength: number): string | undefined {
-    return readString(value, maxLength) ?? undefined;
 }
 
 /**
  * POST /api/report
  *
- * iOS 客户端内置举报入口调用；接收举报后通过 Telegram Bot 推送到配置群组。
- * 需要复用 iOS 专用 HMAC 请求头（X-UM-Timestamp / X-UM-Signature），防止浏览器或第三方刷接口。
+ * 登录 Web 用户与 iOS 客户端共用举报入口。
+ * - Web：Clerk auth
+ * - iOS：X-UM-Timestamp / X-UM-Signature + 版本头
+ * 服务端只信任 targetId，其余评论/课程/教授信息由数据库查询。
  */
 export async function POST(request: Request) {
-    // 与其它 iOS 专用接口一致：HMAC-SHA256 时间戳签名。
-    if (!verifyIOSRequest(request)) return iosUnauthorized();
+    const identityResult = await resolveReportIdentity(request);
+    if ("response" in identityResult) return identityResult.response;
+    const { identity } = identityResult;
 
-    // 版本控制：版本过旧时返回 426，客户端弹出更新提醒。
-    const versionResponse = iosVersionGuard(request);
-    if (versionResponse) return versionResponse;
+    const bodyResult = await readJsonBody(request, 16_384);
+    if (!bodyResult.ok) return bodyResult.response;
 
-    let rawBody: unknown;
-    try {
-        rawBody = await request.json();
-    } catch {
-        return badRequest("请求体必须是合法 JSON");
-    }
-
+    const rawBody = bodyResult.data;
     if (!rawBody || typeof rawBody !== "object" || Array.isArray(rawBody)) {
-        return badRequest("请求体必须是 JSON 对象");
+        return apiError("invalid_request", "请求体必须是 JSON 对象", 400);
     }
-    const body = rawBody as ReportBody;
+    const body = rawBody as Record<string, unknown>;
 
-    const source = readOptionalString(body.source, 32) ?? "ios";
-    const targetType = readOptionalString(body.targetType, 32) ?? "comment";
-    const reasonValue = readString(body.reason, 32);
-    if (!reasonValue || !(reasonValue in REPORT_REASONS)) {
-        return badRequest("缺少或无效的 `reason`");
-    }
-    const reason = reasonValue as ReportReason;
-    const details = readOptionalString(body.details, 1000) ?? "";
-    const email = readOptionalString(body.email, 100) ?? readOptionalString(body.contact, 100) ?? "";
-    const reporterId = readOptionalString(body.reporterId, 100) ?? "";
-    const appVersion = readOptionalString(body.appVersion, 100) ?? "";
-    const courseCodeInput = readOptionalString(body.courseCode, 100) ?? "";
-    const professorInput = readOptionalString(body.professor, 200) ?? "";
-
-    if (reason === "other" && details.length === 0) {
-        return badRequest("`reason=other` 时请填写 `details`");
+    const parsed = reportSubmissionSchema.safeParse({
+        targetType: body.targetType ?? "comment",
+        targetId: body.targetId,
+        reason: body.reason,
+        details: body.details,
+        email: body.email ?? body.contact,
+    });
+    if (!parsed.success) {
+        return apiError("invalid_request", "举报内容不合法", 400, {
+            issues: parsed.error.issues.map((issue) => ({
+                path: issue.path.join("."),
+                message: issue.message,
+            })),
+        });
     }
 
-    let targetId: number | null = null;
-    if (body.targetId !== undefined && body.targetId !== null && body.targetId !== "") {
-        const parsed = Number(body.targetId);
-        if (!Number.isInteger(parsed) || parsed <= 0) {
-            return badRequest("`targetId` 必须是正整数");
-        }
-        targetId = parsed;
+    const { targetId, reason } = parsed.data;
+    const details = parsed.data.details ?? "";
+    const email = parsed.data.email ?? "";
+
+    const limit = Number(process.env.RATE_LIMIT_REPORT_PER_HOUR ?? "5");
+    const rate = await consumeRateLimit({
+        key: rateLimitKey(identity, "report"),
+        action: "report",
+        limit,
+    });
+    if (!rate.allowed) {
+        return apiError("rate_limited", "Too many reports", 429, { retryAfter: rate.retryAfter });
     }
 
-    if (targetType === "comment" && targetId === null) {
-        return badRequest("评论举报必须提供 `targetId`");
-    }
+    const { data: commentData, error: commentError } = await supabaseAdmin
+        .from("comment")
+        .select("id, content, course_id, verify_account, pub_time")
+        .eq("id", targetId)
+        .maybeSingle();
 
-    let comment: CommentTarget | null = null;
+    if (commentError) {
+        console.error("[api/report] failed to load comment target:", commentError);
+        return apiError("internal_error", "加载举报目标失败", 500);
+    }
+    if (!commentData) {
+        return apiError("not_found", "举报目标不存在", 404);
+    }
+    const comment = commentData as CommentTarget;
+
     let prof: ProfTarget | null = null;
+    const { data: profData, error: profError } = await supabaseAdmin
+        .from("prof_with_course")
+        .select("course_id, prof_id")
+        .eq("id", comment.course_id)
+        .maybeSingle();
 
-    if (targetType === "comment" && targetId !== null) {
-        const { data: commentData, error: commentError } = await supabaseAdmin
-            .from("comment")
-            .select("id, content, course_id, verify_account, pub_time")
-            .eq("id", targetId)
-            .maybeSingle();
-
-        if (commentError) {
-            console.error("[api/report] failed to load comment target:", commentError);
-            return NextResponse.json({ error: "加载举报目标失败" }, { status: 500 });
-        }
-        if (!commentData) {
-            return NextResponse.json({ error: "举报目标不存在" }, { status: 404 });
-        }
-        comment = commentData as CommentTarget;
-
-        const { data: profData, error: profError } = await supabaseAdmin
-            .from("prof_with_course")
-            .select("course_id, prof_id")
-            .eq("id", comment.course_id)
-            .maybeSingle();
-
-        if (profError) {
-            // 课程/教授信息只是增强消息内容，拿不到时回退到客户端传参，不阻断举报。
-            console.error("[api/report] failed to load prof target:", profError);
-        } else {
-            prof = (profData as ProfTarget | null) ?? null;
-        }
+    if (profError) {
+        // 课程/教授信息只是增强消息内容，拿不到时不阻断举报。
+        console.error("[api/report] failed to load prof target:", profError);
+    } else {
+        prof = (profData as ProfTarget | null) ?? null;
     }
 
-    const courseCode = prof?.course_id || courseCodeInput || "unknown";
-    const professor = prof?.prof_id || professorInput || "unknown";
+    const iosCourseCodeInput = identity.platform === "ios" ? readOptionalString(body.courseCode, 100) : "";
+    const iosProfessorInput = identity.platform === "ios" ? readOptionalString(body.professor, 200) : "";
+    const courseCode = prof?.course_id || iosCourseCodeInput || "unknown";
+    const professor = prof?.prof_id || iosProfessorInput || "unknown";
+    const reporterId = identity.platform === "web" ? identity.id : readOptionalString(body.reporterId, 100);
+    const appVersion = identity.platform === "ios" ? readOptionalString(body.appVersion, 100) : "";
+
     const lines: string[] = [
         "🚩 <b>New report from What2REG</b>",
         "",
-        `<b>Source:</b> ${escapeTelegramHtml(source)}`,
-        `<b>Type:</b> ${escapeTelegramHtml(targetType)}`,
+        `<b>Source:</b> ${escapeTelegramHtml(identity.source)}`,
+        `<b>Type:</b> ${escapeTelegramHtml(parsed.data.targetType)}`,
+        `<b>Comment ID:</b> <code>${comment.id}</code>`,
+        `<b>Course:</b> ${escapeTelegramHtml(courseCode)}`,
+        `<b>Professor:</b> ${escapeTelegramHtml(professor)}`,
+        `<b>Comment author:</b> ${escapeTelegramHtml(comment.verify_account || "unknown")}`,
+        `<b>Comment time:</b> ${escapeTelegramHtml(comment.pub_time || "unknown")}`,
     ];
 
-    if (comment) {
-        lines.push(`<b>Comment ID:</b> <code>${comment.id}</code>`);
-        lines.push(`<b>Course:</b> ${escapeTelegramHtml(courseCode)}`);
-        lines.push(`<b>Professor:</b> ${escapeTelegramHtml(professor)}`);
-        lines.push(`<b>Comment author:</b> ${escapeTelegramHtml(comment.verify_account || "unknown")}`);
-        lines.push(`<b>Comment time:</b> ${escapeTelegramHtml(comment.pub_time || "unknown")}`);
-
-        const encodedProf = professor.replaceAll("/", "$").replaceAll(" ", "%20");
-        const reviewUrl = `https://umeh.top/reviews/${encodeURIComponent(courseCode)}/${encodedProf}`;
-        lines.push(`<b>Link:</b> <a href="${escapeTelegramHtml(reviewUrl)}">Open review</a>`);
-    }
+    const encodedProf = professor.replaceAll("/", "$").replaceAll(" ", "%20");
+    const reviewUrl = `https://umeh.top/reviews/${encodeURIComponent(courseCode)}/${encodedProf}`;
+    lines.push(`<b>Link:</b> <a href="${escapeTelegramHtml(reviewUrl)}">Open review</a>`);
 
     lines.push(`<b>Reason:</b> ${escapeTelegramHtml(REPORT_REASONS[reason])}`);
     if (details) {
@@ -167,12 +141,13 @@ export async function POST(request: Request) {
         lines.push(`<b>Email:</b> ${escapeTelegramHtml(truncateTelegramText(email, 100))}`);
     }
     if (reporterId) {
-        lines.push(`<b>Reporter:</b> <code>${escapeTelegramHtml(reporterId)}</code>`);
+        const label = identity.platform === "ios" ? "Reporter (client-provided)" : "Reporter";
+        lines.push(`<b>${label}:</b> <code>${escapeTelegramHtml(reporterId)}</code>`);
     }
     if (appVersion) {
         lines.push(`<b>App version:</b> ${escapeTelegramHtml(appVersion)}`);
     }
-    if (comment?.content) {
+    if (comment.content) {
         lines.push("", "<b>Reported comment:</b>");
         lines.push(`<blockquote>${escapeTelegramHtml(truncateTelegramText(comment.content, 1600))}</blockquote>`);
     }
@@ -184,10 +159,10 @@ export async function POST(request: Request) {
     } catch (error) {
         if (error instanceof Error && error.message.startsWith("缺少环境变量")) {
             console.warn("[api/report] Telegram not configured:", error.message);
-            return NextResponse.json({ error: "举报推送服务未配置" }, { status: 503 });
+            return apiError("service_unavailable", "举报推送服务未配置", 503);
         }
         console.error("[api/report] failed to push Telegram message:", error);
-        return NextResponse.json({ error: "举报推送失败，请稍后重试" }, { status: 502 });
+        return apiError("telegram_failed", "举报推送失败，请稍后重试", 502);
     }
 
     return NextResponse.json({ ok: true });
