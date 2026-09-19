@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { href: "/admin/reports", label: "Reports" },
   { href: "/admin/comments", label: "Comments" },
   { href: "/admin/courses", label: "Courses" },
+  { href: "/admin/notes", label: "Course Notes" },
   { href: "/admin/admins", label: "Admins", platformOnly: true },
 ];
 

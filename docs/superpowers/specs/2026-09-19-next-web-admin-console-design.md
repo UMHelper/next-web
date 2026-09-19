@@ -255,6 +255,7 @@ create table public.admin_audit_log (
 /admin/reports
 /admin/comments
 /admin/courses
+/admin/notes
 /admin/admins
 ```
 
@@ -270,14 +271,14 @@ create table public.admin_audit_log (
 - `/admin` tab 使用客户端 `usePathname()` 高亮当前页面
 - 表格尽量完整展示已返回字段，并保留横向滚动
 - 后台前端不显示 Clerk userId：管理员头显示角色，管理员列表/审计日志显示 email；userId 只在 API 内部使用
-- reports / comments / courses / professor mappings / admins 表格支持滑到底部自动加载更多
+- reports / comments / courses / notes / admins 表格支持滑到底部自动加载更多
 
 ### 页面内容
 
 - `/admin`：dashboard
   - open reports 数量
   - hidden comments 数量
-  - 最近审计日志
+  - 最近审计日志：显示 Admin email、Action、Target 和字段级变更摘要（before → after）
 - `/admin/reports`：
   - 状态筛选
   - 列表：id / target type / course / prof / reason / details / reporter email / status / time / resolved / note
@@ -291,10 +292,14 @@ create table public.admin_audit_log (
 - `/admin/courses`：
   - 搜索课程
   - 编辑课程字段（title、credits、duration、unit/dept、medium、level/type/year、grading、description、ILO）
-  - Professor mappings / course notes：展示并优先编辑 `admin_note`（中文）和 `admin_note_en`（英文），notes 可清空
-  - Courses 和 Professor mappings 分别滚动加载
-  - 同时保留 mapping `is_offered` 切换
+  - 课程列表滚动到底部自动加载下一页
   - “Sync UM” 按钮，调用 `/api/admin/sync-um`
+- `/admin/notes`：
+  - 独立管理 Professor mappings / course notes
+  - 搜索 course code / professor
+  - 展示并优先编辑 `admin_note`（中文）和 `admin_note_en`（英文），notes 可清空
+  - 滚动到底部自动加载下一页
+  - 保留 mapping `is_offered` 切换
 - `/admin/admins`：
   - 列出 platform admins 和 DB admins 的 email，不展示 Clerk userId
   - 输入 email 或 Clerk user ID 授权
@@ -387,9 +392,10 @@ await writeAuditLog({
 - 后台前端不显示 Clerk userId
 - 举报后 Telegram 收到 + 后台能看到
 - 评论编辑文本/图片、隐藏/恢复生效
-- 课程字段编辑 + mapping notes 编辑并同步到评论页提示 + sync 按钮可用
+- 课程字段编辑 + sync 按钮可用；Professor mappings / course notes 在独立页面编辑并同步到评论页提示
 - admin tab 高亮当前页面；表格字段齐全且可横向滚动
-- reports / comments / courses / professor mappings / admins 滑到底部会自动加载更多
+- reports / comments / courses / notes / admins 滑到底部会自动加载更多
+- 最近审计日志会显示字段级变更摘要
 
 ## 10. 发布顺序
 
@@ -407,12 +413,13 @@ await writeAuditLog({
 - **AC3**：platform admin 可通过 userId 或 email 授予/取消 DB admin；普通 admin 不行。
 - **AC4**：举报写入 `reports` 表，Telegram 失败不丢数据。
 - **AC5**：评论文本/图片可编辑；隐藏/恢复后统计更新。
-- **AC6**：课程字段、`is_offered` 和 `admin_note` / `admin_note_en` notes 可编辑；notes 在评论页提示生效；sync 按钮可用。
+- **AC6**：课程字段可编辑；`/admin/notes` 中 `is_offered` 和 `admin_note` / `admin_note_en` notes 可编辑，notes 在评论页提示生效；sync 按钮可用。
 - **AC7**：所有管理写操作有审计日志。
 - **AC8**：`npm run test` / `lint` / `tsc` / `build` 通过。
 - **AC9**：migration dry-run + apply SQL 验证通过。
 - **AC10**：管理员登录后 Navbar 显示 `/admin` 图标入口；非管理员不显示；admin tab 高亮当前页面。
-- **AC11**：后台前端不展示 Clerk userId；reports / comments / courses / professor mappings / admins 滑到底部自动加载更多。
+- **AC11**：后台前端不展示 Clerk userId；reports / comments / courses / notes / admins 滑到底部自动加载更多。
+- **AC12**：最近审计日志显示字段级变更摘要。
 
 ## 12. 风险与缓解
 

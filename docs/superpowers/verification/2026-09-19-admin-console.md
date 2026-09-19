@@ -23,16 +23,18 @@ Admin console implemented locally, migration applied to the target database, not
   - `/admin/reports`
   - `/admin/comments`
   - `/admin/courses`
+  - `/admin/notes`
   - `/admin/admins`
 - Frontend entry: Navbar shows an `Admin` icon for admins only
 - Admin tabs highlight current page with active state
 - Admin tables show more complete fields
 - Admin frontend hides Clerk userId; admin/audit views use email instead
-- Reports / comments / courses / professor mappings / admins auto-load more on scroll
+- Recent audit log shows field-level change summaries
+- Reports / comments / courses / notes / admins auto-load more on scroll
 - Audit logs for admin writes
 - Comment edit: text/content_en/image/hidden
 - Course edit: whitelisted fields + mapping `is_offered`
-- Professor-course notes edit: `admin_note` / `admin_note_en` (nullable)
+- Professor-course notes edit: `admin_note` / `admin_note_en` (nullable), on dedicated `/admin/notes`
 - Admin grant/revoke: platform admin only, by Clerk userId or email
 
 ## Migration
@@ -69,8 +71,9 @@ CLERK_SECRET_KEY=...
 - [ ] report submitted from web appears in `/admin/reports`
 - [ ] Telegram failure still stores report
 - [ ] comment text/image edit and hidden/restore
-- [ ] course field edit and mapping offered toggle
+- [ ] course field edit and `/admin/notes` mapping offered / notes edit
 - [ ] professor-course `admin_note` / `admin_note_en` edit appears on review page
 - [ ] admin tabs highlight the current page and wider tables remain usable
-- [ ] reports / comments / courses / professor mappings / admins auto-load more when scrolled to the bottom
+- [ ] reports / comments / courses / notes / admins auto-load more when scrolled to the bottom
+- [ ] recent audit log shows field-level changes
 - [ ] sync UM button returns stats
