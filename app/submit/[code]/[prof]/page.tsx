@@ -16,6 +16,7 @@ import { toast } from "sonner"
 import { useRouter } from 'next/navigation';
 import { SignInButton, useUser } from "@clerk/nextjs";
 import { Rating, ThinStar } from '@smastrom/react-rating';
+import { submitComment } from '@/lib/submit-comment';
 
 const MAX_FILE_SIZE = 5000000;
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
@@ -62,31 +63,24 @@ const SubmitPage = ({ params }: { params: any }) => {
         })
     },[form.formState.errors])
     const route = useRouter()
-    const submit = (values: any) => {
-        // console.log(isSubmitting)
-        //console.log(values)
-        if (isSubmitting) {
-            // console.log('submitting')
-            return
-        }
-        setIsSubmitting(true)
+    const submit = async (values: any) => {
+        if (isSubmitting) return
 
-        let data = new FormData()
+        const data = new FormData()
         for (const key in values) {
             data.append(key, values[key])
         }
+
         if (image) {
             if (!ACCEPTED_IMAGE_TYPES.includes(image.type)) {
-                toast.error('Image type not supported!',
-                    {
-                        description: "Please upload an image in JPEG, PNG or WEBP format.",
+                toast.error('Image type not supported!', {
+                    description: "Please upload an image in JPEG, PNG or WEBP format.",
                 })
                 return
             }
             if (image.size > MAX_FILE_SIZE) {
-                toast.error('Image too large!',
-                    {
-                        description: "Please upload an image smaller than 5MB.",
+                toast.error('Image too large!', {
+                    description: "Please upload an image smaller than 5MB.",
                 })
                 return
             }
@@ -95,28 +89,27 @@ const SubmitPage = ({ params }: { params: any }) => {
         else {
             data.append('image', '')
         }
-        if (isSignedIn) {
-            data.append('verify', '1')
-            data.append('verify_account', user.id)
-        }
-        else {
-            data.append('verify', '0')
-        }
-        toast.promise(
-            fetch(`/api/comment/${params.code}/${params.prof}`, {
-                body: data,
-                method: 'POST',
-            }).then((res) => {
-                setIsSubmitting(false)
-                route.push(`/reviews/${params.code}/${params.prof}?reload=1`)
-            }),
-            {
-                loading: 'Submitting...',
-                success: 'Submitted!',
-                error: 'Failed to submit.'
+
+        setIsSubmitting(true)
+        try {
+            const result = await submitComment({
+                url: `/api/comment/${params.code}/${params.prof}`,
+                formData: data,
+            })
+
+            if (!result.ok) {
+                toast.error('Failed to submit.', {
+                    description: result.message,
+                })
+                return
             }
-        )
-        
+
+            toast.success('Submitted!')
+            route.push(`/reviews/${params.code}/${params.prof}?reload=1`)
+        }
+        finally {
+            setIsSubmitting(false)
+        }
     }
     return (
         <div className='max-w-screen-xl mx-auto p-10 md:p-20'>
