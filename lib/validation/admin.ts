@@ -1,7 +1,17 @@
 import { z } from "zod";
 
+const clerkUserIdPattern = /^user_[A-Za-z0-9_-]+$/;
+const emailAddressPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export const adminGrantSchema = z.object({
-  clerk_user_id: z.string().regex(/^user_[A-Za-z0-9_-]+$/),
+  clerk_user_id: z
+    .string()
+    .trim()
+    .min(1)
+    .max(320)
+    .refine((value) => clerkUserIdPattern.test(value) || emailAddressPattern.test(value), {
+      message: "must be a Clerk user id or email address",
+    }),
 });
 
 export const reportUpdateSchema = z
@@ -42,6 +52,8 @@ export const courseUpdateSchema = z
 export const profWithCourseUpdateSchema = z
   .object({
     is_offered: z.union([z.literal(0), z.literal(1)]).optional(),
+    admin_note: z.string().trim().max(5000).nullable().optional(),
+    admin_note_en: z.string().trim().max(5000).nullable().optional(),
   })
   .refine((value) => Object.keys(value).length > 0, { message: "no fields to update" });
 

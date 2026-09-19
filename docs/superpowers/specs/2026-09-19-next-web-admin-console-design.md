@@ -29,10 +29,10 @@
 ### 2.1 目标
 
 - **G1**：新增 `/admin` 管理后台，所有页面服务端鉴权。
-- **G2**：`PLATFORM_ADMIN_USER_IDS` 环境变量注入 platform admin；可授予/取消 DB 中的 admin。
+- **G2**：`PLATFORM_ADMIN_USER_IDS` / `PLATFORM_ADMIN_EMAILS` 环境变量注入 platform admin；可授予/取消 DB 中的 admin，授权支持 Clerk userId 或 email。
 - **G3**：举报写入数据库，Telegram 作为 best-effort 通知。
 - **G4**：评论可编辑文本/图片，可隐藏/恢复；隐藏状态变化后重算统计。
-- **G5**：课程/教师数据可查看、搜索、编辑现有字段，并可触发 UM 同步。
+- **G5**：课程/教师数据可查看、搜索、编辑现有字段，并可触发 UM 同步；教授-课程映射的 `admin_note` / `admin_note_en`（课程提示 notes）是编辑重点。
 - **G6**：所有管理写操作写审计日志。
 - **G7**：管理 API 统一 `requireAdmin()` + zod 校验 + 错误响应。
 
@@ -53,6 +53,7 @@
 
 ```env
 PLATFORM_ADMIN_USER_IDS=user_xxx,user_yyy
+PLATFORM_ADMIN_EMAILS=admin@example.com,owner@example.com
 ```
 
 - 永远有权限
@@ -88,6 +89,7 @@ export async function requireAdmin(
 
 - `auth().userId` 不存在 → 401
 - userId 在 `PLATFORM_ADMIN_USER_IDS` 中 → platform admin
+- Clerk 用户的主 email 在 `PLATFORM_ADMIN_EMAILS` 中 → platform admin
 - userId 在 `admin_users` 且 `active = true` → admin
 - 其他 → 403
 - `platformOnly` 时非 platform admin → 403
@@ -215,8 +217,10 @@ create table public.admin_audit_log (
     - `ilo`
   - 不修改主键/外键/旧代码。
 - `GET /api/admin/prof-with-course?q=&page=`
+  - 返回 `admin_note` / `admin_note_en`，供前端 notes 编辑表格展示。
 - `PATCH /api/admin/prof-with-course/[id]`
-  - 只允许 `is_offered`
+  - 白名单：`is_offered`、`admin_note`、`admin_note_en`
+  - `admin_note` / `admin_note_en` 允许清空为 `null`；编辑 notes 是本页面的优先能力。
   - 聚合字段只读
   - 不新增/删除映射
 - `POST /api/admin/sync-um`
@@ -229,13 +233,13 @@ create table public.admin_audit_log (
 
 - `GET /api/admin/admins`
   - platform admin 才可访问
-  - 返回 platform env admin + DB admin 列表
+  - 返回 platform env admin（userId + email）+ DB admin 列表（含 Clerk email）
 - `POST /api/admin/admins`
-  - body：`{ clerk_user_id: string }`
+  - body：`{ clerk_user_id: string }`，字段可传 Clerk userId 或 email
   - 只有 platform admin
-  - 先调用 Clerk backend 校验用户存在
+  - 先调用 Clerk backend 按 userId / email 校验用户存在并解析 userId
   - upsert `admin_users(active=true)`
-  - 审计
+  - 审计（记录原始 identifier、解析后的 userId、email）
 - `DELETE /api/admin/admins/[userId]`
   - 只有 platform admin
   - platform env admin 不可取消
@@ -262,6 +266,11 @@ create table public.admin_audit_log (
 - 写操作用客户端组件 fetch `/api/admin/*`
 - 表格使用普通 HTML table + 现有 Button/Input/Dialog/Select
 - 不做移动端专门优化，保证桌面可用
+- 前台导航入口：Navbar 中的客户端组件在登录后请求 `/api/admin/me`，仅管理员显示 `/admin` 图标入口；API 由 `requireAdmin()` 保护
+- `/admin` tab 使用客户端 `usePathname()` 高亮当前页面
+- 表格尽量完整展示已返回字段，并保留横向滚动
+- 后台前端不显示 Clerk userId：管理员头显示角色，管理员列表/审计日志显示 email；userId 只在 API 内部使用
+- reports / comments / courses / professor mappings / admins 表格支持分页
 
 ### 页面内容
 
@@ -271,19 +280,25 @@ create table public.admin_audit_log (
   - 最近审计日志
 - `/admin/reports`：
   - 状态筛选
-  - 列表：id / comment / course / prof / reason / reporter / time / status
+  - 列表：id / target type / course / prof / reason / details / reporter email / status / time / resolved / note
+  - 分页：上一页 / 下一页 + total
   - 点击查看详情、admin note、resolve/dismiss
 - `/admin/comments`：
   - 筛选：course code / prof / hidden / keyword
+  - 列表：id / course+prof / 顶层或回复 / 中英文内容 / image / votes / verify / hidden / time
+  - 分页：上一页 / 下一页 + total
   - 编辑弹窗：content、content_en、img、hidden
 - `/admin/courses`：
   - 搜索课程
-  - 编辑字段
-  - Prof mapping 编辑 `is_offered`
+  - 编辑课程字段（title、credits、duration、unit/dept、medium、level/type/year、grading、description、ILO）
+  - Professor mappings / course notes：展示并优先编辑 `admin_note`（中文）和 `admin_note_en`（英文），notes 可清空
+  - Courses 和 Professor mappings 分别分页
+  - 同时保留 mapping `is_offered` 切换
   - “Sync UM” 按钮，调用 `/api/admin/sync-um`
 - `/admin/admins`：
-  - 列出 platform admins 和 DB admins
-  - 输入 Clerk user ID 授权
+  - 列出 platform admins 和 DB admins 的 email，不展示 Clerk userId
+  - 输入 email 或 Clerk user ID 授权
+  - DB admin 列表分页
   - 取消 DB admin
 
 ## 7. 举报接口改造
@@ -327,19 +342,23 @@ await writeAuditLog({
 ### 单元测试
 
 - `tests/admin-auth.test.ts`
-  - env platform admin
+  - env platform admin by userId
+  - env platform admin by email
   - DB admin
   - 普通用户 403
   - 无 userId 401
 - `tests/validation/admin.test.ts`
   - 评论编辑 schema
   - 课程编辑 schema
+  - professor-course notes schema（`admin_note` / `admin_note_en`）
   - report status schema
-  - admin grant schema
+  - admin grant schema（userId / email）
 
 ### API route tests
 
 - `tests/api/admin/reports.test.ts`
+- `tests/api/admin/prof-with-course.test.ts`（notes 更新 + 审计）
+- `tests/api/admin/me.test.ts`（前台入口检测）
 - `tests/api/admin/comments.test.ts`
 - `tests/api/admin/courses.test.ts`
 - `tests/api/admin/admins.test.ts`
@@ -361,16 +380,20 @@ await writeAuditLog({
 
 ### 手动 smoke
 
-- platform admin 访问 `/admin`
+- platform admin 访问 `/admin`，且登录后 Navbar 出现 Admin 图标入口
 - 普通 admin 看不到 admin 管理
-- 普通用户访问 `/admin` 被拒
+- 普通用户访问 `/admin` 被拒，且 Navbar 不出现 Admin 图标入口
+- platform admin 可通过 userId 或 email 授权/取消 DB admin
+- 后台前端不显示 Clerk userId
 - 举报后 Telegram 收到 + 后台能看到
 - 评论编辑文本/图片、隐藏/恢复生效
-- 课程编辑 + sync 按钮可用
+- 课程字段编辑 + mapping notes 编辑并同步到评论页提示 + sync 按钮可用
+- admin tab 高亮当前页面；表格字段齐全且可横向滚动
+- reports / comments / courses / professor mappings / admins 分页可用
 
 ## 10. 发布顺序
 
-1. 新增 `PLATFORM_ADMIN_USER_IDS` 到 `.env.example` / Cloudflare env
+1. 新增 `PLATFORM_ADMIN_USER_IDS` / `PLATFORM_ADMIN_EMAILS` 到 `.env.example` / Cloudflare env
 2. 执行 `20260919_admin_console.sql`
 3. 部署代码
 4. 用 env 里的 platform admin 登录 `/admin`
@@ -379,15 +402,17 @@ await writeAuditLog({
 
 ## 11. 验收标准
 
-- **AC1**：`PLATFORM_ADMIN_USER_IDS` 中的用户可访问全部 `/admin/**`。
+- **AC1**：`PLATFORM_ADMIN_USER_IDS` 或 `PLATFORM_ADMIN_EMAILS` 中的用户可访问全部 `/admin/**`。
 - **AC2**：普通用户访问 `/admin/**` 返回 403 / notFound。
-- **AC3**：platform admin 可授予/取消 DB admin；普通 admin 不行。
+- **AC3**：platform admin 可通过 userId 或 email 授予/取消 DB admin；普通 admin 不行。
 - **AC4**：举报写入 `reports` 表，Telegram 失败不丢数据。
 - **AC5**：评论文本/图片可编辑；隐藏/恢复后统计更新。
-- **AC6**：课程字段和 `is_offered` 可编辑；sync 按钮可用。
+- **AC6**：课程字段、`is_offered` 和 `admin_note` / `admin_note_en` notes 可编辑；notes 在评论页提示生效；sync 按钮可用。
 - **AC7**：所有管理写操作有审计日志。
 - **AC8**：`npm run test` / `lint` / `tsc` / `build` 通过。
 - **AC9**：migration dry-run + apply SQL 验证通过。
+- **AC10**：管理员登录后 Navbar 显示 `/admin` 图标入口；非管理员不显示；admin tab 高亮当前页面。
+- **AC11**：后台前端不展示 Clerk userId；reports / comments / courses / professor mappings / admins 支持分页。
 
 ## 12. 风险与缓解
 
@@ -397,6 +422,6 @@ await writeAuditLog({
 | 编辑课程/映射破坏数据 | 只编辑已有行、字段白名单、禁止 CRUD |
 | 评论隐藏影响统计 | 顶层评论 hidden 变更后调用 refresh RPC |
 | Telegram 故障 | 先写 DB，Telegram best-effort |
-| 平台 admin env 泄漏 | env 只放 Clerk userId，不放 secret；Cloudflare secret 管理 |
+| 平台 admin env 泄漏 | env 只放 Clerk userId/email，不放 secret；Cloudflare secret 管理 |
 | 管理 API 被 CSRF | 同源 fetch + Clerk 鉴权；后续可加 origin check |
 | sync 路由超时 | limit 1-50；全量仍走 GitHub Actions |

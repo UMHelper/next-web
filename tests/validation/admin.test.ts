@@ -3,6 +3,7 @@ import {
   adminGrantSchema,
   commentUpdateSchema,
   courseUpdateSchema,
+  profWithCourseUpdateSchema,
   reportUpdateSchema,
   syncUmSchema,
 } from "@/lib/validation/admin";
@@ -10,6 +11,7 @@ import {
 describe("admin validation schemas", () => {
   it("validates admin grant ids", () => {
     expect(adminGrantSchema.safeParse({ clerk_user_id: "user_abc" }).success).toBe(true);
+    expect(adminGrantSchema.safeParse({ clerk_user_id: "admin@example.com" }).success).toBe(true);
     expect(adminGrantSchema.safeParse({ clerk_user_id: "not-a-user" }).success).toBe(false);
   });
 
@@ -29,6 +31,12 @@ describe("admin validation schemas", () => {
     expect(courseUpdateSchema.safeParse({ Credits: "3" }).success).toBe(true);
     expect(courseUpdateSchema.safeParse({ Is_Offered: 2 }).success).toBe(false);
     expect(courseUpdateSchema.safeParse({}).success).toBe(false);
+  });
+
+  it("validates professor-course notes updates", () => {
+    expect(profWithCourseUpdateSchema.safeParse({ admin_note: "注意" }).success).toBe(true);
+    expect(profWithCourseUpdateSchema.safeParse({ admin_note_en: null }).success).toBe(true);
+    expect(profWithCourseUpdateSchema.safeParse({}).success).toBe(false);
   });
 
   it("requires code for sync mode=code", () => {

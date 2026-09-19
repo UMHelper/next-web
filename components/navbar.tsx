@@ -1,6 +1,7 @@
 import MobileSidebar from "@/components/mobile-sidebar";
 import NavbarList from "@/components/navbar-list";
 import NavbarAvatar from '@/components/navbar-avatar';
+import AdminEntry from "@/components/admin-entry";
 import TimetableCart from "@/components/timetable-cart";
 import { UserButton } from "@clerk/nextjs";
 import SearchButton from "@/components/search-button";
@@ -19,6 +20,7 @@ const Navbar = () => {
                         <div className="flex flex-row space-x-3 items-center">
                             <SearchButton />
                             <TimetableCart />
+                            <AdminEntry />
                             <NavbarAvatar />
                         </div>
                     </div>

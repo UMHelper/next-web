@@ -1,3 +1,4 @@
+import { getClerkUserEmails } from "@/lib/admin-auth";
 import supabaseAdmin from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
@@ -17,6 +18,11 @@ export default async function AdminDashboardPage() {
       .order("created_at", { ascending: false })
       .limit(10),
   ]);
+
+  const auditEntries = recentAudit.data ?? [];
+  const actorEmails = await getClerkUserEmails(
+    auditEntries.map((entry: any) => entry.actor_id).filter(Boolean),
+  );
 
   return (
     <div className="space-y-6">
@@ -38,16 +44,16 @@ export default async function AdminDashboardPage() {
             <thead>
               <tr className="border-b text-gray-500">
                 <th className="py-2">Time</th>
-                <th className="py-2">Actor</th>
+                <th className="py-2">Admin</th>
                 <th className="py-2">Action</th>
                 <th className="py-2">Target</th>
               </tr>
             </thead>
             <tbody>
-              {(recentAudit.data ?? []).map((entry: any) => (
+              {auditEntries.map((entry: any) => (
                 <tr key={entry.id} className="border-b last:border-0">
                   <td className="py-2">{String(entry.created_at).slice(0, 19).replace("T", " ")}</td>
-                  <td className="py-2 font-mono text-xs">{entry.actor_id}</td>
+                  <td className="py-2 text-xs">{actorEmails.get(entry.actor_id) ?? "-"}</td>
                   <td className="py-2">{entry.action}</td>
                   <td className="py-2">
                     {entry.target_type}

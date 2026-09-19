@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import AdminPagination from "@/components/admin/admin-pagination";
 import {
   Dialog,
   DialogContent,
@@ -25,11 +26,20 @@ type Comment = {
   course_id: number;
   course_code: string | null;
   prof_id: string | null;
+  replyto: number | null;
+  upvote: number;
+  downvote: number;
+  verify: number;
+  verify_account: string;
   pub_time: string;
 };
 
+const PAGE_SIZE = 50;
+
 export default function AdminCommentsClient() {
   const [comments, setComments] = useState<Comment[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [code, setCode] = useState("");
@@ -43,7 +53,7 @@ export default function AdminCommentsClient() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({ limit: "50" });
+      const params = new URLSearchParams({ limit: String(PAGE_SIZE), page: String(page) });
       if (q.trim()) params.set("q", q.trim());
       if (code.trim()) params.set("code", code.trim());
       if (hidden !== "all") params.set("hidden", hidden);
@@ -51,12 +61,13 @@ export default function AdminCommentsClient() {
       const body = await response.json();
       if (!response.ok) throw new Error(body?.error?.message ?? `HTTP ${response.status}`);
       setComments(body.comments ?? []);
+      setTotal(body.total ?? 0);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to load comments");
     } finally {
       setLoading(false);
     }
-  }, [q, code, hidden]);
+  }, [q, code, hidden, page]);
 
   useEffect(() => {
     void load();
@@ -101,9 +112,9 @@ export default function AdminCommentsClient() {
       <div className="text-lg font-semibold">Comments</div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <Input className="w-56" placeholder="Search content" value={q} onChange={(e) => setQ(e.target.value)} />
-        <Input className="w-36" placeholder="Course code" value={code} onChange={(e) => setCode(e.target.value)} />
-        <Select value={hidden} onValueChange={setHidden}>
+        <Input className="w-56" placeholder="Search content" value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} />
+        <Input className="w-36" placeholder="Course code" value={code} onChange={(e) => { setCode(e.target.value); setPage(1); }} />
+        <Select value={hidden} onValueChange={(value) => { setHidden(value); setPage(1); }}>
           <SelectTrigger className="w-32">
             <SelectValue />
           </SelectTrigger>
@@ -122,8 +133,11 @@ export default function AdminCommentsClient() {
             <tr className="border-b text-gray-500">
               <th className="p-3">ID</th>
               <th className="p-3">Course / Prof</th>
+              <th className="p-3">Type</th>
               <th className="p-3">Content</th>
-              <th className="p-3">Visible</th>
+              <th className="p-3">Votes</th>
+              <th className="p-3">Verified</th>
+              <th className="p-3">Visibility</th>
               <th className="p-3">Time</th>
               <th className="p-3">Actions</th>
             </tr>
@@ -136,8 +150,32 @@ export default function AdminCommentsClient() {
                   {comment.course_code ?? "-"}
                   <div className="text-xs text-gray-500">{comment.prof_id ?? "-"}</div>
                 </td>
+                <td className="p-3 text-xs">
+                  {comment.replyto ? `Reply #${comment.replyto}` : "Top-level"}
+                </td>
                 <td className="max-w-[420px] p-3">
                   <div className="line-clamp-2 text-xs text-gray-700">{comment.content ?? "-"}</div>
+                  {comment.content_en ? (
+                    <div className="mt-1 line-clamp-2 text-xs text-gray-500">{comment.content_en}</div>
+                  ) : null}
+                  {comment.img ? (
+                    <a
+                      className="mt-1 inline-block text-xs text-blue-600 hover:underline"
+                      href={comment.img}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Image
+                    </a>
+                  ) : null}
+                </td>
+                <td className="p-3 text-xs">
+                  <div>↑ {comment.upvote ?? 0}</div>
+                  <div>↓ {comment.downvote ?? 0}</div>
+                </td>
+                <td className="p-3 text-xs">
+                  {comment.verify === 1 ? "Yes" : "No"}
+                  {comment.verify_account ? <div className="text-gray-500">{comment.verify_account}</div> : null}
                 </td>
                 <td className="p-3">{comment.hidden === 1 ? "Hidden" : "Visible"}</td>
                 <td className="p-3 text-xs">{String(comment.pub_time).slice(0, 19).replace("T", " ")}</td>
@@ -148,12 +186,20 @@ export default function AdminCommentsClient() {
             ))}
             {!loading && comments.length === 0 ? (
               <tr>
-                <td colSpan={6} className="p-6 text-center text-gray-500">No comments</td>
+                <td colSpan={9} className="p-6 text-center text-gray-500">No comments</td>
               </tr>
             ) : null}
           </tbody>
         </table>
       </div>
+
+      <AdminPagination
+        page={page}
+        limit={PAGE_SIZE}
+        total={total}
+        loading={loading}
+        onPageChange={setPage}
+      />
 
       <Dialog open={editing !== null} onOpenChange={(open) => !open && setEditing(null)}>
         <DialogContent className="sm:max-w-2xl" onOpenAutoFocus={(e) => e.preventDefault()}>

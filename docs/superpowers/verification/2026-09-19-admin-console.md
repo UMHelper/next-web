@@ -6,7 +6,7 @@ Admin console implemented locally, migration applied to the target database, not
 
 ## Implemented
 
-- `PLATFORM_ADMIN_USER_IDS` platform admin injection
+- `PLATFORM_ADMIN_USER_IDS` / `PLATFORM_ADMIN_EMAILS` platform admin injection
 - `admin_users`, `reports`, `admin_audit_log` tables + RLS/grant migration
 - `requireAdmin()` / `getCurrentAdmin()`
 - Reports stored in DB before Telegram best-effort
@@ -16,17 +16,24 @@ Admin console implemented locally, migration applied to the target database, not
   - `/api/admin/courses`
   - `/api/admin/prof-with-course`
   - `/api/admin/sync-um`
-  - `/api/admin/admins`
+  - `/api/admin/admins`（授权支持 userId / email）
+  - `/api/admin/me`（前台导航入口检测）
 - Admin pages:
   - `/admin`
   - `/admin/reports`
   - `/admin/comments`
   - `/admin/courses`
   - `/admin/admins`
+- Frontend entry: Navbar shows an `Admin` icon for admins only
+- Admin tabs highlight current page with active state
+- Admin tables show more complete fields
+- Admin frontend hides Clerk userId; admin/audit views use email instead
+- Reports / comments / courses / professor mappings / admins support pagination
 - Audit logs for admin writes
 - Comment edit: text/content_en/image/hidden
 - Course edit: whitelisted fields + mapping `is_offered`
-- Admin grant/revoke: platform admin only
+- Professor-course notes edit: `admin_note` / `admin_note_en` (nullable)
+- Admin grant/revoke: platform admin only, by Clerk userId or email
 
 ## Migration
 
@@ -38,26 +45,32 @@ supabase/migrations/20260919_admin_console.sql
 
 ## Commands run
 
-- [x] `npm run test` — 29 files / 81 tests passed
+- [x] `npm run test` — 32 files / 89 tests passed
 - [x] `npm run lint` — passed
 - [x] `node node_modules/typescript/bin/tsc --noEmit` — passed
-- [x] `npm run build` — passed; 65 pages/routes generated
+- [x] `npm run build` — passed; 65 static pages generated
 - [x] migration dry-run + actual apply
 
 ## Required environment
 
 ```env
 PLATFORM_ADMIN_USER_IDS=user_xxx,user_yyy
+PLATFORM_ADMIN_EMAILS=admin@example.com,owner@example.com
 CLERK_SECRET_KEY=...
 ```
 
 ## Pending manual smoke
 
 - [ ] platform admin can access `/admin`
+- [ ] admin sees the Navbar `Admin` icon; non-admin does not
 - [ ] non-admin is rejected
-- [ ] platform admin can grant/revoke a DB admin
+- [ ] platform admin can grant/revoke a DB admin by userId and by email
+- [ ] admin views do not display Clerk userId
 - [ ] report submitted from web appears in `/admin/reports`
 - [ ] Telegram failure still stores report
 - [ ] comment text/image edit and hidden/restore
 - [ ] course field edit and mapping offered toggle
+- [ ] professor-course `admin_note` / `admin_note_en` edit appears on review page
+- [ ] admin tabs highlight the current page and wider tables remain usable
+- [ ] reports / comments / courses / professor mappings / admins pagination works
 - [ ] sync UM button returns stats

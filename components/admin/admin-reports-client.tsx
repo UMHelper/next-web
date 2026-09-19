@@ -4,19 +4,24 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import AdminPagination from "@/components/admin/admin-pagination";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 type Report = {
   id: number;
+  target_type: string;
   target_id: number;
   course_id: string | null;
   prof_id: string | null;
   reporter_id: string | null;
   reporter_platform: string;
+  email: string | null;
   reason: string;
   details: string | null;
   status: string;
   admin_note: string | null;
+  resolved_by: string | null;
+  resolved_at: string | null;
   created_at: string;
 };
 
@@ -32,24 +37,29 @@ async function updateReport(id: number, patch: Record<string, unknown>) {
   }
 }
 
+const PAGE_SIZE = 50;
+
 export default function AdminReportsClient() {
   const [status, setStatus] = useState("open");
   const [reports, setReports] = useState<Report[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/admin/reports?status=${status}&limit=50`);
+      const response = await fetch(`/api/admin/reports?status=${status}&page=${page}&limit=${PAGE_SIZE}`);
       const body = await response.json();
       if (!response.ok) throw new Error(body?.error?.message ?? `HTTP ${response.status}`);
       setReports(body.reports ?? []);
+      setTotal(body.total ?? 0);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to load reports");
     } finally {
       setLoading(false);
     }
-  }, [status]);
+  }, [status, page]);
 
   useEffect(() => {
     void load();
@@ -76,7 +86,7 @@ export default function AdminReportsClient() {
     <div className="space-y-4">
       <div className="flex items-center gap-3">
         <div className="text-lg font-semibold">Reports</div>
-        <Select value={status} onValueChange={setStatus}>
+        <Select value={status} onValueChange={(value) => { setStatus(value); setPage(1); }}>
           <SelectTrigger className="w-40">
             <SelectValue />
           </SelectTrigger>
@@ -96,11 +106,13 @@ export default function AdminReportsClient() {
           <thead className="bg-gray-50">
             <tr className="border-b text-gray-500">
               <th className="p-3">ID</th>
-              <th className="p-3">Target</th>
+              <th className="p-3">Type / Target</th>
               <th className="p-3">Course / Prof</th>
-              <th className="p-3">Reason</th>
+              <th className="p-3">Reason / Details</th>
               <th className="p-3">Reporter</th>
+              <th className="p-3">Status</th>
               <th className="p-3">Created</th>
+              <th className="p-3">Resolved</th>
               <th className="p-3">Note</th>
               <th className="p-3">Actions</th>
             </tr>
@@ -110,21 +122,38 @@ export default function AdminReportsClient() {
               <tr key={report.id} className="border-b last:border-0">
                 <td className="p-3">{report.id}</td>
                 <td className="p-3">
-                  {report.target_id}
-                  {report.details ? (
-                    <div className="mt-1 max-w-[360px] truncate text-xs text-gray-500">{report.details}</div>
-                  ) : null}
+                  <div>{report.target_type}</div>
+                  <div className="font-mono text-xs text-gray-500">#{report.target_id}</div>
                 </td>
                 <td className="p-3">
                   {report.course_id ?? "-"}
                   <div className="text-xs text-gray-500">{report.prof_id ?? "-"}</div>
                 </td>
-                <td className="p-3">{report.reason}</td>
                 <td className="p-3">
-                  {report.reporter_id ?? "-"}
+                  <div>{report.reason}</div>
+                  {report.details ? (
+                    <div className="mt-1 max-w-[360px] line-clamp-2 text-xs text-gray-500">{report.details}</div>
+                  ) : null}
+                </td>
+                <td className="p-3">
+                  <div>{report.email ?? "-"}</div>
                   <div className="text-xs text-gray-500">{report.reporter_platform}</div>
                 </td>
+                <td className="p-3">
+                  <span className={
+                    report.status === "open"
+                      ? "rounded bg-amber-100 px-2 py-0.5 text-xs text-amber-700"
+                      : report.status === "resolved"
+                        ? "rounded bg-green-100 px-2 py-0.5 text-xs text-green-700"
+                        : "rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600"
+                  }>
+                    {report.status}
+                  </span>
+                </td>
                 <td className="p-3 text-xs">{String(report.created_at).slice(0, 19).replace("T", " ")}</td>
+                <td className="p-3 text-xs">
+                  {report.resolved_at ? String(report.resolved_at).slice(0, 19).replace("T", " ") : "-"}
+                </td>
                 <td className="p-3 max-w-[200px] truncate text-xs">{report.admin_note ?? "-"}</td>
                 <td className="p-3">
                   <div className="flex gap-2">
@@ -143,12 +172,20 @@ export default function AdminReportsClient() {
             ))}
             {!loading && reports.length === 0 ? (
               <tr>
-                <td colSpan={8} className="p-6 text-center text-gray-500">No reports</td>
+                <td colSpan={10} className="p-6 text-center text-gray-500">No reports</td>
               </tr>
             ) : null}
           </tbody>
         </table>
       </div>
+
+      <AdminPagination
+        page={page}
+        limit={PAGE_SIZE}
+        total={total}
+        loading={loading}
+        onPageChange={setPage}
+      />
     </div>
   );
 }

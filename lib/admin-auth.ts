@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth, clerkClient } from "@clerk/nextjs/server";
 
 import { apiError } from "@/lib/api-response";
 import supabaseAdmin from "@/lib/supabase/admin";
@@ -18,6 +18,56 @@ export function getPlatformAdminIds(value = process.env.PLATFORM_ADMIN_USER_IDS)
   );
 }
 
+export function getPlatformAdminEmails(value = process.env.PLATFORM_ADMIN_EMAILS) {
+  if (!value) return new Set<string>();
+  return new Set(
+    value
+      .split(",")
+      .map((item) => item.trim().toLowerCase())
+      .filter(Boolean),
+  );
+}
+
+type ClerkUserEmail = {
+  primaryEmailAddressId: string | null;
+  emailAddresses: Array<{ id: string; emailAddress: string }>;
+};
+
+export function getPrimaryClerkEmail(user: ClerkUserEmail): string | null {
+  const primary = user.emailAddresses.find((email) => email.id === user.primaryEmailAddressId);
+  const email = primary?.emailAddress ?? user.emailAddresses[0]?.emailAddress ?? null;
+  return email ? email.toLowerCase() : null;
+}
+
+export async function getClerkUserEmail(userId: string): Promise<string | null> {
+  try {
+    const user = await clerkClient.users.getUser(userId);
+    return getPrimaryClerkEmail(user);
+  } catch (error) {
+    console.error(
+      "[admin-auth] failed to load Clerk user email:",
+      error instanceof Error ? error.message : String(error),
+    );
+    return null;
+  }
+}
+
+export async function getClerkUserEmails(userIds: string[]): Promise<Map<string, string | null>> {
+  const uniqueIds = Array.from(new Set(userIds.filter(Boolean)));
+  if (uniqueIds.length === 0) return new Map();
+
+  try {
+    const users = await clerkClient.users.getUserList({ userId: uniqueIds, limit: uniqueIds.length });
+    return new Map(users.map((user) => [user.id, getPrimaryClerkEmail(user)]));
+  } catch (error) {
+    console.error(
+      "[admin-auth] failed to load Clerk user emails:",
+      error instanceof Error ? error.message : String(error),
+    );
+    return new Map();
+  }
+}
+
 export async function getCurrentAdmin(): Promise<
   { ok: true; session: AdminSession } | { ok: false; response: ReturnType<typeof apiError> }
 > {
@@ -28,6 +78,14 @@ export async function getCurrentAdmin(): Promise<
 
   if (getPlatformAdminIds().has(userId)) {
     return { ok: true, session: { userId, isPlatformAdmin: true } };
+  }
+
+  const platformEmails = getPlatformAdminEmails();
+  if (platformEmails.size > 0) {
+    const email = await getClerkUserEmail(userId);
+    if (email && platformEmails.has(email)) {
+      return { ok: true, session: { userId, isPlatformAdmin: true } };
+    }
   }
 
   const { data, error } = await supabaseAdmin

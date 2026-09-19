@@ -1,23 +1,39 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { auth, maybeSingle } = vi.hoisted(() => ({
+const { auth, maybeSingle, clerkGetUser, clerkGetUserList } = vi.hoisted(() => ({
   auth: vi.fn(),
   maybeSingle: vi.fn(),
+  clerkGetUser: vi.fn(),
+  clerkGetUserList: vi.fn(),
 }));
 
-vi.mock("@clerk/nextjs/server", () => ({ auth }));
+vi.mock("@clerk/nextjs/server", () => ({
+  auth,
+  clerkClient: {
+    users: {
+      getUser: clerkGetUser,
+      getUserList: clerkGetUserList,
+    },
+  },
+}));
 vi.mock("@/lib/supabase/admin", () => ({
   default: {
     from: vi.fn(() => ({ select: () => ({ eq: () => ({ maybeSingle }) }) })),
   },
 }));
 
-import { getCurrentAdmin, getPlatformAdminIds, requireAdmin } from "@/lib/admin-auth";
+import {
+  getCurrentAdmin,
+  getPlatformAdminEmails,
+  getPlatformAdminIds,
+  requireAdmin,
+} from "@/lib/admin-auth";
 
 describe("admin auth", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     delete process.env.PLATFORM_ADMIN_USER_IDS;
+    delete process.env.PLATFORM_ADMIN_EMAILS;
   });
 
   it("parses platform admin ids", () => {
@@ -25,6 +41,13 @@ describe("admin auth", () => {
       "user_a",
       "user_b",
       "user_c",
+    ]);
+  });
+
+  it("parses and normalizes platform admin emails", () => {
+    expect(Array.from(getPlatformAdminEmails("Admin@Example.com, b@test.com "))).toEqual([
+      "admin@example.com",
+      "b@test.com",
     ]);
   });
 
@@ -37,6 +60,23 @@ describe("admin auth", () => {
       ok: true,
       session: { userId: "user_platform", isPlatformAdmin: true },
     });
+  });
+
+  it("allows platform admin by verified Clerk email", async () => {
+    process.env.PLATFORM_ADMIN_EMAILS = "admin@example.com";
+    auth.mockReturnValue({ userId: "user_email" });
+    clerkGetUser.mockResolvedValue({
+      id: "user_email",
+      primaryEmailAddressId: "email_1",
+      emailAddresses: [{ id: "email_1", emailAddress: "Admin@Example.com" }],
+    });
+
+    const result = await getCurrentAdmin();
+    expect(result).toEqual({
+      ok: true,
+      session: { userId: "user_email", isPlatformAdmin: true },
+    });
+    expect(maybeSingle).not.toHaveBeenCalled();
   });
 
   it("allows active db admin", async () => {

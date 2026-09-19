@@ -17,7 +17,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     return apiError("invalid_request", "Invalid mapping id", 400);
   }
 
-  const bodyResult = await readJsonBody(request, 8_192);
+  const bodyResult = await readJsonBody(request, 32_768);
   if (!bodyResult.ok) return bodyResult.response;
   const parsed = profWithCourseUpdateSchema.safeParse(bodyResult.data);
   if (!parsed.success) {
