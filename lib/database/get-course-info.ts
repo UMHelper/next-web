@@ -1,5 +1,4 @@
 import supabaseServer from '@/lib/supabase/server';
-import supabaseAdmin from '@/lib/supabase/admin';
 import { unstable_cache } from 'next/cache';
 
 import { getProfListByCourse } from "@/lib/database/get-prof-info";
@@ -47,115 +46,13 @@ const normalizeLocalCourseInfo = (courseInfo: any, code: string) => ({
     ilo: normalizeText(courseInfo['ilo']) ?? null,
 })
 
-const hasCompleteCourseInfo = (courseInfo: any) => {
-    return Boolean(
-        normalizeText(courseInfo['courseTitleEng']) &&
-        normalizeText(courseInfo['offeringProgLevel']) &&
-        normalizeText(courseInfo['Credits']) &&
-        normalizeText(courseInfo['Offering_Department']) &&
-        normalizeText(courseInfo['Offering_Unit']) &&
-        normalizeText(courseInfo['Medium_of_Instruction']) &&
-        normalizeText(courseInfo['gradingSystem']) &&
-        normalizeText(courseInfo['courseType']) &&
-        normalizeText(courseInfo['Course_Duration']) &&
-        normalizeText(courseInfo['courseDescription']) &&
-        normalizeText(courseInfo['ilo'])
-    )
-}
-
-const mapRemoteCourseInfoToLocalPatch = (courseInfo: any, localCourseInfo: any, code: string) => ({
-    New_code: code.toUpperCase(),
-    courseTitleEng: normalizeText(courseInfo['courseTitle']) ?? normalizeText(localCourseInfo['courseTitleEng']),
-    offeringProgLevel: normalizeText(courseInfo['offeringProgLevel']) ?? normalizeText(localCourseInfo['offeringProgLevel']),
-    suggestedYearOfStudy: courseInfo['suggestedYearOfStudy'] ?? localCourseInfo['suggestedYearOfStudy'],
-    Credits: normalizeText(courseInfo['credits']) ?? normalizeText(localCourseInfo['Credits']),
-    Offering_Department: normalizeText(courseInfo['offeringDept']) ?? normalizeText(localCourseInfo['Offering_Department']),
-    Offering_Unit: normalizeText(courseInfo['offeringUnit']) ?? normalizeText(localCourseInfo['Offering_Unit']),
-    Medium_of_Instruction: normalizeText(courseInfo['mediumOfInstruction']) ?? normalizeText(localCourseInfo['Medium_of_Instruction']),
-    gradingSystem: normalizeText(courseInfo['gradingSystem']) ?? normalizeText(localCourseInfo['gradingSystem']),
-    courseType: normalizeText(courseInfo['courseType']) ?? normalizeText(localCourseInfo['courseType']),
-    Course_Duration: normalizeText(courseInfo['duration']) ?? normalizeText(localCourseInfo['Course_Duration']),
-    courseDescription: normalizeText(courseInfo['courseDescription']) ?? normalizeText(localCourseInfo['courseDescription']),
-    ilo: normalizeText(courseInfo['ilo']) ?? normalizeText(localCourseInfo['ilo']),
-})
-
-
-export const fetchCourseInfoByUMAPIUncached = async (code: string): Promise<any | null> => {
-    const token = process.env.UM_OPEN_DATA_TOKEN;
-    if (!token) {
-        console.error("[um-api] UM_OPEN_DATA_TOKEN is not configured");
-        return null;
-    }
-
-    try {
-        const response = await fetch(
-            `https://api.data.um.edu.mo/service/academic/course_catalog/all?course_code=${encodeURIComponent(code.toUpperCase())}`,
-            {
-                headers: { Authorization: token },
-                signal: AbortSignal.timeout(10_000),
-                cache: "no-store",
-            },
-        );
-
-        if (!response.ok) {
-            console.error("[um-api] request failed", response.status);
-            return null;
-        }
-
-        const body = (await response.json()) as { _embedded?: unknown[] };
-        return body._embedded?.[0] ?? null;
-    } catch (error) {
-        console.error("[um-api] request error", error instanceof Error ? error.message : String(error));
-        return null;
-    }
-};
-
-export const fetchCourseInfoByUMAPI = unstable_cache(
-    async (code: string) => fetchCourseInfoByUMAPIUncached(code),
-    ['um-course-catalog-fallback'],
-    { revalidate: 86400 }
-)
-
 export async function fetchCourseInfo(code: string) {
     const [localCourse, profList] = await Promise.all([
         getCourseInfo(code),
         getProfListByCourse(code),
     ])
 
-    let course = normalizeLocalCourseInfo(localCourse, code)
-
-    if (!hasCompleteCourseInfo(localCourse)) {
-        const remoteCourse = await fetchCourseInfoByUMAPI(code)
-
-        if (remoteCourse) {
-            course = {
-                courseCode: code.toUpperCase(),
-                courseTitle: normalizeText(remoteCourse['courseTitle']) ?? course.courseTitle,
-                courseTitleChi: course.courseTitleChi ?? null,
-                offeringProgLevel: normalizeText(remoteCourse['offeringProgLevel']) ?? course.offeringProgLevel,
-                suggestedYearOfStudy: String(remoteCourse['suggestedYearOfStudy'] ?? course.suggestedYearOfStudy),
-                credits: normalizeText(remoteCourse['credits']) ?? course.credits,
-                offeringDept: normalizeText(remoteCourse['offeringDept']) ?? course.offeringDept,
-                offeringUnit: normalizeText(remoteCourse['offeringUnit']) ?? course.offeringUnit,
-                mediumOfInstruction: normalizeText(remoteCourse['mediumOfInstruction']) ?? course.mediumOfInstruction,
-                gradingSystem: normalizeText(remoteCourse['gradingSystem']) ?? course.gradingSystem,
-                courseType: normalizeText(remoteCourse['courseType']) ?? course.courseType,
-                duration: normalizeText(remoteCourse['duration']) ?? course.duration,
-                courseDescription: normalizeText(remoteCourse['courseDescription']) ?? course.courseDescription,
-                ilo: normalizeText(remoteCourse['ilo']) ?? course.ilo,
-            }
-
-            const localPatch = mapRemoteCourseInfoToLocalPatch(course, localCourse, code)
-            const { error } = await supabaseAdmin.from('course_noporf').upsert([localPatch], {
-                onConflict: 'New_code',
-            })
-
-            if (error) {
-                console.error(error)
-            }
-        }
-    }
-
+    const course = normalizeLocalCourseInfo(localCourse, code)
     const isOffer = localCourse['Is_Offered'] === 1 || (profList ?? []).some((prof: any) => prof['is_offered'])
 
     return { course, profList, isOffer }
