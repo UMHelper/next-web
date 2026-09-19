@@ -59,8 +59,22 @@ Note: tag invalidation becomes durable only when OpenNext tag cache / R2 is conf
 - `lastModified` is stable via `getSitemapLastModified()`
 - errors return an empty section instead of crashing
 
+## 3C details
+
+- Added `scripts/sync-um.mjs` with `--missing`, `--all`, `--code=`, `--limit=`
+- Added `.github/workflows/sync-um.yml` daily schedule + manual dispatch
+- Added `npm run sync:um`
+- Added `tests/sync-um.test.ts`
+
+Still needs human-provided GitHub Actions secrets:
+
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `SUPABASE_SECRET_KEY`
+- `UM_OPEN_DATA_TOKEN`
+
 ## Pending / next
 
-- 3C: `scripts/sync-um.mjs` + GitHub Actions or Cloudflare Cron; needs `UM_OPEN_DATA_TOKEN` and scheduling secrets.
+- 3C: configure the GitHub Actions secrets and run the workflow once manually.
+- 3C: after sync is verified, remove `fetchCourseInfo` page-time UM fallback.
 - 3E: R2 bucket + `open-next.config.ts` incremental cache binding; needs Cloudflare resource.
-- After 3C/3E: remove `fetchCourseInfo` page-time UM fallback and verify production cache hits.
+- After 3E: verify production cache hits and `revalidateTag` invalidation.
