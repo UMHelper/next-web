@@ -157,7 +157,7 @@
 
 | 调用方 | 请求类型 | 身份校验 | 身份来源 |
 |---|---|---|---|
-| Web 浏览器 | 评论提交 | Clerk `authMiddleware` + `auth()` | `userId`，服务端写入 `verify_account` |
+| Web 浏览器 | 评论提交 | 已登录时 Clerk `authMiddleware` + `auth()`；未登录时允许匿名，按 IP 限流 | 已登录：`verify=1` + `userId`；匿名：`verify=0` + 空 `verify_account` |
 | Web 浏览器 | 回复 / 投票 | Clerk `authMiddleware` + `auth()` | `userId`，服务端写入 `created_by` / `verify_account` |
 | iOS | 评论 / 回复 | `verifyIOSRequest` + `iosVersionGuard` | 客户端 UUID，服务端只校验格式与限流 |
 | iOS | 投票 | `verifyIOSRequest` + `iosVersionGuard` | 客户端 UUID，服务端只校验格式与限流 |

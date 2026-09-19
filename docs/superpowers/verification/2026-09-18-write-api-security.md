@@ -34,7 +34,8 @@ The old `get_comment_page(integer, integer, integer)` function is intentionally 
 
 ## Smoke tests after migration
 
-- [ ] Web anonymous `POST /api/comment/...` → 401
+- [ ] Web anonymous `POST /api/comment/...` → 200; DB row has `verify=0` and empty `verify_account`
+- [ ] Web signed-in `POST /api/comment/...` → 200; DB row has `verify=1` and `verify_account=Clerk userId`
 - [ ] Web anonymous `POST /api/reply` → 401
 - [ ] Web anonymous `POST /api/vote/...` → 401
 - [ ] Web signed-in comment writes `verify_account = Clerk userId`
