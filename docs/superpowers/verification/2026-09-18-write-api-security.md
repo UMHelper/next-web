@@ -2,7 +2,9 @@
 
 ## Status
 
-Phase 1A code is implemented and committed. Database migrations have been **syntax-validated in a rollback transaction** but have **not been committed to the target database yet**, because the currently deployed app still uses the publishable key and would break if `anon`/`authenticated` grants were revoked before the new code is deployed.
+Phase 1A code is implemented and committed. The additive migrations (`rate_limit`, `get_comment_page_v2`) have been applied to the target database. The breaking least-privilege migration (`security_hardening`) is **not applied yet**, because the currently deployed app still uses the publishable key and would break if `anon`/`authenticated` grants were revoked before the new code is deployed.
+
+The old `get_comment_page(integer, integer, integer)` function is intentionally kept for the currently deployed clients. New server code calls `get_comment_page_v2(integer, integer, integer, text)`. A follow-up migration will drop the old function after rollout.
 
 ## Commands run
 
@@ -16,6 +18,8 @@ Phase 1A code is implemented and committed. Database migrations have been **synt
   - `20260918_get_comment_page_privacy.sql`
   - executed inside `begin; ... rollback;`
   - result: all three validated; transaction rolled back
+- [x] Applied additive migration `20260918_rate_limit.sql`
+- [x] Applied additive migration `20260918_get_comment_page_privacy.sql` (`get_comment_page_v2` only)
 
 ## Migration apply checklist (after new code is deployed)
 
@@ -23,9 +27,8 @@ Phase 1A code is implemented and committed. Database migrations have been **synt
 - [ ] Confirm the deployed app is using the new server-side `SUPABASE_SECRET_KEY` client
 - [ ] Take a Supabase database backup / snapshot
 - [ ] `node scripts/apply-sql.mjs supabase/migrations/20260918_security_hardening.sql`
-- [ ] `node scripts/apply-sql.mjs supabase/migrations/20260918_rate_limit.sql`
-- [ ] `node scripts/apply-sql.mjs supabase/migrations/20260918_get_comment_page_privacy.sql`
 - [ ] `node scripts/apply-sql.mjs scripts/verify-security-hardening.sql` — all `failures = 0`
+- [ ] Follow-up cleanup: drop the old `get_comment_page(integer, integer, integer)` after deployed clients are gone
 - [ ] Rotate/disable old Supabase keys after 24h of clean operation
 - [ ] Rotate the UM Open Data token upstream if possible
 
@@ -39,5 +42,5 @@ Phase 1A code is implemented and committed. Database migrations have been **synt
 - [ ] iOS write request with `X-UM-Viewer-Id` succeeds
 - [ ] iOS write request without `X-UM-Viewer-Id` returns 400
 - [ ] `anon` role `select * from comment` → permission denied
-- [ ] `get_comment_page` for two viewers returns different `vote_history`
+- [ ] `get_comment_page_v2` for two viewers returns different `vote_history`
 - [ ] `git grep f5aaa86cc5b4424aa621538fceaab34f` → no matches
