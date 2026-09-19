@@ -1,7 +1,7 @@
 import { Radar, Github, Quote, UserPlus } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
-import CommentBank from "@/components/comment-bank";
+import HomeStatistics from "@/components/home-statistics";
 import { Card } from "@/components/ui/card";
 import SearchComp from "@/components/search";
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
@@ -106,14 +106,7 @@ function HomePage() {
                 </div>
             </div>
 
-            <div className='max-w-screen-xl mx-auto p-4'>
-                <div className="py-8">
-                    <div className="text-center text-2xl font-bold pb-8">
-                        Our Comment Bank
-                    </div>
-                    <CommentBank />
-                </div>
-            </div>
+            <HomeStatistics />
         </>
 
     )
