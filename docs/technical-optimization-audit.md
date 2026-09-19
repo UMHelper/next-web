@@ -1,5 +1,10 @@
 # UMHelper Next Web 技术优化调研
 
+> Phase 1A security spec: `docs/superpowers/specs/2026-09-18-next-web-write-api-security-design.md`
+> Phase 1A plan: `docs/superpowers/plans/2026-09-18-next-web-write-api-security.md`
+> Phase 1A verification: `docs/superpowers/verification/2026-09-18-write-api-security.md`
+
+
 ## 1. 调研范围
 
 - 构建与部署配置：`package.json`、`next.config.js`、`open-next.config.ts`、`wrangler.jsonc`
