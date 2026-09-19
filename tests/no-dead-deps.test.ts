@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -20,8 +20,7 @@ describe("phase 2c cleanup", () => {
     }
   });
 
-  it("does not animate sparkles with an interval", () => {
-    const source = readFileSync(join(process.cwd(), "components/magicui/sparkles-text.tsx"), "utf8");
-    expect(source).not.toContain("setInterval");
+  it("does not keep the removed SparklesText component", () => {
+    expect(existsSync(join(process.cwd(), "components/magicui/sparkles-text.tsx"))).toBe(false);
   });
 });

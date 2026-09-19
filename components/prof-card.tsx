@@ -3,7 +3,6 @@ import {cn, get_bg, get_gpa} from "@/lib/utils";
 import {Separator} from "@/components/ui/separator";
 import Link from "next/link";
 
-import { SparklesText } from "@/components/magicui/sparkles-text";
 
 const ProfCard= async ({data,code}:{data:any,code:any})=>{
     // console.log(Number(process.env.IS_PREENROLLMENT_OPEN)==0)
@@ -18,7 +17,7 @@ const ProfCard= async ({data,code}:{data:any,code:any})=>{
                         <div className='text-white flex flex-col'>
                             {
                                 (parseInt(code[4])<=4 && Number(process.env.IS_PREENROLLMENT_OPEN)==0) && (data.is_offered?
-                                    <SparklesText className='text-xs font-semibold rounded-3xl bg-gradient-to-r from-green-600 to-green-600 h-fit py-0.5 px-2 shadow font-normal' sparklesCount={3}> Offered</SparklesText>
+                                    <span className='text-xs font-semibold rounded-3xl bg-gradient-to-r from-green-600 to-green-600 h-fit py-0.5 px-2 shadow font-normal'> Offered</span>
                                     : null)
                                     // <div className='text-xs font-semibold rounded-3xl bg-gradient-to-r from-neutral-700 to-stone-900 h-fit py-0.5 px-2 shadow'> Not Offered</div>)
                             }

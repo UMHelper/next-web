@@ -11,7 +11,6 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import Script from "next/script";
 import { Viewport } from "next";
 
-import { SparklesText } from "@/components/magicui/sparkles-text";
 
 export const revalidate = 3600;
 
@@ -71,7 +70,7 @@ async function CoursePage({ params }: { params: { code: string } }) {
                                 </div>
                                 {
                                     parseInt(course['courseCode'][4]) <= 4 && (isOffer ?
-                                        <SparklesText className='text-sm font-semibold rounded-3xl bg-gradient-to-r from-green-600 to-green-600 h-fit py-0.5 px-2 shadow font-normal' sparklesCount={3}> Offered</SparklesText>
+                                        <span className='text-sm font-semibold rounded-3xl bg-gradient-to-r from-green-600 to-green-600 h-fit py-0.5 px-2 shadow font-normal'> Offered</span>
                                         : null)
                                         // <div className='text-sm font-semibold rounded-3xl bg-gradient-to-r from-neutral-700 to-stone-900 h-fit py-0.5 px-2 shadow'> Not Offered</div>)
                                 }

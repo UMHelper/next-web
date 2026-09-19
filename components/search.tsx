@@ -28,7 +28,6 @@ import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 
 // import RotatingText from "@/components/RotatingText/RotatingText";
-import { SparklesText } from "@/components/magicui/sparkles-text";
 
 const formSchema = z.object({
     code: z.string()
@@ -65,23 +64,11 @@ export default function SearchComp() {
             <div className='max-w-screen-xl mx-auto p-2'>
                 <div className='flex justify-between mx-2 py-10 md:py-8 '>
                     <div className='md:flex flex-col justify-center text-white hidden space-y-2  p-6'>
-                        <h1 className='text-4xl'>
-                            <SparklesText 
-                                className="text-5xl font-medium"
-                                sparklesCount={5}
-                            >
-                                    What2Reg @UM
-                            </SparklesText>
-                            {/* What2Reg @UM */}
+                        <h1 className='text-5xl font-medium'>
+                            What2Reg @UM
                         </h1>
-                        <h1 className='text-3xl'>
-                            <SparklesText 
-                                className="text-4xl font-medium"
-                                sparklesCount={5}
-                            >
-                                澳大選咩課
-                            </SparklesText>
-                            {/* 澳大選咩課 */}
+                        <h1 className='text-4xl font-medium'>
+                            澳大選咩課
                         </h1>
                         <br></br>
                         <h2 className='text-base'>
