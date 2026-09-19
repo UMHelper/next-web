@@ -15,6 +15,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { REPORT_REASONS, type ReportReason } from "@/lib/validation/report";
@@ -75,12 +76,15 @@ export function ReportDialog({ targetId, className }: { targetId: number; classN
         <button
           type="button"
           aria-label="Report comment"
-          className={className ?? "text-gray-400 hover:text-red-500"}
+          className={className ?? "inline-flex items-center text-gray-400 hover:text-red-500"}
         >
           <Flag size={14} strokeWidth={2} />
         </button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent
+        className="sm:max-w-md"
+        onOpenAutoFocus={(event) => event.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle>Report review</DialogTitle>
           <DialogDescription>
@@ -112,18 +116,18 @@ export function ReportDialog({ targetId, className }: { targetId: number; classN
               onChange={(event) => setDetails(event.target.value)}
               maxLength={1000}
               placeholder="Tell us what happened..."
+              className="resize-none focus-visible:ring-0 focus-visible:ring-offset-0"
             />
           </div>
 
           <div className="space-y-1">
             <div className="text-sm font-medium">Contact email (optional)</div>
-            <input
+            <Input
               type="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               maxLength={100}
               placeholder="you@example.com"
-              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
             />
           </div>
         </div>

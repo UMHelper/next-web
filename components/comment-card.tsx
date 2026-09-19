@@ -53,23 +53,25 @@ const ReplyCard = ({ reply }: { reply: any }) => {
                 <AvatarFallback className="text-sm">{HashEmojiAvatar({user_id: reply.avatar_seed || reply.verify_account || ""})}</AvatarFallback>
             </Avatar>
             <div className="ms-2 min-w-0">
-                <Popover>
-                    <PopoverTrigger className="inline-flex">
-                        <span className='text-gray-400 text-xs'>
-                            {/* convert 2022-10-20T03:44:32.219061 to 2022-10-20 */}
-                            {reply.pub_time.split('T')[0]}
-                        </span>
-                    </PopoverTrigger>
-                    <PopoverContent side="right" className=" w-fit">
-                        <p className='text-xs text-gray-400'>Reply #{
-                            reply.id
-                        }</p>
-                    </PopoverContent>
-                </Popover>
+                <div className="flex items-center gap-2">
+                    <Popover>
+                        <PopoverTrigger className="inline-flex">
+                            <span className='text-gray-400 text-xs'>
+                                {/* convert 2022-10-20T03:44:32.219061 to 2022-10-20 */}
+                                {reply.pub_time.split('T')[0]}
+                            </span>
+                        </PopoverTrigger>
+                        <PopoverContent side="right" className=" w-fit">
+                            <p className='text-xs text-gray-400'>Reply #{
+                                reply.id
+                            }</p>
+                        </PopoverContent>
+                    </Popover>
+                    {typeof reply.id === "number" ? <ReportDialog targetId={reply.id} /> : null}
+                </div>
                 <div className='text-sm break-words'>
                     {reply.content}
                 </div>
-                {typeof reply.id === "number" ? <ReportDialog targetId={reply.id} className="mt-1 text-gray-400 hover:text-red-500" /> : null}
                 {//<EmojiVote comment={reply} />
                 }
             </div>
@@ -562,6 +564,7 @@ export const CommentCard = (
                         </PopoverContent>
                     </Popover>
 
+                    <div className="flex items-center gap-2">
                     {/* if comment.isCurrentUserVoted  show badge*/}
                     <Popover>
                         <PopoverTrigger className="inline-flex">
@@ -595,6 +598,7 @@ export const CommentCard = (
                         </PopoverContent>
                     </Popover>
                     <ReportDialog targetId={comment.id} />
+                    </div>
                 </div>
             </CardHeader>
             <CardContent className='pt-2 pb-1'>
