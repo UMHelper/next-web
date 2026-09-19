@@ -5,12 +5,14 @@ const {
   consumeRateLimit,
   commentMaybeSingle,
   profMaybeSingle,
+  reportsInsert,
   sendTelegramMessage,
 } = vi.hoisted(() => ({
   resolveReportIdentity: vi.fn(),
   consumeRateLimit: vi.fn(),
   commentMaybeSingle: vi.fn(),
   profMaybeSingle: vi.fn(),
+  reportsInsert: vi.fn(),
   sendTelegramMessage: vi.fn(),
 }));
 
@@ -22,6 +24,7 @@ vi.mock("@/lib/rate-limit", () => ({ consumeRateLimit }));
 vi.mock("@/lib/supabase/admin", () => ({
   default: {
     from: vi.fn((table: string) => {
+      if (table === "reports") return { insert: reportsInsert };
       const maybeSingle = table === "comment" ? commentMaybeSingle : profMaybeSingle;
       return { select: () => ({ eq: () => ({ maybeSingle }) }) };
     }),
@@ -61,6 +64,7 @@ describe("POST /api/report", () => {
     consumeRateLimit.mockResolvedValue({ allowed: true, remaining: 4, retryAfter: 0 });
     commentMaybeSingle.mockResolvedValue({ data: comment, error: null });
     profMaybeSingle.mockResolvedValue({ data: prof, error: null });
+    reportsInsert.mockResolvedValue({ error: null });
     sendTelegramMessage.mockResolvedValue(undefined);
   });
 
@@ -87,6 +91,9 @@ describe("POST /api/report", () => {
     );
 
     expect(response.status).toBe(200);
+    expect(reportsInsert).toHaveBeenCalledWith([
+      expect.objectContaining({ reporter_platform: "web", reason: "spam", target_id: 7 }),
+    ]);
     const message = sendTelegramMessage.mock.calls[0][0] as string;
     expect(message).toContain("<b>Source:</b> web");
     expect(message).toContain("<b>Reporter:</b> <code>user_1</code>");
@@ -126,5 +133,13 @@ describe("POST /api/report", () => {
     const response = await POST(request({ targetId: 7, reason: "spam" }));
     expect(response.status).toBe(429);
     expect(sendTelegramMessage).not.toHaveBeenCalled();
+  });
+
+  it("keeps the report when Telegram fails", async () => {
+    sendTelegramMessage.mockRejectedValue(new Error("telegram down"));
+    const response = await POST(request({ targetId: 7, reason: "spam" }));
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ ok: true, telegram: "failed" });
+    expect(reportsInsert).toHaveBeenCalled();
   });
 });

@@ -154,15 +154,32 @@ export async function POST(request: Request) {
 
     const message = lines.join("\n").slice(0, 4000);
 
+    const { error: reportInsertError } = await supabaseAdmin.from("reports").insert([{
+        target_type: parsed.data.targetType,
+        target_id: targetId,
+        course_id: courseCode,
+        prof_id: professor,
+        reporter_id: reporterId || null,
+        reporter_platform: identity.source,
+        reason,
+        details: details || null,
+        email: email || null,
+    }]);
+
+    if (reportInsertError) {
+        console.error("[api/report] failed to store report:", reportInsertError);
+        return apiError("internal_error", "保存举报失败", 500);
+    }
+
     try {
         await sendTelegramMessage(message);
     } catch (error) {
         if (error instanceof Error && error.message.startsWith("缺少环境变量")) {
             console.warn("[api/report] Telegram not configured:", error.message);
-            return apiError("service_unavailable", "举报推送服务未配置", 503);
+        } else {
+            console.error("[api/report] failed to push Telegram message:", error);
         }
-        console.error("[api/report] failed to push Telegram message:", error);
-        return apiError("telegram_failed", "举报推送失败，请稍后重试", 502);
+        return NextResponse.json({ ok: true, telegram: "failed" });
     }
 
     return NextResponse.json({ ok: true });
