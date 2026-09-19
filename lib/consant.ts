@@ -21,6 +21,18 @@ export const menuList:MenuItem[]=[
     // }
 ]
 
+export const GE_COURSE_SLUG = 'gecourse'
+
+export function getFacultyLabel(slug: string) {
+    return slug.toLowerCase() === GE_COURSE_SLUG ? 'GE Course' : slug.toUpperCase()
+}
+
+export function normalizeFacultySlug(value: string) {
+    const normalized = value.toLowerCase().replace(/\s+/g, '')
+    if (normalized === GE_COURSE_SLUG) return GE_COURSE_SLUG
+    return value.toUpperCase()
+}
+
 export const faculty=[
     'FBA',           'FAH',
     'ICI',           'FST',
@@ -29,7 +41,7 @@ export const faculty=[
     'FED',           'FLL',
     'FHS',           'IME',
     'HC',            'RC',
-    'GE Course'
+    GE_COURSE_SLUG
 ]
 
 
@@ -47,7 +59,7 @@ export const faculty_dept:any = {
     'ICMS': [], 
     'RC' : [],
     'IME': [],
-    'GE Course':['GEGA','GESB','GEST','GELH']
+    [GE_COURSE_SLUG]:['GEGA','GESB','GEST','GELH']
 };
 
 export const NO_ROOT_LAYOUT_LIST=[

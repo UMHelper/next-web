@@ -3,6 +3,7 @@ import supabaseAdmin from '@/lib/supabase/admin';
 import { unstable_cache } from 'next/cache';
 
 import { getProfListByCourse } from "@/lib/database/get-prof-info";
+import { GE_COURSE_SLUG, normalizeFacultySlug } from "@/lib/consant";
 
 export const getCourseInfo = async (course_id: string) => {
     const { data, error } = await supabaseServer.from('course_noporf')
@@ -163,17 +164,19 @@ export const fetchCourseListByProf = async ({ name }:{name:string}) => {
 export const fetchCatalogList = async (departments: string[]) => {
     let query = supabaseServer.from('course_noporf').select('')
 
+    const unit = normalizeFacultySlug(departments[0])
+
     if (departments.length === 1) {
-        if (departments[0].toLowerCase() === 'gecourse') {
+        if (unit === GE_COURSE_SLUG) {
             query = query.like('New_code', 'GE%')
         } else {
-            query = query.eq('Offering_Unit', departments[0].toUpperCase())
+            query = query.eq('Offering_Unit', unit)
         }
-    } else if (departments[0] === 'GECourse') {
+    } else if (unit === GE_COURSE_SLUG) {
         query = query.like('New_code', `${departments[1]}%`.toUpperCase())
     } else {
         query = query
-            .eq('Offering_Unit', departments[0].toUpperCase())
+            .eq('Offering_Unit', unit)
             .eq('Offering_Department', departments[1].toUpperCase())
     }
 

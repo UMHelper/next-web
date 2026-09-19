@@ -1,5 +1,5 @@
 import CourseFilter from '@/components/course-filter';
-import { faculty, faculty_dept } from '@/lib/consant';
+import { faculty, faculty_dept, normalizeFacultySlug } from '@/lib/consant';
 import { fetchCatalogList } from '@/lib/database/get-course-info';
 import { Viewport } from 'next';
 
@@ -39,8 +39,11 @@ export async function generateStaticParams() {
 }
 
 const CatalogPage = async ({ params: { departments } }: { params: { departments: string[] } }) => {
-    // if departements[0] not in faculty, return 404
-    if (!faculty.includes(departments[0].toUpperCase()) && departments[0].toLowerCase()!=='gecourse') {
+    const normalizedDepartments = departments.map((value, index) => (
+        index === 0 ? normalizeFacultySlug(value) : value.toUpperCase()
+    ))
+
+    if (!faculty.includes(normalizedDepartments[0])) {
         return (
             <div>
                 <div className="w-full flex justify-center items-center flex-col space-y-8 my-20">
@@ -54,7 +57,7 @@ const CatalogPage = async ({ params: { departments } }: { params: { departments:
             </div>
         )
     }
-    const courseList: any = await fetchCatalogList(departments)
+    const courseList: any = await fetchCatalogList(normalizedDepartments)
     return (
         <div>
             <div>

@@ -1,5 +1,5 @@
 'use client'
-import { faculty, faculty_dept } from "@/lib/consant"
+import { faculty, faculty_dept, getFacultyLabel } from "@/lib/consant"
 import { usePathname, useRouter } from 'next/navigation'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { ChevronsDown } from "lucide-react"
@@ -45,7 +45,7 @@ const CatalogNavigation = () => {
                                 router.push(`/catalog/${fac}`)
                             }}
                         >
-                            {fac}
+                            {getFacultyLabel(fac)}
                         </div>)
                     }
                     if (faculty_dept[fac].length === 1) {
@@ -55,7 +55,7 @@ const CatalogNavigation = () => {
                                 router.push(`/catalog/${fac}/${faculty_dept[fac][0]}`)
                             }}
                         >
-                            {`${fac}`}
+                            {getFacultyLabel(fac)}
                         </div>)
                     }
                     return (
@@ -80,7 +80,7 @@ const CatalogNavigation = () => {
                                 <div key={index} className={(fac === currentFaculty ? "text-blue-700 bg-gray-200" :
                                     "text-gray-900 hover:bg-gray-100 hover:text-blue-500") + " py-2 px-3 me-3 my-1 rounded flex flex-row items-center"} >
                                     <div>
-                                        {fac}
+                                        {getFacultyLabel(fac)}
                                     </div>
                                     <div>
                                         <ChevronsDown size={16} strokeWidth={2} />

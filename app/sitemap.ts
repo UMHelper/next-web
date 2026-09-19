@@ -1,7 +1,7 @@
 import { MetadataRoute } from 'next'
 import supabaseServer from '@/lib/supabase/server';
 import { countUniqueValues, courseKeysToCount } from '@/lib/count-unique-values';
-import { faculty } from '@/lib/consant';
+import { faculty, GE_COURSE_SLUG } from '@/lib/consant';
 
 export const revalidate = 86400;
 
@@ -44,10 +44,11 @@ const fetchCatalogSitemap = async () => {
             changeFrequency: 'monthly',
             priority: 0.7,
         })
-        const { data, error }: { data: any, error: any } = await supabaseServer.from('course_noporf')
-            .select('')
-            .eq('Offering_Unit', fac.toUpperCase())
-        const option=countUniqueValues(data, courseKeysToCount)
+        const baseQuery = supabaseServer.from('course_noporf').select('')
+        const { data, error }: { data: any, error: any } = fac === GE_COURSE_SLUG
+            ? await baseQuery.like('New_code', 'GE%')
+            : await baseQuery.eq('Offering_Unit', fac)
+        const option=countUniqueValues(data ?? [], courseKeysToCount)
         const depts=option.Offering_Department
         depts.map((dept:any)=>{
             catalogSitemap.push({
