@@ -59,3 +59,20 @@ export type CommentPageRow = {
   }>;
   [key: string]: unknown;
 };
+
+export type FacultyStatisticRow = {
+  id: number;
+  name: string;
+  course_num: number;
+  comment_num: number;
+};
+
+export type PopularCourseRow = {
+  courseCode: string;
+  courseTitleEng: string;
+  courseTitleChi: string | null;
+  offeringUnit: string;
+  commentCount: number;
+  avgResult: number;
+  latestCommentAt: string;
+};
