@@ -351,11 +351,11 @@ Copy-Item .env.example .env.local
 - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
 - `SUPABASE_SECRET_KEY`
 
-兼容旧代码时也会 fallback 到：
+迁移/验证 SQL 时额外使用（只放在本地或 CI secret，不进入浏览器）：
 
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- `SUPABASE_SERVICE_ROLE_KEY`
+- `SUPABASE_DB_URL`
 
+代码不再读取 `NEXT_PUBLIC_SUPABASE_ANON_KEY`、`SUPABASE_SERVICE_ROLE_KEY` 或 `SUPABASE_JWT_SECRET`。
 `.env.example` 现在只提供字段模板，不提供真实 key。
 
 如果你使用本地 Supabase，运行 `supabase start` 或 `npx supabase start` 后，把输出里的本地 key 填进 `.env.local`。

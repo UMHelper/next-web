@@ -7,9 +7,7 @@ declare namespace Cloudflare {
 	interface Env {
 		IMAGES: ImagesBinding;
 		ASSETS: Fetcher;
-		NEXT_PUBLIC_SUPABASE_ANON_KEY: string;
 		NEXT_PUBLIC_SUPABASE_URL: string;
-		SUPABASE_SERVICE_ROLE_KEY: string;
 		NEXT_PUBLIC_GOOGLE_ADS_CLIENT_ID: string;
 		NEXT_PUBLIC_GOOGLE_ADS_SLOT_ID: string;
 		NEXT_PUBLIC_MEASUREMENT_ID: string;
@@ -29,7 +27,7 @@ declare namespace Cloudflare {
 		NEXT_PUBLIC_DATABASE_LAST_UPDATE: string;
 		NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: string;
 		SUPABASE_SECRET_KEY: string;
-		SUPABASE_JWT_SECRET: string;
+		UM_OPEN_DATA_TOKEN: string;
 		UM_IOS_API_SECRET: string;
 		UM_IOS_MIN_SUPPORTED_VERSION: string;
 		UM_IOS_LATEST_VERSION: string;
