@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import AdminInfiniteScroll from "@/components/admin/admin-infinite-scroll";
+import { CommentContent } from "@/components/comment-content";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -176,9 +177,9 @@ export default function AdminCommentsClient() {
                   {comment.replyto ? `Reply #${comment.replyto}` : "Top-level"}
                 </td>
                 <td className="max-w-[420px] p-3">
-                  <div className="line-clamp-2 text-xs text-gray-700">{comment.content ?? "-"}</div>
+                  <CommentContent className="line-clamp-2 text-xs text-gray-700" content={comment.content ?? "-"} />
                   {comment.content_en ? (
-                    <div className="mt-1 line-clamp-2 text-xs text-gray-500">{comment.content_en}</div>
+                    <CommentContent className="mt-1 line-clamp-2 text-xs text-gray-500" content={comment.content_en} />
                   ) : null}
                   {comment.img ? (
                     <a

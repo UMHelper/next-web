@@ -30,6 +30,7 @@ Admin console implemented locally, migration applied to the target database, not
 - Admin tables show more complete fields
 - Admin frontend hides Clerk userId; admin/audit views use email instead
 - Recent audit log shows field-level change summaries
+- `[REDACTED by UMHelper]` renders as a pill with tooltip in comments/replies
 - Reports / comments / courses / notes / admins auto-load more on scroll
 - Audit logs for admin writes
 - Comment edit: text/content_en/image/hidden
@@ -47,7 +48,7 @@ supabase/migrations/20260919_admin_console.sql
 
 ## Commands run
 
-- [x] `npm run test` — 32 files / 89 tests passed
+- [x] `npm run test` — 33 files / 91 tests passed
 - [x] `npm run lint` — passed
 - [x] `node node_modules/typescript/bin/tsc --noEmit` — passed
 - [x] `npm run build` — passed; 65 static pages generated
@@ -76,4 +77,5 @@ CLERK_SECRET_KEY=...
 - [ ] admin tabs highlight the current page and wider tables remain usable
 - [ ] reports / comments / courses / notes / admins auto-load more when scrolled to the bottom
 - [ ] recent audit log shows field-level changes
+- [ ] `[REDACTED by UMHelper]` in a comment shows a pill and tooltip
 - [ ] sync UM button returns stats
