@@ -2,10 +2,6 @@ import supabaseServer from '@/lib/supabase/server';
 import supabaseAdmin from '@/lib/supabase/admin';
 import { unstable_cache } from 'next/cache';
 
-import crypto from 'crypto';
-import https from 'https';
-import axios from 'axios';
-
 import { getProfListByCourse } from "@/lib/database/get-prof-info";
 
 export const getCourseInfo = async (course_id: string) => {
@@ -73,30 +69,35 @@ const mapRemoteCourseInfoToLocalPatch = (courseInfo: any, localCourseInfo: any, 
 })
 
 
-const allowLegacyRenegotiationOptions = {
-    httpsAgent: new https.Agent({
-        secureOptions: crypto.constants.SSL_OP_LEGACY_SERVER_CONNECT,
-    }),
-    timeout: 10000,
-    headers: {
-        Authorization: 'f5aaa86cc5b4424aa621538fceaab34f',
-    },
-};
+export const fetchCourseInfoByUMAPIUncached = async (code: string): Promise<any | null> => {
+    const token = process.env.UM_OPEN_DATA_TOKEN;
+    if (!token) {
+        console.error("[um-api] UM_OPEN_DATA_TOKEN is not configured");
+        return null;
+    }
 
-const fetchCourseInfoByUMAPIUncached = async (code: string) => {
-    return await axios
-        .get('https://api.data.um.edu.mo/service/academic/course_catalog/all?course_code=' + code.toUpperCase(), allowLegacyRenegotiationOptions)
-        .then(response => {
-            if (response.data['_embedded'][0] != undefined) {
-                return response.data['_embedded'][0];
-            }
-            return null
-        })
-        .catch(function (error) {
-            console.error(error)
-            return null
-        });
-}
+    try {
+        const response = await fetch(
+            `https://api.data.um.edu.mo/service/academic/course_catalog/all?course_code=${encodeURIComponent(code.toUpperCase())}`,
+            {
+                headers: { Authorization: token },
+                signal: AbortSignal.timeout(10_000),
+                cache: "no-store",
+            },
+        );
+
+        if (!response.ok) {
+            console.error("[um-api] request failed", response.status);
+            return null;
+        }
+
+        const body = (await response.json()) as { _embedded?: unknown[] };
+        return body._embedded?.[0] ?? null;
+    } catch (error) {
+        console.error("[um-api] request error", error instanceof Error ? error.message : String(error));
+        return null;
+    }
+};
 
 export const fetchCourseInfoByUMAPI = unstable_cache(
     async (code: string) => fetchCourseInfoByUMAPIUncached(code),
