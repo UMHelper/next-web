@@ -1,8 +1,10 @@
 begin;
 
-drop function if exists public.get_comment_page(integer, integer, integer);
+-- Transitional migration: the old 3-arg get_comment_page is intentionally kept
+-- for the currently deployed web/iOS clients. New server code uses _v2.
+-- After the old clients are retired, a follow-up migration can drop the old function.
 
-create or replace function public.get_comment_page(
+create or replace function public.get_comment_page_v2(
   target_course_id integer,
   target_page integer,
   target_page_size integer default 20,
@@ -135,7 +137,9 @@ order by
   c.id asc;
 $$;
 
-revoke all on function public.get_comment_page(integer, integer, integer, text) from public, anon, authenticated;
-grant execute on function public.get_comment_page(integer, integer, integer, text) to service_role;
+revoke all on function public.get_comment_page_v2(integer, integer, integer, text) from public, anon, authenticated;
+grant execute on function public.get_comment_page_v2(integer, integer, integer, text) to service_role;
+
+notify pgrst, 'reload schema';
 
 commit;

@@ -5,7 +5,7 @@ export const getComentListByCourseIDAndPage = async (
   page: number,
   viewerId: string | null = null,
 ) => {
-  const { data, error } = await supabaseServer.rpc("get_comment_page", {
+  const { data, error } = await supabaseServer.rpc("get_comment_page_v2", {
     target_course_id: Number(courseId),
     target_page: page,
     target_page_size: 20,

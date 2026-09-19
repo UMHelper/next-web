@@ -8,6 +8,14 @@ if (!file) {
   process.exit(1);
 }
 
+if (!process.env.SUPABASE_DB_URL) {
+  try {
+    process.loadEnvFile(".env.local");
+  } catch {
+    // .env.local is optional; the environment may be provided by the shell.
+  }
+}
+
 const connectionString = process.env.SUPABASE_DB_URL;
 if (!connectionString) {
   console.error("SUPABASE_DB_URL is required, or run the SQL in Supabase Dashboard");

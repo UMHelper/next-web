@@ -25,7 +25,7 @@ describe("getComentListByCourseIDAndPage", () => {
     const result = await getComentListByCourseIDAndPage(42, 0, "user_2abcDEF");
 
     expect(rpc).toHaveBeenCalledWith(
-      "get_comment_page",
+      "get_comment_page_v2",
       expect.objectContaining({
         target_course_id: 42,
         target_page: 0,
