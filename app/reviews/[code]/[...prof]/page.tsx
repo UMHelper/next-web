@@ -16,7 +16,6 @@ import { notFound } from 'next/navigation'
 import { getCourseInfo } from "@/lib/database/get-course-info";
 import getScheduleList from "@/lib/database/get-schedule-list";
 import { Comments } from "@/components/comments";
-import { BBSAd } from "@/components/bbs-updates";
 import { Viewport } from "next";
 import { ReviewPagination } from "@/components/review-pagination";
 import { ReviewReload } from "@/components/review-reload";
@@ -169,7 +168,6 @@ const ReviewPage = async ({
                     </div>
                 </div>
             </div>
-            <BBSAd />
             <div>
                 <div className='max-w-screen-xl mx-auto p-4'>
                     {/* <ReviewPagination code={code} prof={prof} page_num={page_num} total_page={Math.ceil(prof_info.comments / 10)} /> */}

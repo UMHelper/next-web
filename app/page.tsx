@@ -4,14 +4,12 @@ import Image from "next/image";
 import CommentBank from "@/components/comment-bank";
 import { Card } from "@/components/ui/card";
 import SearchComp from "@/components/search";
-import BbsUpdates from "@/components/bbs-updates";
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
 
 function HomePage() {
     return (
         <>
             <SearchComp />
-            {/* <BbsUpdates /> */}
 
             <div className='max-w-screen-xl mx-auto p-4'>
                 <div className='grid grid-cols-1 md:grid-cols-2 mx-4 py-8 gap-y-8 gap-x-16'>

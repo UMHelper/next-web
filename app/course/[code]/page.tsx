@@ -9,7 +9,6 @@ import { fetchCourseInfo } from "@/lib/database/get-course-info";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 import Script from "next/script";
-import { BBSAd } from "@/components/bbs-updates";
 import { Viewport } from "next";
 
 import { SparklesText } from "@/components/magicui/sparkles-text";
@@ -184,7 +183,6 @@ async function CoursePage({ params }: { params: { code: string } }) {
                     </div>
                 </div>
             </div>
-            <BBSAd/>
             <div className='max-w-screen-xl mx-auto p-4'>
 
                 <div id="googleBotCourseInfo" className="space-y-3 my-3 hidden">
