@@ -29,6 +29,7 @@ declare namespace Cloudflare {
 		SUPABASE_SECRET_KEY: string;
 		UM_OPEN_DATA_TOKEN: string;
 		UM_IOS_API_SECRET: string;
+		PLATFORM_ADMIN_USER_IDS: string;
 		UM_IOS_MIN_SUPPORTED_VERSION: string;
 		UM_IOS_LATEST_VERSION: string;
 		UM_IOS_UPDATE_URL: string;
