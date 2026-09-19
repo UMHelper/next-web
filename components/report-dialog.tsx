@@ -1,7 +1,7 @@
 "use client";
 
 import { Flag } from "lucide-react";
-import { useState } from "react";
+import React, { useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import { toast } from "sonner";
 
