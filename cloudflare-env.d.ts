@@ -37,7 +37,6 @@ declare namespace Cloudflare {
 		TELEGRAM_REPORT_THREAD_ID: string;
 		TELEGRAM_API_BASE_URL: string;
 		WORKER_SELF_REFERENCE: Service<typeof import("./.open-next/worker").default>;
-		UI_PROFILE: Fetcher /* umeh-ui-profile */;
 	}
 }
 interface CloudflareEnv extends Cloudflare.Env {}

@@ -12,7 +12,6 @@ export default authMiddleware({
     "/submit(.*)",
     "/privacy-policy(.*)",
     "/terms-of-service(.*)",
-    "/layout-preview(.*)",
     "/api/(.*)",
   ],
 });

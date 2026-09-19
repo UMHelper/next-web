@@ -32,10 +32,6 @@
       // The service should match the "name" of your worker
       "service": "next-web",
     },
-    {
-      "binding": "UI_PROFILE",
-      "service": "umeh-ui-profile",
-    },
   ],
   "r2_buckets": [
     {

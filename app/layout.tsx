@@ -11,9 +11,6 @@ import Footer from "@/components/footer";
 import { Toaster } from "@/components/ui/sonner"
 import Script from 'next/script';
 import { ClerkProvider } from '@clerk/nextjs';
-import Link from 'next/link';
-import LayoutCompatibility from '@/components/layout-compatibility';
-import CsBanner from '@/components/cs-banner';
 import type { Viewport } from 'next'
 import { Banner } from '@/components/banner';
 
@@ -79,8 +76,6 @@ export default function RootLayout({
                                 This website is not affiliated, associated, authorized, endorsed by, or in any way officially connected with the University of Macau.
                             </div> */}
                         {/* </div> */}
-                        {/* <CsBanner /> */}
-                        {/* <LayoutCompatibility contentTargetId="page-content" /> */}
                         <div id="page-content">
                             {children}
                         </div>
