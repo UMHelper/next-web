@@ -2,13 +2,13 @@
 
 ## Status
 
-Phase 1A code is implemented and committed. The additive migrations (`rate_limit`, `get_comment_page_v2`) have been applied to the target database. The breaking least-privilege migration (`security_hardening`) is **not applied yet**, because the currently deployed app still uses the publishable key and would break if `anon`/`authenticated` grants were revoked before the new code is deployed.
+Phase 1A code is implemented, deployed, and committed. All three migrations (`security_hardening`, `rate_limit`, `get_comment_page_privacy`) have been applied to the target database. The `security_hardening` migration was applied after the new build completed, and the post-migration build succeeded using `SUPABASE_SECRET_KEY`.
 
 The old `get_comment_page(integer, integer, integer)` function is intentionally kept for the currently deployed clients. New server code calls `get_comment_page_v2(integer, integer, integer, text)`. A follow-up migration will drop the old function after rollout.
 
 ## Commands run
 
-- [x] `npm run test` — 13 files / 29 tests passed
+- [x] `npm run test` — 13 files / 30 tests passed
 - [x] `npm run lint` — no warnings or errors
 - [x] `node node_modules/typescript/bin/tsc --noEmit` — passed
 - [x] `npm run build` — passed; static pages generated; no catalog query crash
@@ -20,14 +20,18 @@ The old `get_comment_page(integer, integer, integer)` function is intentionally 
   - result: all three validated; transaction rolled back
 - [x] Applied additive migration `20260918_rate_limit.sql`
 - [x] Applied additive migration `20260918_get_comment_page_privacy.sql` (`get_comment_page_v2` only)
+- [x] Applied breaking least-privilege migration `20260918_security_hardening.sql` after deploy
+- [x] Post-migration `npm run build` passed
+- [x] `scripts/verify-security-hardening.sql`: all `failures = 0`
+- [x] DB privilege checks: `anon` cannot `SELECT public.comment`; `anon` cannot execute `get_comment_page_v2`; `service_role` can do both
 
 ## Migration apply checklist (after new code is deployed)
 
-- [ ] Confirm production has `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`
-- [ ] Confirm the deployed app is using the new server-side `SUPABASE_SECRET_KEY` client
-- [ ] Take a Supabase database backup / snapshot
-- [ ] `node scripts/apply-sql.mjs supabase/migrations/20260918_security_hardening.sql`
-- [ ] `node scripts/apply-sql.mjs scripts/verify-security-hardening.sql` — all `failures = 0`
+- [x] Confirm production has `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`
+- [x] Confirm the deployed app is using the new server-side `SUPABASE_SECRET_KEY` client
+- [x] Take a Supabase database backup / snapshot
+- [x] `node scripts/apply-sql.mjs supabase/migrations/20260918_security_hardening.sql`
+- [x] `node scripts/apply-sql.mjs scripts/verify-security-hardening.sql` — all `failures = 0`
 - [ ] Follow-up cleanup: drop the old `get_comment_page(integer, integer, integer)` after deployed clients are gone
 - [ ] Rotate/disable old Supabase keys after 24h of clean operation
 - [ ] Rotate the UM Open Data token upstream if possible
