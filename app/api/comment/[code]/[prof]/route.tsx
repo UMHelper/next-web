@@ -1,11 +1,20 @@
-import {NextResponse} from "next/server";;
-import supabaseAdmin from '@/lib/supabase/admin';
+import { NextResponse } from "next/server";
+
+import supabaseAdmin from "@/lib/supabase/admin";
 import { getReviewInfo } from "@/lib/database/get-prof-info";
 import { getComentListByCourseIDAndPage } from "@/lib/database/get-comment-list";
 import { getCourseInfo } from "@/lib/database/get-course-info";
 import getScheduleList from "@/lib/database/get-schedule-list";
 import { verifyIOSRequest, iosUnauthorized } from "@/lib/ios-auth";
 import { iosVersionGuard } from "@/lib/ios-version";
+import { apiError, readFormData } from "@/lib/api-response";
+import { rateLimitKey, requireWriteIdentity } from "@/lib/api-auth";
+import { consumeRateLimit } from "@/lib/rate-limit";
+import {
+  commentSubmissionSchema,
+  courseCodeSchema,
+  professorNameSchema,
+} from "@/lib/validation/comment";
 
 export const dynamic = "force-dynamic";
 
@@ -22,164 +31,168 @@ export const dynamic = "force-dynamic";
  * prof 编码规则与 Web 一致：空格用 %20，/ 用 $ 转义。
  * iOS 客户端（next-ios）使用。
  */
-export async function GET(request: Request, { params }: { params: { code: string, prof: string } }) {
-    // iOS 专用接口认证(2FA 时间戳签名)
-    if (!verifyIOSRequest(request)) return iosUnauthorized()
+export async function GET(request: Request, { params }: { params: { code: string; prof: string } }) {
+  // iOS 专用接口认证(2FA 时间戳签名)
+  if (!verifyIOSRequest(request)) return iosUnauthorized();
 
-    // 版本控制：版本过旧时返回 426，客户端弹出更新提醒。
-    const versionResponse = iosVersionGuard(request);
-    if (versionResponse) return versionResponse;
+  // 版本控制：版本过旧时返回 426，客户端弹出更新提醒。
+  const versionResponse = iosVersionGuard(request);
+  if (versionResponse) return versionResponse;
 
-    const { searchParams } = new URL(request.url);
-    const pageParam = parseInt(searchParams.get('page') ?? '1', 10);
-    const page = Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1;
+  const { searchParams } = new URL(request.url);
+  const pageParam = parseInt(searchParams.get("page") ?? "1", 10);
+  const page = Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1;
 
-    const code = decodeURIComponent(params.code).toUpperCase();
-    const prof = decodeURIComponent(params.prof)
-        .replaceAll('%20', ' ')
-        .replaceAll('$', '/')
-        .toUpperCase();
+  const code = decodeURIComponent(params.code).toUpperCase();
+  const prof = decodeURIComponent(params.prof)
+    .replaceAll("%20", " ")
+    .replaceAll("$", "/")
+    .toUpperCase();
 
-    const prof_info = await getReviewInfo(code, prof);
-    if (!prof_info) {
-        return new NextResponse(JSON.stringify({ error: 'not found' }), { status: 404 });
-    }
+  const prof_info = await getReviewInfo(code, prof);
+  if (!prof_info) {
+    return new NextResponse(JSON.stringify({ error: "not found" }), { status: 404 });
+  }
 
-    const [course_info, comments, timetable] = await Promise.all([
-        getCourseInfo(code),
-        getComentListByCourseIDAndPage(prof_info.id, page - 1),
-        getScheduleList(code, prof),
-    ]);
+  const [course_info, comments, timetable] = await Promise.all([
+    getCourseInfo(code),
+    getComentListByCourseIDAndPage(prof_info.id, page - 1),
+    getScheduleList(code, prof),
+  ]);
 
-    return NextResponse.json(
-        {
-            prof: prof_info,
-            course: course_info,
-            comments,
-            timetable,
-            page,
-            total_page: Math.max(1, Math.ceil((prof_info.comments ?? 0) / 20)),
-        },
-        { headers: { "Cache-Control": "no-store, max-age=0" } },
-    );
+  return NextResponse.json(
+    {
+      prof: prof_info,
+      course: course_info,
+      comments,
+      timetable,
+      page,
+      total_page: Math.max(1, Math.ceil((prof_info.comments ?? 0) / 20)),
+    },
+    { headers: { "Cache-Control": "no-store, max-age=0" } },
+  );
 }
 
-export async function POST(request: Request){
-    // 版本控制：评论接口为 Web/iOS 共用；Web 不发送版本头，因此允许缺少。
-    // iOS 客户端携带 X-UM-App-Version 时，过旧版本会被 426 拦截。
-    const versionResponse = iosVersionGuard(request, { allowMissingVersion: true });
-    if (versionResponse) return versionResponse;
+const MAX_IMAGE_BYTES = 5_000_000;
+const ACCEPTED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
-    let body = await request.formData()
-    // console.log(body)
-    const course=await getReviewInfo(body.get('code') as string,body.get('prof') as string)
-    // console.log(course)
-    // delete body.code
-    // delete body.prof
-    let data:any={}
-    data.course_id=course.id
-    
-    // ensure score is between 1 to 5
-    let regularizeScore = (score: any) => {
-        let scoreFloat = parseFloat(score as string);
-        if (scoreFloat < 1) return 1
-        if (scoreFloat > 5) return 5
-        return scoreFloat
+function formNumber(form: FormData, key: string) {
+  return Number(form.get(key));
+}
+
+export async function POST(
+  request: Request,
+  { params }: { params: { code: string; prof: string } },
+) {
+  const identityResult = await requireWriteIdentity(request);
+  if ("response" in identityResult) return identityResult.response;
+  const { identity } = identityResult;
+
+  const code = decodeURIComponent(params.code).toUpperCase();
+  const prof = decodeURIComponent(params.prof).replaceAll("$", "/").toUpperCase();
+
+  const codeParsed = courseCodeSchema.safeParse(code);
+  const profParsed = professorNameSchema.safeParse(prof);
+  if (!codeParsed.success || !profParsed.success) {
+    return apiError("invalid_request", "Invalid course code or professor name", 400);
+  }
+
+  const formResult = await readFormData(request, MAX_IMAGE_BYTES + 65_536);
+  if (!formResult.ok) return formResult.response;
+  const form = formResult.data;
+
+  const parsed = commentSubmissionSchema.safeParse({
+    attendance: formNumber(form, "attendance"),
+    pre: formNumber(form, "pre"),
+    grade: formNumber(form, "grade"),
+    hard: formNumber(form, "hard"),
+    reward: formNumber(form, "reward"),
+    assignment: formNumber(form, "assignment"),
+    recommend: formNumber(form, "recommend"),
+    content: form.get("content"),
+  });
+  if (!parsed.success) {
+    return apiError("invalid_request", "Invalid comment payload", 400, {
+      issues: parsed.error.issues.map((issue) => ({
+        path: issue.path.join("."),
+        message: issue.message,
+      })),
+    });
+  }
+
+  const image = form.get("image");
+  if (image instanceof File && image.size > 0) {
+    if (image.size > MAX_IMAGE_BYTES) {
+      return apiError("payload_too_large", "Image is larger than 5 MB", 413);
     }
-    
-    // console.log(data)
-
-    data.attendance=regularizeScore(body.get('attendance'))
-    data.pre=regularizeScore(body.get('pre'))
-    data.grade=regularizeScore(body.get('grade'))
-    data.hard=regularizeScore(body.get("hard"))
-    data.reward=regularizeScore(body.get('reward'))
-    data.assignment=regularizeScore(body.get('assignment'))
-    data.recommend=regularizeScore(body.get('recommend'))
-    data.result=(data.attendance+data.pre+data.grade+data.hard+data.reward+data.assignment+data.recommend)/7
-
-    // data.result=(parseFloat(body.get('attendance') as string)+
-    //             parseFloat(body.get('pre') as string)+
-    //             parseFloat(body.get('grade') as string)+
-    //             parseFloat(body.get("hard") as string)+
-    //             parseFloat(body.get('reward') as string)+
-    //             parseFloat(body.get('assignment') as string)+
-    //             parseFloat(body.get('recommend') as string))/7
-    // data.attendance=parseFloat(body.get('attendance') as string)
-    // data.pre=parseFloat(body.get('pre') as string)
-    // data.grade=parseFloat(body.get('grade') as string)
-    // data.hard=parseFloat(body.get("hard") as string)
-    // data.reward=parseFloat(body.get('reward') as string)
-    // data.assignment=parseFloat(body.get('assignment') as string)
-    // data.recommend=parseFloat(body.get('recommend') as string)
-    data.content=body.get('content') as string
-    // // 2021-10-10T16:00:00.000Z
-    data.pub_time=new Date().toISOString().slice(0, 19).replace('T', ' ')
-
-    // console.log(body.get('image'))
-    if (body.get('verify')==="1"){
-        data.verify=1
-        data.verify_account=body.get('verify_account') as string
+    if (!ACCEPTED_IMAGE_TYPES.has(image.type)) {
+      return apiError("invalid_request", "Unsupported image type", 400);
     }
-    else{
-        data.verify=0
-        data.verify_account=""
-    }
+  }
 
-    if (body.get('verify')==="1" && body.get('image')!=""){
-        const image:any=(await body.get('image'))
-        // const ext=image.name.split('.').pop()
-        // let name=uuid()+'.'+ext
-        // const blob = await put(name, await image.arrayBuffer(), {
-        //     access: 'public',
-        //   });
+  const review = await getReviewInfo(codeParsed.data, profParsed.data);
+  if (!review) {
+    return apiError("not_found", "Course/professor mapping not found", 404);
+  }
 
-        // data.img=blob.url
+  const limit = Number(process.env.RATE_LIMIT_COMMENT_PER_HOUR ?? "10");
+  const rate = await consumeRateLimit({
+    key: rateLimitKey(identity, "comment"),
+    action: "comment",
+    limit,
+  });
+  if (!rate.allowed) {
+    return apiError("rate_limited", "Too many comments", 429, { retryAfter: rate.retryAfter });
+  }
 
-        const formData = new FormData()
-        formData.append('image', image)
-        const response=await fetch('https://api.imgur.com/3/upload',
-        {
-            method: 'POST',
-            body: formData,
-            headers:{
-                'Authorization':`Client-ID ${process.env.IMGUR_CLIENT_ID}`
-            }
-        })
-        const json=await response.json()
-        // console.log(json)
-        
-        if (json.success){
-            data.img=json.data.link
-        }
-        else{
-            return new NextResponse(null,{status:400})
-        }
-        
+  let imageUrl: string | null = null;
+  if (image instanceof File && image.size > 0) {
+    const imgurForm = new FormData();
+    imgurForm.append("image", image, image.name);
+    const imgurResponse = await fetch("https://api.imgur.com/3/upload", {
+      method: "POST",
+      body: imgurForm,
+      headers: { Authorization: `Client-ID ${process.env.IMGUR_CLIENT_ID}` },
+      signal: AbortSignal.timeout(10_000),
+    });
+    const imgurJson = await imgurResponse.json().catch(() => null);
+    if (!imgurResponse.ok || !imgurJson?.success) {
+      return apiError("internal_error", "Image upload failed", 502);
     }
-    const {data : res,error}:{data:any, error:any}= await supabaseAdmin.rpc(
-        'insert_comment_and_refresh_prof_stats',
-        {
-            target_course_id: course.id,
-            target_content: data.content,
-            target_attendance: data.attendance,
-            target_pre: data.pre,
-            target_grade: data.grade,
-            target_hard: data.hard,
-            target_reward: data.reward,
-            target_recommend: data.recommend,
-            target_assignment: data.assignment,
-            target_result: data.result,
-            target_pub_time: data.pub_time,
-            target_verify: data.verify,
-            target_verify_account: data.verify_account,
-            target_img: data.img ?? null,
-        }
-    ).single()
-    if (error || !res) {
-        console.error(error)
-        return new NextResponse(null,{status:500})
-    }
-    console.log(res,error)
-    return new NextResponse(null,{status:200})
+    imageUrl = imgurJson.data.link;
+  }
+
+  const scores = parsed.data;
+  const { error } = await supabaseAdmin
+    .rpc("insert_comment_and_refresh_prof_stats", {
+      target_course_id: review.id,
+      target_content: scores.content,
+      target_attendance: scores.attendance,
+      target_pre: scores.pre,
+      target_grade: scores.grade,
+      target_hard: scores.hard,
+      target_reward: scores.reward,
+      target_recommend: scores.recommend,
+      target_assignment: scores.assignment,
+      target_result:
+        (scores.attendance +
+          scores.pre +
+          scores.grade +
+          scores.hard +
+          scores.reward +
+          scores.assignment +
+          scores.recommend) / 7,
+      target_pub_time: new Date().toISOString().slice(0, 19).replace("T", " "),
+      target_verify: 1,
+      target_verify_account: identity.id,
+      target_img: imageUrl,
+    })
+    .single();
+
+  if (error) {
+    console.error("[api/comment] insert failed:", error.message);
+    return apiError("internal_error", "Unable to submit comment", 500);
+  }
+
+  return NextResponse.json({ ok: true });
 }
