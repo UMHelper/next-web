@@ -59,8 +59,8 @@ thread_comments as (
 vote_totals as (
   select
     v.comment_id,
-    sum(case when v.offset = 1 then 1 else 0 end)::int as upvote_count,
-    sum(case when v.offset = -1 then 1 else 0 end)::int as downvote_count
+    sum(case when v."offset" = 1 then 1 else 0 end)::int as upvote_count,
+    sum(case when v."offset" = -1 then 1 else 0 end)::int as downvote_count
   from public.vote v
   join thread_comments c on c.id = v.comment_id
   group by v.comment_id
@@ -75,7 +75,7 @@ reaction_counts as (
   from (
     select comment_id, emoji, count(*)::int as count
     from public.vote
-    where offset = 0
+    where "offset" = 0
       and emoji is not null
       and comment_id in (select id from thread_comments)
     group by comment_id, emoji
@@ -88,7 +88,7 @@ viewer_votes as (
     jsonb_agg(
       jsonb_build_object(
         'comment_id', v.comment_id,
-        'offset', v.offset,
+        'offset', v."offset",
         'created_at', v.created_at,
         'emoji', v.emoji
       )
