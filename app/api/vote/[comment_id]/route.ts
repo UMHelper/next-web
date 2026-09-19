@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { apiError, readJsonBody } from "@/lib/api-response";
+import { invalidateAfterVoteWrite } from "@/lib/cache-invalidation";
 import { rateLimitKey, requireWriteIdentity } from "@/lib/api-auth";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import supabaseAdmin from "@/lib/supabase/admin";
@@ -58,6 +59,7 @@ export async function POST(
     return apiError("internal_error", "Unable to submit vote", 500);
   }
 
+  invalidateAfterVoteWrite();
   return NextResponse.json({
     comment: parsed.data.comment,
     offset: parsed.data.offset,

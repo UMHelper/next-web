@@ -12,6 +12,7 @@ vi.mock("@/lib/supabase/admin", () => ({
   default: { rpc },
 }));
 vi.mock("@/lib/rate-limit", () => ({ consumeRateLimit }));
+vi.mock("@/lib/cache-invalidation", () => ({ invalidateAfterCommentWrite: vi.fn() }));
 vi.mock("@/lib/api-auth", () => ({
   resolveCommentIdentity,
   rateLimitKey: () => "web:user_1:comment",

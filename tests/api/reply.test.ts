@@ -26,6 +26,7 @@ vi.mock("@/lib/supabase/admin", () => ({
   },
 }));
 vi.mock("@/lib/rate-limit", () => ({ consumeRateLimit }));
+vi.mock("@/lib/cache-invalidation", () => ({ invalidateAfterReplyWrite: vi.fn() }));
 vi.mock("@/lib/api-auth", () => ({
   requireWriteIdentity,
   rateLimitKey: () => "web:user_1:reply",

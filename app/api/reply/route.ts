@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { apiError, readJsonBody } from "@/lib/api-response";
+import { invalidateAfterReplyWrite } from "@/lib/cache-invalidation";
 import { rateLimitKey, requireWriteIdentity } from "@/lib/api-auth";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import supabaseAdmin from "@/lib/supabase/admin";
@@ -76,6 +77,7 @@ export async function POST(request: Request) {
     return apiError("internal_error", "Unable to submit reply", 500);
   }
 
+  invalidateAfterReplyWrite();
   return NextResponse.json({
     ...data,
     avatar_seed: null,

@@ -8,6 +8,7 @@ import getScheduleList from "@/lib/database/get-schedule-list";
 import { verifyIOSRequest, iosUnauthorized } from "@/lib/ios-auth";
 import { iosVersionGuard } from "@/lib/ios-version";
 import { apiError, readFormData } from "@/lib/api-response";
+import { invalidateAfterCommentWrite } from "@/lib/cache-invalidation";
 import { rateLimitKey, resolveCommentIdentity } from "@/lib/api-auth";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import {
@@ -197,5 +198,6 @@ export async function POST(
     return apiError("internal_error", "Unable to submit comment", 500);
   }
 
+  invalidateAfterCommentWrite();
   return NextResponse.json({ ok: true });
 }
