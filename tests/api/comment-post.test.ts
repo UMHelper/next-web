@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { rpcSingle, rpc, requireWriteIdentity, consumeRateLimit, getReviewInfo } = vi.hoisted(() => ({
+const { rpcSingle, rpc, resolveCommentIdentity, consumeRateLimit, getReviewInfo } = vi.hoisted(() => ({
   rpcSingle: vi.fn(),
   rpc: vi.fn(),
-  requireWriteIdentity: vi.fn(),
+  resolveCommentIdentity: vi.fn(),
   consumeRateLimit: vi.fn(),
   getReviewInfo: vi.fn(),
 }));
@@ -13,7 +13,7 @@ vi.mock("@/lib/supabase/admin", () => ({
 }));
 vi.mock("@/lib/rate-limit", () => ({ consumeRateLimit }));
 vi.mock("@/lib/api-auth", () => ({
-  requireWriteIdentity,
+  resolveCommentIdentity,
   rateLimitKey: () => "web:user_1:comment",
 }));
 vi.mock("@/lib/database/get-prof-info", () => ({ getReviewInfo }));
@@ -41,7 +41,7 @@ function validForm() {
 describe("POST /api/comment/[code]/[prof]", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    requireWriteIdentity.mockResolvedValue({ identity: { platform: "web", id: "user_1" } });
+    resolveCommentIdentity.mockResolvedValue({ identity: { platform: "web", id: "user_1" } });
     consumeRateLimit.mockResolvedValue({ allowed: true, remaining: 9, retryAfter: 0 });
     getReviewInfo.mockResolvedValue({ id: 99 });
     rpc.mockReturnValue({ single: rpcSingle });
@@ -73,6 +73,30 @@ describe("POST /api/comment/[code]/[prof]", () => {
       expect.objectContaining({
         target_verify: 1,
         target_verify_account: "user_1",
+        target_content: "Very useful course.",
+      }),
+    );
+  });
+
+  it("allows anonymous web comments with verify=0 and empty verify_account", async () => {
+    resolveCommentIdentity.mockResolvedValue({
+      identity: { platform: "anonymous", id: "ip:203.0.113.7" },
+    });
+
+    const response = await POST(
+      new Request("http://localhost/api/comment/ACCT1000/TEACHER", {
+        method: "POST",
+        body: validForm(),
+      }),
+      { params: { code: "ACCT1000", prof: "TEACHER" } },
+    );
+
+    expect(response.status).toBe(200);
+    expect(rpc).toHaveBeenCalledWith(
+      "insert_comment_and_refresh_prof_stats",
+      expect.objectContaining({
+        target_verify: 0,
+        target_verify_account: "",
         target_content: "Very useful course.",
       }),
     );

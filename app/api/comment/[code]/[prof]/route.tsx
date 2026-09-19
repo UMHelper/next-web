@@ -8,7 +8,7 @@ import getScheduleList from "@/lib/database/get-schedule-list";
 import { verifyIOSRequest, iosUnauthorized } from "@/lib/ios-auth";
 import { iosVersionGuard } from "@/lib/ios-version";
 import { apiError, readFormData } from "@/lib/api-response";
-import { rateLimitKey, requireWriteIdentity } from "@/lib/api-auth";
+import { rateLimitKey, resolveCommentIdentity } from "@/lib/api-auth";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import {
   commentSubmissionSchema,
@@ -86,9 +86,10 @@ export async function POST(
   request: Request,
   { params }: { params: { code: string; prof: string } },
 ) {
-  const identityResult = await requireWriteIdentity(request);
+  const identityResult = await resolveCommentIdentity(request);
   if ("response" in identityResult) return identityResult.response;
   const { identity } = identityResult;
+  const isAnonymous = identity.platform === "anonymous";
 
   const code = decodeURIComponent(params.code).toUpperCase();
   const prof = decodeURIComponent(params.prof).replaceAll("$", "/").toUpperCase();
@@ -185,8 +186,8 @@ export async function POST(
           scores.assignment +
           scores.recommend) / 7,
       target_pub_time: new Date().toISOString().slice(0, 19).replace("T", " "),
-      target_verify: 1,
-      target_verify_account: identity.id,
+      target_verify: isAnonymous ? 0 : 1,
+      target_verify_account: isAnonymous ? "" : identity.id,
       target_img: imageUrl,
     })
     .single();
