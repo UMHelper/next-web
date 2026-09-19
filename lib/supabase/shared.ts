@@ -1,9 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabasePublishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-const supabaseSecretKey = process.env.SUPABASE_SECRET_KEY;
-
 function requireEnv(name: string, value: string | undefined) {
   if (!value) {
     throw new Error(`Missing required Supabase env: ${name}`);
@@ -12,39 +8,10 @@ function requireEnv(name: string, value: string | undefined) {
   return value;
 }
 
-export function createSupabaseBrowserClient() {
-  return createClient(
-    requireEnv("NEXT_PUBLIC_SUPABASE_URL", supabaseUrl),
-    requireEnv(
-      "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
-      supabasePublishableKey,
-    ),
-  );
-}
-
-export function createSupabaseServerClient() {
-  return createClient(
-    requireEnv("NEXT_PUBLIC_SUPABASE_URL", supabaseUrl),
-    requireEnv(
-      "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
-      supabasePublishableKey,
-    ),
-    {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false,
-      },
-    },
-  );
-}
-
 export function createSupabaseAdminClient() {
   return createClient(
-    requireEnv("NEXT_PUBLIC_SUPABASE_URL", supabaseUrl),
-    requireEnv(
-      "SUPABASE_SECRET_KEY",
-      supabaseSecretKey,
-    ),
+    requireEnv("NEXT_PUBLIC_SUPABASE_URL", process.env.NEXT_PUBLIC_SUPABASE_URL),
+    requireEnv("SUPABASE_SECRET_KEY", process.env.SUPABASE_SECRET_KEY),
     {
       auth: {
         persistSession: false,
@@ -54,10 +21,3 @@ export function createSupabaseAdminClient() {
   );
 }
 
-export function areSupabaseKeysIsolated() {
-  if (!supabasePublishableKey || !supabaseSecretKey) {
-    return false;
-  }
-
-  return supabasePublishableKey !== supabaseSecretKey;
-}

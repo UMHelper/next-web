@@ -1,7 +1,5 @@
 import "server-only";
 
-import { createSupabaseServerClient } from "./shared";
+import supabaseAdmin from "./admin";
 
-const supabaseServer = createSupabaseServerClient();
-
-export default supabaseServer;
+export default supabaseAdmin;

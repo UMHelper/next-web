@@ -95,6 +95,7 @@
   "devDependencies": {
     "@opennextjs/cloudflare": "^1.14.10",
     "eslint": "^8.57.1",
+    "pg": "^8.23.0",
     "vitest": "^2.1.9",
     "wrangler": "^4.62.0"
   }
