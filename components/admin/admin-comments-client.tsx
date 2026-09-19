@@ -140,10 +140,10 @@ export default function AdminCommentsClient() {
       <div className="text-lg font-semibold">Comments</div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <Input className="w-56" placeholder="Search content" value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} />
-        <Input className="w-36" placeholder="Course code" value={code} onChange={(e) => { setCode(e.target.value); setPage(1); }} />
+        <Input className="w-full sm:w-56" placeholder="Search content" value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} />
+        <Input className="w-full sm:w-36" placeholder="Course code" value={code} onChange={(e) => { setCode(e.target.value); setPage(1); }} />
         <Select value={hidden} onValueChange={(value) => { setHidden(value); setPage(1); }}>
-          <SelectTrigger className="w-32">
+          <SelectTrigger className="w-full sm:w-32">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -152,11 +152,11 @@ export default function AdminCommentsClient() {
             <SelectItem value="1">Hidden</SelectItem>
           </SelectContent>
         </Select>
-        <Button variant="outline" onClick={() => void loadPage(1, false)} disabled={loading}>Refresh</Button>
+        <Button className="w-full sm:w-auto" variant="outline" onClick={() => void loadPage(1, false)} disabled={loading}>Refresh</Button>
       </div>
 
       <div className="overflow-x-auto rounded-lg border">
-        <table className="w-full text-left text-sm">
+        <table className="w-full min-w-[1000px] text-left text-sm">
           <thead className="bg-gray-50">
             <tr className="border-b text-gray-500">
               <th className="p-3">ID</th>
@@ -228,7 +228,7 @@ export default function AdminCommentsClient() {
       />
 
       <Dialog open={editing !== null} onOpenChange={(open) => !open && setEditing(null)}>
-        <DialogContent className="sm:max-w-2xl" onOpenAutoFocus={(e) => e.preventDefault()}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl" onOpenAutoFocus={(e) => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle>Edit comment #{editing?.id}</DialogTitle>
           </DialogHeader>

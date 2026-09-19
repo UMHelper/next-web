@@ -131,21 +131,21 @@ export default function AdminCourseNotesClient() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="text-lg font-semibold">Professor mappings / course notes</div>
-        <div className="flex gap-2">
+        <div className="flex w-full flex-wrap gap-2 sm:w-auto">
           <Input
-            className="w-56"
+            className="w-full sm:w-56"
             placeholder="Course code or professor"
             value={q}
             onChange={(event) => setQ(event.target.value)}
           />
-          <Button variant="outline" onClick={() => void loadMappings(1, false)} disabled={loadingMappings}>
+          <Button className="flex-1 sm:flex-none" variant="outline" onClick={() => void loadMappings(1, false)} disabled={loadingMappings}>
             Refresh
           </Button>
         </div>
       </div>
 
       <div className="overflow-x-auto rounded-lg border">
-        <table className="w-full text-left text-sm">
+        <table className="w-full min-w-[760px] text-left text-sm">
           <thead className="bg-gray-50">
             <tr className="border-b text-gray-500">
               <th className="p-3">Course</th>
@@ -197,7 +197,7 @@ export default function AdminCourseNotesClient() {
       />
 
       <Dialog open={editingMapping !== null} onOpenChange={(open) => !open && setEditingMapping(null)}>
-        <DialogContent className="sm:max-w-2xl" onOpenAutoFocus={(e) => e.preventDefault()}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl" onOpenAutoFocus={(e) => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle>
               Edit notes for {editingMapping?.course_id} / {editingMapping?.prof_id}

@@ -13,11 +13,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   }
 
   return (
-    <div className="mx-auto max-w-screen-xl px-4 py-6">
-      <div className="mb-6 flex items-center justify-between">
+    <div className="mx-auto max-w-screen-xl px-3 py-5 sm:px-4 sm:py-6">
+      <div className="mb-4 flex items-center justify-between sm:mb-6">
         <div>
-          <h1 className="text-2xl font-bold">UMHelper Admin</h1>
-          <div className="text-sm text-gray-500">
+          <h1 className="text-xl font-bold sm:text-2xl">UMHelper Admin</h1>
+          <div className="text-xs text-gray-500 sm:text-sm">
             {admin.session.isPlatformAdmin ? "Platform admin" : "Admin"}
           </div>
         </div>

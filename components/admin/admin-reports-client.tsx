@@ -106,10 +106,10 @@ export default function AdminReportsClient() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
         <div className="text-lg font-semibold">Reports</div>
         <Select value={status} onValueChange={(value) => { setStatus(value); setPage(1); }}>
-          <SelectTrigger className="w-40">
+          <SelectTrigger className="w-32 sm:w-40">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -124,7 +124,7 @@ export default function AdminReportsClient() {
       </div>
 
       <div className="overflow-x-auto rounded-lg border">
-        <table className="w-full text-left text-sm">
+        <table className="w-full min-w-[1050px] text-left text-sm">
           <thead className="bg-gray-50">
             <tr className="border-b text-gray-500">
               <th className="p-3">ID</th>

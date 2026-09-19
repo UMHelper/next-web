@@ -105,7 +105,7 @@ export default async function AdminDashboardPage() {
       <div className="rounded-lg border p-4">
         <div className="mb-3 text-lg font-semibold">Recent audit log</div>
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
+          <table className="w-full min-w-[720px] text-left text-sm">
             <thead>
               <tr className="border-b text-gray-500">
                 <th className="py-2">Time</th>

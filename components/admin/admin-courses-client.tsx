@@ -156,17 +156,17 @@ export default function AdminCoursesClient() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="text-lg font-semibold">Courses</div>
-        <div className="flex gap-2">
-          <Input className="w-56" placeholder="Code or title" value={q} onChange={(e) => setQ(e.target.value)} />
-          <Button variant="outline" onClick={() => void loadCourses(1, false)} disabled={loadingCourses}>
+        <div className="flex w-full flex-wrap gap-2 sm:w-auto">
+          <Input className="w-full sm:w-56" placeholder="Code or title" value={q} onChange={(e) => setQ(e.target.value)} />
+          <Button className="flex-1 sm:flex-none" variant="outline" onClick={() => void loadCourses(1, false)} disabled={loadingCourses}>
             Refresh
           </Button>
-          <Button onClick={syncUm}>Sync UM (10)</Button>
+          <Button className="flex-1 sm:flex-none" onClick={syncUm}>Sync UM (10)</Button>
         </div>
       </div>
 
       <div className="overflow-x-auto rounded-lg border">
-        <table className="w-full text-left text-sm">
+        <table className="w-full min-w-[1050px] text-left text-sm">
           <thead className="bg-gray-50">
             <tr className="border-b text-gray-500">
               <th className="p-3">Code</th>
@@ -222,7 +222,7 @@ export default function AdminCoursesClient() {
       />
 
       <Dialog open={editing !== null} onOpenChange={(open) => !open && setEditing(null)}>
-        <DialogContent className="sm:max-w-2xl" onOpenAutoFocus={(e) => e.preventDefault()}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl" onOpenAutoFocus={(e) => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle>Edit {editing?.New_code}</DialogTitle>
           </DialogHeader>

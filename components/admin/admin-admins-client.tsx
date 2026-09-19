@@ -122,9 +122,9 @@ export default function AdminAdminsClient() {
 
       <div className="rounded-lg border p-4">
         <div className="mb-3 text-sm font-medium">Grant admin by email or Clerk user ID</div>
-        <div className="flex gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row">
           <Input
-            className="max-w-sm"
+            className="w-full sm:max-w-sm"
             placeholder="name@example.com or user_xxx"
             value={userId}
             onChange={(event) => setUserId(event.target.value)}
@@ -132,12 +132,12 @@ export default function AdminAdminsClient() {
               if (event.key === "Enter") void grant();
             }}
           />
-          <Button onClick={grant} disabled={loading || !userId.trim()}>Grant admin</Button>
+          <Button className="w-full sm:w-auto" onClick={grant} disabled={loading || !userId.trim()}>Grant admin</Button>
         </div>
       </div>
 
       <div className="overflow-x-auto rounded-lg border">
-        <table className="w-full text-left text-sm">
+        <table className="w-full min-w-[760px] text-left text-sm">
           <thead className="bg-gray-50">
             <tr className="border-b text-gray-500">
               <th className="p-3">Email</th>
