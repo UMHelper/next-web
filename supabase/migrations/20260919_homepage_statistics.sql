@@ -52,6 +52,7 @@ as $function$
   ) as stats
   join public.course_noporf as course
     on course."New_code" = stats.course_id
+  where course."New_code" not ilike 'TEST%'
   order by
     stats.comment_count desc,
     stats.latest_comment_at desc,

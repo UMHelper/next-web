@@ -7,6 +7,7 @@ describe("homepage statistics migration", () => {
 
     expect(sql).toContain("create index if not exists comment_recent_visible_idx");
     expect(sql).toContain("create or replace function public.get_popular_courses");
+    expect(sql).toContain("course.\"New_code\" not ilike 'TEST%'");
     expect(sql).toContain("order by");
     expect(sql).toContain("grant execute on function public.get_popular_courses(integer, integer)");
   });

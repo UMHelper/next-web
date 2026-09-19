@@ -85,7 +85,7 @@ export function aggregatePopularCourses(
 
   for (const comment of comments) {
     const courseCode = courseByRelationId.get(comment.course_id);
-    if (!courseCode) continue;
+    if (!courseCode || /^TEST/i.test(courseCode)) continue;
 
     const current = stats.get(courseCode) ?? {
       commentCount: 0,

@@ -56,6 +56,29 @@ describe("aggregatePopularCourses", () => {
     expect(result[0].commentCount).toBe(2);
     expect(result[0].avgResult).toBe(4);
   });
+
+  it("excludes TEST courses from the fallback aggregation", () => {
+    const result = aggregatePopularCourses(
+      [
+        { course_id: 3, result: 5, pub_time: "2026-09-03 10:00:00" },
+        { course_id: 3, result: 5, pub_time: "2026-09-04 10:00:00" },
+        { course_id: 1, result: 4, pub_time: "2026-09-01 10:00:00" },
+      ],
+      [...linkRows, { id: 3, course_id: "TEST1001" }],
+      [
+        ...courseRows,
+        {
+          New_code: "TEST1001",
+          courseTitleEng: "Testing I",
+          courseTitleChi: null,
+          Offering_Unit: "Test",
+        },
+      ],
+      5,
+    );
+
+    expect(result.map((row) => row.courseCode)).toEqual(["COMP1001"]);
+  });
 });
 
 describe("fetchPopularCourses", () => {
