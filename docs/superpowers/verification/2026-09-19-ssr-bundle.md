@@ -39,6 +39,6 @@ Phase 2A / 2B / 2C are implemented and committed locally. Not pushed (per reques
 
 - [ ] Comments, course, professor, catalog, search cards still render and are present before hydration
 - [ ] Timetable: empty cart does not load scheduler chunk; cart with events renders week view
-- [ ] Sparkles visual still acceptable on search hero / badges
+- [x] SparklesText removed entirely; search hero and Offered badges use plain text
 - [ ] Mobile catalog/comment layout under CSS columns
 - [ ] No unexpected ordering regressions from Masonry → CSS columns
