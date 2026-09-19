@@ -9,15 +9,15 @@ type MasonryProps = {
 };
 
 export const Masonry = ({ children, col = 3, className = "" }: MasonryProps) => {
-  const columnsClass =
+  const gridClass =
     col >= 3
-      ? "columns-1 md:columns-2 xl:columns-3"
+      ? "grid-cols-1 md:grid-cols-2 xl:grid-cols-3"
       : col === 2
-        ? "columns-1 md:columns-2"
-        : "columns-1";
+        ? "grid-cols-1 md:grid-cols-2"
+        : "grid-cols-1";
 
   return (
-    <div className={cn(columnsClass, "gap-4 [&>*]:mb-4 [&>*]:break-inside-avoid", className)}>
+    <div className={cn("grid items-start gap-4", gridClass, className)}>
       {children}
     </div>
   );
