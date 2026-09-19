@@ -18,7 +18,10 @@ vi.mock("@/lib/supabase/admin", () => ({
   default: {
     from: vi.fn(() => ({
       select: vi.fn(() => ({ eq: vi.fn(() => ({ maybeSingle })) })),
-      insert,
+      insert: (payload: unknown) => {
+        insert(payload);
+        return { select: () => ({ single }) };
+      },
     })),
   },
 }));
@@ -53,10 +56,26 @@ describe("POST /api/reply", () => {
     expect(response.status).toBe(401);
   });
 
-  it("rejects client-controlled identity fields", async () => {
+  it("ignores client-controlled identity fields", async () => {
     requireWriteIdentity.mockResolvedValue({ identity: { platform: "web", id: "user_1" } });
     consumeRateLimit.mockResolvedValue({ allowed: true, remaining: 9, retryAfter: 0 });
-    maybeSingle.mockResolvedValue({ data: null, error: null });
+    maybeSingle.mockResolvedValue({
+      data: {
+        id: 1,
+        course_id: 10,
+        attendance: 3,
+        pre: 3,
+        grade: 3,
+        hard: 3,
+        reward: 3,
+        recommend: 3,
+        assignment: 3,
+        result: 3,
+        hidden: 0,
+      },
+      error: null,
+    });
+    single.mockResolvedValue({ data: { id: 99 }, error: null });
 
     const response = await POST(
       new Request("http://localhost/api/reply", {
@@ -71,7 +90,13 @@ describe("POST /api/reply", () => {
       }),
     );
 
-    expect(response.status).toBe(400);
-    expect(insert).not.toHaveBeenCalled();
+    expect(response.status).toBe(200);
+    expect(insert).toHaveBeenCalledWith([
+      expect.objectContaining({
+        content: "hello",
+        replyto: 1,
+        verify_account: "user_1",
+      }),
+    ]);
   });
 });

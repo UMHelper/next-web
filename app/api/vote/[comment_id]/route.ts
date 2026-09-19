@@ -1,29 +1,67 @@
-import { delay } from "@/lib/utils";
-import { iosVersionGuard } from "@/lib/ios-version";
-import {NextResponse} from "next/server";
-import supabaseAdmin from '@/lib/supabase/admin';
+import { NextResponse } from "next/server";
 
-export async function POST(request: Request){
-    // 版本控制：投票接口为 Web/iOS 共用；仅当请求携带 iOS 版本头时检查。
-    const versionResponse = iosVersionGuard(request, { allowMissingVersion: true });
-    if (versionResponse) return versionResponse;
+import { apiError, readJsonBody } from "@/lib/api-response";
+import { rateLimitKey, requireWriteIdentity } from "@/lib/api-auth";
+import { consumeRateLimit } from "@/lib/rate-limit";
+import supabaseAdmin from "@/lib/supabase/admin";
+import { voteSubmissionSchema } from "@/lib/validation/vote";
 
-    const body=await request.json();
-    // console.log(body);
-    // await delay(2000)
-    const {data,error}=await supabaseAdmin.from('vote').insert([{
-        comment_id:body.comment,
-        offset:body.offset,
-        created_by:body.created_by,
-        created_at:new Date().toISOString().slice(0, 19).replace('T', ' '),
-        emoji:body.emoji || null
-    }]).select()
-    if (error) {
-        if (error.code === '23505') {
-            return NextResponse.json(body,{status:200})
-        }
-        console.error(error)
-        return NextResponse.json({ error: error.message },{status:500})
-    }
-    return NextResponse.json(body,{status:200})
+export const dynamic = "force-dynamic";
+
+export async function POST(
+  request: Request,
+  { params }: { params: { comment_id: string } },
+) {
+  const identityResult = await requireWriteIdentity(request);
+  if ("response" in identityResult) return identityResult.response;
+  const { identity } = identityResult;
+
+  const bodyResult = await readJsonBody(request, 4_096);
+  if (!bodyResult.ok) return bodyResult.response;
+
+  const parsed = voteSubmissionSchema.safeParse(bodyResult.data);
+  if (!parsed.success) {
+    return apiError("invalid_request", "Invalid vote payload", 400, {
+      issues: parsed.error.issues.map((issue) => ({
+        path: issue.path.join("."),
+        message: issue.message,
+      })),
+    });
+  }
+
+  if (String(parsed.data.comment) !== params.comment_id) {
+    return apiError("invalid_request", "comment must match the URL parameter", 400);
+  }
+
+  const limit = Number(process.env.RATE_LIMIT_VOTE_PER_HOUR ?? "120");
+  const rate = await consumeRateLimit({
+    key: rateLimitKey(identity, "vote"),
+    action: "vote",
+    limit,
+  });
+  if (!rate.allowed) {
+    return apiError("rate_limited", "Too many votes", 429, { retryAfter: rate.retryAfter });
+  }
+
+  const payload = {
+    comment_id: parsed.data.comment,
+    offset: parsed.data.offset,
+    emoji: parsed.data.offset === 0 ? parsed.data.emoji ?? null : null,
+    created_by: identity.id,
+    created_at: new Date().toISOString().slice(0, 19).replace("T", " "),
+  };
+
+  const { error } = await supabaseAdmin.from("vote").insert([payload]);
+
+  if (error && error.code !== "23505") {
+    console.error("[api/vote] insert failed:", error.message);
+    return apiError("internal_error", "Unable to submit vote", 500);
+  }
+
+  return NextResponse.json({
+    comment: parsed.data.comment,
+    offset: parsed.data.offset,
+    emoji: payload.emoji,
+    created_by: identity.id,
+  });
 }

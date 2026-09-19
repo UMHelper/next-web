@@ -9,7 +9,6 @@ export const voteSubmissionSchema = z
     offset: z.union([z.literal(-1), z.literal(0), z.literal(1)]),
     emoji: reactionEmojiSchema.optional(),
   })
-  .strict()
   .superRefine((value, ctx) => {
     if (value.offset === 0 && !value.emoji) {
       ctx.addIssue({
