@@ -161,28 +161,27 @@ export const fetchCourseListByProf = async ({ name }:{name:string}) => {
 }
 
 export const fetchCatalogList = async (departments: string[]) => {
-    if (departments.length === 1) {
-        if (departments[0].toLowerCase()==='gecourse'){
-            const { data, error }: { data: any, error: any } = await supabaseServer.from('course_noporf')
-            .select('')
-            .like('New_code', 'GE%')
-            return data.sort((a: any, b: any) => a.New_code.localeCompare(b.New_code))
-        }
-        const { data, error }: { data: any, error: any } = await supabaseServer.from('course_noporf')
-            .select('')
-            .eq('Offering_Unit', departments[0].toUpperCase())
-        return data.sort((a: any, b: any) => a.New_code.localeCompare(b.New_code))
-    }
-    if (departments[0]==='GECourse'){
-        const { data, error }: { data: any, error: any } = await supabaseServer.from('course_noporf')
-        .select('')
-        .like('New_code', `${departments[1]}%`.toUpperCase())
-        return data.sort((a: any, b: any) => a.New_code.localeCompare(b.New_code))
-    }
-    const { data, error }: { data: any, error: any } = await supabaseServer.from('course_noporf')
-        .select('')
-        .eq('Offering_Unit', departments[0].toUpperCase())
-        .eq('Offering_Department', departments[1].toUpperCase())
-    return data.sort((a: any, b: any) => a.New_code.localeCompare(b.New_code))
+    let query = supabaseServer.from('course_noporf').select('')
 
+    if (departments.length === 1) {
+        if (departments[0].toLowerCase() === 'gecourse') {
+            query = query.like('New_code', 'GE%')
+        } else {
+            query = query.eq('Offering_Unit', departments[0].toUpperCase())
+        }
+    } else if (departments[0] === 'GECourse') {
+        query = query.like('New_code', `${departments[1]}%`.toUpperCase())
+    } else {
+        query = query
+            .eq('Offering_Unit', departments[0].toUpperCase())
+            .eq('Offering_Department', departments[1].toUpperCase())
+    }
+
+    const { data, error } = await query
+    if (error) {
+        console.error('[fetchCatalogList] query failed:', error.message)
+    }
+
+    const courseList = data ?? []
+    return courseList.sort((a: any, b: any) => a.New_code.localeCompare(b.New_code))
 }
