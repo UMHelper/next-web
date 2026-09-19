@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { CalendarRange, Cat, ChevronRightCircle, ClipboardEdit } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { TimetableCard } from "@/components/timetable-card";
+import { parseReviewRoute } from "@/lib/review-route";
 import { getComentListByCourseIDAndPage } from "@/lib/database/get-comment-list";
 import { getReviewInfo } from "@/lib/database/get-prof-info";
 import Link from "next/link";
@@ -28,14 +29,9 @@ export const revalidate = 0
 export const dynamic = "force-dynamic";
 
 export function generateMetadata(
-    { params }: { params: any }) {
-    let page_num = 1;
-    let prof = params.prof.join('/').replaceAll('%2C', ",").toUpperCase();
-    if (!Number.isNaN(parseInt(params.prof[params.prof.length - 1]))) {
-        page_num = parseInt(params.prof.pop() as string);
-        prof = params.prof.join('/').replaceAll('%2C', ",").toUpperCase();
-    }
-    const title = `${prof.replaceAll('%20', " ")} | ${params.code.toUpperCase()} | What2Reg @ UM 澳大選咩課`
+    { params, searchParams }: { params: any, searchParams?: any }) {
+    const route = parseReviewRoute(params.code, params.prof, searchParams?.page);
+    const title = `${route.prof.replaceAll('%20', " ")} | ${route.code} | What2Reg @ UM 澳大選咩課`
 
     return {
         title: title,
@@ -50,15 +46,15 @@ export const viewport: Viewport = {
     userScalable: false,
 }
 
-const ReviewPage = async ({ params }: { params: { code: string, prof: string[] } }) => {
-    const code = params.code.toUpperCase();
-    // check prof list last one is number:
-    let page_num = 1;
-    let prof = params.prof.join('/').replaceAll('%2C', ",").toUpperCase();
-    if (!Number.isNaN(parseInt(params.prof[params.prof.length - 1]))) {
-        page_num = parseInt(params.prof.pop() as string);
-        prof = params.prof.join('/').replaceAll('%2C', ",").toUpperCase();
-    }
+const ReviewPage = async ({
+    params,
+    searchParams,
+}: {
+    params: { code: string, prof: string[] },
+    searchParams?: { page?: string | string[] },
+}) => {
+    const route = parseReviewRoute(params.code, params.prof, searchParams?.page);
+    const { code, prof, page: page_num } = route;
 
     const prof_info = await getReviewInfo(code, decodeURI(prof.replaceAll('$', '/')));
     if (prof_info == undefined) {
@@ -74,7 +70,7 @@ const ReviewPage = async ({ params }: { params: { code: string, prof: string[] }
     const { userId } = auth();
     const comments: any[] = await getComentListByCourseIDAndPage(prof_info.id, page_num - 1, userId);
 
-    const timetable = await getScheduleList(params.code, params.prof.join('/'));
+    const timetable = await getScheduleList(code, prof);
 
     return (
         <>
