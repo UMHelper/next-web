@@ -1,31 +1,85 @@
-import { REACTION_EMOJI_LIST } from '@/lib/consant';
-import { iosVersionGuard } from '@/lib/ios-version';
-import supabaseAdmin from '@/lib/supabase/admin';
-import { NextResponse } from 'next/server';
+import { NextResponse } from "next/server";
 
-export async function POST(request: Request){
-    // 版本控制：回复接口为 Web/iOS 共用；仅当请求携带 iOS 版本头时检查。
-    const versionResponse = iosVersionGuard(request, { allowMissingVersion: true });
-    if (versionResponse) return versionResponse;
+import { apiError, readJsonBody } from "@/lib/api-response";
+import { rateLimitKey, requireWriteIdentity } from "@/lib/api-auth";
+import { consumeRateLimit } from "@/lib/rate-limit";
+import supabaseAdmin from "@/lib/supabase/admin";
+import { replySubmissionSchema } from "@/lib/validation/reply";
 
-    const body=await request.json();
-    delete body.emoji_vote
-    delete body.vote_history
-    delete body.img
-    // 主键 id 由数据库自增分配：客户端展开父评论时会带上父评论 id,
-    // 直接插入会撞唯一约束导致回复失败(自 2026-08 主键迁移后 web 端回复即失效)
-    delete body.id
+export const dynamic = "force-dynamic";
 
-    const {data,error}:{data:any,error:any}=await supabaseAdmin.from('comment').insert([body]).select().single()
-    if (error || !data) {
-        console.error(error)
-        return new NextResponse(null,{status:500})
-    }
+export async function POST(request: Request) {
+  const identityResult = await requireWriteIdentity(request);
+  if ("response" in identityResult) return identityResult.response;
+  const { identity } = identityResult;
 
-    // console.log(data,error)
-    let reply=data
-    reply.emoji_vote=REACTION_EMOJI_LIST.map((emoji:string)=>({emoji:emoji,count:0}))
-    reply.vote_history=[]
-    return NextResponse.json(reply,{status:200})
+  const bodyResult = await readJsonBody(request, 8_192);
+  if (!bodyResult.ok) return bodyResult.response;
 
+  const parsed = replySubmissionSchema.safeParse(bodyResult.data);
+  if (!parsed.success) {
+    return apiError("invalid_request", "Invalid reply payload", 400, {
+      issues: parsed.error.issues.map((issue) => ({
+        path: issue.path.join("."),
+        message: issue.message,
+      })),
+    });
+  }
+
+  const limit = Number(process.env.RATE_LIMIT_REPLY_PER_HOUR ?? "30");
+  const rate = await consumeRateLimit({
+    key: rateLimitKey(identity, "reply"),
+    action: "reply",
+    limit,
+  });
+  if (!rate.allowed) {
+    return apiError("rate_limited", "Too many replies", 429, { retryAfter: rate.retryAfter });
+  }
+
+  const { data: parent, error: parentError } = await supabaseAdmin
+    .from("comment")
+    .select("id, course_id, attendance, pre, grade, hard, reward, recommend, assignment, result, hidden")
+    .eq("id", parsed.data.replyto)
+    .maybeSingle();
+
+  if (parentError) {
+    console.error("[api/reply] failed to load parent:", parentError.message);
+    return apiError("internal_error", "Unable to load parent comment", 500);
+  }
+  if (!parent || parent.hidden === 1) {
+    return apiError("not_found", "Parent comment not found", 404);
+  }
+
+  const { data, error } = await supabaseAdmin
+    .from("comment")
+    .insert([{
+      content: parsed.data.content,
+      pub_time: new Date().toISOString().slice(0, 19).replace("T", " "),
+      course_id: parent.course_id,
+      attendance: parent.attendance,
+      pre: parent.pre,
+      grade: parent.grade,
+      hard: parent.hard,
+      reward: parent.reward,
+      recommend: parent.recommend,
+      assignment: parent.assignment,
+      result: parent.result,
+      verify: 1,
+      verify_account: identity.id,
+      replyto: parent.id,
+    }])
+    .select()
+    .single();
+
+  if (error || !data) {
+    console.error("[api/reply] insert failed:", error?.message ?? "no data");
+    return apiError("internal_error", "Unable to submit reply", 500);
+  }
+
+  return NextResponse.json({
+    ...data,
+    avatar_seed: null,
+    emoji_vote: [],
+    vote_history: [],
+  });
 }
