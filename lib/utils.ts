@@ -1,6 +1,5 @@
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
-import { detectInAppBrowser } from "@/lib/in-app-browser"
 
 export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs))
@@ -67,14 +66,3 @@ export const get_gpa = (n: number) => {
     return "N/A"
 }
 
-export const ua_check = (ua: string) => {
-    return detectInAppBrowser(ua).isInApp
-}
-
-export const uuid = () => {
-    // 随机生成英文字母
-    const randomLetter = String.fromCharCode(Math.round(Math.random() * 25) + 65);
-    return randomLetter + Date.now().toString(36);
-};
-
-export const delay = (ms: number) => new Promise(res => setTimeout(res, ms));

@@ -5,7 +5,7 @@ import {
     SheetTrigger,
 } from "@/components/ui/sheet"
 import { AlignJustify } from "lucide-react";
-import { menuList as menu } from "@/lib/consant";
+import { menuList as menu, type MenuItem } from "@/lib/consant";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import TimetableCart from "@/components/timetable-cart";

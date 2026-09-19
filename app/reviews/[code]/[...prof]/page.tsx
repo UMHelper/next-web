@@ -1,6 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
 
-import Toolbar from "@/components/toolbar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";

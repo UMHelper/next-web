@@ -1,7 +1,6 @@
 import ProfCard from "@/components/prof-card";
 import { Masonry } from "@/components/masonry";
 
-import Toolbar from "@/components/toolbar";
 import { ArrowUpRightSquare, Frown } from "lucide-react";
 import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import Link from "next/link";

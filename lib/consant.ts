@@ -1,3 +1,8 @@
+export interface MenuItem {
+  name: string
+  href: string
+}
+
 export const menuList:MenuItem[]=[
     // {
     //     name:'Home',

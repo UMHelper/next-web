@@ -2,7 +2,7 @@
 import { Cat } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { menuList as menu } from "@/lib/consant";
+import { menuList as menu, type MenuItem } from "@/lib/consant";
 
 import { Badge } from "@/components/ui/badge"
 import { useLocalStorage } from 'usehooks-ts'
