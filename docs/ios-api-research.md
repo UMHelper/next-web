@@ -21,7 +21,7 @@
 - 页面为 Server Component，服务端通过 `lib/database/*` 直连 Supabase：
   - `get-course-info.ts`：课程详情（本地库优先，字段缺失时回源 UM API 并回填）
   - `get-fuzzy-search.ts`：模糊搜索（调用 `search_courses` / `search_instructors_with_courses` RPC）
-  - `get-comment-list.ts`：评论分页（`get_comment_page` RPC，含回复与投票历史）
+  - `get-comment-list.ts`：评论分页（`get_comment_page_v2` RPC，含回复与当前查看者的投票历史）
   - `get-prof-info.ts`：教授-课程关联（`prof_with_course` 表，含聚合评分）
   - `get-schedule-list.ts`：上课时间表（`get_schedule_list` RPC，按当前学期过滤）
   - `get-statistics.ts`：各学院课程/评论统计（`statistics` 表）
@@ -142,7 +142,7 @@
 {
   "prof":    { prof_with_course 单行（含 id/result/grade/hard/reward/comments/is_offered/admin_note） },
   "course":  { course_noporf 单行 },
-  "comments": [ { 评论/回复全字段, "vote_history": [ {comment_id, offset, created_by, created_at, emoji} ] } ],
+  "comments": [ { 评论/回复全字段, "avatar_seed": "md5(verify_account)", "verify_account": "兼容旧 iOS 的脱敏值(= avatar_seed)", "vote_history": [ {comment_id, offset, created_at, emoji} ] } ],
   "timetable": [ { "section": "01", "schedules": [ {"date":"MON","time":"10:00-12:00","location":"E4-3052"} ] } ],
   "page": 1,
   "total_page": 3
@@ -150,6 +150,10 @@
 ```
 
 路径中 prof 的编码规则与 Web 一致：空格用 %20，`/` 用 `$` 转义（服务端反向还原）。
+
+> 隐私与兼容：`get_comment_page_v2` 不再返回明文 `verify_account`，改为返回 `md5(verify_account)` 的
+> `avatar_seed`；为避免已发布 iOS 客户端解码失败，iOS 专用 GET 接口会额外补一个同名的
+> `verify_account` 字段，值复用 `avatar_seed`。新客户端应优先解码 `avatar_seed`。
 
 ### GET /api/catalog?unit=FBA&dept=AIM
 - 仅 `unit`：该学院全部课程（`gecourse` 返回全部 GE 课程）

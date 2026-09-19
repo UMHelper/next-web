@@ -9,6 +9,7 @@ import { verifyIOSRequest, iosUnauthorized } from "@/lib/ios-auth";
 import { iosVersionGuard } from "@/lib/ios-version";
 import { apiError, readFormData } from "@/lib/api-response";
 import { invalidateAfterCommentWrite } from "@/lib/cache-invalidation";
+import { withIOSVerifyAccountCompat } from "@/lib/ios-comment-compat";
 import { rateLimitKey, resolveCommentIdentity } from "@/lib/api-auth";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import {
@@ -67,7 +68,8 @@ export async function GET(request: Request, { params }: { params: { code: string
     {
       prof: prof_info,
       course: course_info,
-      comments,
+      // get_comment_page_v2 出于隐私考虑移除了 verify_account，这里为旧 iOS 客户端补回兼容字段。
+      comments: comments.map(withIOSVerifyAccountCompat),
       timetable,
       page,
       total_page: Math.max(1, Math.ceil((prof_info.comments ?? 0) / 20)),
