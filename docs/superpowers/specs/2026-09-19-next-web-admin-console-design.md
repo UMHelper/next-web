@@ -270,7 +270,7 @@ create table public.admin_audit_log (
 - `/admin` tab 使用客户端 `usePathname()` 高亮当前页面
 - 表格尽量完整展示已返回字段，并保留横向滚动
 - 后台前端不显示 Clerk userId：管理员头显示角色，管理员列表/审计日志显示 email；userId 只在 API 内部使用
-- reports / comments / courses / professor mappings / admins 表格支持分页
+- reports / comments / courses / professor mappings / admins 表格支持滑到底部自动加载更多
 
 ### 页面内容
 
@@ -281,24 +281,24 @@ create table public.admin_audit_log (
 - `/admin/reports`：
   - 状态筛选
   - 列表：id / target type / course / prof / reason / details / reporter email / status / time / resolved / note
-  - 分页：上一页 / 下一页 + total
+  - 滚动到底部自动加载下一页
   - 点击查看详情、admin note、resolve/dismiss
 - `/admin/comments`：
   - 筛选：course code / prof / hidden / keyword
   - 列表：id / course+prof / 顶层或回复 / 中英文内容 / image / votes / verify / hidden / time
-  - 分页：上一页 / 下一页 + total
+  - 滚动到底部自动加载下一页
   - 编辑弹窗：content、content_en、img、hidden
 - `/admin/courses`：
   - 搜索课程
   - 编辑课程字段（title、credits、duration、unit/dept、medium、level/type/year、grading、description、ILO）
   - Professor mappings / course notes：展示并优先编辑 `admin_note`（中文）和 `admin_note_en`（英文），notes 可清空
-  - Courses 和 Professor mappings 分别分页
+  - Courses 和 Professor mappings 分别滚动加载
   - 同时保留 mapping `is_offered` 切换
   - “Sync UM” 按钮，调用 `/api/admin/sync-um`
 - `/admin/admins`：
   - 列出 platform admins 和 DB admins 的 email，不展示 Clerk userId
   - 输入 email 或 Clerk user ID 授权
-  - DB admin 列表分页
+  - DB admin 列表滚动加载
   - 取消 DB admin
 
 ## 7. 举报接口改造
@@ -389,7 +389,7 @@ await writeAuditLog({
 - 评论编辑文本/图片、隐藏/恢复生效
 - 课程字段编辑 + mapping notes 编辑并同步到评论页提示 + sync 按钮可用
 - admin tab 高亮当前页面；表格字段齐全且可横向滚动
-- reports / comments / courses / professor mappings / admins 分页可用
+- reports / comments / courses / professor mappings / admins 滑到底部会自动加载更多
 
 ## 10. 发布顺序
 
@@ -412,7 +412,7 @@ await writeAuditLog({
 - **AC8**：`npm run test` / `lint` / `tsc` / `build` 通过。
 - **AC9**：migration dry-run + apply SQL 验证通过。
 - **AC10**：管理员登录后 Navbar 显示 `/admin` 图标入口；非管理员不显示；admin tab 高亮当前页面。
-- **AC11**：后台前端不展示 Clerk userId；reports / comments / courses / professor mappings / admins 支持分页。
+- **AC11**：后台前端不展示 Clerk userId；reports / comments / courses / professor mappings / admins 滑到底部自动加载更多。
 
 ## 12. 风险与缓解
 

@@ -28,7 +28,7 @@ Admin console implemented locally, migration applied to the target database, not
 - Admin tabs highlight current page with active state
 - Admin tables show more complete fields
 - Admin frontend hides Clerk userId; admin/audit views use email instead
-- Reports / comments / courses / professor mappings / admins support pagination
+- Reports / comments / courses / professor mappings / admins auto-load more on scroll
 - Audit logs for admin writes
 - Comment edit: text/content_en/image/hidden
 - Course edit: whitelisted fields + mapping `is_offered`
@@ -72,5 +72,5 @@ CLERK_SECRET_KEY=...
 - [ ] course field edit and mapping offered toggle
 - [ ] professor-course `admin_note` / `admin_note_en` edit appears on review page
 - [ ] admin tabs highlight the current page and wider tables remain usable
-- [ ] reports / comments / courses / professor mappings / admins pagination works
+- [ ] reports / comments / courses / professor mappings / admins auto-load more when scrolled to the bottom
 - [ ] sync UM button returns stats

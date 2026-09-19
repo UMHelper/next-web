@@ -1,10 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
+import AdminInfiniteScroll from "@/components/admin/admin-infinite-scroll";
 import { Button } from "@/components/ui/button";
-import AdminPagination from "@/components/admin/admin-pagination";
 import { Input } from "@/components/ui/input";
 
 type AdminRow = {
@@ -32,27 +32,49 @@ export default function AdminAdminsClient() {
   const [page, setPage] = useState(1);
   const [userId, setUserId] = useState("");
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const requestIdRef = useRef(0);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const loadPage = useCallback(async (targetPage: number, append: boolean) => {
+    const requestId = ++requestIdRef.current;
+    if (append) setLoadingMore(true);
+    else setLoading(true);
+
     try {
-      const response = await fetch(`/api/admin/admins?page=${page}&limit=${PAGE_SIZE}`);
+      const response = await fetch(`/api/admin/admins?page=${targetPage}&limit=${PAGE_SIZE}`);
       const body = await response.json();
       if (!response.ok) throw new Error(body?.error?.message ?? `HTTP ${response.status}`);
+      if (requestId !== requestIdRef.current) return;
+
       setPlatformAdminRows(body.platformAdminRows ?? []);
       setPlatformAdminEmails(body.platformAdminEmails ?? []);
-      setAdmins(body.admins ?? []);
+      const nextAdmins = body.admins ?? [];
+      setAdmins((current) => (append ? [...current, ...nextAdmins] : nextAdmins));
       setTotal(body.total ?? 0);
+      setPage(targetPage);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to load admins");
+      if (requestId === requestIdRef.current) {
+        toast.error(error instanceof Error ? error.message : "Failed to load admins");
+      }
     } finally {
-      setLoading(false);
+      if (requestId === requestIdRef.current) {
+        if (append) setLoadingMore(false);
+        else setLoading(false);
+      }
     }
-  }, [page]);
+  }, []);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    setAdmins([]);
+    setPage(1);
+    void loadPage(1, false);
+  }, [loadPage]);
+
+  const hasMore = admins.length < total;
+  const loadMore = useCallback(() => {
+    if (loading || loadingMore || !hasMore) return;
+    void loadPage(page + 1, true);
+  }, [loadPage, page, loading, loadingMore, hasMore]);
 
   async function grant() {
     if (!userId.trim()) return;
@@ -68,7 +90,7 @@ export default function AdminAdminsClient() {
     }
     toast.success("Admin granted");
     setUserId("");
-    await load();
+    await loadPage(1, false);
   }
 
   async function revoke(id: string) {
@@ -79,7 +101,7 @@ export default function AdminAdminsClient() {
       return;
     }
     toast.success("Admin revoked");
-    await load();
+    await loadPage(1, false);
   }
 
   const platformEmails = Array.from(new Set([
@@ -150,12 +172,10 @@ export default function AdminAdminsClient() {
         </table>
       </div>
 
-      <AdminPagination
-        page={page}
-        limit={PAGE_SIZE}
-        total={total}
-        loading={loading}
-        onPageChange={setPage}
+      <AdminInfiniteScroll
+        canLoadMore={hasMore}
+        loading={loading || loadingMore}
+        onLoadMore={loadMore}
       />
     </div>
   );

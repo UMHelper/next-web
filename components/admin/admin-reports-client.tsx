@@ -1,10 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
+import AdminInfiniteScroll from "@/components/admin/admin-infinite-scroll";
 import { Button } from "@/components/ui/button";
-import AdminPagination from "@/components/admin/admin-pagination";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 type Report = {
@@ -45,25 +45,47 @@ export default function AdminReportsClient() {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const requestIdRef = useRef(0);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const loadPage = useCallback(async (targetPage: number, append: boolean) => {
+    const requestId = ++requestIdRef.current;
+    if (append) setLoadingMore(true);
+    else setLoading(true);
+
     try {
-      const response = await fetch(`/api/admin/reports?status=${status}&page=${page}&limit=${PAGE_SIZE}`);
+      const response = await fetch(`/api/admin/reports?status=${status}&page=${targetPage}&limit=${PAGE_SIZE}`);
       const body = await response.json();
       if (!response.ok) throw new Error(body?.error?.message ?? `HTTP ${response.status}`);
-      setReports(body.reports ?? []);
+      if (requestId !== requestIdRef.current) return;
+
+      const nextReports = body.reports ?? [];
+      setReports((current) => (append ? [...current, ...nextReports] : nextReports));
       setTotal(body.total ?? 0);
+      setPage(targetPage);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to load reports");
+      if (requestId === requestIdRef.current) {
+        toast.error(error instanceof Error ? error.message : "Failed to load reports");
+      }
     } finally {
-      setLoading(false);
+      if (requestId === requestIdRef.current) {
+        if (append) setLoadingMore(false);
+        else setLoading(false);
+      }
     }
-  }, [status, page]);
+  }, [status]);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    setReports([]);
+    setPage(1);
+    void loadPage(1, false);
+  }, [loadPage]);
+
+  const hasMore = reports.length < total;
+  const loadMore = useCallback(() => {
+    if (loading || loadingMore || !hasMore) return;
+    void loadPage(page + 1, true);
+  }, [loadPage, page, loading, loadingMore, hasMore]);
 
   async function changeStatus(report: Report, nextStatus: "open" | "resolved" | "dismissed") {
     const note = nextStatus === "open"
@@ -76,7 +98,7 @@ export default function AdminReportsClient() {
         ...(nextStatus === "open" ? { admin_note: null } : { admin_note: note || null }),
       });
       toast.success("Report updated");
-      await load();
+      await loadPage(1, false);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to update report");
     }
@@ -96,7 +118,7 @@ export default function AdminReportsClient() {
             <SelectItem value="dismissed">Dismissed</SelectItem>
           </SelectContent>
         </Select>
-        <Button variant="outline" onClick={load} disabled={loading}>
+        <Button variant="outline" onClick={() => void loadPage(1, false)} disabled={loading}>
           Refresh
         </Button>
       </div>
@@ -179,12 +201,10 @@ export default function AdminReportsClient() {
         </table>
       </div>
 
-      <AdminPagination
-        page={page}
-        limit={PAGE_SIZE}
-        total={total}
-        loading={loading}
-        onPageChange={setPage}
+      <AdminInfiniteScroll
+        canLoadMore={hasMore}
+        loading={loading || loadingMore}
+        onLoadMore={loadMore}
       />
     </div>
   );

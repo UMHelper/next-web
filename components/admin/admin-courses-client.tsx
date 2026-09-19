@@ -1,10 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
+import AdminInfiniteScroll from "@/components/admin/admin-infinite-scroll";
 import { Button } from "@/components/ui/button";
-import AdminPagination from "@/components/admin/admin-pagination";
 import {
   Dialog,
   DialogContent,
@@ -54,42 +54,98 @@ export default function AdminCoursesClient() {
   const [mappingTotal, setMappingTotal] = useState(0);
   const [coursePage, setCoursePage] = useState(1);
   const [mappingPage, setMappingPage] = useState(1);
-  const [loading, setLoading] = useState(true);
+  const [loadingCourses, setLoadingCourses] = useState(true);
+  const [loadingMappings, setLoadingMappings] = useState(true);
+  const [coursesLoadingMore, setCoursesLoadingMore] = useState(false);
+  const [mappingsLoadingMore, setMappingsLoadingMore] = useState(false);
   const [editing, setEditing] = useState<Course | null>(null);
   const [draft, setDraft] = useState<Partial<Course>>({});
   const [editingMapping, setEditingMapping] = useState<Mapping | null>(null);
   const [mappingDraft, setMappingDraft] = useState<Partial<Mapping>>({});
+  const coursesRequestRef = useRef(0);
+  const mappingsRequestRef = useRef(0);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const loading = loadingCourses || loadingMappings;
+
+  const buildParams = useCallback((page: number) => {
+    const params = new URLSearchParams({ limit: String(PAGE_SIZE), page: String(page) });
+    if (q.trim()) params.set("q", q.trim());
+    return params.toString();
+  }, [q]);
+
+  const loadCourses = useCallback(async (targetPage: number, append: boolean) => {
+    const requestId = ++coursesRequestRef.current;
+    if (append) setCoursesLoadingMore(true);
+    else setLoadingCourses(true);
+
     try {
-      const buildParams = (page: number) => {
-        const params = new URLSearchParams({ limit: String(PAGE_SIZE), page: String(page) });
-        if (q.trim()) params.set("q", q.trim());
-        return params.toString();
-      };
-      const [coursesResponse, mappingsResponse] = await Promise.all([
-        fetch(`/api/admin/courses?${buildParams(coursePage)}`),
-        fetch(`/api/admin/prof-with-course?${buildParams(mappingPage)}`),
-      ]);
-      const coursesBody = await coursesResponse.json();
-      const mappingsBody = await mappingsResponse.json();
-      if (!coursesResponse.ok) throw new Error(coursesBody?.error?.message ?? "Failed to load courses");
-      if (!mappingsResponse.ok) throw new Error(mappingsBody?.error?.message ?? "Failed to load mappings");
-      setCourses(coursesBody.courses ?? []);
-      setCourseTotal(coursesBody.total ?? 0);
-      setMappings(mappingsBody.rows ?? []);
-      setMappingTotal(mappingsBody.total ?? 0);
+      const response = await fetch(`/api/admin/courses?${buildParams(targetPage)}`);
+      const body = await response.json();
+      if (!response.ok) throw new Error(body?.error?.message ?? "Failed to load courses");
+      if (requestId !== coursesRequestRef.current) return;
+
+      const nextCourses = body.courses ?? [];
+      setCourses((current) => (append ? [...current, ...nextCourses] : nextCourses));
+      setCourseTotal(body.total ?? 0);
+      setCoursePage(targetPage);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to load course data");
+      if (requestId === coursesRequestRef.current) {
+        toast.error(error instanceof Error ? error.message : "Failed to load courses");
+      }
     } finally {
-      setLoading(false);
+      if (requestId === coursesRequestRef.current) {
+        if (append) setCoursesLoadingMore(false);
+        else setLoadingCourses(false);
+      }
     }
-  }, [q, coursePage, mappingPage]);
+  }, [buildParams]);
+
+  const loadMappings = useCallback(async (targetPage: number, append: boolean) => {
+    const requestId = ++mappingsRequestRef.current;
+    if (append) setMappingsLoadingMore(true);
+    else setLoadingMappings(true);
+
+    try {
+      const response = await fetch(`/api/admin/prof-with-course?${buildParams(targetPage)}`);
+      const body = await response.json();
+      if (!response.ok) throw new Error(body?.error?.message ?? "Failed to load mappings");
+      if (requestId !== mappingsRequestRef.current) return;
+
+      const nextMappings = body.rows ?? [];
+      setMappings((current) => (append ? [...current, ...nextMappings] : nextMappings));
+      setMappingTotal(body.total ?? 0);
+      setMappingPage(targetPage);
+    } catch (error) {
+      if (requestId === mappingsRequestRef.current) {
+        toast.error(error instanceof Error ? error.message : "Failed to load mappings");
+      }
+    } finally {
+      if (requestId === mappingsRequestRef.current) {
+        if (append) setMappingsLoadingMore(false);
+        else setLoadingMappings(false);
+      }
+    }
+  }, [buildParams]);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    setCourses([]);
+    setMappings([]);
+    setCoursePage(1);
+    setMappingPage(1);
+    void loadCourses(1, false);
+    void loadMappings(1, false);
+  }, [loadCourses, loadMappings]);
+
+  const hasMoreCourses = courses.length < courseTotal;
+  const hasMoreMappings = mappings.length < mappingTotal;
+  const loadMoreCourses = useCallback(() => {
+    if (loadingCourses || coursesLoadingMore || !hasMoreCourses) return;
+    void loadCourses(coursePage + 1, true);
+  }, [loadCourses, coursePage, loadingCourses, coursesLoadingMore, hasMoreCourses]);
+  const loadMoreMappings = useCallback(() => {
+    if (loadingMappings || mappingsLoadingMore || !hasMoreMappings) return;
+    void loadMappings(mappingPage + 1, true);
+  }, [loadMappings, mappingPage, loadingMappings, mappingsLoadingMore, hasMoreMappings]);
 
   function openEdit(course: Course) {
     setEditing(course);
@@ -127,7 +183,7 @@ export default function AdminCoursesClient() {
     }
     toast.success("Course updated");
     setEditing(null);
-    await load();
+    await loadCourses(1, false);
   }
 
   function openMappingEdit(mapping: Mapping) {
@@ -152,7 +208,7 @@ export default function AdminCoursesClient() {
     }
     toast.success("Notes updated");
     setEditingMapping(null);
-    await load();
+    await loadMappings(mappingPage, false);
   }
 
   async function toggleMapping(mapping: Mapping) {
@@ -167,7 +223,7 @@ export default function AdminCoursesClient() {
       return;
     }
     toast.success("Mapping updated");
-    await load();
+    await loadMappings(mappingPage, false);
   }
 
   async function syncUm() {
@@ -182,7 +238,10 @@ export default function AdminCoursesClient() {
       return;
     }
     toast.success(`UM sync: ${body.stats.updated} updated, ${body.stats.failed} failed`);
-    await load();
+    await Promise.all([
+      loadCourses(coursePage, false),
+      loadMappings(mappingPage, false),
+    ]);
   }
 
   return (
@@ -191,8 +250,17 @@ export default function AdminCoursesClient() {
         <div className="flex items-center justify-between gap-2">
           <div className="text-lg font-semibold">Courses & notes</div>
           <div className="flex gap-2">
-            <Input className="w-56" placeholder="Code or title" value={q} onChange={(e) => { setQ(e.target.value); setCoursePage(1); setMappingPage(1); }} />
-            <Button variant="outline" onClick={load} disabled={loading}>Refresh</Button>
+            <Input className="w-56" placeholder="Code or title" value={q} onChange={(e) => setQ(e.target.value)} />
+            <Button
+              variant="outline"
+              disabled={loading}
+              onClick={() => {
+                void loadCourses(1, false);
+                void loadMappings(1, false);
+              }}
+            >
+              Refresh
+            </Button>
             <Button onClick={syncUm}>Sync UM (10)</Button>
           </div>
         </div>
@@ -245,12 +313,10 @@ export default function AdminCoursesClient() {
             </tbody>
           </table>
         </div>
-        <AdminPagination
-          page={coursePage}
-          limit={PAGE_SIZE}
-          total={courseTotal}
-          loading={loading}
-          onPageChange={setCoursePage}
+        <AdminInfiniteScroll
+          canLoadMore={hasMoreCourses}
+          loading={loadingCourses || coursesLoadingMore}
+          onLoadMore={loadMoreCourses}
         />
       </div>
 
@@ -296,12 +362,10 @@ export default function AdminCoursesClient() {
             </tbody>
           </table>
         </div>
-        <AdminPagination
-          page={mappingPage}
-          limit={PAGE_SIZE}
-          total={mappingTotal}
-          loading={loading}
-          onPageChange={setMappingPage}
+        <AdminInfiniteScroll
+          canLoadMore={hasMoreMappings}
+          loading={loadingMappings || mappingsLoadingMore}
+          onLoadMore={loadMoreMappings}
         />
       </div>
 

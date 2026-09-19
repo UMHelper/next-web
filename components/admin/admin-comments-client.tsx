@@ -1,10 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
+import AdminInfiniteScroll from "@/components/admin/admin-infinite-scroll";
 import { Button } from "@/components/ui/button";
-import AdminPagination from "@/components/admin/admin-pagination";
 import {
   Dialog,
   DialogContent,
@@ -49,29 +49,51 @@ export default function AdminCommentsClient() {
   const [draftContentEn, setDraftContentEn] = useState("");
   const [draftImg, setDraftImg] = useState("");
   const [draftHidden, setDraftHidden] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const requestIdRef = useRef(0);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const loadPage = useCallback(async (targetPage: number, append: boolean) => {
+    const requestId = ++requestIdRef.current;
+    if (append) setLoadingMore(true);
+    else setLoading(true);
+
     try {
-      const params = new URLSearchParams({ limit: String(PAGE_SIZE), page: String(page) });
+      const params = new URLSearchParams({ limit: String(PAGE_SIZE), page: String(targetPage) });
       if (q.trim()) params.set("q", q.trim());
       if (code.trim()) params.set("code", code.trim());
       if (hidden !== "all") params.set("hidden", hidden);
       const response = await fetch(`/api/admin/comments?${params.toString()}`);
       const body = await response.json();
       if (!response.ok) throw new Error(body?.error?.message ?? `HTTP ${response.status}`);
-      setComments(body.comments ?? []);
+      if (requestId !== requestIdRef.current) return;
+
+      const nextComments = body.comments ?? [];
+      setComments((current) => (append ? [...current, ...nextComments] : nextComments));
       setTotal(body.total ?? 0);
+      setPage(targetPage);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to load comments");
+      if (requestId === requestIdRef.current) {
+        toast.error(error instanceof Error ? error.message : "Failed to load comments");
+      }
     } finally {
-      setLoading(false);
+      if (requestId === requestIdRef.current) {
+        if (append) setLoadingMore(false);
+        else setLoading(false);
+      }
     }
-  }, [q, code, hidden, page]);
+  }, [q, code, hidden]);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    setComments([]);
+    setPage(1);
+    void loadPage(1, false);
+  }, [loadPage]);
+
+  const hasMore = comments.length < total;
+  const loadMore = useCallback(() => {
+    if (loading || loadingMore || !hasMore) return;
+    void loadPage(page + 1, true);
+  }, [loadPage, page, loading, loadingMore, hasMore]);
 
   function openEdit(comment: Comment) {
     setEditing(comment);
@@ -101,7 +123,7 @@ export default function AdminCommentsClient() {
       if (!response.ok) throw new Error(body?.error?.message ?? `HTTP ${response.status}`);
       toast.success("Comment updated");
       setEditing(null);
-      await load();
+      await loadPage(1, false);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to update comment");
     }
@@ -124,7 +146,7 @@ export default function AdminCommentsClient() {
             <SelectItem value="1">Hidden</SelectItem>
           </SelectContent>
         </Select>
-        <Button variant="outline" onClick={load} disabled={loading}>Refresh</Button>
+        <Button variant="outline" onClick={() => void loadPage(1, false)} disabled={loading}>Refresh</Button>
       </div>
 
       <div className="overflow-x-auto rounded-lg border">
@@ -193,12 +215,10 @@ export default function AdminCommentsClient() {
         </table>
       </div>
 
-      <AdminPagination
-        page={page}
-        limit={PAGE_SIZE}
-        total={total}
-        loading={loading}
-        onPageChange={setPage}
+      <AdminInfiniteScroll
+        canLoadMore={hasMore}
+        loading={loading || loadingMore}
+        onLoadMore={loadMore}
       />
 
       <Dialog open={editing !== null} onOpenChange={(open) => !open && setEditing(null)}>
