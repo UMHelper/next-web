@@ -72,9 +72,24 @@ Still needs human-provided GitHub Actions secrets:
 - `SUPABASE_SECRET_KEY`
 - `UM_OPEN_DATA_TOKEN`
 
+## 3E details
+
+- R2 bucket `next-web-inc-cache` created by human.
+- `wrangler.jsonc` now has `NEXT_INC_CACHE_R2_BUCKET` binding.
+- `open-next.config.ts` now uses `r2IncrementalCache`.
+- D1 database `next-web-tag-cache` created by human; `wrangler.jsonc` has `NEXT_TAG_CACHE_D1` binding.
+- `open-next.config.ts` now uses `d1NextTagCache`.
+- `scripts/d1-tag-cache.sql` contains the `revalidations` table DDL.
+- `npm run build:pages` passed and both cache bindings are present in the OpenNext bundle.
+
+Pending D1 step (needs Cloudflare auth or Dashboard):
+
+- execute `scripts/d1-tag-cache.sql` in D1 console or via
+  `wrangler d1 execute next-web-tag-cache --remote --file=scripts/d1-tag-cache.sql`
+
 ## Pending / next
 
 - 3C: configure the GitHub Actions secrets and run the workflow once manually.
 - 3C: after sync is verified, remove `fetchCourseInfo` page-time UM fallback.
-- 3E: R2 bucket + `open-next.config.ts` incremental cache binding; needs Cloudflare resource.
-- After 3E: verify production cache hits and `revalidateTag` invalidation.
+- Deploy the new OpenNext config so R2/D1 caches become active.
+- Verify production cache hits and `revalidateTag` invalidation.
