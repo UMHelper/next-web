@@ -49,6 +49,8 @@ export async function GET(request: Request, { params }: { params: { code: string
     .replaceAll("$", "/")
     .toUpperCase();
 
+  const viewerId = request.headers.get("x-um-viewer-id")?.trim() || null;
+
   const prof_info = await getReviewInfo(code, prof);
   if (!prof_info) {
     return new NextResponse(JSON.stringify({ error: "not found" }), { status: 404 });
@@ -56,7 +58,7 @@ export async function GET(request: Request, { params }: { params: { code: string
 
   const [course_info, comments, timetable] = await Promise.all([
     getCourseInfo(code),
-    getComentListByCourseIDAndPage(prof_info.id, page - 1),
+    getComentListByCourseIDAndPage(prof_info.id, page - 1, viewerId),
     getScheduleList(code, prof),
   ]);
 

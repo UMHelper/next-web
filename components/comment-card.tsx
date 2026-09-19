@@ -49,7 +49,7 @@ const ReplyCard = ({ reply }: { reply: any }) => {
         <div className="flex ">
 
             <Avatar className="w-8 h-8">
-                <AvatarFallback className="text-sm">{HashEmojiAvatar({user_id: reply.verify_account})}</AvatarFallback>
+                <AvatarFallback className="text-sm">{HashEmojiAvatar({user_id: reply.avatar_seed || reply.verify_account || ""})}</AvatarFallback>
             </Avatar>
             <div className="ms-2 min-w-0">
                 <Popover>
@@ -94,7 +94,7 @@ const ReplySubmit = ({ comment, onSubmit }: { comment: any, onSubmit: any }) => 
         <div className="my-2 space-y-1">
             <div className=" space-y-1">
                 <Textarea
-                    placeholder={"Reply to this review. You will reply as " + HashEmojiAvatar({user_id: user?.id})}
+                    placeholder={"Reply to this review. You will reply as " + HashEmojiAvatar({user_id: user?.id ?? ""})}
                     onChange={(e) => {
                         setReply(e.target.value)
                     }}

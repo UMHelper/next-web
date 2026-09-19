@@ -5,16 +5,20 @@ import { REACTION_EMOJI_LIST } from "@/lib/consant"
 
 const Comments = ({ comments }: { comments: any[] }) => {
     const editedComments: any[] = comments.map((comment) => {
-        const voteHistory = comment.vote_history ?? []
+        const counts = new Map<string, number>(
+            (comment.emoji_counts ?? []).map((row: any) => [row.emoji, row.count]),
+        )
+
         return {
             ...comment,
-            vote_history: voteHistory,
-            upvote: voteHistory.filter((vote: any) => vote.offset == 1).length,
-            downvote: voteHistory.filter((vote: any) => vote.offset == -1).length,
+            vote_history: comment.vote_history ?? [],
+            upvote: comment.upvote_count ?? 0,
+            downvote: comment.downvote_count ?? 0,
             emoji_vote: REACTION_EMOJI_LIST.map((emoji) => ({
                 emoji,
-                count: voteHistory.filter((vote: any) => vote.emoji == emoji).length
-            }))
+                count: counts.get(emoji) ?? 0,
+            })),
+            avatar_seed: comment.avatar_seed ?? "",
         }
     })
 

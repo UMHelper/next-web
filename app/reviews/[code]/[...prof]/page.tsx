@@ -1,3 +1,5 @@
+import { auth } from "@clerk/nextjs/server";
+
 import Toolbar from "@/components/toolbar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -69,7 +71,8 @@ const ReviewPage = async ({ params }: { params: { code: string, prof: string[] }
     const course_info = await getCourseInfo(code);
     // console.log(course_info);
 
-    const comments: any[] = await getComentListByCourseIDAndPage(prof_info.id, page_num - 1);
+    const { userId } = auth();
+    const comments: any[] = await getComentListByCourseIDAndPage(prof_info.id, page_num - 1, userId);
 
     const timetable = await getScheduleList(params.code, params.prof.join('/'));
 
