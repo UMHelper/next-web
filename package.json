@@ -13,7 +13,8 @@
     "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
     "upload": "opennextjs-cloudflare build && opennextjs-cloudflare upload",
     "telegram:get-chat-id": "node scripts/get-telegram-chat-id.mjs",
-    "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
+    "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
+    "test": "vitest run"
   },
   "dependencies": {
     "@aldabil/react-scheduler": "^2.7.26",
@@ -94,6 +95,7 @@
   "devDependencies": {
     "@opennextjs/cloudflare": "^1.14.10",
     "eslint": "^8.57.1",
+    "vitest": "^2.1.9",
     "wrangler": "^4.62.0"
   }
 }
