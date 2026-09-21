@@ -1,3 +1,4 @@
+import { formatRpcError } from "@/lib/update/errors";
 import { buildApplySchedulePayload } from "@/lib/update/payloads";
 import type { UpdateTask } from "@/lib/update/task-types";
 
@@ -9,7 +10,7 @@ function makeScheduleTask(id: string, label: string, scope: "time_location" | "p
     async run(ctx) {
       const payload = buildApplySchedulePayload(ctx.rows, ctx.targetYear, ctx.targetSem);
       const { data, error } = await ctx.client.rpc("admin_apply_schedule", { payload, scope });
-      if (error) throw new Error(error.message);
+      if (error) throw new Error(formatRpcError(error));
       return `${scope}: ${JSON.stringify(data)}`;
     },
   };

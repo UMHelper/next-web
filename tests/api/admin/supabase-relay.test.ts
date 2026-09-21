@@ -69,6 +69,7 @@ describe("/api/admin/supabase relay", () => {
     });
     const response = await GET(new Request("http://localhost/api/admin/supabase/rest/v1/course_noporf"), ctx("rest", "v1", "course_noporf"));
     expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toMatchObject({ code: "forbidden", message: "x" });
     expect(fetchMock).not.toHaveBeenCalled();
   });
 

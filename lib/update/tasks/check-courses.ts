@@ -1,3 +1,4 @@
+import { formatRpcError } from "@/lib/update/errors";
 import { buildOfferedCourseInserts, uniqueCourseCodes } from "@/lib/update/payloads";
 import type { UpdateTask } from "@/lib/update/task-types";
 import type { UmCourse } from "@/lib/update/um-api";
@@ -12,7 +13,7 @@ export const checkCourses: UpdateTask = {
     const fetchUm = ctx.fetchUm ?? createUmFetcher();
 
     const { data: known, error: knownError } = await ctx.client.rpc("admin_resolve_known_codes", { codes });
-    if (knownError) throw new Error(knownError.message);
+    if (knownError) throw new Error(formatRpcError(knownError));
 
     const knownSet = new Set<string>((known ?? []) as string[]);
     const missing = codes.filter((code) => !knownSet.has(code));
@@ -29,7 +30,7 @@ export const checkCourses: UpdateTask = {
       inserts,
       offered_codes: Array.from(knownSet),
     });
-    if (error) throw new Error(error.message);
+    if (error) throw new Error(formatRpcError(error));
 
     return `inserted ${inserts.length}, marked ${knownSet.size}`;
   },

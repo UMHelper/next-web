@@ -1,3 +1,4 @@
+import { formatRpcError } from "@/lib/update/errors";
 import { uniqueCourseCodes } from "@/lib/update/payloads";
 import type { UpdateTask } from "@/lib/update/task-types";
 
@@ -8,7 +9,7 @@ export const setOffered: UpdateTask = {
   async run(ctx) {
     const codes = uniqueCourseCodes(ctx.rows);
     const { data, error } = await ctx.client.rpc("admin_mark_offered", { codes });
-    if (error) throw new Error(error.message);
+    if (error) throw new Error(formatRpcError(error));
     return `marked ${data} of ${codes.length}`;
   },
 };
