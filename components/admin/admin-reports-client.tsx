@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import AdminInfiniteScroll from "@/components/admin/admin-infinite-scroll";
+import { AdminTableRowsSkeleton } from "@/components/loading-skeletons";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -140,6 +141,7 @@ export default function AdminReportsClient() {
             </tr>
           </thead>
           <tbody>
+            {loading && reports.length === 0 ? <AdminTableRowsSkeleton columns={7} rows={6} /> : null}
             {reports.map((report) => (
               <tr key={report.id} className="border-b last:border-0">
                 <td className="p-3">{report.id}</td>

@@ -5,6 +5,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useTimetablePlanner } from "@/components/timetable/planner-provider";
 import WeekGrid from "@/components/timetable/week-grid";
 import { computeCommonFree } from "@/lib/timetable/common-free";
+import { CompareTimetableSkeleton } from "@/components/loading-skeletons";
 import { useSharedPlan } from "@/lib/timetable/use-shared-plan";
 
 export default function CompareClient({ token }: { token: string }) {
@@ -24,7 +25,7 @@ export default function CompareClient({ token }: { token: string }) {
   const ownPlan = ownPlans.find((plan) => plan.clientRef === ownRef);
 
   if (loading) {
-    return <div className="p-8 text-center text-sm text-slate-500">Loading shared timetable...</div>;
+    return <CompareTimetableSkeleton />;
   }
 
   if (error || !sharedPlan) {

@@ -5,6 +5,7 @@ import { Search } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useTimetablePlanner } from "@/components/timetable/planner-provider";
 import {
   getCourseDetail,
@@ -168,7 +169,13 @@ export default function PlannerSidebar() {
         </select>
       </div>
 
-      {loading && <div className="text-xs text-slate-500">Searching...</div>}
+      {loading && items.length === 0 && (
+        <div className="space-y-2">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <Skeleton key={index} className="h-14 w-full rounded-md" />
+          ))}
+        </div>
+      )}
       {error && <div className="text-xs text-red-600">{error}</div>}
 
       <div className="max-h-[420px] space-y-2 overflow-auto">

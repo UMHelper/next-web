@@ -1,15 +1,21 @@
-import React from "react";
+import React, { Suspense } from "react";
 import { FacultyStatistics } from "@/components/faculty-statistics";
 import { PopularCourses } from "@/components/popular-courses";
+import { Skeleton } from "@/components/ui/skeleton";
 import { getPopularCourses } from "@/lib/database/get-popular-courses";
 import { getStatistics } from "@/lib/database/get-statistics";
 
-export default async function HomeStatistics() {
-  const [statistics, popularCourses] = await Promise.all([
-    getStatistics(),
-    getPopularCourses(),
-  ]);
+async function FacultyStatisticsSection() {
+  const statistics = await getStatistics();
+  return <FacultyStatistics statistics={statistics} />;
+}
 
+async function PopularCoursesSection() {
+  const popularCourses = await getPopularCourses();
+  return <PopularCourses courses={popularCourses} />;
+}
+
+export default function HomeStatistics() {
   return (
     <section className="mx-auto max-w-screen-xl p-4 py-8">
       <div className="text-center">
@@ -22,12 +28,16 @@ export default async function HomeStatistics() {
       <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
         <div className="order-2 lg:order-1">
           <h3 className="mb-4 text-lg font-semibold">By Faculty</h3>
-          <FacultyStatistics statistics={statistics} />
+          <Suspense fallback={<Skeleton className="h-72 rounded-xl" />}>
+            <FacultyStatisticsSection />
+          </Suspense>
         </div>
 
         <div className="order-1 lg:order-2">
           <h3 className="mb-4 text-lg font-semibold">Trending in 30 Days</h3>
-          <PopularCourses courses={popularCourses} />
+          <Suspense fallback={<Skeleton className="h-72 rounded-xl" />}>
+            <PopularCoursesSection />
+          </Suspense>
         </div>
       </div>
     </section>

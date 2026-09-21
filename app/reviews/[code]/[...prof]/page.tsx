@@ -1,24 +1,13 @@
-import { Card, CardContent } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { Button } from "@/components/ui/button";
-import { CalendarRange, Cat, ChevronRightCircle, ClipboardEdit } from "lucide-react";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { TimetableScheduleCard } from "@/components/timetable-schedule-card";
-import { parseReviewRoute } from "@/lib/review-route";
-import { getPublicCommentPage } from "@/lib/database/get-public-comment-list";
-import { getReviewInfo } from "@/lib/database/get-prof-info";
-import Link from "next/link";
-import { notFound } from 'next/navigation'
+import React, { Suspense } from "react";
+import { notFound } from "next/navigation";
 
-import { getCourseInfo } from "@/lib/database/get-course-info";
-import { getAppConfig } from "@/lib/config/app-config";
-import getScheduleList from "@/lib/database/get-schedule-list";
-import { Comments } from "@/components/comments";
-import { ReviewPagination } from "@/components/review-pagination";
-import { ReviewReload } from "@/components/review-reload";
-
-
+import { ReviewCommentsSkeleton, ReviewHeaderSkeleton } from "@/components/loading-skeletons";
+import { ReviewHeader } from "@/components/review/review-header";
+import ReviewComments from "@/components/review/review-comments";
 import { ReviewNotice } from "@/components/review-notice";
+import { ReviewReload } from "@/components/review-reload";
+import { getReviewInfo } from "@/lib/database/get-prof-info";
+import { parseReviewRoute } from "@/lib/review-route";
 import { buildReviewMetadata } from "@/lib/seo";
 
 export const revalidate = 300;
@@ -47,127 +36,25 @@ const ReviewPage = async ({
             notFound()
         )
     }
-    const is_offered = prof_info['is_offered'];
-
-    const course_info = await getCourseInfo(code);
-    // console.log(course_info);
-
-    const comments: any[] = await getPublicCommentPage(prof_info.id, page_num - 1);
-
-    const timetable = await getScheduleList(code, prof);
-    const { isPreenrollmentOpen } = await getAppConfig();
 
     return (
         <>
-            <div className='bg-gradient-to-r from-blue-600 to-indigo-500 text-white p-6'>
-                <div className='max-w-screen-xl mx-auto p-4'>
-                    <div className='flex flex-col md:flex-row justify-between'>
-                        <div className="py-3">
-                            <div>
-                                <Link href={"/search/course/" + course_info['New_code'].substring(0, 4)} className="flex space-x-1 items-center">
-                                    <div className='text-sm'>{course_info['New_code'].substring(0, 4)}</div>
-                                    <ChevronRightCircle size={14} strokeWidth={1.5} />
-                                </Link>
-                            </div>
-                            <div className='font-bold text-xl'>
-                                <Link href={"/course/" + course_info['New_code']} className="flex space-x-1 items-center">
-                                    <h2>
-                                        {course_info['New_code']}
-                                    </h2>
-                                    <ChevronRightCircle size={14} strokeWidth={1.5} />
-                                </Link>
-                            </div>
-                            <div className='text-base'>{course_info["courseTitleEng"]}</div>
-                            <div className='text-sm'>{course_info["courseTitleChi"]}</div>
-                            <div className='pb-3 flex-row flex space-x-2 mt-4'>
-                                <Link className="flex space-x-2" href={'/professor/' + prof_info.prof_id}>
-                                    <div className='font-bold text-3xl break-all'>{prof_info['prof_id']}</div>
-                                    {/* <ChevronRightCircle size={16} strokeWidth={1.5} /> */}
-                                </Link>
-                                {(
-                                    !isPreenrollmentOpen ?
-                                        (is_offered ?
-                                            <span className='text-sm font-semibold rounded-3xl bg-gradient-to-r from-green-600 to-green-600 h-fit py-0.5 px-2 shadow font-normal'> Offered</span>
-                                            : null
-                                        )
-                                        :
-                                        null
-                                )}
-                            </div>
-                            <div className='flex-row flex space-x-2'>
-                                <Link href={'/submit/' + params.code + '/' + params.prof}>
-                                    <Button className='text-sm px-2 hover:shadow-lg bg-white text-blue-800 hover:bg-gray-200'>
-                                        <ClipboardEdit size={16} /><span> Submit Review</span>
-                                    </Button>
-                                </Link>
+            <Suspense fallback={<ReviewHeaderSkeleton />}>
+                <ReviewHeader code={code} prof={prof} profInfo={prof_info} />
+            </Suspense>
 
-                                {
-                                    is_offered ?
-                                        <Popover>
-                                            <PopoverTrigger asChild>
-                                                <Button className='text-sm px-2 hover:shadow-lg  bg-white text-blue-800 hover:bg-gray-200'>
-                                                    <CalendarRange size={16} /> <span>Timetable</span>
-                                                </Button>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-80">
-                                                <TimetableScheduleCard
-                                                    timetable={timetable}
-                                                    code={code}
-                                                    prof={prof}
-                                                    courseTitle={course_info["courseTitleEng"]}
-                                                    credits={Number(course_info["Credits"])}
-                                                />
-                                            </PopoverContent>
-                                        </Popover>
-                                        :
-                                        <></>
-                                }
-                            </div>
-                            {/* <Toolbar course={course_info} prof={undefined} /> */}
-                        </div>
-                        <Card className='md:w-80 py-4 pb-0 md:m-0 mt-8'>
-                            <CardContent className="h-full py-4">
-                                <div className='space-y-2 flex flex-col h-full justify-between'>
-                                    <div className='space-y-2 text-sm'>
-                                        <div>
-                                            總體 Overall
-                                        </div>
-                                        <Progress value={prof_info['result'] * 20} className='h-2' />
-                                    </div>
-                                    <div className='space-y-2 text-sm'>
-                                        <div>
-                                            成績 Grade
-                                        </div>
-                                        <Progress value={prof_info['grade'] * 20} className='h-2' />
-                                    </div>
-                                    <div className='space-y-2 text-sm'>
-                                        <div>
-                                            難度 Difficulty
-                                        </div>
-                                        <Progress value={prof_info['hard'] * 20} className='h-2' />
-                                    </div>
-                                    <div className='space-y-2 text-sm'>
-                                        <div>
-                                            實用性 Usefulness
-                                        </div>
-                                        <Progress value={prof_info['reward'] * 20} className='h-2' />
-                                    </div>
-                                    <p className='text-xs italic text-gray-500'>Based on the reviews from users.</p>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </div>
-                </div>
-            </div>
-            <div>
-                <div className='max-w-screen-xl mx-auto p-4'>
-                    {/* <ReviewPagination code={code} prof={prof} page_num={page_num} total_page={Math.ceil(prof_info.comments / 10)} /> */}
-                    <Comments comments={comments} />
-                    <ReviewPagination code={code} prof={prof} page_num={page_num} total_page={Math.ceil(prof_info.comments / 20)} />
-                </div>
-            </div>
-            <ReviewReload/>
-            <ReviewNotice admin_note={prof_info.admin_note} admin_note_en={prof_info.admin_note_en}/>
+            <Suspense fallback={<ReviewCommentsSkeleton count={6} />}>
+                <ReviewComments
+                    profInfoId={prof_info.id}
+                    page={page_num}
+                    code={code}
+                    prof={prof}
+                    total={prof_info.comments}
+                />
+            </Suspense>
+
+            <ReviewReload />
+            <ReviewNotice admin_note={prof_info.admin_note} admin_note_en={prof_info.admin_note_en} />
         </>
     )
 }

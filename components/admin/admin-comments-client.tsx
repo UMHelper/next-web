@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import AdminInfiniteScroll from "@/components/admin/admin-infinite-scroll";
+import { AdminTableRowsSkeleton } from "@/components/loading-skeletons";
 import { CommentContent } from "@/components/comment-content";
 import { Button } from "@/components/ui/button";
 import {
@@ -171,6 +172,7 @@ export default function AdminCommentsClient() {
             </tr>
           </thead>
           <tbody>
+            {loading && comments.length === 0 ? <AdminTableRowsSkeleton columns={9} rows={6} /> : null}
             {comments.map((comment) => (
               <tr key={comment.id} className="border-b last:border-0">
                 <td className="p-3">{comment.id}</td>

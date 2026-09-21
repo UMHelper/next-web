@@ -30,7 +30,7 @@ const normalizeText = (value: unknown) => {
     return text.length > 0 ? text : null
 }
 
-const normalizeLocalCourseInfo = (courseInfo: any, code: string) => ({
+export const normalizeLocalCourseInfo = (courseInfo: any, code: string) => ({
     courseCode: code.toUpperCase(),
     courseTitle: normalizeText(courseInfo['courseTitleEng']) ?? "Unknown Course",
     courseTitleChi: normalizeText(courseInfo['courseTitleChi']) ?? null,

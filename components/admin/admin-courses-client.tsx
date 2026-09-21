@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import AdminInfiniteScroll from "@/components/admin/admin-infinite-scroll";
+import { AdminTableRowsSkeleton } from "@/components/loading-skeletons";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -181,6 +182,7 @@ export default function AdminCoursesClient() {
             </tr>
           </thead>
           <tbody>
+            {loadingCourses && courses.length === 0 ? <AdminTableRowsSkeleton columns={9} rows={6} /> : null}
             {courses.map((course) => (
               <tr key={course.New_code} className="border-b last:border-0">
                 <td className="p-3 font-mono">

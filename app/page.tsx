@@ -1,22 +1,19 @@
+import { Suspense } from "react";
 import { Radar, Github, Quote, UserPlus } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import HomeStatistics from "@/components/home-statistics";
+import HomeSearchSection from "@/components/home-search-section";
+import { HomeSearchSkeleton, HomeStatisticsSkeleton } from "@/components/loading-skeletons";
 import { Card } from "@/components/ui/card";
-import SearchComp from "@/components/search";
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
-import { getAppConfig } from "@/lib/config/app-config";
 
-async function HomePage() {
-    const { currentYear, currentSem, databaseLastUpdate } = await getAppConfig();
-
+function HomePage() {
     return (
         <>
-            <SearchComp
-                currentYear={currentYear}
-                currentSem={currentSem}
-                databaseLastUpdate={databaseLastUpdate}
-            />
+            <Suspense fallback={<HomeSearchSkeleton />}>
+                <HomeSearchSection />
+            </Suspense>
 
             <div className='max-w-screen-xl mx-auto p-4'>
                 <div className='grid grid-cols-1 md:grid-cols-2 mx-4 py-8 gap-y-8 gap-x-16'>
@@ -113,7 +110,9 @@ async function HomePage() {
                 </div>
             </div>
 
-            <HomeStatistics />
+            <Suspense fallback={<HomeStatisticsSkeleton />}>
+                <HomeStatistics />
+            </Suspense>
         </>
 
     )

@@ -5,6 +5,7 @@ import { Copy, Share2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -90,7 +91,7 @@ export default function ShareDialog({ plan }: { plan: LocalPlan }) {
         </DialogHeader>
         <div className="space-y-3 text-sm">
           {loading ? (
-            <div className="text-slate-500">Loading...</div>
+            <Skeleton className="h-9 w-full rounded" />
           ) : url ? (
             <>
               <div className="break-all rounded bg-slate-50 p-2 text-xs">{url}</div>

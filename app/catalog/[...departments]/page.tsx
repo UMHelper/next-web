@@ -1,4 +1,6 @@
+import React, { Suspense } from 'react';
 import CourseFilter from '@/components/course-filter';
+import { CatalogGridSkeleton } from '@/components/loading-skeletons';
 import { faculty, faculty_dept, normalizeFacultySlug } from '@/lib/consant';
 import { fetchCatalogList } from '@/lib/database/get-course-info';
 import { buildCatalogPath } from '@/lib/site';
@@ -35,7 +37,18 @@ export async function generateStaticParams() {
     return [...res]
 }
 
-const CatalogPage = async ({ params: { departments } }: { params: { departments: string[] } }) => {
+async function CatalogListSection({ departments }: { departments: string[] }) {
+    const courseList: any = await fetchCatalogList(departments)
+    return (
+        <div>
+            <div>
+                <CourseFilter data={courseList} />
+            </div>
+        </div>
+    )
+}
+
+const CatalogPage = ({ params: { departments } }: { params: { departments: string[] } }) => {
     const normalizedDepartments = departments.map((value, index) => (
         index === 0 ? normalizeFacultySlug(value) : value.toUpperCase()
     ))
@@ -54,13 +67,11 @@ const CatalogPage = async ({ params: { departments } }: { params: { departments:
             </div>
         )
     }
-    const courseList: any = await fetchCatalogList(normalizedDepartments)
+
     return (
-        <div>
-            <div>
-                <CourseFilter data={courseList} />
-            </div>
-        </div>
+        <Suspense fallback={<CatalogGridSkeleton count={9} />}>
+            <CatalogListSection departments={normalizedDepartments} />
+        </Suspense>
     )
 }
 

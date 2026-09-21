@@ -1,4 +1,7 @@
+import React, { Suspense } from "react";
+
 import CourseCard from "@/components/course-card"
+import { CourseGridSkeleton } from "@/components/loading-skeletons"
 import { Masonry } from "@/components/masonry"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { fetchInstructorFuzzySearch } from "@/lib/database/get-fuzzy-search"
@@ -15,17 +18,16 @@ export function generateMetadata(
 
 }
 
-
-
-async function InstructorSearchPage({ params }: { params: { name: string[] } }) {
-    const data = await fetchInstructorFuzzySearch(decodeURI(params.name.join('/')).toUpperCase())
+async function InstructorSearchResults({ name }: { name: string }) {
+    const data = await fetchInstructorFuzzySearch(name)
     if (data.length === 0) {
         return (
             <div className="mt-20">
                 <div className="text-xl font-semibold">No result found :(</div>
             </div>
         )
-    }    
+    }
+
     return (
         <Accordion type="single" collapsible className="w-full">
             {
@@ -46,6 +48,16 @@ async function InstructorSearchPage({ params }: { params: { name: string[] } }) 
                 })
             }
         </Accordion>
+    )
+}
+
+function InstructorSearchPage({ params }: { params: { name: string[] } }) {
+    const name = decodeURI(params.name.join('/')).toUpperCase()
+
+    return (
+        <Suspense fallback={<CourseGridSkeleton count={6} />}>
+            <InstructorSearchResults name={name} />
+        </Suspense>
     )
 }
 
