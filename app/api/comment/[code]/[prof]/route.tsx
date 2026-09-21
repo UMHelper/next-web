@@ -17,6 +17,7 @@ import {
   courseCodeSchema,
   professorNameSchema,
 } from "@/lib/validation/comment";
+import { isVerifiedIdentityId } from "@/lib/validation/identity";
 
 export const dynamic = "force-dynamic";
 
@@ -93,6 +94,8 @@ export async function POST(
   if ("response" in identityResult) return identityResult.response;
   const { identity } = identityResult;
   const isAnonymous = identity.platform === "anonymous";
+  // verify 徽章只授予真实 Clerk 账号(user_...);iOS 本机 UUID 仍是匿名设备标识。
+  const isVerified = isVerifiedIdentityId(identity.id);
 
   const code = decodeURIComponent(params.code).toUpperCase();
   const prof = decodeURIComponent(params.prof).replaceAll("$", "/").toUpperCase();
@@ -189,7 +192,7 @@ export async function POST(
           scores.assignment +
           scores.recommend) / 7,
       target_pub_time: new Date().toISOString().slice(0, 19).replace("T", " "),
-      target_verify: isAnonymous ? 0 : 1,
+      target_verify: isVerified ? 1 : 0,
       target_verify_account: isAnonymous ? "" : identity.id,
       target_img: imageUrl,
     })

@@ -102,4 +102,27 @@ describe("POST /api/comment/[code]/[prof]", () => {
       }),
     );
   });
+
+  it("marks an iOS device identity as unverified", async () => {
+    resolveCommentIdentity.mockResolvedValue({
+      identity: { platform: "ios", id: "3f2a1c44-5b0e-4a7d-9f1e-2b3c4d5e6f70" },
+    });
+
+    const response = await POST(
+      new Request("http://localhost/api/comment/ACCT1000/TEACHER", {
+        method: "POST",
+        body: validForm(),
+      }),
+      { params: { code: "ACCT1000", prof: "TEACHER" } },
+    );
+
+    expect(response.status).toBe(200);
+    expect(rpc).toHaveBeenCalledWith(
+      "insert_comment_and_refresh_prof_stats",
+      expect.objectContaining({
+        target_verify: 0,
+        target_verify_account: "3f2a1c44-5b0e-4a7d-9f1e-2b3c4d5e6f70",
+      }),
+    );
+  });
 });
