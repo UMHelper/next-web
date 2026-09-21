@@ -8,7 +8,7 @@ on:
       mode:
         description: "missing or all"
         required: true
-        default: "missing"
+        default: "all"
         type: choice
         options:
           - missing
@@ -40,7 +40,7 @@ jobs:
         run: npm ci
 
       - name: Sync UM courses
-        run: node scripts/sync-um.mjs --${{ github.event.inputs.mode || 'missing' }} --limit=${{ github.event.inputs.limit || '200' }}
+        run: node scripts/sync-um.mjs --${{ github.event.inputs.mode || 'all' }} --limit=${{ github.event.inputs.limit || '200' }}
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
