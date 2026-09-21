@@ -59,8 +59,10 @@ describe("update tasks", () => {
 
     expect(client.rpc).toHaveBeenCalledWith("admin_resolve_known_codes", { codes: ["ACCT1000"] });
     expect(client.rpc).toHaveBeenCalledWith("admin_upsert_offered_courses", {
-      inserts: [expect.objectContaining({ New_code: "ACCT1000" })],
-      offered_codes: [],
+      payload: {
+        inserts: [expect.objectContaining({ New_code: "ACCT1000" })],
+        offered_codes: [],
+      },
     });
   });
 

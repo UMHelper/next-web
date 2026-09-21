@@ -27,8 +27,10 @@ export const checkCourses: UpdateTask = {
 
     const inserts = buildOfferedCourseInserts(ctx.rows, missing, umCache);
     const { error } = await ctx.client.rpc("admin_upsert_offered_courses", {
-      inserts,
-      offered_codes: Array.from(knownSet),
+      payload: {
+        inserts,
+        offered_codes: Array.from(knownSet),
+      },
     });
     if (error) throw new Error(formatRpcError(error));
 
