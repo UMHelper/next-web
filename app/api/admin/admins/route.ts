@@ -1,4 +1,4 @@
-import { Clerk } from "@clerk/backend";
+import { clerkClient } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
 import { writeAuditLog } from "@/lib/admin-audit";
@@ -84,10 +84,8 @@ export async function POST(request: Request) {
   let userEmail: string | null = null;
 
   try {
-    const clerk = Clerk({ secretKey });
-
     if (isEmail) {
-      const users = await clerk.users.getUserList({ emailAddress: [identifier], limit: 2 });
+      const users = await clerkClient.users.getUserList({ emailAddress: [identifier], limit: 2 });
       if (users.length === 0) return apiError("not_found", "Clerk user not found", 404);
       if (users.length > 1) {
         return apiError("invalid_request", "Email matches multiple Clerk users", 400);
@@ -95,7 +93,7 @@ export async function POST(request: Request) {
       userId = users[0].id;
       userEmail = toDirectoryUser(users[0] as never).primaryEmail;
     } else {
-      const user = await clerk.users.getUser(identifier);
+      const user = await clerkClient.users.getUser(identifier);
       userEmail = toDirectoryUser(user as never).primaryEmail;
     }
   } catch {
