@@ -4,7 +4,7 @@ import { ShoppingCart } from "lucide-react"
 import Link from "next/link"
 import { useLocalStorage } from 'usehooks-ts'
 
-export const TimetableCard = ({ timetable, code, prof }: { timetable: any,code:string, prof:string }) => {
+export const TimetableScheduleCard = ({ timetable, code, prof }: { timetable: any,code:string, prof:string }) => {
     const [timetableCart, setTimetableCart] = useLocalStorage<any[]>('timetableCart', [])
     if (timetable===undefined || timetable.length === 0) {
         return(
@@ -72,4 +72,4 @@ export const TimetableCard = ({ timetable, code, prof }: { timetable: any,code:s
         </div>
     )
 }
-export default TimetableCard
+export default TimetableScheduleCard

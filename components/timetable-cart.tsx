@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import { usePathname } from 'next/navigation'
 import Link from "next/link";
 
-export const TimetableCard = (
+export const TimetableCartItem = (
     { timetable: {
         schedules,
         code,
@@ -83,7 +83,7 @@ export const TimetableList = () => {
     return (
         <div>
             <div className="my-2 space-y-2">
-                {timetableCart.map((timetable: any) => (<TimetableCard key={timetable.code + timetable.prof + timetable.section} timetable={timetable} />))}
+                {timetableCart.map((timetable: any) => (<TimetableCartItem key={timetable.code + timetable.prof + timetable.section} timetable={timetable} />))}
             </div>
             {
                 timetableCart.length > 0 ? (

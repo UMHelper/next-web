@@ -5,7 +5,7 @@ import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { CalendarRange, Cat, ChevronRightCircle, ClipboardEdit } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { TimetableCard } from "@/components/timetable-card";
+import { TimetableScheduleCard } from "@/components/timetable-schedule-card";
 import { parseReviewRoute } from "@/lib/review-route";
 import { getComentListByCourseIDAndPage } from "@/lib/database/get-comment-list";
 import { getReviewInfo } from "@/lib/database/get-prof-info";
@@ -113,7 +113,7 @@ const ReviewPage = async ({
                                                 </Button>
                                             </PopoverTrigger>
                                             <PopoverContent className="w-80">
-                                                <TimetableCard timetable={timetable} code={code} prof={prof} />
+                                                <TimetableScheduleCard timetable={timetable} code={code} prof={prof} />
                                             </PopoverContent>
                                         </Popover>
                                         :
