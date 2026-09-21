@@ -12,6 +12,7 @@ describe("site URL builders", () => {
   it("builds course and catalog paths", () => {
     expect(buildCoursePath("acct1000")).toBe("/course/ACCT1000");
     expect(buildCatalogPath(["fba", "aim"])).toBe("/catalog/FBA/AIM");
+    expect(buildCatalogPath(["gecourse", "gega"])).toBe("/catalog/gecourse/GEGA");
   });
 
   it("encodes professor path and review page suffix", () => {

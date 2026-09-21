@@ -15,7 +15,12 @@ export function buildCoursePath(code: string) {
 }
 
 export function buildCatalogPath(departments: string[]) {
-  return `/catalog/${departments.map((part) => encodeSegment(part.toUpperCase())).join("/")}`;
+  return `/catalog/${departments
+    .map((part) => {
+      const upper = part.toUpperCase();
+      return encodeSegment(upper === "GECOURSE" ? "gecourse" : upper);
+    })
+    .join("/")}`;
 }
 
 export function buildProfessorPath(name: string) {
