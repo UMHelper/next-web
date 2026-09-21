@@ -1,35 +1,42 @@
-import supabaseServer from '@/lib/supabase/server';
+import { getAppConfig } from "@/lib/config/app-config";
+import supabaseServer from "@/lib/supabase/server";
 
-const getScheduleList = async (code: string, prof: string) => {
-    const { data, error }: { data: any, error: any } = await supabaseServer.rpc('get_schedule_list', { course_code: code, prof: prof.replaceAll("%20", " ").replaceAll('$', '/') })
-    let res: any[] = []
-    data.forEach((entry: any) => {
-        if ((entry.year.toString() === (process.env.NEXT_PUBLIC_CURRENT_YEAR ?? "2026")) && (entry.sem.toString() === (process.env.NEXT_PUBLIC_CURRENT_SEM ?? "1"))) {
-            // Check if there is an existing section with the same section number
-            let sectionEntry = res.find(item => item.section === entry.section);
-            if (!sectionEntry) {
-                // If section does not exist, create a new section entry
-                sectionEntry = {
-                    section: entry.section,
-                    schedules: []
-                };
-                res.push(sectionEntry);
-            }
-            // Add the schedule to the section entry
-            sectionEntry.schedules.push({
-                date: entry.date,
-                time: entry.times,
-                location: entry.location
-            });
-            // remove duplicate schedules
-            sectionEntry.schedules = sectionEntry.schedules.filter((schedule: any, index: number, self: any) =>
-                index === self.findIndex((t: any) => (
-                    t.date === schedule.date && t.time === schedule.time && t.location === schedule.location
-                ))
-            )
-        }
+type ScheduleEntry = { date: string; time: string; location: string };
+type SectionEntry = { section: string; schedules: ScheduleEntry[] };
+
+const getScheduleList = async (code: string, prof: string): Promise<SectionEntry[]> => {
+    const { currentYear, currentSem } = await getAppConfig();
+
+    const { data, error } = await supabaseServer.rpc("get_schedule_list", {
+        course_code: code,
+        prof: prof.replaceAll("%20", " ").replaceAll("$", "/"),
+        target_year: currentYear,
+        target_sem: currentSem,
     });
-    return res;
-}
+
+    if (error) {
+        console.error("[getScheduleList] rpc failed:", error.message);
+        return [];
+    }
+
+    const sections = new Map<string, SectionEntry>();
+
+    for (const entry of data ?? []) {
+        const section = String(entry.section);
+        const bucket = sections.get(section) ?? { section, schedules: [] };
+        const schedule: ScheduleEntry = { date: entry.date, time: entry.times, location: entry.location };
+
+        if (!bucket.schedules.some((item) =>
+            item.date === schedule.date && item.time === schedule.time && item.location === schedule.location
+        )) {
+            bucket.schedules.push(schedule);
+        }
+
+        sections.set(section, bucket);
+    }
+
+    return Array.from(sections.values());
+};
 
 export default getScheduleList;
+

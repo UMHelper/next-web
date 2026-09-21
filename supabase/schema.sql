@@ -944,3 +944,29 @@ comment on column public.offer.course_id is 'references prof_with_course.id (NOT
 comment on column public.schedule.course_id is 'references offer.id (NOT course code)';
 comment on column public.time_location.date is 'weekday, uppercase MON..SUN';
 comment on column public.time_location.times is 'HH:MM-HH:MM';
+
+--
+-- get_schedule_list term filter (migration: 20260921_get_schedule_list.sql)
+--
+
+drop function if exists public.get_schedule_list(text, text);
+
+create or replace function public.get_schedule_list(
+  course_code text,
+  prof text,
+  target_year integer,
+  target_sem integer
+)
+returns table (year integer, sem integer, section text, date text, times text, location text)
+language sql
+stable
+security invoker
+set search_path = public
+as $function$
+  select o.year, o.sem, o.section, tl.date, tl.times, tl.location
+  from public.get_offer_list_by_prof(course_code, prof) o
+  join public.schedule s on s.course_id = o.id
+  join public.time_location tl on tl.id = s.time_location_id
+  where o.year = target_year and o.sem = target_sem
+  order by o.section, tl.date, tl.times, tl.location;
+$function$;
