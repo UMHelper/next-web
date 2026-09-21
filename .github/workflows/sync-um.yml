@@ -14,9 +14,9 @@ on:
           - missing
           - all
       limit:
-        description: "Maximum number of courses to sync"
-        required: true
-        default: "200"
+        description: "Maximum number of courses to sync, or 'all'"
+        required: false
+        default: "all"
 
 concurrency:
   group: sync-um
@@ -25,7 +25,7 @@ concurrency:
 jobs:
   sync:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -40,7 +40,7 @@ jobs:
         run: npm ci
 
       - name: Sync UM courses
-        run: node scripts/sync-um.mjs --${{ github.event.inputs.mode || 'all' }} --limit=${{ github.event.inputs.limit || '200' }}
+        run: node scripts/sync-um.mjs --${{ github.event.inputs.mode || 'all' }} --limit=${{ github.event.inputs.limit || 'all' }}
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}

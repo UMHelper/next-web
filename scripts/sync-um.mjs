@@ -1,7 +1,10 @@
 #!/usr/bin/env node
 import { createClient } from "@supabase/supabase-js";
+import pLimit from "p-limit";
 
 const UM_API_BASE = "https://api.data.um.edu.mo/service/academic/course_catalog/all";
+const PAGE_SIZE = 1000;
+const SYNC_CONCURRENCY = Number(process.env.SYNC_CONCURRENCY || 4);
 
 function loadEnv() {
   if (process.env.SUPABASE_SECRET_KEY && process.env.NEXT_PUBLIC_SUPABASE_URL) return;
@@ -84,6 +87,22 @@ async function loadLocalCourse(client, code) {
   return data;
 }
 
+// PostgREST caps responses at 1000 rows by default, so paginate to see the whole table.
+export async function selectAllCodes(client, columns) {
+  const out = [];
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data, error } = await client
+      .from("course_noporf")
+      .select(columns)
+      .order("New_code", { ascending: true })
+      .range(from, from + PAGE_SIZE - 1);
+    if (error) throw error;
+    out.push(...(data ?? []));
+    if (!data || data.length < PAGE_SIZE) break;
+  }
+  return out;
+}
+
 export function compactPatch(patch) {
   return Object.fromEntries(
     Object.entries(patch).filter(([, value]) => value !== null && value !== undefined),
@@ -126,27 +145,24 @@ export async function syncCourseByCode(client, code) {
   return { code, status: "created" };
 }
 
-async function loadIncompleteCodes(client, limit) {
-  const { data, error } = await client
-    .from("course_noporf")
-    .select(
-      'New_code, courseTitleEng, offeringProgLevel, Credits, Offering_Department, Offering_Unit, Medium_of_Instruction, gradingSystem, courseType, Course_Duration, courseDescription, ilo',
-    );
-  if (error) throw error;
+function applyLimit(codes, limit) {
+  return limit === null ? codes : codes.slice(0, limit);
+}
 
-  return (data ?? [])
-    .filter((course) => !hasCompleteCourseInfo(course))
-    .slice(0, limit)
-    .map((course) => course.New_code);
+async function loadIncompleteCodes(client, limit) {
+  const data = await selectAllCodes(
+    client,
+    'New_code, courseTitleEng, offeringProgLevel, Credits, Offering_Department, Offering_Unit, Medium_of_Instruction, gradingSystem, courseType, Course_Duration, courseDescription, ilo',
+  );
+  return applyLimit(data.filter((course) => !hasCompleteCourseInfo(course)).map((course) => course.New_code), limit);
 }
 
 async function loadAllCodes(client, limit) {
-  const { data, error } = await client.from("course_noporf").select("New_code");
-  if (error) throw error;
-  return (data ?? []).slice(0, limit).map((course) => course.New_code);
+  const data = await selectAllCodes(client, "New_code");
+  return applyLimit(data.map((course) => course.New_code), limit);
 }
 
-function parseArgs(argv) {
+export function parseArgs(argv) {
   const args = {
     mode: "missing",
     limit: 100,
@@ -156,11 +172,14 @@ function parseArgs(argv) {
   for (const arg of argv) {
     if (arg === "--all") args.mode = "all";
     else if (arg === "--missing") args.mode = "missing";
+    else if (arg === "--limit=all" || arg === "--no-limit") args.limit = null;
     else if (arg.startsWith("--limit=")) args.limit = Number(arg.slice("--limit=".length));
     else if (arg.startsWith("--code=")) args.code = arg.slice("--code=".length).trim().toUpperCase();
   }
 
-  if (!Number.isInteger(args.limit) || args.limit <= 0) throw new Error("--limit must be a positive integer");
+  if (args.limit !== null && (!Number.isInteger(args.limit) || args.limit <= 0)) {
+    throw new Error("--limit must be a positive integer or 'all'");
+  }
   return args;
 }
 
@@ -176,22 +195,27 @@ async function main() {
 
   const stats = { scanned: codes.length, updated: 0, created: 0, not_found: 0, failed: 0 };
   const startedAt = Date.now();
+  const limit = pLimit(SYNC_CONCURRENCY);
 
-  for (const code of codes) {
-    try {
-      const result = await syncCourseByCode(client, code);
-      if (result.status === "updated") stats.updated += 1;
-      else if (result.status === "created") stats.created += 1;
-      else if (result.status === "not_found") stats.not_found += 1;
-      else {
-        stats.failed += 1;
-        console.error(`[sync-um] ${code} failed: ${result.error}`);
-      }
-    } catch (error) {
-      stats.failed += 1;
-      console.error(`[sync-um] ${code} failed: ${error instanceof Error ? error.message : String(error)}`);
-    }
-  }
+  await Promise.all(
+    codes.map((code) =>
+      limit(async () => {
+        try {
+          const result = await syncCourseByCode(client, code);
+          if (result.status === "updated") stats.updated += 1;
+          else if (result.status === "created") stats.created += 1;
+          else if (result.status === "not_found") stats.not_found += 1;
+          else {
+            stats.failed += 1;
+            console.error(`[sync-um] ${code} failed: ${result.error}`);
+          }
+        } catch (error) {
+          stats.failed += 1;
+          console.error(`[sync-um] ${code} failed: ${error instanceof Error ? error.message : String(error)}`);
+        }
+      }),
+    ),
+  );
 
   console.log(
     JSON.stringify(
@@ -199,6 +223,8 @@ async function main() {
         ...stats,
         durationMs: Date.now() - startedAt,
         mode: args.code ? "code" : args.mode,
+        limit: args.limit === null ? "all" : args.limit,
+        concurrency: SYNC_CONCURRENCY,
       },
       null,
       2,

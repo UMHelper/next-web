@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 // @ts-ignore -- the sync script is plain ESM, not part of the TS project graph
-import { buildInsertPatch, compactPatch, hasCompleteCourseInfo, mapRemoteCourseInfoToLocalPatch } from "../scripts/sync-um.mjs";
+import { buildInsertPatch, compactPatch, hasCompleteCourseInfo, mapRemoteCourseInfoToLocalPatch, parseArgs } from "../scripts/sync-um.mjs";
 
 const remote = {
   courseTitle: "PRINCIPLES OF FINANCIAL ACCOUNTING",
@@ -70,5 +70,25 @@ describe("sync-um required columns", () => {
       Is_Offered: 0,
       courseTitleEng: "Title",
     });
+  });
+});
+
+describe("sync-um args", () => {
+  it("supports an unlimited run", () => {
+    expect(parseArgs(["--all", "--limit=all"]).limit).toBeNull();
+    expect(parseArgs(["--all", "--no-limit"]).limit).toBeNull();
+  });
+
+  it("still supports a numeric limit", () => {
+    expect(parseArgs(["--missing", "--limit=50"])).toEqual({
+      mode: "missing",
+      limit: 50,
+      code: null,
+    });
+  });
+
+  it("rejects invalid limits", () => {
+    expect(() => parseArgs(["--limit=0"])).toThrow();
+    expect(() => parseArgs(["--limit=abc"])).toThrow();
   });
 });
