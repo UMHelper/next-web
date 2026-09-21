@@ -1,4 +1,5 @@
 import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import { buildReviewPath } from "@/lib/site";
 
 export const ReviewPagination =
     ({
@@ -12,11 +13,8 @@ export const ReviewPagination =
         code: string,
         prof: string
     }) => {
-        const reviewHref = (page: number) => (
-            page <= 1
-                ? `/reviews/${code}/${prof}`
-                : `/reviews/${code}/${prof}?page=${page}`
-        )
+        const decodedProf = decodeURIComponent(prof).replaceAll("$", "/")
+        const reviewHref = (page: number) => buildReviewPath(code, decodedProf, page)
 
         return (
             <Pagination className="py-1 my-1">
