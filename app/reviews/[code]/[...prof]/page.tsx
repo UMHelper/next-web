@@ -11,6 +11,7 @@ import Link from "next/link";
 import { notFound } from 'next/navigation'
 
 import { getCourseInfo } from "@/lib/database/get-course-info";
+import { getAppConfig } from "@/lib/config/app-config";
 import getScheduleList from "@/lib/database/get-schedule-list";
 import { Comments } from "@/components/comments";
 import { ReviewPagination } from "@/components/review-pagination";
@@ -54,6 +55,7 @@ const ReviewPage = async ({
     const comments: any[] = await getPublicCommentPage(prof_info.id, page_num - 1);
 
     const timetable = await getScheduleList(code, prof);
+    const { isPreenrollmentOpen } = await getAppConfig();
 
     return (
         <>
@@ -83,11 +85,10 @@ const ReviewPage = async ({
                                     {/* <ChevronRightCircle size={16} strokeWidth={1.5} /> */}
                                 </Link>
                                 {(
-                                    Number(process.env.IS_PREENROLLMENT_OPEN)==0 ?
+                                    !isPreenrollmentOpen ?
                                         (is_offered ?
                                             <span className='text-sm font-semibold rounded-3xl bg-gradient-to-r from-green-600 to-green-600 h-fit py-0.5 px-2 shadow font-normal'> Offered</span>
                                             : null
-                                            // <div className='text-sm font-semibold rounded-3xl bg-gradient-to-r from-neutral-700 to-stone-900 h-fit py-0.5 px-2 shadow'> Not Offered</div>
                                         )
                                         :
                                         null

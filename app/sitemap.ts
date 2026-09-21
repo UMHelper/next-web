@@ -14,9 +14,10 @@ const fetchCourseSitemap = async () => {
     return [];
   }
 
+  const lastModified = await getSitemapLastModified();
   return (data ?? []).map((course: any) => ({
     url: absoluteUrl(buildCoursePath(course.New_code)),
-    lastModified: getSitemapLastModified(),
+    lastModified,
     changeFrequency: "monthly" as const,
     priority: 0.9,
   }));
@@ -31,16 +32,17 @@ const fetchReviewSitemap = async () => {
     return [];
   }
 
+  const lastModified = await getSitemapLastModified();
   return (data ?? []).map((review: any) => ({
     url: absoluteUrl(buildReviewPath(review.course_id, review.prof_id)),
-    lastModified: getSitemapLastModified(),
+    lastModified,
     changeFrequency: "monthly" as const,
     priority: 0.8,
   }));
 };
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const lastModified = getSitemapLastModified();
+  const lastModified = await getSitemapLastModified();
   const indexSitemap: MetadataRoute.Sitemap = [
     {
       url: absoluteUrl("/"),
@@ -78,7 +80,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     fetchCourseSitemap(),
     fetchReviewSitemap(),
   ]);
-  const catalogSitemap = buildCatalogSitemap();
+  const catalogSitemap = await buildCatalogSitemap();
 
   return [...indexSitemap, ...courseSitemap, ...catalogSitemap, ...reviewSitemap];
 }

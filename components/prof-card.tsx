@@ -2,6 +2,8 @@ import Link from "next/link";
 
 import { RatingStatsCard } from "@/components/course/rating-stats-card";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { getAppConfig } from "@/lib/config/app-config";
+import { shouldShowOfferedBadge } from "@/lib/config/offered-badge";
 
 function OfferedBadge({ children }: { children: React.ReactNode }) {
   return (
@@ -12,6 +14,7 @@ function OfferedBadge({ children }: { children: React.ReactNode }) {
 }
 
 const ProfCard = async ({ data, code }: { data: any; code: any }) => {
+  const { isPreenrollmentOpen } = await getAppConfig();
   return (
     <Link href={"/reviews/" + code + "/" + data.prof_id}>
       <Card className="hover:cursor-pointer hover:shadow-lg">
@@ -20,8 +23,9 @@ const ProfCard = async ({ data, code }: { data: any; code: any }) => {
             <div className="break-words">{data.prof_id}</div>
             <div className="text-white flex flex-col">
               {parseInt(code[4]) <= 4 &&
-                Number(process.env.IS_PREENROLLMENT_OPEN) == 0 &&
-                data.is_offered && <OfferedBadge>Offered</OfferedBadge>}
+                shouldShowOfferedBadge(isPreenrollmentOpen, data.is_offered) && (
+                  <OfferedBadge>Offered</OfferedBadge>
+                )}
             </div>
           </div>
         </CardHeader>

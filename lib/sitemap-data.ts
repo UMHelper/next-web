@@ -1,25 +1,27 @@
+import { getAppConfig } from "@/lib/config/app-config";
 import { faculty, faculty_dept } from "@/lib/consant";
 import { absoluteUrl, buildCatalogPath } from "@/lib/site";
 
 
-function parseLastModified(value: string | undefined) {
+function parseLastModified(value: string | null) {
   if (!value) return new Date("2026-08-15T00:00:00.000Z");
   const parsed = new Date(`${value}T00:00:00.000Z`);
   return Number.isNaN(parsed.getTime()) ? new Date("2026-08-15T00:00:00.000Z") : parsed;
 }
 
-export function getSitemapLastModified() {
-  return parseLastModified(process.env.NEXT_PUBLIC_DATABASE_LAST_UPDATE);
+export async function getSitemapLastModified() {
+  const { databaseLastUpdate } = await getAppConfig();
+  return parseLastModified(databaseLastUpdate);
 }
 
-export function buildCatalogSitemap() {
+export async function buildCatalogSitemap() {
   const entries: Array<{
     url: string;
     lastModified: Date;
     changeFrequency: "monthly";
     priority: number;
   }> = [];
-  const lastModified = getSitemapLastModified();
+  const lastModified = await getSitemapLastModified();
 
   for (const fac of faculty) {
     entries.push({

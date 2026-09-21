@@ -9,8 +9,15 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import SearchForm from "@/components/search/search-form";
+import { formatAcademicYear } from "@/lib/config/term-format";
 
-export default function SearchComp() {
+type SearchCompProps = {
+  currentYear: number;
+  currentSem: number;
+  databaseLastUpdate: string | null;
+};
+
+export default function SearchComp({ currentYear, currentSem, databaseLastUpdate }: SearchCompProps) {
   return (
     <div className="relative overflow-hidden">
       <Image
@@ -47,18 +54,9 @@ export default function SearchComp() {
               </div>
               <div>鍵入部分課程代碼/名稱或講師姓名</div>
               <br />
-              <div>
-                {process.env.NEXT_PUBLIC_CURRENT_YEAR ? process.env.NEXT_PUBLIC_CURRENT_YEAR : "2026"}/
-                {Number(process.env.NEXT_PUBLIC_CURRENT_YEAR ? process.env.NEXT_PUBLIC_CURRENT_YEAR : "2026") + 1} AY Sem{" "}
-                {process.env.NEXT_PUBLIC_CURRENT_SEM ? process.env.NEXT_PUBLIC_CURRENT_SEM : "1"}
-              </div>
+              <div>{formatAcademicYear(currentYear, currentSem)}</div>
               <div className="italic">Data Source: reg.um.edu.mo</div>
-              <div className="italic">
-                Last updated on:{" "}
-                {process.env.NEXT_PUBLIC_DATABASE_LAST_UPDATE
-                  ? process.env.NEXT_PUBLIC_DATABASE_LAST_UPDATE
-                  : "2026-08-08"}
-              </div>
+              <div className="italic">Last updated on: {databaseLastUpdate ?? "2026-08-08"}</div>
             </CardFooter>
           </Card>
         </div>
