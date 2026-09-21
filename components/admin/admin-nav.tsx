@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -8,6 +9,7 @@ const NAV_ITEMS = [
   { href: "/admin/reports", label: "Reports" },
   { href: "/admin/comments", label: "Comments" },
   { href: "/admin/courses", label: "Courses" },
+  { href: "/admin/update", label: "Update", platformOnly: true },
   { href: "/admin/notes", label: "Course Notes" },
   { href: "/admin/admins", label: "Admins", platformOnly: true },
 ];
