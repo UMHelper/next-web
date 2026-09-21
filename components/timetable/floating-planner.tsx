@@ -70,11 +70,20 @@ const FloatingPlanner = () => {
 
       <button
         type="button"
+        aria-label={
+          sections.length > 0
+            ? `Open timetable (${sections.length} classes, ${conflictCount} conflicts)`
+            : "Open timetable"
+        }
         onClick={() => setMobileOpen(true)}
-        className="fixed bottom-4 left-1/2 z-40 flex -translate-x-1/2 items-center gap-2 rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-lg md:hidden"
+        className="fixed bottom-4 left-1/2 z-40 flex h-12 w-12 -translate-x-1/2 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg transition-colors hover:bg-blue-700 md:hidden"
       >
-        <CalendarDays size={16} />
-        {sections.length} classes · {conflictCount} conflicts
+        <CalendarDays size={20} />
+        {conflictCount > 0 && (
+          <span className="absolute -right-1 -top-1 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold text-white">
+            {conflictCount}
+          </span>
+        )}
       </button>
 
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
