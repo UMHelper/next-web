@@ -5,12 +5,13 @@ import { usePathname } from "next/navigation";
 import { menuList as menu, type MenuItem } from "@/lib/consant";
 
 import { Badge } from "@/components/ui/badge"
-import { useLocalStorage } from 'usehooks-ts'
+import { useTimetablePlanner } from "@/components/timetable/planner-provider"
 
 export default function NavbarList() {
     const pathname = usePathname()
     const menuList = menu
-    const [timetableCart, setTimetableCart] = useLocalStorage<any[]>('timetableCart', [])
+    const { activePlan } = useTimetablePlanner()
+    const timetableCount = activePlan?.payload.sections.length ?? 0
 
     return (
         <div className="flex flex-wrap items-center justify-start ">
@@ -34,7 +35,7 @@ export default function NavbarList() {
                                 {menu.name}
 
                             </Link>
-                                {menu.name==="Timetable" && timetableCart.length!=0 ? <Badge variant={'umeh'}>{timetableCart.length}</Badge>: null}
+                                {menu.name==="Timetable" && timetableCount != 0 ? <Badge variant={'umeh'}>{timetableCount}</Badge>: null}
                             </div>
                         )
                     })}
