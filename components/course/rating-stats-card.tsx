@@ -23,6 +23,11 @@ type RatingStatsCardProps = {
 };
 
 export function RatingStatsCard({ stats, labels }: RatingStatsCardProps) {
+  const result = stats.result ?? 0;
+  const grade = stats.grade ?? 0;
+  const hard = stats.hard ?? 0;
+  const reward = stats.reward ?? 0;
+
   const finalLabels = {
     overall: "Overall",
     grade: "Grade",
@@ -36,28 +41,28 @@ export function RatingStatsCard({ stats, labels }: RatingStatsCardProps) {
     <>
       <div className="text-sm font-semibold">
         <div className="text-gray-400 text-xs">{finalLabels.overall}</div>
-        <div className={cn(get_bg(stats.result), "bg-clip-text text-transparent")}>
-          {get_gpa(stats.result)}
+        <div className={cn(get_bg(result), "bg-clip-text text-transparent")}>
+          {get_gpa(result)}
         </div>
       </div>
       <Separator className="my-1" />
       <div className="flex flex-row text-xs font-semibold space-x-2">
         <div>
           <div className="text-gray-400">{finalLabels.grade}</div>
-          <div className={cn(get_bg(stats.grade), "bg-clip-text text-transparent")}>
-            {get_gpa(stats.grade)}
+          <div className={cn(get_bg(grade), "bg-clip-text text-transparent")}>
+            {get_gpa(grade)}
           </div>
         </div>
         <div>
           <div className="text-gray-400">{finalLabels.hard}</div>
-          <div className={cn(get_bg(stats.hard), "bg-clip-text text-transparent")}>
-            {get_gpa(stats.hard)}
+          <div className={cn(get_bg(hard), "bg-clip-text text-transparent")}>
+            {get_gpa(hard)}
           </div>
         </div>
         <div>
           <div className="text-gray-400">{finalLabels.reward}</div>
-          <div className={cn(get_bg(stats.reward), "bg-clip-text text-transparent")}>
-            {get_gpa(stats.reward)}
+          <div className={cn(get_bg(reward), "bg-clip-text text-transparent")}>
+            {get_gpa(reward)}
           </div>
         </div>
         <div>
