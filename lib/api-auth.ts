@@ -113,6 +113,6 @@ export async function requireWriteIdentity(
   return { identity: { platform: "web", id: userId } };
 }
 
-export function rateLimitKey(identity: CommentIdentity, action: "comment" | "reply" | "vote" | "report") {
+export function rateLimitKey(identity: CommentIdentity, action: "comment" | "reply" | "vote" | "report" | "share_read" | "share_write") {
   return `${identity.platform}:${identity.id}:${action}`;
 }

@@ -2,6 +2,8 @@ import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
 import { apiError, readJsonBody } from "@/lib/api-response";
+import { rateLimitKey } from "@/lib/api-auth";
+import { consumeRateLimit } from "@/lib/rate-limit";
 import supabaseAdmin from "@/lib/supabase/admin";
 import { createShareToken } from "@/lib/timetable/share-token";
 
@@ -52,6 +54,16 @@ export async function POST(
 ) {
   const { userId } = auth();
   if (!userId) return apiError("unauthorized", "Sign in required", 401);
+  const rate = await consumeRateLimit({
+    key: rateLimitKey({ platform: "web", id: userId }, "share_write"),
+    action: "share_write",
+    limit: 30,
+  });
+  if (!rate.allowed) {
+    return apiError("rate_limited", "Too many share updates", 429, {
+      retryAfter: rate.retryAfter,
+    });
+  }
 
   const id = parseId(params.id);
   if (!id) return apiError("invalid_request", "Invalid plan id", 400);
@@ -98,6 +110,16 @@ export async function DELETE(
 ) {
   const { userId } = auth();
   if (!userId) return apiError("unauthorized", "Sign in required", 401);
+  const rate = await consumeRateLimit({
+    key: rateLimitKey({ platform: "web", id: userId }, "share_write"),
+    action: "share_write",
+    limit: 30,
+  });
+  if (!rate.allowed) {
+    return apiError("rate_limited", "Too many share updates", 429, {
+      retryAfter: rate.retryAfter,
+    });
+  }
 
   const id = parseId(params.id);
   if (!id) return apiError("invalid_request", "Invalid plan id", 400);

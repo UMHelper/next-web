@@ -7,6 +7,13 @@ const { authMock, maybeSingleMock } = vi.hoisted(() => ({
 }));
 
 vi.mock("@clerk/nextjs/server", () => ({ auth: authMock }));
+vi.mock("@/lib/rate-limit", () => ({
+  consumeRateLimit: vi.fn().mockResolvedValue({
+    allowed: true,
+    remaining: 1,
+    retryAfter: 0,
+  }),
+}));
 vi.mock("@/lib/supabase/admin", () => ({
   default: {
     from: () => ({
