@@ -25,15 +25,15 @@ export default function HomeStatistics() {
         </p>
       </div>
 
-      <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
-        <div className="order-2 lg:order-1">
+      <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
+        <div className="order-2 min-w-0 lg:order-1">
           <h3 className="mb-4 text-lg font-semibold">By Faculty</h3>
           <Suspense fallback={<Skeleton className="h-72 rounded-xl" />}>
             <FacultyStatisticsSection />
           </Suspense>
         </div>
 
-        <div className="order-1 lg:order-2">
+        <div className="order-1 min-w-0 lg:order-2">
           <h3 className="mb-4 text-lg font-semibold">Trending in 30 Days</h3>
           <Suspense fallback={<Skeleton className="h-72 rounded-xl" />}>
             <PopularCoursesSection />

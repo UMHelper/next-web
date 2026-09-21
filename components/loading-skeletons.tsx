@@ -40,7 +40,7 @@ export function HomeStatisticsSkeleton() {
     <section className="mx-auto max-w-screen-xl p-4 py-8">
       <Skeleton className="mx-auto h-8 w-56 max-w-full" />
       <Skeleton className="mx-auto mt-3 h-4 w-80 max-w-full" />
-      <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
+      <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
         <Skeleton className="h-72 rounded-xl" />
         <Skeleton className="h-72 rounded-xl" />
       </div>
