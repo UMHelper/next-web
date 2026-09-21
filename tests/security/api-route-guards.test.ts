@@ -15,12 +15,7 @@ const KNOWN_GUARD_PATTERNS: Array<{ name: string; regex: RegExp; min: number }> 
   { name: "auth()", regex: /\bauth\(\)/g, min: 1 },
 ];
 
-const PUBLIC_API_ROUTES = new Map<string, string>([
-  [
-    "/api/browser-diagnostics",
-    "public user-facing Environment Info support tool (components/browser-diagnostics.tsx)",
-  ],
-]);
+const PUBLIC_API_ROUTES = new Map<string, string>([]);
 
 function listRouteFiles(dir: string): string[] {
   const entries = readdirSync(dir);
