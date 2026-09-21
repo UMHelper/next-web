@@ -8,7 +8,6 @@ import { AlignJustify } from "lucide-react";
 import { menuList as menu, type MenuItem } from "@/lib/consant";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import TimetableCart from "@/components/timetable-cart";
 import NavbarAvatar from "@/components/navbar-avatar";
 import { SignInButton, SignedOut } from "@clerk/nextjs";
 import { useState } from "react";

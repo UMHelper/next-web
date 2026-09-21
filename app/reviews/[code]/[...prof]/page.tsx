@@ -110,7 +110,13 @@ const ReviewPage = async ({
                                                 </Button>
                                             </PopoverTrigger>
                                             <PopoverContent className="w-80">
-                                                <TimetableScheduleCard timetable={timetable} code={code} prof={prof} />
+                                                <TimetableScheduleCard
+                                                    timetable={timetable}
+                                                    code={code}
+                                                    prof={prof}
+                                                    courseTitle={course_info["courseTitleEng"]}
+                                                    credits={Number(course_info["Credits"])}
+                                                />
                                             </PopoverContent>
                                         </Popover>
                                         :
