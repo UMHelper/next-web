@@ -180,7 +180,7 @@ async function CoursePage({ params }: { params: { code: string } }) {
             <div className='max-w-screen-xl mx-auto p-4'>
                 <CourseJsonLd code={course.courseCode} title={course.courseTitle} description={course.courseDescription} />
 
-                <div id="googleBotCourseInfo" className="space-y-3 my-3">
+                <div id="courseSeoContent" className="sr-only">
 
                     <Alert>
                         <AlertTitle>Course Description</AlertTitle>
