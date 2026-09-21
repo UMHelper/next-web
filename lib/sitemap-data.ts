@@ -1,6 +1,6 @@
 import { faculty, faculty_dept } from "@/lib/consant";
+import { absoluteUrl, buildCatalogPath } from "@/lib/site";
 
-const SITE_URL = "https://umeh.top";
 
 function parseLastModified(value: string | undefined) {
   if (!value) return new Date("2026-08-15T00:00:00.000Z");
@@ -23,7 +23,7 @@ export function buildCatalogSitemap() {
 
   for (const fac of faculty) {
     entries.push({
-      url: `${SITE_URL}/catalog/${fac}`,
+      url: absoluteUrl(buildCatalogPath([fac])),
       lastModified,
       changeFrequency: "monthly",
       priority: 0.7,
@@ -31,7 +31,7 @@ export function buildCatalogSitemap() {
 
     for (const dept of faculty_dept[fac] ?? []) {
       entries.push({
-        url: `${SITE_URL}/catalog/${fac}/${dept}`,
+        url: absoluteUrl(buildCatalogPath([fac, dept])),
         lastModified,
         changeFrequency: "monthly",
         priority: 0.7,

@@ -5,6 +5,8 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       {
         userAgent: "*",
+        allow: "/",
+        disallow: ["/admin/", "/api/", "/submit/", "/search/", "/sign-in", "/sign-up"],
       },
     ],
     sitemap: "https://umeh.top/sitemap.xml",

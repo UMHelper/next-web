@@ -2,10 +2,10 @@ import type { MetadataRoute } from "next";
 
 import supabaseServer from "@/lib/supabase/server";
 import { buildCatalogSitemap, getSitemapLastModified } from "@/lib/sitemap-data";
+import { absoluteUrl, buildCoursePath, buildReviewPath } from "@/lib/site";
 
 export const revalidate = 86400;
 
-const SITE_URL = "https://umeh.top";
 
 const fetchCourseSitemap = async () => {
   const { data, error } = await supabaseServer.from("course_noporf").select("New_code");
@@ -15,7 +15,7 @@ const fetchCourseSitemap = async () => {
   }
 
   return (data ?? []).map((course: any) => ({
-    url: `${SITE_URL}/course/${course.New_code}`,
+    url: absoluteUrl(buildCoursePath(course.New_code)),
     lastModified: getSitemapLastModified(),
     changeFrequency: "monthly" as const,
     priority: 0.9,
@@ -32,7 +32,7 @@ const fetchReviewSitemap = async () => {
   }
 
   return (data ?? []).map((review: any) => ({
-    url: `${SITE_URL}/reviews/${review.course_id}/${review.prof_id.replaceAll(" ", "%20")}/`,
+    url: absoluteUrl(buildReviewPath(review.course_id, review.prof_id)),
     lastModified: getSitemapLastModified(),
     changeFrequency: "monthly" as const,
     priority: 0.8,
@@ -43,31 +43,31 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const lastModified = getSitemapLastModified();
   const indexSitemap: MetadataRoute.Sitemap = [
     {
-      url: SITE_URL,
+      url: absoluteUrl("/"),
       lastModified,
       changeFrequency: "monthly",
       priority: 1,
     },
     {
-      url: `${SITE_URL}/privacy-policy`,
+      url: absoluteUrl("/privacy-policy"),
       lastModified,
       changeFrequency: "yearly",
       priority: 0.3,
     },
     {
-      url: `${SITE_URL}/privacy-policy/zh`,
+      url: absoluteUrl("/privacy-policy/zh"),
       lastModified,
       changeFrequency: "yearly",
       priority: 0.3,
     },
     {
-      url: `${SITE_URL}/terms-of-service`,
+      url: absoluteUrl("/terms-of-service"),
       lastModified,
       changeFrequency: "yearly",
       priority: 0.3,
     },
     {
-      url: `${SITE_URL}/terms-of-service/zh`,
+      url: absoluteUrl("/terms-of-service/zh"),
       lastModified,
       changeFrequency: "yearly",
       priority: 0.3,
