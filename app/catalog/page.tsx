@@ -1,29 +1,42 @@
+import Link from "next/link";
 
-export function generateMetadata(
-    {params}:{params:any}) {
-    return {
-        title: "Catalog",
-        description: "Browse University of Macau courses by faculty and department.",
-        alternates: { canonical: "/catalog" },
-    }
+import { faculty, faculty_dept, getFacultyLabel } from "@/lib/consant";
+import { buildCatalogPath } from "@/lib/site";
 
+export function generateMetadata() {
+  return {
+    title: "Catalog",
+    description: "Browse University of Macau courses by faculty and department.",
+    alternates: { canonical: "/catalog" },
+  };
 }
 
+const CatalogPage = async () => {
+  return (
+    <div className="grid grid-cols-1 gap-4 pt-4 sm:grid-cols-2 lg:grid-cols-3">
+      {faculty.map((fac) => {
+        const departments = faculty_dept[fac] ?? [];
+        const href = departments.length === 1
+          ? buildCatalogPath([fac, departments[0]])
+          : buildCatalogPath([fac]);
 
-const CatalogPage=async ()=>{
-    return(
-        <div className="flex flex-row items-center justify-center text-xl font-semibold">
-            {/* <div>
-            <CornerLeftUp size={28} strokeWidth={2.5} />
+        return (
+          <Link
+            key={fac}
+            href={href}
+            className="rounded-lg border border-gray-200 bg-white p-5 transition-shadow hover:shadow-md dark:border-gray-700 dark:bg-gray-900"
+          >
+            <div className="text-lg font-semibold">{getFacultyLabel(fac)}</div>
+            <div className="mt-1 text-sm text-muted-foreground">
+              {departments.length > 0
+                ? `${departments.length} department${departments.length > 1 ? "s" : ""}`
+                : "Faculty catalog"}
             </div>
-            <div>
-                Choose one
-            </div>
-            <div>
-            <CornerRightUp size={28} strokeWidth={2.5} />
-            </div> */}
-        </div>
-    )
-}
+          </Link>
+        );
+      })}
+    </div>
+  );
+};
 
-export default CatalogPage
+export default CatalogPage;
