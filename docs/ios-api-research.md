@@ -82,7 +82,13 @@
   签名比对用 `crypto.timingSafeEqual` 防时序攻击；`|now - timestamp| > 5s` 返回 401。
 - 密钥：服务端环境变量 `UM_IOS_API_SECRET`（写入 `.env.local`，`.env.example` 仅空占位，
   不提交仓库）；iOS 侧由构建脚本从本地 `Secrets/UMSecrets.local` 注入（详见 next-ios README 第 6 节）。
-- 三个 POST 接口（`/comment`、`/reply`、`/vote`）与 Web 共用，不做此校验。
+- 三个 POST 接口（`/comment`、`/reply`、`/vote`）与 Web 共用；iOS 客户端提交时同样携带这套
+  HMAC 请求头（`method` 为 `POST`）与 `X-UM-Viewer-Id`，否则 `/reply`、`/vote` 返回 401：
+  - `X-UM-Viewer-Id`：设备/账号标识，需匹配 `lib/validation/identity.ts` 的 `identityIdSchema`
+    （Clerk `user_...` 或标准 UUID）。iOS 首版用本机匿名 UUID；浏览器不发送该头。
+  - `verify` 徽章由服务端按身份派生，不再接受客户端上报：`user_...`（Clerk 账号）→ `verify=1`，
+    其它（iOS 设备 UUID、匿名 web 的 `ip:` 标识）→ `verify=0`。判断函数为
+    `lib/validation/identity.ts#isVerifiedIdentityId`。
 - 版本控制请求头（所有 iOS API 请求均携带，见 3.2）：
   - `X-UM-App-Version`：App 市场版本号，如 `1.0`
   - `X-UM-App-Build`：App build 号，如 `1`（可选，用于排查）
