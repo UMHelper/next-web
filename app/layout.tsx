@@ -13,6 +13,8 @@ import { ClerkProviderClient } from '@/components/providers/clerk-provider-clien
 import { Banner } from '@/components/banner';
 import { rootMetadata } from '@/lib/seo';
 import { JsonLd } from '@/components/seo/json-ld';
+import { TimetablePlannerProvider } from '@/components/timetable/planner-provider';
+import FloatingPlanner from '@/components/timetable/floating-planner';
 
 
 const inter = Inter({ subsets: ['latin'] })
@@ -59,6 +61,7 @@ export default function RootLayout({
                             },
                         }}
                     />
+                    <TimetablePlannerProvider>
                     <div className='min-h-screen min-w-full'>
                         <Navbar />
                         <Banner />
@@ -95,6 +98,8 @@ export default function RootLayout({
                             error: null
                         }}
                     />
+                    <FloatingPlanner />
+                    </TimetablePlannerProvider>
                     </ClerkProviderClient>
                 </body>
             </html>
