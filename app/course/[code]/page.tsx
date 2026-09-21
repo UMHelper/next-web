@@ -7,8 +7,7 @@ import Link from "next/link";
 import { fetchCourseInfo } from "@/lib/database/get-course-info";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { buildCourseMetadata } from "@/lib/seo";
-
-import Script from "next/script";
+import { CourseJsonLd } from "@/components/seo/course-json-ld";
 
 
 export const revalidate = 3600;
@@ -179,8 +178,9 @@ async function CoursePage({ params }: { params: { code: string } }) {
                 </div>
             </div>
             <div className='max-w-screen-xl mx-auto p-4'>
+                <CourseJsonLd code={course.courseCode} title={course.courseTitle} description={course.courseDescription} />
 
-                <div id="googleBotCourseInfo" className="space-y-3 my-3 hidden">
+                <div id="googleBotCourseInfo" className="space-y-3 my-3">
 
                     <Alert>
                         <AlertTitle>Course Description</AlertTitle>
@@ -217,17 +217,6 @@ async function CoursePage({ params }: { params: { code: string } }) {
                     })}
                 </Masonry>
             </div>
-            <Script id="show-for-bot">
-                {`
-                    if (/bot|google|baidu|bing|msn|teoma|slurp|yandex/i.test(navigator.userAgent)) {
-                        // console.log('Welcome bot');
-                        document.getElementById('googleBotCourseInfo').classList.remove('hidden');
-                    }
-                    else {
-                        document.getElementById('googleBotCourseInfo').classList.add('hidden');
-                    }
-                    `}
-            </Script>
         </>
     )
 }
