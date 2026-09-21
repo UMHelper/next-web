@@ -1,6 +1,5 @@
 'use client'
 import Image from 'next/image';
-import { Fancybox } from "@fancyapps/ui";
 import "@fancyapps/ui/dist/fancybox/fancybox.css";
 import { Card, CardHeader, CardContent, CardFooter } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
@@ -283,12 +282,17 @@ const ReplyComponent = ({ comment, reply_comment }: { comment: any, reply_commen
 
 const useFancybox = () => {
     useEffect(() => {
-        Fancybox.bind("[data-fancybox]", _fancyboxOptions);
+        let cleanup: (() => void) | undefined;
 
-        return () => {
-            Fancybox.unbind("[data-fancybox]");
-            Fancybox.close();
-        };
+        import("@fancyapps/ui").then(({ Fancybox }) => {
+            Fancybox.bind("[data-fancybox]", _fancyboxOptions);
+            cleanup = () => {
+                Fancybox.unbind("[data-fancybox]");
+                Fancybox.close();
+            };
+        });
+
+        return () => cleanup?.();
     }, []);
 };
 

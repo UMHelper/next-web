@@ -1,5 +1,5 @@
 import { Masonry } from "@/components/masonry"
-import { CommentCard } from "@/components/comment-card"
+import { CommentCard } from "@/components/review/comment-card"
 import { REACTION_EMOJI_LIST } from "@/lib/consant"
 
 
