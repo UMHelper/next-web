@@ -1,4 +1,4 @@
-import type { Metadata, Viewport } from 'next'
+import type { Metadata } from 'next'
 import LegalContent from '@/components/legal-content'
 import { privacyPolicy } from '@/lib/privacy-policy'
 
@@ -14,12 +14,6 @@ export const metadata: Metadata = {
     },
 }
 
-export const viewport: Viewport = {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 1,
-    userScalable: false,
-}
 
 const PrivacyPolicyZhPage = () => {
     return (

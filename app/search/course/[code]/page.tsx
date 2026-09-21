@@ -1,6 +1,5 @@
 import CourseFilter from "@/components/course-filter";
 import { fetchCourseFuzzySearch } from "@/lib/database/get-fuzzy-search";
-import { Viewport } from "next";
 
 export function generateMetadata(
     {params}:{params:any}) {
@@ -8,16 +7,11 @@ export function generateMetadata(
 
     return {
         title: title,
+        robots: { index: false, follow: true },
     }
 
 }
 
-export const viewport: Viewport = {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 1,
-    userScalable: false,
-}
 
 async function CourseSearchPage({params}:{params:{code:string}}){
     const courseList:any[] = await fetchCourseFuzzySearch(params.code.toUpperCase())

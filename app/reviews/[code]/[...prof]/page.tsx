@@ -15,12 +15,12 @@ import { notFound } from 'next/navigation'
 import { getCourseInfo } from "@/lib/database/get-course-info";
 import getScheduleList from "@/lib/database/get-schedule-list";
 import { Comments } from "@/components/comments";
-import { Viewport } from "next";
 import { ReviewPagination } from "@/components/review-pagination";
 import { ReviewReload } from "@/components/review-reload";
 
 
 import { ReviewNotice } from "@/components/review-notice";
+import { buildReviewMetadata } from "@/lib/seo";
 
 export const revalidate = 0
 export const dynamic = "force-dynamic";
@@ -28,20 +28,10 @@ export const dynamic = "force-dynamic";
 export function generateMetadata(
     { params, searchParams }: { params: any, searchParams?: any }) {
     const route = parseReviewRoute(params.code, params.prof, searchParams?.page);
-    const title = `${route.prof.replaceAll('%20', " ")} | ${route.code} | What2Reg @ UM 澳大選咩課`
-
-    return {
-        title: title,
-    }
-
+    const prof = decodeURI(route.prof).replaceAll('$', '/');
+    return buildReviewMetadata({ code: route.code, prof });
 }
 
-export const viewport: Viewport = {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 1,
-    userScalable: false,
-}
 
 const ReviewPage = async ({
     params,

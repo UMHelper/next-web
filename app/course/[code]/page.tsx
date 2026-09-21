@@ -6,29 +6,26 @@ import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, Dialog
 import Link from "next/link";
 import { fetchCourseInfo } from "@/lib/database/get-course-info";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { buildCourseMetadata } from "@/lib/seo";
 
 import Script from "next/script";
-import { Viewport } from "next";
 
 
 export const revalidate = 3600;
 
-export function generateMetadata(
-    { params }: { params: any }) {
-    const title = `${params.code.toUpperCase()} | What2Reg @ UM 澳大選咩課`
-
-    return {
-        title: title,
-    }
-
+export async function generateMetadata(
+    { params }: { params: { code: string } }) {
+    const code = params.code.toUpperCase()
+    const { course } = await fetchCourseInfo(code)
+    return buildCourseMetadata({
+        code,
+        title: course.courseTitle,
+        offeringUnit: course.offeringUnit,
+        offeringDept: course.offeringDept,
+        description: course.courseDescription,
+    })
 }
 
-export const viewport: Viewport = {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 1,
-    userScalable: false,
-}
 
 async function CoursePage({ params }: { params: { code: string } }) {
 

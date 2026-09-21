@@ -1,22 +1,14 @@
-import { CornerLeftUp, CornerRightUp } from "lucide-react"
-import { Viewport } from "next"
 
 export function generateMetadata(
     {params}:{params:any}) {
-    const title = `Catalog | What2Reg @ UM 澳大選咩課`
-
     return {
-        title: title,
+        title: "Catalog",
+        description: "Browse University of Macau courses by faculty and department.",
+        alternates: { canonical: "/catalog" },
     }
 
 }
 
-export const viewport: Viewport = {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 1,
-    userScalable: false,
-}
 
 const CatalogPage=async ()=>{
     return(

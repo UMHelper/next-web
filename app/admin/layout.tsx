@@ -2,8 +2,14 @@ import { notFound, redirect } from "next/navigation";
 
 import AdminNav from "@/components/admin/admin-nav";
 import { getCurrentAdmin } from "@/lib/admin-auth";
+import { noIndexMetadata } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
+
+export const metadata = {
+  title: "UMHelper Admin",
+  ...noIndexMetadata,
+};
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const admin = await getCurrentAdmin();

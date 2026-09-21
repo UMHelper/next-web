@@ -1,19 +1,14 @@
-import { Viewport } from "next"
+import { noIndexMetadata } from "@/lib/seo"
 
 export function generateMetadata() {
     const title = `Timetable Sim | What2Reg @ UM 澳大選咩課`
     return {
         title: title,
+        ...noIndexMetadata,
     }
 
 }
 
-export const viewport: Viewport = {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 1,
-    userScalable: false,
-}
 
 export default function SubmitLayout({children}:{children:any}){
     return(

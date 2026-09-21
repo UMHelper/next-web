@@ -10,3 +10,17 @@ describe("root SEO metadata", () => {
     });
   });
 });
+
+import { buildProfessorMetadata, noIndexMetadata } from "@/lib/seo";
+
+describe("page metadata helpers", () => {
+  it("builds professor metadata with canonical", () => {
+    const metadata = buildProfessorMetadata("CHAN TAI MAN");
+    expect(metadata.title).toBe("CHAN TAI MAN 課程評價");
+    expect(metadata.alternates?.canonical).toBe("/professor/CHAN%20TAI%20MAN");
+  });
+
+  it("marks noindex pages", () => {
+    expect(noIndexMetadata.robots).toEqual({ index: false, follow: false });
+  });
+});

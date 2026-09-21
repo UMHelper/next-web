@@ -1,24 +1,21 @@
 import CourseFilter from '@/components/course-filter';
 import { faculty, faculty_dept, normalizeFacultySlug } from '@/lib/consant';
 import { fetchCatalogList } from '@/lib/database/get-course-info';
-import { Viewport } from 'next';
+import { buildCatalogPath } from '@/lib/site';
 
 export function generateMetadata(
     {params}:{params:any}) {
-    const title = `Catalog of ${params.departments.join(' ').toUpperCase()} | What2Reg @ UM 澳大選咩課`
+    const normalized = params.departments.map((part: string) => part.toUpperCase())
+    const title = `Catalog of ${normalized.join(' ')}`
 
     return {
-        title: title,
+        title,
+        description: `University of Macau courses under ${normalized.join(' ')}.`,
+        alternates: { canonical: buildCatalogPath(normalized) },
     }
 
 }
 
-export const viewport: Viewport = {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 1,
-    userScalable: false,
-}
 
 export async function generateStaticParams() {
     let res= faculty.map((faculty) => {

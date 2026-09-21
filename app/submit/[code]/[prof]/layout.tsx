@@ -1,4 +1,4 @@
-import { Viewport } from "next"
+import { noIndexMetadata } from "@/lib/seo"
 
 export function generateMetadata(
     {params}:{params:any}) {
@@ -6,16 +6,11 @@ export function generateMetadata(
 
     return {
         title: title,
+        ...noIndexMetadata,
     }
 
 }
 
-export const viewport: Viewport = {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 1,
-    userScalable: false,
-}
 
 export default function SubmitLayout({children}:{children:any}){
     return(

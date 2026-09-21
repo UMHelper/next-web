@@ -1,8 +1,14 @@
 import { Masonry } from '@/components/masonry';
 import { ProfCourseCard } from '@/components/prof-card';
 import { fetchCourseListByProf } from '@/lib/database/get-course-info';
+import { buildProfessorMetadata } from '@/lib/seo';
 
 export const revalidate = 3600;
+
+export function generateMetadata({ params }: { params: { name: string[] } }) {
+    const prof_name = params.name.join("/").replaceAll("%20", " ").replaceAll('%24', '/').toUpperCase()
+    return buildProfessorMetadata(prof_name)
+}
 
 const ProfessorPage = async ({ params: { name } }: { params: { name: string[] } }) => {
     const prof_name=name.join("/").replaceAll("%20", " ").replaceAll('%24', '/').toUpperCase()

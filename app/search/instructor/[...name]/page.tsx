@@ -2,7 +2,6 @@ import CourseCard from "@/components/course-card"
 import { Masonry } from "@/components/masonry"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { fetchInstructorFuzzySearch } from "@/lib/database/get-fuzzy-search"
-import { Viewport } from "next"
 
 export function generateMetadata(
     {params}:{params:any}) {
@@ -11,16 +10,11 @@ export function generateMetadata(
 
     return {
         title: title,
+        robots: { index: false, follow: true },
     }
 
 }
 
-export const viewport: Viewport = {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 1,
-    userScalable: false,
-}
 
 
 async function InstructorSearchPage({ params }: { params: { name: string[] } }) {
