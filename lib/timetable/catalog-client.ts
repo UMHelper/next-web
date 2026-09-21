@@ -48,3 +48,8 @@ export const getSections = (code: string, prof: string) =>
   json<{ sections: Array<{ section: string; schedules: PlanSection["schedules"] }> }>(
     `/api/timetable/catalog/courses/${encodeURIComponent(code)}/${encodeURIComponent(prof).replaceAll("%2F", "$")}/sections`,
   );
+
+export const getInstructorCourses = (prof: string) =>
+  json<{ courses: any[] }>(
+    `/api/timetable/catalog/instructors/${encodeURIComponent(prof).replaceAll("%2F", "$")}/courses`,
+  );

@@ -4,6 +4,7 @@ import React from "react";
 import Link from "next/link";
 
 import PlanHeader from "@/components/timetable/plan-header";
+import PlannerSidebar from "@/components/timetable/planner-sidebar";
 import SectionList from "@/components/timetable/section-list";
 import WeekGrid from "@/components/timetable/week-grid";
 import { useTimetablePlanner } from "@/components/timetable/planner-provider";
@@ -76,10 +77,19 @@ const TimetablePage = () => {
         <span>{syncState === "saving" ? "Saving..." : "Saved locally"}</span>
       </div>
 
-      <SectionList sections={activePlan.payload.sections} conflictKeys={conflictKeys} onRemove={(key) => removeSection(activePlan.clientRef, key)} />
+      <div className="grid gap-4 lg:grid-cols-[420px_1fr]">
+        <PlannerSidebar />
+        <div className="space-y-4">
+          <SectionList
+            sections={activePlan.payload.sections}
+            conflictKeys={conflictKeys}
+            onRemove={(key) => removeSection(activePlan.clientRef, key)}
+          />
 
-      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white p-4">
-        <WeekGrid sections={activePlan.payload.sections} />
+          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white p-4">
+            <WeekGrid sections={activePlan.payload.sections} />
+          </div>
+        </div>
       </div>
     </div>
   );
