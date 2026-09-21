@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 
+import ShareDialog from "@/components/timetable/share-dialog";
 import type { LocalPlan } from "@/lib/timetable/store";
 
 export default function PlanHeader({
@@ -59,6 +60,7 @@ export default function PlanHeader({
       </div>
 
       <div className="flex items-center gap-2">
+        <ShareDialog plan={activePlan} />
         <button
           type="button"
           onClick={onCreate}
