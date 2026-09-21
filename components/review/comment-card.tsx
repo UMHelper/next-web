@@ -20,6 +20,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { AVATAR_EMOJI_LIST } from "@/lib/consant";
 import { CommentContent } from "@/components/comment-content";
 import { ReportDialog } from "@/components/report-dialog";
+import { buildReplyPayload, buildVotePayload } from "@/lib/comment-payload";
 
 const _fancyboxOptions: any = {
     compact: true,
@@ -169,8 +170,6 @@ const ReplyComponent = ({ comment, reply_comment }: { comment: any, reply_commen
     }
 
     const submitReply = (reply: any) => {
-        let body = { ...comment }
-
         if (reply.length < 5 || reply.length > 250) {
             toast.error('Reply too short or too long! No spam allowed. ',
                 {
@@ -178,31 +177,28 @@ const ReplyComponent = ({ comment, reply_comment }: { comment: any, reply_commen
                 })
             return
         }
-        body.content = reply
-        body.replyto = comment.id
-        body.verify = 1
-        body.verify_account = user?.id
-        body.pub_time = new Date().toISOString().slice(0, 19).replace('T', ' ')
         toast.promise(
             fetch(`/api/reply/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({
-                    ...body
-                })
-            }).then(res => res.json()).then(res => {
-                // console.log(res)
-                setCurrentReply((pre: any[]) => [res, ...pre])
+                body: JSON.stringify(buildReplyPayload(comment.id, reply))
+            }).then(async (res) => {
+                const payload = await res.json().catch(() => null)
+                if (!res.ok) {
+                    throw new Error(payload?.error?.message ?? `HTTP ${res.status}`)
+                }
+                setCurrentReply((pre: any[]) => [payload, ...pre])
                 setIsReplySubmitOpen(false)
                 setIsReplyOpen(true)
                 document.getElementById(`reply${comment.id}`)?.scrollTo({ top: 0})
+                return payload
             }),
             {
                 loading: 'Submiting...',
                 success: 'Thanks for your reply!',
-                error: 'Error',
+                error: (error) => (error instanceof Error ? error.message : 'Error'),
             }
         )
     }
@@ -430,37 +426,36 @@ const EmojiVote = ({ comment }: { comment: any }) => {
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({
-                    comment: comment.id,
-                    offset: offset,
-                    created_by: user?.id,
-                    emoji: emoji
-                })
-            }).then(res => res.json()).then(res => {
-                // console.log(res)
+                body: JSON.stringify(buildVotePayload(comment.id, offset, emoji))
+            }).then(async (res) => {
+                const payload = await res.json().catch(() => null)
+                if (!res.ok) {
+                    throw new Error(payload?.error?.message ?? `HTTP ${res.status}`)
+                }
                 if (offset != 0) {
-                    setVoteHistory(res)
+                    setVoteHistory(payload)
                     if (offset === 1) {
-                        comment.upvote += res.offset
+                        comment.upvote += payload.offset
                     }
                     else {
-                        comment.downvote += res.offset
+                        comment.downvote += payload.offset
                     }
                 }
                 else {
-                    setEmojiHistory((pre: any[]) => [...pre, res])
-                    comment.emoji_vote.map((emoji: any) => {
-                        if (emoji.emoji == res.emoji) {
-                            emoji.count += 1
+                    setEmojiHistory((pre: any[]) => [...pre, payload])
+                    comment.emoji_vote.map((item: any) => {
+                        if (item.emoji == payload.emoji) {
+                            item.count += 1
                         }
                     })
                 }
                 setIsVoting(false)
+                return payload
             }),
             {
                 loading: 'Voting...',
                 success: 'Thanks for your vote!',
-                error: 'Error',
+                error: (error) => (error instanceof Error ? error.message : 'Error'),
             }
         )
 
