@@ -3,13 +3,14 @@ import {
   detectScheduleConflicts,
   findSameCourseSections,
 } from "@/lib/timetable/conflicts";
+import type { PlanSection, Weekday } from "@/lib/timetable/schema";
 
 const section = (
   key: string,
   code: string,
-  date: string,
+  date: Weekday,
   time: string,
-) => ({
+): PlanSection => ({
   key,
   courseCode: code,
   prof: "P",

@@ -9,6 +9,7 @@ import {
   upsertPlanLocal,
   type LocalPlan,
 } from "@/lib/timetable/store";
+import type { PlanSection } from "@/lib/timetable/schema";
 
 const plan = (): LocalPlan => ({
   clientRef: "plan-1",
@@ -20,7 +21,7 @@ const plan = (): LocalPlan => ({
   syncState: "idle",
 });
 
-const section = (key: string, code: string) => ({
+const section = (key: string, code: string): PlanSection => ({
   key,
   courseCode: code,
   prof: "P",

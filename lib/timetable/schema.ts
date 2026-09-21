@@ -16,6 +16,8 @@ export const makeSectionKey = (courseCode: string, prof: string, section: string
 
 const WEEK_DAYS = ["MON", "TUE", "WED", "THU", "FRI"] as const;
 
+export type Weekday = (typeof WEEK_DAYS)[number];
+
 export const normalizeSchedule = (schedule: {
   date?: unknown;
   time?: unknown;
