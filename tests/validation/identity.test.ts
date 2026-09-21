@@ -10,6 +10,10 @@ describe("identityIdSchema", () => {
     expect(identityIdSchema.safeParse("123e4567-e89b-12d3-a456-426614174000").success).toBe(true);
   });
 
+  it("accepts ios_-prefixed device ids", () => {
+    expect(identityIdSchema.safeParse("ios_3f2a1c44-5b0e-4a7d-9f1e-2b3c4d5e6f70").success).toBe(true);
+  });
+
   it("rejects arbitrary strings", () => {
     expect(identityIdSchema.safeParse("not-an-id").success).toBe(false);
   });

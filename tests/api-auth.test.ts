@@ -48,6 +48,22 @@ describe("requireWriteIdentity", () => {
       id: "123e4567-e89b-12d3-a456-426614174000",
     });
   });
+
+  it("accepts the ios_-prefixed device id the app actually stores", async () => {
+    verifyIOSRequest.mockReturnValue(true);
+    iosVersionGuard.mockReturnValue(null);
+    const request = new Request("http://localhost/api/vote/1", {
+      method: "POST",
+      headers: { "x-um-viewer-id": "ios_3f2a1c44-5b0e-4a7d-9f1e-2b3c4d5e6f70" },
+    });
+
+    const result = await requireWriteIdentity(request);
+
+    expect("identity" in result && result.identity).toEqual({
+      platform: "ios",
+      id: "ios_3f2a1c44-5b0e-4a7d-9f1e-2b3c4d5e6f70",
+    });
+  });
 });
 
 describe("resolveReportIdentity", () => {
