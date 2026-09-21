@@ -6,6 +6,7 @@ import { rateLimitKey, requireWriteIdentity } from "@/lib/api-auth";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import supabaseAdmin from "@/lib/supabase/admin";
 import { replySubmissionSchema } from "@/lib/validation/reply";
+import { isVerifiedIdentityId } from "@/lib/validation/identity";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +14,8 @@ export async function POST(request: Request) {
   const identityResult = await requireWriteIdentity(request);
   if ("response" in identityResult) return identityResult.response;
   const { identity } = identityResult;
+  // 与评论一致:只有 Clerk 账号(user_...)才是认证身份,iOS 设备 UUID 仍为 verify=0。
+  const isVerified = isVerifiedIdentityId(identity.id);
 
   const bodyResult = await readJsonBody(request, 8_192);
   if (!bodyResult.ok) return bodyResult.response;
@@ -65,7 +68,7 @@ export async function POST(request: Request) {
       recommend: parent.recommend,
       assignment: parent.assignment,
       result: parent.result,
-      verify: 1,
+      verify: isVerified ? 1 : 0,
       verify_account: identity.id,
       replyto: parent.id,
     }])

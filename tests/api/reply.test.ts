@@ -100,4 +100,46 @@ describe("POST /api/reply", () => {
       }),
     ]);
   });
+
+  it("marks an iOS device reply as unverified", async () => {
+    requireWriteIdentity.mockResolvedValue({
+      identity: { platform: "ios", id: "3f2a1c44-5b0e-4a7d-9f1e-2b3c4d5e6f70" },
+    });
+    consumeRateLimit.mockResolvedValue({ allowed: true, remaining: 9, retryAfter: 0 });
+    maybeSingle.mockResolvedValue({
+      data: {
+        id: 7,
+        course_id: 10,
+        attendance: 3,
+        pre: 3,
+        grade: 3,
+        hard: 3,
+        reward: 3,
+        recommend: 3,
+        assignment: 3,
+        result: 3,
+        hidden: 0,
+      },
+      error: null,
+    });
+    single.mockResolvedValue({ data: { id: 99 }, error: null });
+
+    const response = await POST(
+      new Request("http://localhost/api/reply", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ replyto: 7, content: "nice" }),
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(insert).toHaveBeenCalledWith([
+      expect.objectContaining({
+        replyto: 7,
+        content: "nice",
+        verify: 0,
+        verify_account: "3f2a1c44-5b0e-4a7d-9f1e-2b3c4d5e6f70",
+      }),
+    ]);
+  });
 });
