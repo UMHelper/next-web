@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 
 import { parseScheduleWorkbook } from "@/lib/update/excel";
 import { PIPELINE_STAGES } from "@/lib/update/pipeline";
@@ -20,9 +20,16 @@ export default function UpdateClient() {
   const [selected, setSelected] = useState<string[]>(PIPELINE_STAGES.flatMap((stage) => stage.tasks));
   const [log, setLog] = useState<string[]>([]);
   const [running, setRunning] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(0);
   const [total, setTotal] = useState(0);
   const abortRef = useRef<AbortController | null>(null);
+  const logRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (running) logRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [running, log.length]);
 
   const availableTasks = useMemo(
     () => TASK_IDS.map((id) => UPDATE_TASKS[id]).filter((task) => task.modes.includes(mode)),
@@ -30,40 +37,59 @@ export default function UpdateClient() {
   );
 
   async function handleFile(file: File) {
-    const data = await file.arrayBuffer();
-    const parsed = parseScheduleWorkbook(data, { mode });
-    setRows(parsed);
-    setLog([`parsed ${parsed.length} rows (${mode})`]);
+    setError(null);
+    try {
+      const data = await file.arrayBuffer();
+      const parsed = parseScheduleWorkbook(data, { mode });
+      setRows(parsed);
+      setLog([`parsed ${parsed.length} rows (${mode})`]);
+      if (parsed.length === 0) {
+        setError("未能解析出任何行：请确认表类型（Add/Drop / Pre-enrollment）与文件是否匹配。");
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setRows([]);
+      setError(`解析文件失败：${message}`);
+      console.error("[update] parse failed", err);
+    }
   }
 
   async function run() {
+    if (rows.length === 0) {
+      setError("请先上传并解析 Excel 时间表（Step 1）。");
+      return;
+    }
     setRunning(true);
+    setError(null);
     setLog((current) => [...current, `target ${targetYear}/${targetSem}`]);
     abortRef.current = new AbortController();
 
-    const ctx: TaskContext = {
-      client: createRelayClient(),
-      rows,
-      mode,
-      targetYear,
-      targetSem,
-      signal: abortRef.current.signal,
-      onProgress: (d, t, message) => {
-        setDone(d);
-        setTotal(t);
-        if (message) setLog((current) => [...current.slice(-99), message]);
-      },
-    };
-
-    const tasks = selected
-      .map((id) => UPDATE_TASKS[id])
-      .filter((task): task is UpdateTask => Boolean(task) && task.modes.includes(mode));
-
     try {
+      const ctx: TaskContext = {
+        client: createRelayClient(),
+        rows,
+        mode,
+        targetYear,
+        targetSem,
+        signal: abortRef.current.signal,
+        onProgress: (d, t, message) => {
+          setDone(d);
+          setTotal(t);
+          if (message) setLog((current) => [...current.slice(-99), message]);
+        },
+      };
+
+      const tasks = selected
+        .map((id) => UPDATE_TASKS[id])
+        .filter((task): task is UpdateTask => Boolean(task) && task.modes.includes(mode));
+
       await runTasks(tasks, ctx);
       setLog((current) => [...current, "✔ all tasks complete"]);
-    } catch (error) {
-      setLog((current) => [...current, `✘ ${error instanceof Error ? error.message : String(error)}`]);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setError(`执行失败：${message}`);
+      setLog((current) => [...current, `✘ ${message}`]);
+      console.error("[update] run failed", err);
     } finally {
       setRunning(false);
     }
@@ -97,7 +123,9 @@ export default function UpdateClient() {
             学期
             <input type="number" className="w-16 rounded border px-1" value={targetSem} onChange={(event) => setTargetSem(Number(event.target.value))} />
           </label>
-          <span>已解析 {rows.length} 行</span>
+          <span className={rows.length === 0 ? "font-medium text-amber-600" : "font-medium text-green-700"}>
+            {rows.length === 0 ? "尚未解析（请先选择 Excel 文件）" : `已解析 ${rows.length} 行 ✓`}
+          </span>
         </div>
       </div>
 
@@ -119,19 +147,37 @@ export default function UpdateClient() {
             </label>
           ))}
         </div>
-        <div className="mt-3 flex gap-2">
-          <button className="rounded bg-blue-600 px-3 py-1 text-white disabled:opacity-50" disabled={running || rows.length === 0} onClick={() => void run()}>
-            开始执行
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <button
+            className="rounded bg-blue-600 px-3 py-1 text-white disabled:opacity-50"
+            disabled={running || rows.length === 0}
+            onClick={() => void run()}
+          >
+            {running ? "运行中…" : rows.length === 0 ? "请先上传 Excel" : "开始执行"}
           </button>
           <button className="rounded border px-3 py-1 disabled:opacity-50" disabled={!running} onClick={() => abortRef.current?.abort()}>
             取消
           </button>
+          {rows.length === 0 ? null : running ? (
+            <span className="text-xs font-medium text-blue-600">运行中…（进度见下方 Step 3）</span>
+          ) : error ? (
+            <span className="text-xs font-medium text-red-600">执行失败</span>
+          ) : log.includes("✔ all tasks complete") ? (
+            <span className="text-xs font-medium text-green-700">已完成 ✓</span>
+          ) : (
+            <span className="text-xs text-gray-500">就绪，共 {rows.length} 行</span>
+          )}
         </div>
+        {error ? (
+          <div className="mt-3 rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
+        ) : null}
       </div>
 
-      <div className="rounded-lg border p-4">
+      <div className="rounded-lg border p-4" ref={logRef}>
         <div className="mb-2 font-semibold">Step 3 · 进度 {total > 0 ? `${done}/${total}` : ""}</div>
-        <pre className="max-h-72 overflow-auto whitespace-pre-wrap text-xs">{log.join("\n")}</pre>
+        <pre className="max-h-72 overflow-auto whitespace-pre-wrap text-xs">
+          {log.length ? log.join("\n") : "（尚无日志——上传 Excel 后点「开始执行」，这里会逐条显示进度）"}
+        </pre>
       </div>
     </div>
   );
