@@ -51,6 +51,6 @@ npm run build
 
 ## Remaining Follow-up
 
-- `CourseFilter` is still client-side full-list filtering; URL-driven filtering and server pagination remain a follow-up optimization.
-- Review page pagination still uses `?page=`; path-based `/page/{n}` canonical pagination remains a follow-up.
+- `CourseFilter` is now URL-aware, but it still ships the full course list to the client. Server pagination / virtualization remains a follow-up optimization.
+- Review page links now use path-based `/page/{n}` pagination; `?page=` remains parse-compatible for old links.
 - Manual signed-in smoke test for Clerk client-boundary auth controls is recommended before deploy.
