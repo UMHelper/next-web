@@ -112,7 +112,7 @@ export default function SearchForm({
             type="submit"
             className={cn(
               "bg-gradient-to-r from-blue-600 to-indigo-500",
-              variant !== "header" && "w-full",
+              variant === "dialog" && "w-full",
             )}
           >
             <Search size={20} />
