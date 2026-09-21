@@ -921,3 +921,26 @@ create table if not exists public.app_config (
 insert into public.app_config (id, current_year, current_sem, is_preenrollment_open, database_last_update)
 values (1, 2026, 1, true, current_date)
 on conflict (id) do nothing;
+
+--
+-- Timetable hardening (migration: 20260921_timetable_hardening.sql)
+--
+
+create unique index if not exists time_location_slot_unique_idx on public.time_location (date, times, location);
+create unique index if not exists offer_section_unique_idx on public.offer (course_id, section, year, sem);
+create unique index if not exists schedule_unique_idx on public.schedule (course_id, time_location_id);
+
+alter table public.time_location drop constraint if exists time_location_date_check;
+alter table public.time_location
+  add constraint time_location_date_check
+  check (date in ('MON','TUE','WED','THU','FRI','SAT','SUN')) not valid;
+
+alter table public.time_location drop constraint if exists time_location_times_check;
+alter table public.time_location
+  add constraint time_location_times_check
+  check (times ~ '^([01][0-9]|2[0-3]):[0-5][0-9]-([01][0-9]|2[0-3]):[0-5][0-9]$') not valid;
+
+comment on column public.offer.course_id is 'references prof_with_course.id (NOT course code)';
+comment on column public.schedule.course_id is 'references offer.id (NOT course code)';
+comment on column public.time_location.date is 'weekday, uppercase MON..SUN';
+comment on column public.time_location.times is 'HH:MM-HH:MM';
