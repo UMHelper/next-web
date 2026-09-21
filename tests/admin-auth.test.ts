@@ -1,21 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { auth, maybeSingle, clerkGetUser, clerkGetUserList } = vi.hoisted(() => ({
+const { auth, getDirectoryUsers, maybeSingle } = vi.hoisted(() => ({
   auth: vi.fn(),
+  getDirectoryUsers: vi.fn(),
   maybeSingle: vi.fn(),
-  clerkGetUser: vi.fn(),
-  clerkGetUserList: vi.fn(),
 }));
 
-vi.mock("@clerk/nextjs/server", () => ({
-  auth,
-  clerkClient: {
-    users: {
-      getUser: clerkGetUser,
-      getUserList: clerkGetUserList,
-    },
-  },
-}));
+vi.mock("@clerk/nextjs/server", () => ({ auth }));
+vi.mock("@/lib/clerk/user-directory", () => ({ getDirectoryUsers }));
 vi.mock("@/lib/supabase/admin", () => ({
   default: {
     from: vi.fn(() => ({ select: () => ({ eq: () => ({ maybeSingle }) }) })),
@@ -51,7 +43,7 @@ describe("admin auth", () => {
     ]);
   });
 
-  it("allows platform admin from env", async () => {
+  it("allows platform admin from env id", async () => {
     process.env.PLATFORM_ADMIN_USER_IDS = "user_platform";
     auth.mockReturnValue({ userId: "user_platform" });
 
@@ -62,14 +54,12 @@ describe("admin auth", () => {
     });
   });
 
-  it("allows platform admin by verified Clerk email", async () => {
+  it("allows platform admin by a verified primary Clerk email", async () => {
     process.env.PLATFORM_ADMIN_EMAILS = "admin@example.com";
     auth.mockReturnValue({ userId: "user_email" });
-    clerkGetUser.mockResolvedValue({
-      id: "user_email",
-      primaryEmailAddressId: "email_1",
-      emailAddresses: [{ id: "email_1", emailAddress: "Admin@Example.com" }],
-    });
+    getDirectoryUsers.mockResolvedValue(
+      new Map([["user_email", { id: "user_email", primaryEmail: "admin@example.com" }]]),
+    );
 
     const result = await getCurrentAdmin();
     expect(result).toEqual({
@@ -79,7 +69,20 @@ describe("admin auth", () => {
     expect(maybeSingle).not.toHaveBeenCalled();
   });
 
-  it("allows active db admin", async () => {
+  it("does not allow an unverified email", async () => {
+    process.env.PLATFORM_ADMIN_EMAILS = "admin@example.com";
+    auth.mockReturnValue({ userId: "user_unverified" });
+    getDirectoryUsers.mockResolvedValue(
+      new Map([["user_unverified", { id: "user_unverified", primaryEmail: null }]]),
+    );
+    maybeSingle.mockResolvedValue({ data: null, error: null });
+
+    const result = await getCurrentAdmin();
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.response.status).toBe(403);
+  });
+
+  it("allows an active db admin", async () => {
     auth.mockReturnValue({ userId: "user_db" });
     maybeSingle.mockResolvedValue({ data: { clerk_user_id: "user_db", active: true }, error: null });
 

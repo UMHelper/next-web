@@ -6,9 +6,9 @@ import {
   getClerkUserEmails,
   getPlatformAdminEmails,
   getPlatformAdminIds,
-  getPrimaryClerkEmail,
   requireAdmin,
 } from "@/lib/admin-auth";
+import { toDirectoryUser } from "@/lib/clerk/user-directory";
 import { apiError, readJsonBody } from "@/lib/api-response";
 import supabaseAdmin from "@/lib/supabase/admin";
 import { adminGrantSchema } from "@/lib/validation/admin";
@@ -93,10 +93,10 @@ export async function POST(request: Request) {
         return apiError("invalid_request", "Email matches multiple Clerk users", 400);
       }
       userId = users[0].id;
-      userEmail = getPrimaryClerkEmail(users[0]);
+      userEmail = toDirectoryUser(users[0] as never).primaryEmail;
     } else {
       const user = await clerk.users.getUser(identifier);
-      userEmail = getPrimaryClerkEmail(user);
+      userEmail = toDirectoryUser(user as never).primaryEmail;
     }
   } catch {
     return apiError("not_found", "Clerk user not found", 404);

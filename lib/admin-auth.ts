@@ -1,6 +1,7 @@
-import { auth, clerkClient } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs/server";
 
 import { apiError } from "@/lib/api-response";
+import { getDirectoryUsers } from "@/lib/clerk/user-directory";
 import supabaseAdmin from "@/lib/supabase/admin";
 
 export type AdminSession = {
@@ -28,44 +29,15 @@ export function getPlatformAdminEmails(value = process.env.PLATFORM_ADMIN_EMAILS
   );
 }
 
-type ClerkUserEmail = {
-  primaryEmailAddressId: string | null;
-  emailAddresses: Array<{ id: string; emailAddress: string }>;
-};
-
-export function getPrimaryClerkEmail(user: ClerkUserEmail): string | null {
-  const primary = user.emailAddresses.find((email) => email.id === user.primaryEmailAddressId);
-  const email = primary?.emailAddress ?? user.emailAddresses[0]?.emailAddress ?? null;
-  return email ? email.toLowerCase() : null;
-}
-
 export async function getClerkUserEmail(userId: string): Promise<string | null> {
-  try {
-    const user = await clerkClient.users.getUser(userId);
-    return getPrimaryClerkEmail(user);
-  } catch (error) {
-    console.error(
-      "[admin-auth] failed to load Clerk user email:",
-      error instanceof Error ? error.message : String(error),
-    );
-    return null;
-  }
+  const users = await getDirectoryUsers([userId]);
+  return users.get(userId)?.primaryEmail ?? null;
 }
 
 export async function getClerkUserEmails(userIds: string[]): Promise<Map<string, string | null>> {
   const uniqueIds = Array.from(new Set(userIds.filter(Boolean)));
-  if (uniqueIds.length === 0) return new Map();
-
-  try {
-    const users = await clerkClient.users.getUserList({ userId: uniqueIds, limit: uniqueIds.length });
-    return new Map(users.map((user) => [user.id, getPrimaryClerkEmail(user)]));
-  } catch (error) {
-    console.error(
-      "[admin-auth] failed to load Clerk user emails:",
-      error instanceof Error ? error.message : String(error),
-    );
-    return new Map();
-  }
+  const users = await getDirectoryUsers(uniqueIds);
+  return new Map(uniqueIds.map((id) => [id, users.get(id)?.primaryEmail ?? null]));
 }
 
 export async function getCurrentAdmin(): Promise<
