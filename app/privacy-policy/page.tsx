@@ -5,6 +5,13 @@ import { privacyPolicy } from '@/lib/privacy-policy'
 export const metadata: Metadata = {
     title: 'Privacy Policy | What2Reg @ UM',
     description: 'Privacy Policy for What2Reg @ UM, a course review platform for University of Macau students.',
+    alternates: {
+        canonical: '/privacy-policy',
+        languages: {
+            en: '/privacy-policy',
+            'zh-Hant': '/privacy-policy/zh',
+        },
+    },
 }
 
 export const viewport: Viewport = {

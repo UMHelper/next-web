@@ -5,6 +5,13 @@ import { privacyPolicy } from '@/lib/privacy-policy'
 export const metadata: Metadata = {
     title: '隱私政策 | What2Reg @ UM 澳大選咩課',
     description: 'What2Reg @ UM 澳大選咩課的隱私政策。',
+    alternates: {
+        canonical: '/privacy-policy/zh',
+        languages: {
+            en: '/privacy-policy',
+            'zh-Hant': '/privacy-policy/zh',
+        },
+    },
 }
 
 export const viewport: Viewport = {

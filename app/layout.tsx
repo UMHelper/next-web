@@ -1,7 +1,6 @@
 import './globals.css'
 import '@smastrom/react-rating/style.css'
 
-import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import React from "react";
 
@@ -11,23 +10,14 @@ import Footer from "@/components/footer";
 import { Toaster } from "@/components/ui/sonner"
 import Script from 'next/script';
 import { ClerkProvider } from '@clerk/nextjs';
-import type { Viewport } from 'next'
 import { Banner } from '@/components/banner';
+import { rootMetadata } from '@/lib/seo';
+import { JsonLd } from '@/components/seo/json-ld';
 
 
 const inter = Inter({ subsets: ['latin'] })
 
-export const metadata: Metadata = {
-    title: 'Home | What2Reg @ UM 澳大選咩課',
-    description: 'Course review platform for University of Macau',
-}
-
-export const viewport: Viewport = {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 1,
-    userScalable: false,
-}
+export const metadata = rootMetadata;
 
 export default function RootLayout({
     children,
@@ -36,18 +26,18 @@ export default function RootLayout({
 }) {
     return (
         <ClerkProvider>
-            <html lang="en">
+            <html lang="zh-Hant">
                 <head>
-                    <Script id='gtm'>{`(function(w,d,s,l,i){w[l] = w[l] || [];w[l].push({'gtm.start':
+                    {process.env.GTM_ID ? (
+                        <Script id='gtm'>{`(function(w,d,s,l,i){w[l] = w[l] || [];w[l].push({'gtm.start':
                             new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
                         j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
                         'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
                             })(window,document,'script','dataLayer','${process.env.GTM_ID}');`}</Script>
+                    ) : null}
 
                     <meta name='theme-color' content='#2563EB' />
                     <meta name='apple-mobile-web-app-status-bar-style' content='#2563EB' />
-                    {/* TODO: 上架后把 app-id 替换成真实 App Store ID */}
-                    <meta name='apple-itunes-app' content='app-id=你的AppStoreID' />
                     <link rel="manifest" href="/manifest.webmanifest" />
                     <link rel="icon" href="/favicon.png" sizes="any" />
                     <link
@@ -56,6 +46,19 @@ export default function RootLayout({
                     />
                 </head>
                 <body className={cn(inter.className)}>
+                    <JsonLd
+                        data={{
+                            "@context": "https://schema.org",
+                            "@type": "WebSite",
+                            name: "What2Reg @ UM 澳大選咩課",
+                            url: "https://umeh.top",
+                            potentialAction: {
+                                "@type": "SearchAction",
+                                target: "https://umeh.top/search/course/{search_term_string}",
+                                "query-input": "required name=search_term_string",
+                            },
+                        }}
+                    />
                     <div className='min-h-screen min-w-full'>
                         <Navbar />
                         <Banner />

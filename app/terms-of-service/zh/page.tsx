@@ -5,6 +5,13 @@ import { termsOfService } from '@/lib/terms-of-service'
 export const metadata: Metadata = {
     title: '服務條款 | What2Reg @ UM 澳大選咩課',
     description: 'What2Reg @ UM 澳大選咩課的服務條款。',
+    alternates: {
+        canonical: '/terms-of-service/zh',
+        languages: {
+            en: '/terms-of-service',
+            'zh-Hant': '/terms-of-service/zh',
+        },
+    },
 }
 
 export const viewport: Viewport = {
