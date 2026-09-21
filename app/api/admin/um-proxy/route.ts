@@ -1,19 +1,10 @@
 import { requireAdmin } from "@/lib/admin-auth";
 import { apiError } from "@/lib/api-response";
+import { resolveUmResource } from "@/lib/um-proxy";
 
 export const dynamic = "force-dynamic";
 
 const UM_BASE = "https://api.data.um.edu.mo/service/academic";
-const UM_RESOURCES: Record<string, string> = {
-  course_catalog: "course_catalog/all",
-  course_catalog_v1: "course_catalog/v1.0.0/all",
-  courses: "courses/all",
-};
-
-export function resolveUmResource(resource: string | null): string | null {
-  if (!resource) return null;
-  return UM_RESOURCES[resource] ?? null;
-}
 
 export async function GET(request: Request) {
   const admin = await requireAdmin({ platformOnly: true });

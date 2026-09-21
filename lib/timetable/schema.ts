@@ -21,11 +21,11 @@ export const normalizeSchedule = (schedule: {
   time?: unknown;
   location?: unknown;
 }) => {
-  const date = String(schedule.date ?? "").trim().toUpperCase();
+  const date = String(schedule.date ?? "").trim().toUpperCase() as (typeof WEEK_DAYS)[number];
   const time = String(schedule.time ?? "").trim().replace(/\s+/g, "");
   const location = String(schedule.location ?? "").trim();
 
-  if (!WEEK_DAYS.includes(date as (typeof WEEK_DAYS)[number])) return null;
+  if (!WEEK_DAYS.includes(date)) return null;
   if (!/^\d{2}:\d{2}-\d{2}:\d{2}$/.test(time)) return null;
 
   const [start, end] = time.split("-");

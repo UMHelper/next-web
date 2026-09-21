@@ -4,7 +4,8 @@ import { NextResponse } from "next/server";
 const { requireAdmin } = vi.hoisted(() => ({ requireAdmin: vi.fn() }));
 vi.mock("@/lib/admin-auth", () => ({ requireAdmin }));
 
-import { GET, resolveUmResource } from "@/app/api/admin/um-proxy/route";
+import { resolveUmResource } from "@/lib/um-proxy";
+import { GET } from "@/app/api/admin/um-proxy/route";
 
 describe("resolveUmResource", () => {
   it("maps allowlisted resources to UM paths", () => {

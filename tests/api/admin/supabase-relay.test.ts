@@ -8,9 +8,8 @@ import {
   MAX_RELAY_BODY_BYTES,
   buildRelayHeaders,
   isAllowedRelayPath,
-  GET,
-  POST,
-} from "@/app/api/admin/supabase/[...path]/route";
+} from "@/lib/supabase-relay";
+import { GET, POST } from "@/app/api/admin/supabase/[...path]/route";
 
 function ctx(...path: string[]) {
   return { params: { path } };
