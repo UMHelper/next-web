@@ -4,4 +4,5 @@ export const CACHE_TAGS = {
   statistics: "statistics",
   catalog: "catalog",
   comment: "comment",
+  appConfig: "app-config",
 } as const;
