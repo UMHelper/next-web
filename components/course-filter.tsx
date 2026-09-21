@@ -6,7 +6,6 @@ import { countUniqueValues, courseKeysToCount, CourseFilterName } from "@/lib/co
 import { SelectValue, Select, SelectTrigger, SelectContent, SelectGroup, SelectItem } from "@/components/ui/select"
 
 export default function CourseFilter({ data }: { data: any[] }) {
-    const [courseList, setCourseList] = useState(data)
     const [option, setOption] = useState<any>({})
 
     const [currentCourseList, setCurrentCourseList] = useState(data)
@@ -30,7 +29,7 @@ export default function CourseFilter({ data }: { data: any[] }) {
     }, [data])
 
     useEffect(() => {
-        let curCourseList = [...courseList]
+        let curCourseList = [...data]
         for (const key in filter) {
             if (filter[key] !== 'All') {
                 curCourseList = curCourseList.filter((course) => {
@@ -39,7 +38,15 @@ export default function CourseFilter({ data }: { data: any[] }) {
             }
         }
         setCurrentCourseList([...curCourseList])
-    }, [filter, courseList])
+
+        if (typeof window === "undefined") return
+        const params = new URLSearchParams()
+        for (const [key, value] of Object.entries(filter)) {
+            if (value !== "All") params.set(key, String(value))
+        }
+        const query = params.toString()
+        window.history.replaceState(null, "", query ? `?${query}` : window.location.pathname)
+    }, [data, filter])
 
 
     return (
@@ -92,8 +99,8 @@ export default function CourseFilter({ data }: { data: any[] }) {
                 }
             </div>
             <Masonry col={3} className="mx-auto">
-                {currentCourseList.map((course, index) => {
-                    return <CourseCard data={course} key={index} />
+                {currentCourseList.map((course) => {
+                    return <CourseCard data={course} key={course.New_code ?? course.courseCode} />
                 })}
             </Masonry>
         </div>
