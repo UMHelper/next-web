@@ -48,6 +48,7 @@ describe("FloatingPlanner", () => {
     render(<FloatingPlanner />);
     fireEvent.click(screen.getByLabelText("Open timetable preview"));
     expect(screen.getAllByText("My Timetable").length).toBeGreaterThan(0);
+    expect(screen.queryByRole("dialog")).toBeNull();
   });
 
   it("hides on the planner page", () => {
