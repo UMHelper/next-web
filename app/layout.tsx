@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import Footer from "@/components/footer";
 import { Toaster } from "@/components/ui/sonner"
 import Script from 'next/script';
-import { ClerkProvider } from '@clerk/nextjs';
+import { ClerkProviderClient } from '@/components/providers/clerk-provider-client';
 import { Banner } from '@/components/banner';
 import { rootMetadata } from '@/lib/seo';
 import { JsonLd } from '@/components/seo/json-ld';
@@ -25,8 +25,7 @@ export default function RootLayout({
     children: React.ReactNode
 }) {
     return (
-        <ClerkProvider>
-            <html lang="zh-Hant">
+        <html lang="zh-Hant">
                 <head>
                     {process.env.GTM_ID ? (
                         <Script id='gtm'>{`(function(w,d,s,l,i){w[l] = w[l] || [];w[l].push({'gtm.start':
@@ -46,6 +45,7 @@ export default function RootLayout({
                     />
                 </head>
                 <body className={cn(inter.className)}>
+                    <ClerkProviderClient>
                     <JsonLd
                         data={{
                             "@context": "https://schema.org",
@@ -95,8 +95,8 @@ export default function RootLayout({
                             error: null
                         }}
                     />
+                    </ClerkProviderClient>
                 </body>
             </html>
-        </ClerkProvider>
     )
 }
