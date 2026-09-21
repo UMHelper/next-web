@@ -3,4 +3,5 @@ export const CACHE_TAGS = {
   professor: "professor",
   statistics: "statistics",
   catalog: "catalog",
+  comment: "comment",
 } as const;

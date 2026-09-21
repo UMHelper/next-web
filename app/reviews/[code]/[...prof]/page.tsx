@@ -1,5 +1,3 @@
-import { auth } from "@clerk/nextjs/server";
-
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
@@ -7,7 +5,7 @@ import { CalendarRange, Cat, ChevronRightCircle, ClipboardEdit } from "lucide-re
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { TimetableScheduleCard } from "@/components/timetable-schedule-card";
 import { parseReviewRoute } from "@/lib/review-route";
-import { getComentListByCourseIDAndPage } from "@/lib/database/get-comment-list";
+import { getPublicCommentPage } from "@/lib/database/get-public-comment-list";
 import { getReviewInfo } from "@/lib/database/get-prof-info";
 import Link from "next/link";
 import { notFound } from 'next/navigation'
@@ -22,8 +20,7 @@ import { ReviewReload } from "@/components/review-reload";
 import { ReviewNotice } from "@/components/review-notice";
 import { buildReviewMetadata } from "@/lib/seo";
 
-export const revalidate = 0
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 export function generateMetadata(
     { params, searchParams }: { params: any, searchParams?: any }) {
@@ -54,8 +51,7 @@ const ReviewPage = async ({
     const course_info = await getCourseInfo(code);
     // console.log(course_info);
 
-    const { userId } = auth();
-    const comments: any[] = await getComentListByCourseIDAndPage(prof_info.id, page_num - 1, userId);
+    const comments: any[] = await getPublicCommentPage(prof_info.id, page_num - 1);
 
     const timetable = await getScheduleList(code, prof);
 

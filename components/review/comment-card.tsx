@@ -355,6 +355,37 @@ const EmojiVote = ({ comment }: { comment: any }) => {
             setEmojiHistory(emojiHistory)
         }
     }, [user, comment, isSignedIn])
+
+    useEffect(() => {
+        if (!isSignedIn || !user) {
+            setVoteHistory(null)
+            setEmojiHistory([])
+            return
+        }
+
+        let active = true
+        fetch(`/api/vote/me?comment_ids=${comment.id}`)
+            .then((response) => (response.ok ? response.json() : { votes: [] }))
+            .then((body) => {
+                if (!active) return
+                const votes = body.votes ?? []
+                const ownVote = votes.find((vote: any) => vote.offset !== 0)
+                setVoteHistory(ownVote ? { ...ownVote, created_by: user.id } : null)
+                setEmojiHistory(
+                    votes
+                        .filter((vote: any) => vote.offset === 0)
+                        .map((vote: any) => ({ ...vote, created_by: user.id })),
+                )
+            })
+            .catch(() => {
+                // Vote state is additive; keep the public page usable if the request fails.
+            })
+
+        return () => {
+            active = false
+        }
+    }, [comment.id, isSignedIn, user])
+
     const [isVoting, setIsVoting] = useState<boolean>(false)
     const handleVote = (offset: number, emoji?: string) => {
         if (!isSignedIn) {
