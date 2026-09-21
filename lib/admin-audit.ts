@@ -9,7 +9,8 @@ type AuditEntry = {
     | "prof.update"
     | "admin.grant"
     | "admin.revoke"
-    | "sync.um";
+    | "sync.um"
+    | "config.update";
   targetType: string;
   targetId?: string | number | null;
   before?: unknown;

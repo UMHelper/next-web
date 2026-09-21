@@ -72,3 +72,17 @@ export const syncUmSchema = z
       });
     }
   });
+
+export const appConfigUpdateSchema = z
+  .object({
+    current_year: z.coerce.number().int().min(2000).max(2100).optional(),
+    current_sem: z.union([z.literal(1), z.literal(2)]).optional(),
+    is_preenrollment_open: z.boolean().optional(),
+    database_last_update: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/)
+      .nullable()
+      .optional(),
+  })
+  .refine((value) => Object.keys(value).length > 0, { message: "no fields to update" });
+
