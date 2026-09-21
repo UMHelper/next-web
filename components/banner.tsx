@@ -1,5 +1,3 @@
-"use client"
-
 // import RotatingText from "@/components/RotatingText/RotatingText"
 import CsBanner from "@/components/cs-banner"
 

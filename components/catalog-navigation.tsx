@@ -3,7 +3,6 @@ import { faculty, faculty_dept, getFacultyLabel } from "@/lib/consant"
 import { usePathname, useRouter } from 'next/navigation'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { ChevronsDown } from "lucide-react"
-import { useEffect, useState } from "react"
 
 const CatalogNavigation = () => {
     const pathname = usePathname()
@@ -11,29 +10,6 @@ const CatalogNavigation = () => {
     const currentDept = pathname.split('/')[3]
     const router = useRouter()
 
-    const [open, setOpen] = useState<any>({})
-    useEffect(() => {
-        faculty.forEach((fac) => {
-            router.prefetch(`/catalog/${fac}`)
-            if (faculty_dept[fac].length > 0) {
-                faculty_dept[fac].forEach((dept: any) => {
-                    router.prefetch(`/catalog/${fac}/${dept}`.replaceAll(" ",""))
-                })
-            }
-        })
-    }, [router])
-
-    useEffect(() => {
-        faculty.forEach((fac) => {
-            if (faculty_dept[fac].length > 2) {
-                setOpen((prev: any) => ({ ...prev, [fac]: false }))
-            }
-        })
-    }, [])
-
-    // useEffect(() => {
-    //     console.log(open)
-    // }, [open])
     return (
         <div className="flex flex-row flex-wrap py-2">
             {
