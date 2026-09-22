@@ -29,7 +29,7 @@ export function buildProfessorPath(name: string) {
 
 export function buildReviewPath(code: string, prof: string, page = 1) {
   const base = `/reviews/${encodeSegment(code.toUpperCase())}/${encodeSegment(prof.toUpperCase())}`;
-  return page > 1 ? `${base}/page/${page}` : base;
+  return page > 1 ? `${base}/${page}` : base;
 }
 
 export function buildSearchPath(kind: "course" | "instructor", value: string) {
