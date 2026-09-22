@@ -51,6 +51,13 @@ public/workbox-*
 
 .agents
 
+# Cursor local settings
+.cursor/
+
+# Supabase CLI local state
+supabase/.branches/
+supabase/.temp/
+
 tmp
 
 # local git worktrees
