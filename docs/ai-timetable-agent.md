@@ -1,5 +1,7 @@
 # AI 选课课表助手：讨论定稿
 
+> **已被取代**：2026-09-24 与另一份方案合并，最终方案见 [docs/superpowers/specs/2026-09-24-next-web-ai-timetable-assistant-design.md](superpowers/specs/2026-09-24-next-web-ai-timetable-assistant-design.md)。本文仅作决策记录保留。
+>
 > 状态：**讨论定稿，未开工**。本文是这次讨论的最终记录，供后续开独立 V1 实施方案时对照。
 > 最后更新：2026-09-21
 
