@@ -221,7 +221,7 @@ colors: {
 |---|---|---|
 | `bg-white` | 20 | `bg-background` |
 | `text-gray-900` / `text-black` | 12 / 7 | `text-foreground` |
-| `text-gray-700` / `text-gray-800` | 4 / 7 | `text-foreground` |
+| `text-gray-700` / `text-gray-800` / `text-slate-700` / `text-slate-800` | 4 / 7 / 1 / 1 | `text-foreground` |
 | `text-gray-500` / `text-slate-500` | 42 / 17 | `text-muted-foreground` |
 | `text-gray-600` / `text-slate-600` | 3 / 3 | `text-muted-foreground` |
 | `text-gray-400` / `text-slate-400` | 21 / 4 | `text-foreground-subtle` |
@@ -232,17 +232,25 @@ colors: {
 | `hover:bg-gray-300` | 1 | `hover:bg-surface-strong` |
 | `border-slate-200` / `border-gray-200` | 21 / 2 | `border-border` |
 | `border-slate-100` | 7 | `border-border-subtle` |
+| `border-gray-100`（`navbar-list.tsx:26` 移动菜单外框） | 1 | `border-border-subtle` |
 | `border-gray-300` | 4 | `border-border-strong` |
 | `text-blue-500` / `text-blue-600` | 15 / 3 | `text-brand` |
+| `text-indigo-500`（`course-instructors.tsx:20` 图标） | 1 | `text-brand` |
 | `text-blue-700` / `text-blue-800` | 8 / 3 | `text-brand-strong` |
 | `bg-blue-600` | 6 | `bg-brand` |
 | `bg-blue-50`（admin 选中项） | 1 | `bg-brand/10` |
-| `text-red-500` / `text-red-600` / `text-red-700` | 1 / 5 / 2 | `text-destructive` |
+| `bg-blue-100`（admin「运行中」徽章） | 1 | `bg-brand/10` |
+| `bg-sky-100` / `text-sky-600` / `border-sky-600`（`comment-card.tsx:473,508` 折叠标记徽章，各 2 处） | 6 | `bg-brand/10` / `text-brand` / `border-brand` |
+| `hover:bg-blue-200`（同上徽章 hover） | 2 | `hover:bg-brand/20` |
+| `hover:bg-blue-700`（`floating-planner.tsx:79` 移动端浮动按钮 hover） | 1 | `hover:bg-brand-strong` |
+| `bg-slate-50/40`（`ads/ad-slot.tsx:43` 广告位底） | 1 | `bg-surface-subtle/40` |
+| `text-red-500` / `text-red-600` / `text-red-700` / `text-red-400` | 1 / 5 / 2 / 1 | `text-destructive` |
 | `bg-red-500` | 3 | `bg-destructive` |
 | `bg-red-50` / `bg-red-100`（admin） | 1 / 1 | `bg-destructive/10` |
-| `border-red-200` / `border-red-300` | 1 / 1 | `border-destructive/30` |
-| `text-green-600` / `text-green-700` | 1 / 5 | `text-success` |
+| `border-red-200` / `border-red-300` / `border-red-400` / `border-red-500` | 1 / 1 / 1 / 1 | `border-destructive/30`（前两个）/ `border-destructive`（后两个，冲突描边） |
+| `text-green-600` / `text-green-700` / `text-green-800` / `text-green-900` | 1 / 5 / 1 / 1 | `text-success` |
 | `bg-green-100`（admin） | 2 | `bg-success/15` |
+| `bg-green-50` / `border-green-200`（`compare-client.tsx:92` 共同空闲卡片） | 1 / 1 | `bg-success/10` / `border-success/40` |
 | `text-amber-600` / `text-amber-700` / `text-amber-800` | 1 / 1 / 1 | `text-warning` |
 | `bg-amber-50` / `bg-amber-100` | 1 / 1 | `bg-warning/10` |
 | `border-amber-300` | 1 | `border-warning/30` |
@@ -275,13 +283,15 @@ colors: {
 | S4 | `bg-zinc-200`（4 处） | `#E4E4E7` → `#E5E7EB` | 极小 |
 | S5 | `bg-slate-50`（5 处） | `#F8FAFC` → `#F9FAFB` | 极小 |
 | S6 | `text-blue-500`（15 处，绝大多数是 `hover:`） | `#3B82F6` → `#2563EB` | 有意统一（可见） |
-| S7 | `text-gray-700` / `text-gray-800`（11 处） | 统一到 `#111827` | 有意统一（可见） |
+| S7 | `text-gray-700` / `text-gray-800` / `text-slate-700` / `text-slate-800`（13 处） | 统一到 `#111827` | 有意统一（可见） |
 | S8 | `text-blue-800`（3 处） | `#1E40AF` → `#1D4ED8` | 极小 |
 | S9 | `text-green-700`（5 处） | `#15803D` → `#16A34A` | 小幅提亮 |
 | S10 | `text-amber-600/700/800`、`bg-amber-50/100`（admin，共 5 处） | 统一到 `--warning` 及其透明度底 | 小幅 |
 | S11 | `from-sky-600`（`components/banner.tsx:18,21`，2 处） | `#0284C7` → `#0EA5E9` | 与 `navbar-list` / `footer` / `cs-banner` 的字标蓝统一（此前全站字标其实有两种蓝） |
+| S12 | `text-sky-600` / `border-sky-600` / `bg-sky-100` / `hover:bg-blue-200`（`comment-card.tsx` 折叠标记徽章，8 处） | `#0284C7` → `#2563EB` | 统一到品牌色系（青蓝 → 品牌蓝） |
+| S13 | `text-green-800` / `text-green-900`（`compare-client.tsx` 共同空闲卡片，2 处） | → `#16A34A` | 小幅提亮 |
 
-S6–S7 是**有意为之的统一**：这两组在现有代码里本来就是同一语义的多个近似色阶，收敛后品牌色与主文字色全站一致。其余各项差值 ≤2 个色阶。
+S6–S7 是**有意为之的统一**：这两组在现有代码里本来就是同一语义的多个近似色阶，收敛后品牌色与主文字色全站一致。S12 同属这一类（评论折叠标记原本用青蓝，与全站品牌蓝不一致）。其余各项差值 ≤2 个色阶。
 
 ## 6. 品牌区实现
 
@@ -418,7 +428,7 @@ if (!mounted) return <div className="h-9 w-9" aria-hidden />;
 
 | ID | 文件 | 断言 |
 |---|---|---|
-| T1 | `tests/theme-tokens.test.ts`（node） | 解析 `app/globals.css`：① `:root` 与 `.dark` 的 CSS 变量**键集合完全一致**（深色漏定义是这类改动最高频的 bug）；② §5.2 的 12 个 token 在两个作用域都存在；③ `--brand-logo` 浅色解析值 = `#003DB8`、深色 = `#FFFFFF`；④ **跨仓库交叉校验**：若 `../next-ios/What2REG@UM/Assets.xcassets/CatLogo.imageset/cat-blue.svg` 存在，断言其 `stroke` 值等于 `--brand-logo` 的浅色值，`cat-white.svg` 的 `stroke` 等于深色值（用 `existsSync` 守卫，CI 无该仓库时跳过） |
+| T1 | `tests/theme-tokens.test.ts`（node） | 解析 `app/globals.css`：① `:root` 与 `.dark` 的**颜色**变量键集合完全一致 —— 比较时忽略已声明的非颜色例外 `--radius`（它只存在于 `:root`，是圆角尺寸而非颜色），深色漏定义颜色 token 是这类改动最高频的 bug；② §5.2 的 12 个 token 在两个作用域都存在；③ `--brand-logo` 浅色解析值 = `#003DB8`、深色 = `#FFFFFF`（HSL → HEX 零容差往返）；④ **跨仓库交叉校验**：若 `../next-ios/What2REG@UM/Assets.xcassets/CatLogo.imageset/cat-blue.svg` 存在，断言其 `stroke` 值等于 `--brand-logo` 的浅色值，`cat-white.svg` 的 `stroke` 等于深色值（用 `existsSync` 守卫，CI 无该仓库时跳过） |
 | T2 | `tests/no-light-only-colors.test.ts`（node） | 守卫：递归扫 `app/**`、`components/**`（排除 `components/ui/**`、`components/timetable-calendar.tsx`，后者附注释说明是死代码），**先剥离 `{/* */}`、`/* */`、`//` 注释**再匹配；禁止裸 `bg-white`（不含 `/NN`）、`text-black`、`(text\|bg\|border)-(gray\|slate\|zinc\|neutral\|stone)-?[0-9]*`、`text-blue-*`、`bg-blue-*`、`text-red-*`、`bg-red-*`、`text-green-*`、`bg-green-*`、`text-amber-*`、`bg-amber-*`、`border-red-*`、`border-amber-*`；渐变位一律禁止，**精确放行** §5.6 的字符串：`text-white`、`text-white/80`、`bg-white/20`、`bg-white/25`、`bg-white/30`、`from-blue-600`、`to-indigo-500`、`from-teal-400`、`via-violet-400`、`to-blue-500`、`from-neutral-700`、`to-stone-900`、`from-purple-600`、`from-purple-500`、`to-blue-600`、`from-violet-500`、`to-fuchsia-500`、`from-blue-400`、`to-indigo-400`；失败信息按 `file:line  matched` 输出完整违规清单 |
 | T3 | `tests/theme-provider.test.tsx`（jsdom） | `vi.mock('next-themes')` 捕获 props：断言 `attribute="class"`、`defaultTheme="light"`、`enableSystem`、`disableTransitionOnChange`、`storageKey="umeh-theme"`；另断言 `app/layout.tsx` 源码里 `<html>` 带 `suppressHydrationWarning`（源码契约断言） |
 | T4 | `tests/components/theme-toggle.test.tsx`（jsdom） | mock `next-themes`（`theme`、`resolvedTheme`、`setTheme`）：① 挂载前渲染等尺寸占位、不含任何主题图标；② 挂载后渲染触发按钮；③ 打开下拉后出现 `Light` / `Dark` / `System` 三项；④ 点击 `Dark` 恰好调用一次 `setTheme('dark')`；⑤ 当前项带勾选态 |
