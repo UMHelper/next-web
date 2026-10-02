@@ -26,6 +26,19 @@
 - **四道质量门**：`npm test`、`npm run lint`、`npx tsc --noEmit`、`npm run build`。
 - **迁移量（已实测，不是估算）**：守卫口径下需迁移 **48 个文件 / 335 处**。spec §8 的原始 `grep` 清单是 54 个文件 / 423 处，差额 = 11 处仅存在于注释 + 77 处属 §5.6 放行项。另有 **6 个文件在守卫口径下为 0 处**（`app/layout.tsx` 命中全在注释里；`components/navbar-avatar.tsx`、`components/search.tsx`、`components/search/search-form.tsx`、`components/comments.tsx`、`app/professor/[...name]/page.tsx` 命中全是放行项）—— **不要**把它们写进 `PENDING`，否则 Task 8 的 stale 断言会失败。
 
+### 并行执行修订（本次实际采用；与下面按任务书写法冲突时以本节为准）
+
+原计划按"串行、每个迁移任务自己改 `PENDING`"书写；人工选择了激进并行执行，因此执行时按以下修订进行（完整背景见 `.superpowers/sdd/2026-10-02-next-web-dark-mode/progress.md` 的 Rulings）：
+
+| Ruling | 修订内容 |
+|---|---|
+| **R1** | Task 2 的 T1 测试：iOS 资源路径改为 `..` / `../..` / `../../..` 三级候选探测（worktree 下写死的 `../next-ios` 不存在）。找到即必须断言，全部不存在才跳过文件断言；两个 `--brand-logo` 十六进制断言永远执行。 |
+| **R3** | 守卫测试增加可选 `GUARD_SCOPE` 环境变量（逗号分隔的条目，文件或目录均可）。设置时只注册**一个**测试：先断言每个条目都匹配到了真实被扫描的文件（防空过），再断言该范围内零违规；未设置时注册原计划的两个 `PENDING` 断言。两种模式都不得留下永久 skip。 |
+| **R7** | `PENDING` 与 `tests/no-light-only-colors.test.ts` 由**控制器独占**。并行批次**不得**修改它；批次的判据是 `GUARD_SCOPE=<本批文件> npx vitest run tests/no-light-only-colors.test.ts`（迁移前红、迁移后绿）＋ `npx vitest run --exclude 'tests/no-light-only-colors.test.ts'` 全绿＋ `tsc --noEmit` 干净。批次内默认模式的 stale 断言变红是控制器的记账事项，不是缺陷。控制器每次合入后重写 `PENDING`；全部合入后 `PENDING` 自然为空，Task 16 删除整个机制。 |
+| **R8** | `GUARD_SCOPE` 的匹配语义：条目按"文件或目录"处理（`file === entry \|\| file.startsWith(entry + "/")`，先去掉尾部 `/`），并加入非空过前置断言。原因：`startsWith(\`${scope}:\`)` 这种精确路径匹配会让目录式条目或拼写错误**空过变绿**，而 scope 模式是并行批次唯一的证据。 |
+| **R9** | Task 6 在自己的测试文件里补一条 Provider 嵌套顺序断言（`<ThemeProvider>` 在 `<ClerkProviderClient>` 之前开、之后闭，且 `lang="zh-Hant"` 保留）。原因：Task 3 的审查指出该顺序没有自动化保护，反转后所有测试与 `tsc` 仍会通过，而两个 `<Toaster />` 会静默退回无 Provider 的默认状态。 |
+| **R10** | 本节与上面 Interfaces 行的修订本身：Task 8 的 Interfaces 原写"53 个未迁移文件"（残留笔误，实测为 48），且把 `ALLOWED_TOKENS` / `stripComments` 写成导出（实际只导出 `collectTokenViolations`）。已就地修正。 |
+
 ### 颜色映射表（唯一权威；迁移任务只允许从中取值）
 
 | 现有 token | 替换为 |
@@ -1169,7 +1182,7 @@ hardcoded sky-500, and all five wordmark gradients share one token pair."
 
 **Interfaces:**
 - Consumes: 无
-- Produces: `PENDING: string[]`（53 个未迁移文件）、`collectTokenViolations(): string[]`（返回 `file:line  token`）、`ALLOWED_TOKENS`、扫描器 `stripComments()`；后续每个迁移任务从 `PENDING` 删掉自己的文件，Task 16 清空该数组
+- Produces: `collectTokenViolations(): string[]`（唯一导出，返回 `file:line  token`）；`ALLOWED_TOKENS`、`stripComments()`、`PENDING`（**48 个**未迁移文件）都在模块内部，不导出。**并行执行修订（见下方「并行执行修订」节与 ruling R7）**：`PENDING` 与整个守卫文件由控制器独占，迁移批次不得修改它；控制器在每次合入后按实测重写 `PENDING`，Task 16 删除该机制。
 
 - [ ] **Step 1: 写守卫测试（含 PENDING 基线）**
 
