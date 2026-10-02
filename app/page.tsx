@@ -21,33 +21,33 @@ function HomePage() {
                         <div className='text-2xl font-bold'>
                             Suggestions or feedback?
                         </div>
-                        <Card className="flex items-center space-x-4 p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md w-full justify-between ">
+                        <Card className="flex items-center space-x-4 p-6 bg-card rounded-lg shadow-md w-full justify-between ">
                             <div className="flex items-center space-x-4 " >
                                 <Quote size={40} strokeWidth={1.75} />
                                 <div >
-                                    <h2 className="text-base font-bold text-gray-900 dark:text-white">Report and Feedback</h2>
-                                    <p className="text-sm text-gray-500 dark:text-gray-300">
+                                    <h2 className="text-base font-bold text-foreground">Report and Feedback</h2>
+                                    <p className="text-sm text-muted-foreground">
                                         Report problems, bugs, and suggestions.
                                     </p>
                                 </div>
                             </div>
-                            <div className="p-2 rounded hover:shadow bg-zinc-200 text-center">
+                            <div className="p-2 rounded hover:shadow bg-surface-strong text-center">
                                 <Link href='https://docs.google.com/forms/d/1_HrH0jJ9Fyxu_dmW1xGsn9Hq1ZtN9nFG-Jangj_BNVk/'>
                                     Report Form
                                 </Link> 
                             </div>
                         </Card>
-                        <Card className="flex items-center space-x-4 p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md w-full justify-between ">
+                        <Card className="flex items-center space-x-4 p-6 bg-card rounded-lg shadow-md w-full justify-between ">
                             <div className="flex items-center space-x-4 " >
                                 <Radar size={40} strokeWidth={1.75} />
                                 <div >
-                                    <h2 className="text-base font-bold text-gray-900 dark:text-white">Our Community</h2>
-                                    <p className="text-sm text-gray-500 dark:text-gray-300">
+                                    <h2 className="text-base font-bold text-foreground">Our Community</h2>
+                                    <p className="text-sm text-muted-foreground">
                                         Be part of our community.
                                     </p>
                                 </div>
                             </div>
-                            <div className="p-2 rounded hover:shadow bg-zinc-200 text-center">
+                            <div className="p-2 rounded hover:shadow bg-surface-strong text-center">
                                 <Drawer>
                                     <DrawerTrigger >Wechat Group</DrawerTrigger>
                                     <DrawerContent>
@@ -72,34 +72,34 @@ function HomePage() {
                         </div>
 
 
-                        <Card className="flex items-center space-x-4 p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md w-full justify-between ">
+                        <Card className="flex items-center space-x-4 p-6 bg-card rounded-lg shadow-md w-full justify-between ">
                             <div className="flex items-center space-x-4 " >
                                 <UserPlus size={40} strokeWidth={1.75} />
                                 <div >
-                                    <h2 className="text-base font-bold text-gray-900 dark:text-white">UMHelper Dev Group</h2>
-                                    <p className="text-sm text-gray-500 dark:text-gray-300">
+                                    <h2 className="text-base font-bold text-foreground">UMHelper Dev Group</h2>
+                                    <p className="text-sm text-muted-foreground">
                                         Join us and contribute together.
                                     </p>
                                 </div>
                             </div>
-                            <div className="p-2 rounded hover:shadow bg-zinc-200 text-center">
+                            <div className="p-2 rounded hover:shadow bg-surface-strong text-center">
                                 <Link className="p-1" href="https://github.com/UMHelper/Feedback-and-Join-Us/blob/master/Join.md">
                                     Join us
                                 </Link>
                             </div>
                         </Card>
 
-                        <Card className="flex items-center space-x-4 p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md w-full justify-between ">
+                        <Card className="flex items-center space-x-4 p-6 bg-card rounded-lg shadow-md w-full justify-between ">
                             <div className="flex items-center space-x-4 " >
                                 <Github size={40} strokeWidth={1.75} />
                                 <div >
-                                    <h2 className="text-base font-bold text-gray-900 dark:text-white">What2Reg Ver. &quot;Next&quot;</h2>
-                                    <p className="text-sm text-gray-500 dark:text-gray-300">
+                                    <h2 className="text-base font-bold text-foreground">What2Reg Ver. &quot;Next&quot;</h2>
+                                    <p className="text-sm text-muted-foreground">
                                         Check out this project on GitHub.
                                     </p>
                                 </div>
                             </div>
-                            <div className="p-2 rounded hover:shadow bg-zinc-200 text-center">
+                            <div className="p-2 rounded hover:shadow bg-surface-strong text-center">
                                 <Link className="p-1" href="https://github.com/UMHelper/next-web/issues?q=is%3Aopen+is%3Aissue+label%3A%22help+wanted%22+">
                                     Fix Bugs Now
                                 </Link>

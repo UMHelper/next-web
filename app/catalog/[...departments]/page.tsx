@@ -62,8 +62,8 @@ const CatalogPage = ({ params: { departments } }: { params: { departments: strin
                     <div className="text-9xl font-black racking-widest bg-gradient-to-r from-teal-400 via-violet-400 to-blue-500 bg-clip-text text-transparent">
                         Oops :(
                     </div>
-                    <div className="text-sm text-gray-400">
-                        The faculty <span className="text-gray-800">{departments[0]}</span> is not found!
+                    <div className="text-sm text-foreground-subtle">
+                        The faculty <span className="text-foreground">{departments[0]}</span> is not found!
                     </div>
                 </div>
             </div>

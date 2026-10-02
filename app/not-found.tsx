@@ -10,11 +10,11 @@ export default function NotFoundPage() {
       <div className="text-9xl font-black racking-widest bg-gradient-to-r from-teal-400 via-violet-400 to-blue-500 bg-clip-text text-transparent">
         Oops :(
       </div>
-      <div className="text-sm text-gray-400">
-        The page <span className="text-gray-800">{pathname}</span> is not found!
+      <div className="text-sm text-foreground-subtle">
+        The page <span className="text-foreground">{pathname}</span> is not found!
       </div>
       <div>
-        <Link href="/" className="text-blue-500 hover:underline">
+        <Link href="/" className="text-brand hover:underline">
           Go back to Home
         </Link>
       </div>
