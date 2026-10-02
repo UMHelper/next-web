@@ -21,7 +21,7 @@ describe("site URL builders", () => {
       "/reviews/ACCT1000/CHAN%20TAI%2FMAN",
     );
     expect(buildReviewPath("acct1000", "CHAN TAI/MAN", 3)).toBe(
-      "/reviews/ACCT1000/CHAN%20TAI%2FMAN/page/3",
+      "/reviews/ACCT1000/CHAN%20TAI%2FMAN/3",
     );
   });
 
