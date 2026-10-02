@@ -168,8 +168,8 @@ export default function AdminCoursesClient() {
 
       <div className="overflow-x-auto rounded-lg border">
         <table className="w-full min-w-[1050px] text-left text-sm">
-          <thead className="bg-gray-50">
-            <tr className="border-b text-gray-500">
+          <thead className="bg-surface-subtle">
+            <tr className="border-b text-muted-foreground">
               <th className="p-3">Code</th>
               <th className="p-3">English title</th>
               <th className="p-3">Chinese title</th>
@@ -187,7 +187,7 @@ export default function AdminCoursesClient() {
               <tr key={course.New_code} className="border-b last:border-0">
                 <td className="p-3 font-mono">
                   {course.New_code}
-                  {course.Old_code ? <div className="text-xs text-gray-400">{course.Old_code}</div> : null}
+                  {course.Old_code ? <div className="text-xs text-foreground-subtle">{course.Old_code}</div> : null}
                 </td>
                 <td className="p-3">{course.courseTitleEng}</td>
                 <td className="p-3 text-xs">{course.courseTitleChi || "-"}</td>
@@ -196,7 +196,7 @@ export default function AdminCoursesClient() {
                 <td className="p-3 text-xs">{course.Medium_of_Instruction}</td>
                 <td className="p-3 text-xs">
                   <div>{course.offeringProgLevel ?? "-"}</div>
-                  <div className="text-gray-500">
+                  <div className="text-muted-foreground">
                     {[course.courseType, course.suggestedYearOfStudy ? `Year ${course.suggestedYearOfStudy}` : null]
                       .filter(Boolean)
                       .join(" · ") || "-"}
@@ -210,7 +210,7 @@ export default function AdminCoursesClient() {
             ))}
             {!loadingCourses && courses.length === 0 ? (
               <tr>
-                <td colSpan={9} className="p-6 text-center text-gray-500">No courses</td>
+                <td colSpan={9} className="p-6 text-center text-muted-foreground">No courses</td>
               </tr>
             ) : null}
           </tbody>

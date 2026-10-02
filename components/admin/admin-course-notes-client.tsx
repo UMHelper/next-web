@@ -147,8 +147,8 @@ export default function AdminCourseNotesClient() {
 
       <div className="overflow-x-auto rounded-lg border">
         <table className="w-full min-w-[760px] text-left text-sm">
-          <thead className="bg-gray-50">
-            <tr className="border-b text-gray-500">
+          <thead className="bg-surface-subtle">
+            <tr className="border-b text-muted-foreground">
               <th className="p-3">Course</th>
               <th className="p-3">Professor</th>
               <th className="p-3">Notes</th>
@@ -163,11 +163,11 @@ export default function AdminCourseNotesClient() {
                 <td className="p-3 font-mono">{mapping.course_id}</td>
                 <td className="p-3">{mapping.prof_id}</td>
                 <td className="max-w-[360px] p-3 align-top">
-                  <div className="line-clamp-2 text-xs text-gray-700">
+                  <div className="line-clamp-2 text-xs text-foreground">
                     {mapping.admin_note_en || mapping.admin_note || "-"}
                   </div>
                   {mapping.admin_note_en && mapping.admin_note ? (
-                    <div className="mt-1 line-clamp-1 text-xs text-gray-400">{mapping.admin_note}</div>
+                    <div className="mt-1 line-clamp-1 text-xs text-foreground-subtle">{mapping.admin_note}</div>
                   ) : null}
                 </td>
                 <td className="p-3">{mapping.is_offered === 1 ? "Yes" : "No"}</td>
@@ -185,7 +185,7 @@ export default function AdminCourseNotesClient() {
             ))}
             {!loadingMappings && mappings.length === 0 ? (
               <tr>
-                <td colSpan={5} className="p-6 text-center text-gray-500">No course notes</td>
+                <td colSpan={5} className="p-6 text-center text-muted-foreground">No course notes</td>
               </tr>
             ) : null}
           </tbody>

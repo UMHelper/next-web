@@ -126,8 +126,8 @@ export default function AdminReportsClient() {
 
       <div className="overflow-x-auto rounded-lg border">
         <table className="w-full min-w-[1050px] text-left text-sm">
-          <thead className="bg-gray-50">
-            <tr className="border-b text-gray-500">
+          <thead className="bg-surface-subtle">
+            <tr className="border-b text-muted-foreground">
               <th className="p-3">ID</th>
               <th className="p-3">Type / Target</th>
               <th className="p-3">Course / Prof</th>
@@ -147,29 +147,29 @@ export default function AdminReportsClient() {
                 <td className="p-3">{report.id}</td>
                 <td className="p-3">
                   <div>{report.target_type}</div>
-                  <div className="font-mono text-xs text-gray-500">#{report.target_id}</div>
+                  <div className="font-mono text-xs text-muted-foreground">#{report.target_id}</div>
                 </td>
                 <td className="p-3">
                   {report.course_id ?? "-"}
-                  <div className="text-xs text-gray-500">{report.prof_id ?? "-"}</div>
+                  <div className="text-xs text-muted-foreground">{report.prof_id ?? "-"}</div>
                 </td>
                 <td className="p-3">
                   <div>{report.reason}</div>
                   {report.details ? (
-                    <div className="mt-1 max-w-[360px] line-clamp-2 text-xs text-gray-500">{report.details}</div>
+                    <div className="mt-1 max-w-[360px] line-clamp-2 text-xs text-muted-foreground">{report.details}</div>
                   ) : null}
                 </td>
                 <td className="p-3">
                   <div>{report.email ?? "-"}</div>
-                  <div className="text-xs text-gray-500">{report.reporter_platform}</div>
+                  <div className="text-xs text-muted-foreground">{report.reporter_platform}</div>
                 </td>
                 <td className="p-3">
                   <span className={
                     report.status === "open"
-                      ? "rounded bg-amber-100 px-2 py-0.5 text-xs text-amber-700"
+                      ? "rounded bg-warning/10 px-2 py-0.5 text-xs text-warning"
                       : report.status === "resolved"
-                        ? "rounded bg-green-100 px-2 py-0.5 text-xs text-green-700"
-                        : "rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600"
+                        ? "rounded bg-success/15 px-2 py-0.5 text-xs text-success"
+                        : "rounded bg-muted px-2 py-0.5 text-xs text-muted-foreground"
                   }>
                     {report.status}
                   </span>
@@ -196,7 +196,7 @@ export default function AdminReportsClient() {
             ))}
             {!loading && reports.length === 0 ? (
               <tr>
-                <td colSpan={10} className="p-6 text-center text-gray-500">No reports</td>
+                <td colSpan={10} className="p-6 text-center text-muted-foreground">No reports</td>
               </tr>
             ) : null}
           </tbody>

@@ -40,11 +40,11 @@ export function AdSlot({
   return (
     <div
       className={cn(
-        "flex flex-col rounded-lg border border-dashed border-slate-200 bg-slate-50/40 p-1",
+        "flex flex-col rounded-lg border border-dashed border-border bg-surface-subtle/40 p-1",
         className,
       )}
     >
-      <span className="px-1 pb-1 text-[10px] uppercase tracking-wider text-slate-400">
+      <span className="px-1 pb-1 text-[10px] uppercase tracking-wider text-foreground-subtle">
         Advertisement
       </span>
       <ins

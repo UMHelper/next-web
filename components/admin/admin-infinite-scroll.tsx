@@ -39,7 +39,7 @@ export default function AdminInfiniteScroll({
   }, [canLoadMore, loading]);
 
   return (
-    <div ref={targetRef} className="py-4 text-center text-xs text-gray-400">
+    <div ref={targetRef} className="py-4 text-center text-xs text-foreground-subtle">
       {loading ? "Loading..." : canLoadMore ? "Scroll to load more" : "No more results"}
     </div>
   );
