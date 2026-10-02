@@ -16,11 +16,33 @@ module.exports = {
     },
     extend: {
       colors: {
-        border: "hsl(var(--border))",
+        border: {
+          DEFAULT: "hsl(var(--border))",
+          subtle: "hsl(var(--border-subtle))",
+          strong: "hsl(var(--border-strong))",
+        },
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
-        foreground: "hsl(var(--foreground))",
+        foreground: {
+          DEFAULT: "hsl(var(--foreground))",
+          subtle: "hsl(var(--subtle-foreground))",
+        },
+        surface: {
+          subtle: "hsl(var(--surface-subtle))",
+          strong: "hsl(var(--surface-strong))",
+        },
+        brand: {
+          DEFAULT: "hsl(var(--brand))",
+          strong: "hsl(var(--brand-strong))",
+          logo: "hsl(var(--brand-logo))",
+        },
+        wordmark: {
+          from: "hsl(var(--wordmark-from))",
+          to: "hsl(var(--wordmark-to))",
+        },
+        success: "hsl(var(--success))",
+        warning: "hsl(var(--warning))",
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
