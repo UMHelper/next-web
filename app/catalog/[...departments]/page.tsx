@@ -2,7 +2,7 @@ import React, { Suspense } from 'react';
 import CourseFilter from '@/components/course-filter';
 import { CatalogGridSkeleton } from '@/components/loading-skeletons';
 import { faculty, faculty_dept, normalizeFacultySlug } from '@/lib/consant';
-import { createAdSalt } from '@/lib/ads/ad-salt';
+import { createAdConfig } from '@/lib/ads/ad-config-server';
 import { fetchCatalogList } from '@/lib/database/get-course-info';
 import { buildCatalogPath } from '@/lib/site';
 
@@ -40,11 +40,11 @@ export async function generateStaticParams() {
 
 async function CatalogListSection({ departments }: { departments: string[] }) {
     const courseList: any = await fetchCatalogList(departments)
-    const adSalt = createAdSalt()
+    const ads = createAdConfig()
     return (
         <div>
             <div>
-                <CourseFilter data={courseList} adSalt={adSalt} />
+                <CourseFilter data={courseList} ads={ads} />
             </div>
         </div>
     )

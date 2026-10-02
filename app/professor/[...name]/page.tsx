@@ -3,7 +3,7 @@ import React, { Suspense } from 'react';
 import { CourseGridSkeleton } from '@/components/loading-skeletons';
 import { Masonry } from '@/components/masonry';
 import { ProfCourseCard } from '@/components/prof-card';
-import { createAdSalt } from '@/lib/ads/ad-salt';
+import { createAdConfig } from '@/lib/ads/ad-config-server';
 import { withAdSlots } from '@/lib/ads/ad-slots';
 import { fetchCourseListByProf } from '@/lib/database/get-course-info';
 import { buildProfessorMetadata } from '@/lib/seo';
@@ -22,7 +22,7 @@ async function ProfessorCourses({ name }: { name: string }) {
         return <div>error</div>
     }
 
-    const adSalt = createAdSalt()
+    const ads = createAdConfig()
 
     return (
         <div className='max-w-screen-xl mx-auto p-4'>
@@ -32,7 +32,7 @@ async function ProfessorCourses({ name }: { name: string }) {
                     renderItem: (course: any, index: number) => (
                         <ProfCourseCard key={index} data={course} code={course.course_id} />
                     ),
-                    salt: adSalt,
+                    ads,
                 })}
             </Masonry>
         </div>

@@ -2,7 +2,7 @@ import React, { Suspense } from "react";
 
 import CourseFilter from "@/components/course-filter";
 import { CatalogGridSkeleton } from "@/components/loading-skeletons";
-import { createAdSalt } from "@/lib/ads/ad-salt";
+import { createAdConfig } from "@/lib/ads/ad-config-server";
 import { fetchCourseFuzzySearch } from "@/lib/database/get-fuzzy-search";
 
 export function generateMetadata(
@@ -18,10 +18,10 @@ export function generateMetadata(
 
 async function CourseSearchResults({ code }: { code: string }) {
     const courseList:any[] = await fetchCourseFuzzySearch(code)
-    const adSalt = createAdSalt()
+    const ads = createAdConfig()
     return(
         <div>
-            <CourseFilter data={courseList} adSalt={adSalt}/>
+            <CourseFilter data={courseList} ads={ads}/>
         </div>
     )
 }

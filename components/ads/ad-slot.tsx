@@ -2,7 +2,6 @@
 
 import React, { useEffect, useRef } from "react";
 
-import { getAdsenseClientId, getAdsenseSlotId } from "@/lib/ads/ad-config";
 import { requestAd } from "@/lib/ads/request-ad";
 import { cn } from "@/lib/utils";
 
@@ -12,10 +11,22 @@ declare global {
   }
 }
 
-export function AdSlot({ className }: { className?: string }) {
+/**
+ * A single AdSense unit. The AdSense ids arrive as props (built on the server by
+ * `createAdConfig`) so the server and the client always agree. Reading the
+ * public AdSense env vars here would depend on build-time inlining and make the
+ * client render `null` where the server rendered a unit.
+ */
+export function AdSlot({
+  client,
+  slot,
+  className,
+}: {
+  client: string;
+  slot: string;
+  className?: string;
+}) {
   const insRef = useRef<HTMLModElement>(null);
-  const client = getAdsenseClientId();
-  const slot = getAdsenseSlotId();
 
   useEffect(() => {
     if (!client || !slot) return;

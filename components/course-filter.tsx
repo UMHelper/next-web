@@ -2,11 +2,11 @@
 import { useEffect, useState } from "react"
 import { Masonry } from "@/components/masonry"
 import CourseCard from "@/components/course-card"
-import { withAdSlots } from "@/lib/ads/ad-slots"
+import { withAdSlots, type AdConfig } from "@/lib/ads/ad-slots"
 import { countUniqueValues, courseKeysToCount, CourseFilterName } from "@/lib/count-unique-values"
 import { SelectValue, Select, SelectTrigger, SelectContent, SelectGroup, SelectItem } from "@/components/ui/select"
 
-export default function CourseFilter({ data, adSalt }: { data: any[]; adSalt: string | null }) {
+export default function CourseFilter({ data, ads }: { data: any[]; ads: AdConfig | null }) {
     const [option, setOption] = useState<any>({})
 
     const [currentCourseList, setCurrentCourseList] = useState(data)
@@ -105,7 +105,7 @@ export default function CourseFilter({ data, adSalt }: { data: any[]; adSalt: st
                     renderItem: (course: any) => (
                         <CourseCard data={course} key={course.New_code ?? course.courseCode} />
                     ),
-                    salt: adSalt,
+                    ads,
                 })}
             </Masonry>
         </div>

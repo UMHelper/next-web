@@ -4,7 +4,7 @@ import CourseCard from "@/components/course-card"
 import { CourseGridSkeleton } from "@/components/loading-skeletons"
 import { Masonry } from "@/components/masonry"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { createAdSalt } from "@/lib/ads/ad-salt"
+import { createAdConfig } from "@/lib/ads/ad-config-server"
 import { withAdSlots } from "@/lib/ads/ad-slots"
 import { fetchInstructorFuzzySearch } from "@/lib/database/get-fuzzy-search"
 
@@ -30,7 +30,7 @@ async function InstructorSearchResults({ name }: { name: string }) {
         )
     }
 
-    const adSalt = createAdSalt()
+    const ads = createAdConfig()
 
     return (
         <Accordion type="single" collapsible className="w-full">
@@ -47,7 +47,7 @@ async function InstructorSearchResults({ name }: { name: string }) {
                                         renderItem: (course: any, index: number) => (
                                             <CourseCard data={course} key={index} />
                                         ),
-                                        salt: adSalt,
+                                        ads,
                                     })}
                                 </Masonry>
                             </AccordionContent>

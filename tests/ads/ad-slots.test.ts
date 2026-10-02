@@ -2,7 +2,13 @@ import React from "react";
 import { describe, expect, it } from "vitest";
 
 import { AdSlot } from "@/components/ads/ad-slot";
-import { AD_RATE, fnv1a32, isAdSlot, withAdSlots } from "@/lib/ads/ad-slots";
+import { AD_RATE, fnv1a32, isAdSlot, withAdSlots, type AdConfig } from "@/lib/ads/ad-slots";
+
+const ADS: AdConfig = {
+  salt: "test-salt",
+  client: "ca-pub-6229219222351733",
+  slot: "7484871258",
+};
 
 function keys(count: number): string[] {
   return Array.from({ length: count }, (_, index) => `COURSE-${index}`);
@@ -53,49 +59,59 @@ describe("fnv1a32", () => {
 
 const CARDS = Array.from({ length: 12 }, (_, index) => `CARD-${index}`);
 
-function decorate(salt: string | null, rate?: number) {
+function decorate(ads: AdConfig | null, rate?: number) {
   return withAdSlots(CARDS, {
     getKey: (key) => key,
     renderItem: (key) => React.createElement("div", { key }, key),
-    salt,
+    ads,
     rate,
   });
 }
 
-function adCount(nodes: React.ReactNode[]): number {
-  return nodes.filter((node) => React.isValidElement(node) && node.type === AdSlot).length;
+function adSlots(nodes: React.ReactNode[]) {
+  return nodes.filter(
+    (node): node is React.ReactElement<{ client: string; slot: string }> =>
+      React.isValidElement(node) && node.type === AdSlot,
+  );
 }
 
 describe("withAdSlots", () => {
-  it("inserts no ads when the salt is null", () => {
+  it("inserts no ads when there is no ad config", () => {
     const nodes = decorate(null);
     expect(nodes).toHaveLength(CARDS.length);
-    expect(adCount(nodes)).toBe(0);
+    expect(adSlots(nodes)).toHaveLength(0);
   });
 
   it("inserts no ads when the rate is zero", () => {
-    const nodes = decorate("test-salt", 0);
-    expect(adCount(nodes)).toBe(0);
+    const nodes = decorate(ADS, 0);
+    expect(adSlots(nodes)).toHaveLength(0);
   });
 
   it("inserts one ad per card when the rate is one", () => {
-    const nodes = decorate("test-salt", 1);
+    const nodes = decorate(ADS, 1);
     expect(nodes).toHaveLength(CARDS.length * 2);
-    expect(adCount(nodes)).toBe(CARDS.length);
+    expect(adSlots(nodes)).toHaveLength(CARDS.length);
   });
 
   it("places the slot right after the selected card", () => {
-    const nodes = decorate("test-salt");
-    expect(adCount(nodes)).toBe(1);
+    const nodes = decorate(ADS);
+    expect(adSlots(nodes)).toHaveLength(1);
 
     const adIndex = nodes.findIndex((node) => React.isValidElement(node) && node.type === AdSlot);
     const card = nodes[adIndex - 1];
     expect(React.isValidElement(card) && (card.props as { children: string }).children).toBe("CARD-8");
   });
 
+  it("hands the unit ids from the ad config to every slot", () => {
+    for (const slot of adSlots(decorate(ADS, 1))) {
+      expect(slot.props.client).toBe(ADS.client);
+      expect(slot.props.slot).toBe(ADS.slot);
+    }
+  });
+
   it("keeps the original items untouched", () => {
     const items = [...CARDS];
-    withAdSlots(items, { getKey: (key) => key, renderItem: (key) => key, salt: "test-salt" });
+    withAdSlots(items, { getKey: (key) => key, renderItem: (key) => key, ads: ADS });
     expect(items).toEqual(CARDS);
   });
 });

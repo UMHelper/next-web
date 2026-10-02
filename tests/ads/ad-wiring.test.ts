@@ -10,13 +10,19 @@ const MASONRY_CALLERS = [
   "app/search/instructor/[...name]/page.tsx",
 ];
 
-const SALT_PASSERS = [
+const CONFIG_BUILDERS = [
   "app/catalog/[...departments]/page.tsx",
   "app/search/course/[code]/page.tsx",
 ];
 
+const SERVER_ONLY_AD_MODULES = ["lib/ads/ad-config", "lib/ads/ad-config-server"];
+
 function source(file: string): string {
   return readFileSync(file, "utf8");
+}
+
+function isClientFile(text: string): boolean {
+  return text.includes('"use client"') || text.includes("'use client'");
 }
 
 function collectSourceFiles(dir: string): string[] {
@@ -27,32 +33,58 @@ function collectSourceFiles(dir: string): string[] {
   });
 }
 
+function allSourceFiles(): string[] {
+  return [
+    ...collectSourceFiles("app"),
+    ...collectSourceFiles("components"),
+    ...collectSourceFiles("lib"),
+  ];
+}
+
 describe("masonry ad wiring", () => {
   it("routes every masonry list through withAdSlots", () => {
     for (const file of MASONRY_CALLERS) {
       const text = source(file);
       expect(text, file).toContain("withAdSlots");
-      expect(text, file).toContain("salt");
+      expect(text, file).toContain("ads,");
     }
   });
 
-  it("gives the client side course filter a server salt", () => {
-    for (const file of SALT_PASSERS) {
+  it("builds the ad config on the server and passes it to the client filter", () => {
+    for (const file of CONFIG_BUILDERS) {
       const text = source(file);
-      expect(text, file).toContain("createAdSalt");
-      expect(text, file).toContain("adSalt={");
+      expect(text, file).toContain("createAdConfig");
+      expect(text, file).toContain("ads={ads}");
     }
   });
 
-  it("keeps the salt generator out of client components", () => {
-    const offenders = [
-      ...collectSourceFiles("app"),
-      ...collectSourceFiles("components"),
-      ...collectSourceFiles("lib"),
-    ].filter((file) => {
+  it("keeps the ad config builder out of client components", () => {
+    const offenders = allSourceFiles().filter((file) => {
       const text = source(file);
-      const isClient = text.includes('"use client"') || text.includes("'use client'");
-      return isClient && text.includes("lib/ads/ad-salt");
+      return isClientFile(text) && text.includes("lib/ads/ad-config-server");
+    });
+
+    expect(offenders).toEqual([]);
+  });
+
+  it("keeps NEXT_PUBLIC_GOOGLE_ADS_* out of client components", () => {
+    // The production incident: a build without those vars inlined made the
+    // client read undefined while the server (runtime env) rendered the unit,
+    // so hydration failed and every ad slot was removed. Only server code may
+    // read them; the values reach the client through props.
+    const offenders = allSourceFiles().filter((file) => {
+      const text = source(file);
+      return isClientFile(text) && text.includes("NEXT_PUBLIC_GOOGLE_ADS_");
+    });
+
+    expect(offenders).toEqual([]);
+  });
+
+  it("keeps the env readers out of client components", () => {
+    const offenders = allSourceFiles().filter((file) => {
+      const text = source(file);
+      if (!isClientFile(text)) return false;
+      return SERVER_ONLY_AD_MODULES.some((module) => text.includes(module));
     });
 
     expect(offenders).toEqual([]);
