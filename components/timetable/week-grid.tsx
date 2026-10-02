@@ -32,7 +32,7 @@ export default function WeekGrid({
 
   return (
     <div className={compact ? "min-w-[560px]" : "min-w-[720px]"}>
-      <div className="grid grid-cols-5 border-b border-slate-200 text-center text-xs font-semibold text-slate-500">
+      <div className="grid grid-cols-5 border-b border-border text-center text-xs font-semibold text-muted-foreground">
         {DAYS.map((day) => (
           <div key={day} className="py-2">
             {day}
@@ -41,7 +41,7 @@ export default function WeekGrid({
       </div>
       <div className="grid grid-cols-5" style={{ height: gridHeight }}>
         {DAYS.map((day) => (
-          <div key={day} className="relative border-l border-slate-100">
+          <div key={day} className="relative border-l border-border-subtle">
             {sections.flatMap((section) =>
               section.schedules
                 .filter((schedule) => schedule.date === day)
@@ -66,7 +66,7 @@ export default function WeekGrid({
                       }
                       className={[
                         "absolute left-1 right-1 overflow-hidden rounded px-1 py-0.5 text-left text-white shadow-sm",
-                        conflict ? "border-2 border-red-500" : "",
+                        conflict ? "border-2 border-destructive" : "",
                       ].join(" ")}
                       style={{
                         top,

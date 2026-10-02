@@ -29,23 +29,23 @@ const FloatingPlanner = () => {
         aria-label="Open timetable preview"
         aria-expanded={desktopOpen}
         onClick={() => setDesktopOpen((value) => !value)}
-        className="fixed right-0 top-1/2 z-40 hidden -translate-y-1/2 items-center gap-2 rounded-l-xl border border-r-0 border-slate-200 bg-white px-2 py-3 text-slate-700 shadow-lg md:flex"
+        className="fixed right-0 top-1/2 z-40 hidden -translate-y-1/2 items-center gap-2 rounded-l-xl border border-r-0 border-border bg-background px-2 py-3 text-foreground shadow-lg md:flex"
       >
         <CalendarDays size={18} />
         <span className="text-xs font-semibold">{sections.length}</span>
         {conflictCount > 0 && (
-          <span className="rounded-full bg-red-500 px-1.5 text-[10px] text-white">
+          <span className="rounded-full bg-destructive px-1.5 text-[10px] text-white">
             {conflictCount}
           </span>
         )}
       </button>
 
       {desktopOpen && (
-        <aside className="fixed right-4 top-1/2 z-40 hidden max-h-[70vh] w-[400px] -translate-y-1/2 overflow-auto rounded-xl border border-slate-200 bg-white p-4 shadow-2xl md:block">
+        <aside className="fixed right-4 top-1/2 z-40 hidden max-h-[70vh] w-[400px] -translate-y-1/2 overflow-auto rounded-xl border border-border bg-background p-4 shadow-2xl md:block">
           <div className="mb-3 flex items-center justify-between">
             <div>
               <div className="text-sm font-semibold">My Timetable</div>
-              <div className="text-xs text-slate-500">
+              <div className="text-xs text-muted-foreground">
                 {syncState === "saving" ? "Saving..." : activePlan?.name ?? "No plan yet"}
               </div>
             </div>
@@ -53,7 +53,7 @@ const FloatingPlanner = () => {
               type="button"
               aria-label="Close timetable preview"
               onClick={() => setDesktopOpen(false)}
-              className="rounded p-1 text-slate-500 hover:bg-slate-100"
+              className="rounded p-1 text-muted-foreground hover:bg-muted"
             >
               <X size={16} />
             </button>
@@ -61,7 +61,7 @@ const FloatingPlanner = () => {
           {activePlan ? (
             <WeekGrid sections={sections} compact />
           ) : (
-            <div className="rounded border border-dashed border-slate-200 p-6 text-center text-sm text-slate-500">
+            <div className="rounded border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
               Add courses to build your timetable.
             </div>
           )}
@@ -76,18 +76,18 @@ const FloatingPlanner = () => {
             : "Open timetable"
         }
         onClick={() => setMobileOpen(true)}
-        className="fixed bottom-4 left-1/2 z-40 flex h-12 w-12 -translate-x-1/2 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg transition-colors hover:bg-blue-700 md:hidden"
+        className="fixed bottom-4 left-1/2 z-40 flex h-12 w-12 -translate-x-1/2 items-center justify-center rounded-full bg-brand text-white shadow-lg transition-colors hover:bg-brand-strong md:hidden"
       >
         <CalendarDays size={20} />
         {conflictCount > 0 && (
-          <span className="absolute -right-1 -top-1 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold text-white">
+          <span className="absolute -right-1 -top-1 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-semibold text-white">
             {conflictCount}
           </span>
         )}
       </button>
 
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-        <SheetContent side="bottom" className="max-h-[80vh] bg-white">
+        <SheetContent side="bottom" className="max-h-[80vh] bg-background">
           <SheetHeader>
             <SheetTitle>My Timetable</SheetTitle>
           </SheetHeader>
@@ -95,7 +95,7 @@ const FloatingPlanner = () => {
             {activePlan ? (
               <WeekGrid sections={sections} compact />
             ) : (
-              <div className="rounded border border-dashed border-slate-200 p-6 text-center text-sm text-slate-500">
+              <div className="rounded border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
                 Add courses to build your timetable.
               </div>
             )}

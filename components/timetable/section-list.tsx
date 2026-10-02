@@ -16,7 +16,7 @@ export default function SectionList({
 }) {
   if (sections.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-slate-200 p-6 text-center text-sm text-slate-500">
+      <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
         No courses yet. Add a course from a review page.
       </div>
     );
@@ -27,16 +27,16 @@ export default function SectionList({
       {sections.map((section) => (
         <div
           key={section.key}
-          className={`flex items-start justify-between rounded-lg border bg-white p-3 ${
-            conflictKeys.has(section.key) ? "border-red-400" : "border-slate-200"
+          className={`flex items-start justify-between rounded-lg border bg-background p-3 ${
+            conflictKeys.has(section.key) ? "border-destructive" : "border-border"
           }`}
         >
           <div>
             <div className="text-sm font-semibold">
               {section.courseCode}-{section.section}
             </div>
-            <div className="text-xs text-slate-500">{section.prof}</div>
-            <div className="mt-1 text-[11px] text-slate-500">
+            <div className="text-xs text-muted-foreground">{section.prof}</div>
+            <div className="mt-1 text-[11px] text-muted-foreground">
               {section.schedules.map((schedule) => (
                 <div key={`${schedule.date}-${schedule.time}`}>
                   {schedule.date} {schedule.time}
@@ -48,7 +48,7 @@ export default function SectionList({
             type="button"
             aria-label={`Remove ${section.courseCode}`}
             onClick={() => onRemove(section.key)}
-            className="rounded p-1 text-slate-400 hover:bg-slate-100"
+            className="rounded p-1 text-foreground-subtle hover:bg-muted"
           >
             <X size={14} />
           </button>

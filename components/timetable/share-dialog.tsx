@@ -94,7 +94,7 @@ export default function ShareDialog({ plan }: { plan: LocalPlan }) {
             <Skeleton className="h-9 w-full rounded" />
           ) : url ? (
             <>
-              <div className="break-all rounded bg-slate-50 p-2 text-xs">{url}</div>
+              <div className="break-all rounded bg-surface-subtle p-2 text-xs">{url}</div>
               <div className="flex gap-2">
                 <Button
                   size="sm"

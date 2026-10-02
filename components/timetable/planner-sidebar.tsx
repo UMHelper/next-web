@@ -100,8 +100,8 @@ export default function PlannerSidebar() {
   };
 
   return (
-    <aside className="w-full space-y-3 rounded-xl border border-slate-200 bg-white p-4 lg:w-[420px]">
-      <div className="flex rounded-md border border-slate-200 p-1 text-sm">
+    <aside className="w-full space-y-3 rounded-xl border border-border bg-background p-4 lg:w-[420px]">
+      <div className="flex rounded-md border border-border p-1 text-sm">
         {(["course", "instructor"] as const).map((value) => (
           <button
             key={value}
@@ -113,7 +113,7 @@ export default function PlannerSidebar() {
               setSelectedProf("");
             }}
             className={`flex-1 rounded px-2 py-1 ${
-              mode === value ? "bg-blue-600 text-white" : "text-slate-600"
+              mode === value ? "bg-brand text-white" : "text-muted-foreground"
             }`}
           >
             {value === "course" ? "Course" : "Instructor"}
@@ -123,7 +123,7 @@ export default function PlannerSidebar() {
 
       <div className="flex gap-2">
         <div className="relative flex-1">
-          <Search className="absolute left-2 top-2.5 text-slate-400" size={14} />
+          <Search className="absolute left-2 top-2.5 text-foreground-subtle" size={14} />
           <input
             value={q}
             onChange={(event) => {
@@ -132,7 +132,7 @@ export default function PlannerSidebar() {
               setSections([]);
             }}
             placeholder={mode === "course" ? "Course code or title" : "Instructor name"}
-            className="w-full rounded-md border border-slate-200 py-2 pl-7 pr-2 text-sm"
+            className="w-full rounded-md border border-border py-2 pl-7 pr-2 text-sm"
           />
         </div>
       </div>
@@ -145,7 +145,7 @@ export default function PlannerSidebar() {
             setFaculty(event.target.value);
             setDepartment("");
           }}
-          className="rounded-md border border-slate-200 px-2 py-1 text-sm"
+          className="rounded-md border border-border px-2 py-1 text-sm"
         >
           <option value="">All faculties</option>
           {filters.faculties.map((value) => (
@@ -158,7 +158,7 @@ export default function PlannerSidebar() {
           aria-label="Department"
           value={department}
           onChange={(event) => setDepartment(event.target.value)}
-          className="rounded-md border border-slate-200 px-2 py-1 text-sm"
+          className="rounded-md border border-border px-2 py-1 text-sm"
         >
           <option value="">All departments</option>
           {filters.departments.map((value) => (
@@ -176,7 +176,7 @@ export default function PlannerSidebar() {
           ))}
         </div>
       )}
-      {error && <div className="text-xs text-red-600">{error}</div>}
+      {error && <div className="text-xs text-destructive">{error}</div>}
 
       <div className="max-h-[420px] space-y-2 overflow-auto">
         {items.map((item: any) =>
@@ -185,36 +185,36 @@ export default function PlannerSidebar() {
               key={item.course_code}
               type="button"
               onClick={() => void openCourse(item.course_code)}
-              className="w-full rounded-md border border-slate-100 p-2 text-left text-sm hover:bg-slate-50"
+              className="w-full rounded-md border border-border-subtle p-2 text-left text-sm hover:bg-surface-subtle"
             >
               <div className="font-semibold">{item.course_code}</div>
-              <div className="text-xs text-slate-500">{item.course_title_eng}</div>
+              <div className="text-xs text-muted-foreground">{item.course_title_eng}</div>
             </button>
           ) : (
             <button
               key={item.prof_id}
               type="button"
               onClick={() => void openInstructor(item.prof_id)}
-              className="w-full rounded-md border border-slate-100 p-2 text-left text-sm hover:bg-slate-50"
+              className="w-full rounded-md border border-border-subtle p-2 text-left text-sm hover:bg-surface-subtle"
             >
               <div className="font-semibold">{item.prof_id}</div>
-              <div className="text-xs text-slate-500">{item.course_count} courses</div>
+              <div className="text-xs text-muted-foreground">{item.course_count} courses</div>
             </button>
           ),
         )}
       </div>
 
       {detail && (
-        <div className="rounded-md border border-slate-100 p-2">
+        <div className="rounded-md border border-border-subtle p-2">
           <div className="text-sm font-semibold">{detail.course?.courseCode}</div>
-          <div className="text-xs text-slate-500">{detail.course?.courseTitle}</div>
+          <div className="text-xs text-muted-foreground">{detail.course?.courseTitle}</div>
           <div className="mt-2 space-y-1">
             {(detail.profList ?? []).map((prof: any) => (
               <button
                 key={prof.prof_id}
                 type="button"
                 onClick={() => void openSections(detail.course?.courseCode, prof.prof_id)}
-                className="block w-full rounded px-2 py-1 text-left text-xs hover:bg-slate-50"
+                className="block w-full rounded px-2 py-1 text-left text-xs hover:bg-surface-subtle"
               >
                 {prof.prof_id}
               </button>
@@ -224,7 +224,7 @@ export default function PlannerSidebar() {
       )}
 
       {mode === "instructor" && instructorCourses.length > 0 && (
-        <div className="rounded-md border border-slate-100 p-2">
+        <div className="rounded-md border border-border-subtle p-2">
           <div className="text-xs font-semibold">{selectedProf}</div>
           <div className="mt-1 space-y-1">
             {instructorCourses.map((course: any) => (
@@ -234,7 +234,7 @@ export default function PlannerSidebar() {
                 onClick={() =>
                   void openSections(course.New_code ?? course.course_id, selectedProf)
                 }
-                className="block w-full rounded px-2 py-1 text-left text-xs hover:bg-slate-50"
+                className="block w-full rounded px-2 py-1 text-left text-xs hover:bg-surface-subtle"
               >
                 {course.New_code ?? course.course_id}
               </button>
@@ -244,12 +244,12 @@ export default function PlannerSidebar() {
       )}
 
       {sections.length > 0 && detail && (
-        <div className="space-y-2 rounded-md border border-slate-100 p-2">
+        <div className="space-y-2 rounded-md border border-border-subtle p-2">
           <div className="text-xs font-semibold">
             {detail.course?.courseCode} · {selectedProf}
           </div>
           {sections.map((entry) => (
-            <div key={entry.section} className="rounded border border-slate-100 p-2 text-xs">
+            <div key={entry.section} className="rounded border border-border-subtle p-2 text-xs">
               <div className="font-semibold">Section {entry.section}</div>
               {entry.schedules.map((schedule) => (
                 <div key={`${schedule.date}-${schedule.time}`}>

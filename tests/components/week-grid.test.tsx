@@ -45,7 +45,7 @@ describe("WeekGrid", () => {
 
   it("marks conflicting events", () => {
     const view = render(<WeekGrid sections={sections} />);
-    const conflict = view.container.querySelector(".border-red-500");
+    const conflict = view.container.querySelector(".border-destructive");
     expect(conflict).toBeTruthy();
   });
 
