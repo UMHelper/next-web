@@ -4,6 +4,8 @@ import CourseCard from "@/components/course-card"
 import { CourseGridSkeleton } from "@/components/loading-skeletons"
 import { Masonry } from "@/components/masonry"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { createAdSalt } from "@/lib/ads/ad-salt"
+import { withAdSlots } from "@/lib/ads/ad-slots"
 import { fetchInstructorFuzzySearch } from "@/lib/database/get-fuzzy-search"
 
 export function generateMetadata(
@@ -28,6 +30,8 @@ async function InstructorSearchResults({ name }: { name: string }) {
         )
     }
 
+    const adSalt = createAdSalt()
+
     return (
         <Accordion type="single" collapsible className="w-full">
             {
@@ -37,8 +41,13 @@ async function InstructorSearchResults({ name }: { name: string }) {
                             <AccordionTrigger className="breal-all">{prof_name}</AccordionTrigger>
                             <AccordionContent asChild>
                                 <Masonry col={3} className="mx-auto">
-                                    {course_list.map((course: any, index: any) => {
-                                        return <CourseCard data={course} key={index} />
+                                    {withAdSlots(course_list, {
+                                        getKey: (course: any, index: number) =>
+                                            String(course.courseCode ?? course.New_code ?? index),
+                                        renderItem: (course: any, index: number) => (
+                                            <CourseCard data={course} key={index} />
+                                        ),
+                                        salt: adSalt,
                                     })}
                                 </Masonry>
                             </AccordionContent>

@@ -1,9 +1,12 @@
 import { Masonry } from "@/components/masonry"
 import { CommentCard } from "@/components/review/comment-card"
+import { createAdSalt } from "@/lib/ads/ad-salt"
+import { withAdSlots } from "@/lib/ads/ad-slots"
 import { REACTION_EMOJI_LIST } from "@/lib/consant"
 
 
 const Comments = ({ comments }: { comments: any[] }) => {
+    const adSalt = createAdSalt()
     const editedComments: any[] = comments.map((comment) => {
         const counts = new Map<string, number>(
             (comment.emoji_counts ?? []).map((row: any) => [row.emoji, row.count]),
@@ -39,15 +42,17 @@ const Comments = ({ comments }: { comments: any[] }) => {
     return (
         <>
             <Masonry col={3} className="">
-                {nonReplyComments.map((comment: any, index: number) => {
-                    return (
+                {withAdSlots(nonReplyComments, {
+                    getKey: (comment: any) => String(comment.id),
+                    renderItem: (comment: any, index: number) => (
                         <div key={index}>
                             <CommentCard
                                 comment={comment}
                                 reply_comment={replyByParentId.get(comment.id) ?? []}
                             />
                         </div>
-                    )
+                    ),
+                    salt: adSalt,
                 })}
             </Masonry>
             {nonReplyComments.length == 0 ? (

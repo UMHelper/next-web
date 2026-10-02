@@ -3,6 +3,8 @@ import React, { Suspense } from 'react';
 import { CourseGridSkeleton } from '@/components/loading-skeletons';
 import { Masonry } from '@/components/masonry';
 import { ProfCourseCard } from '@/components/prof-card';
+import { createAdSalt } from '@/lib/ads/ad-salt';
+import { withAdSlots } from '@/lib/ads/ad-slots';
 import { fetchCourseListByProf } from '@/lib/database/get-course-info';
 import { buildProfessorMetadata } from '@/lib/seo';
 
@@ -20,13 +22,17 @@ async function ProfessorCourses({ name }: { name: string }) {
         return <div>error</div>
     }
 
+    const adSalt = createAdSalt()
+
     return (
         <div className='max-w-screen-xl mx-auto p-4'>
             <Masonry col={3} className="">
-                {data.map((course: any, index: any) => {
-                    return (
+                {withAdSlots(data, {
+                    getKey: (course: any, index: number) => String(course.course_id ?? index),
+                    renderItem: (course: any, index: number) => (
                         <ProfCourseCard key={index} data={course} code={course.course_id} />
-                    )
+                    ),
+                    salt: adSalt,
                 })}
             </Masonry>
         </div>
