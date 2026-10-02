@@ -139,8 +139,8 @@ export default function AdminAdminsClient() {
 
       <div className="overflow-x-auto rounded-lg border">
         <table className="w-full min-w-[760px] text-left text-sm">
-          <thead className="bg-gray-50">
-            <tr className="border-b text-gray-500">
+          <thead className="bg-surface-subtle">
+            <tr className="border-b text-muted-foreground">
               <th className="p-3">Email</th>
               <th className="p-3">Role</th>
               <th className="p-3">Active</th>
@@ -167,7 +167,7 @@ export default function AdminAdminsClient() {
             ))}
             {!loading && admins.length === 0 ? (
               <tr>
-                <td colSpan={6} className="p-6 text-center text-gray-500">No DB admins</td>
+                <td colSpan={6} className="p-6 text-center text-muted-foreground">No DB admins</td>
               </tr>
             ) : null}
           </tbody>

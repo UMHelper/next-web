@@ -93,11 +93,11 @@ export default async function AdminDashboardPage() {
     <div className="space-y-6">
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="rounded-lg border p-4">
-          <div className="text-sm text-gray-500">Open reports</div>
+          <div className="text-sm text-muted-foreground">Open reports</div>
           <div className="text-3xl font-bold">{openReports}</div>
         </div>
         <div className="rounded-lg border p-4">
-          <div className="text-sm text-gray-500">Hidden comments</div>
+          <div className="text-sm text-muted-foreground">Hidden comments</div>
           <div className="text-3xl font-bold">{hiddenComments}</div>
         </div>
       </div>
@@ -107,7 +107,7 @@ export default async function AdminDashboardPage() {
         <div className="overflow-x-auto">
           <table className="w-full min-w-[720px] text-left text-sm">
             <thead>
-              <tr className="border-b text-gray-500">
+              <tr className="border-b text-muted-foreground">
                 <th className="py-2">Time</th>
                 <th className="py-2">Admin</th>
                 <th className="py-2">Action</th>
@@ -118,13 +118,13 @@ export default async function AdminDashboardPage() {
             <tbody>
               {recentAudit.error ? (
                 <tr>
-                  <td colSpan={5} className="py-6 text-center text-gray-500">
+                  <td colSpan={5} className="py-6 text-center text-muted-foreground">
                     Unable to load audit log
                   </td>
                 </tr>
               ) : auditEntries.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-6 text-center text-gray-500">
+                  <td colSpan={5} className="py-6 text-center text-muted-foreground">
                     No recent audit logs
                   </td>
                 </tr>
@@ -137,7 +137,7 @@ export default async function AdminDashboardPage() {
                     {entry.target_type}
                     {entry.target_id ? `: ${entry.target_id}` : ""}
                   </td>
-                  <td className="max-w-[420px] py-2 text-xs text-gray-600">
+                  <td className="max-w-[420px] py-2 text-xs text-muted-foreground">
                     <div className="line-clamp-2">{summarizeAuditChanges(entry)}</div>
                   </td>
                 </tr>

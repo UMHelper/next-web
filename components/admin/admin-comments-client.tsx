@@ -158,8 +158,8 @@ export default function AdminCommentsClient() {
 
       <div className="overflow-x-auto rounded-lg border">
         <table className="w-full min-w-[1000px] text-left text-sm">
-          <thead className="bg-gray-50">
-            <tr className="border-b text-gray-500">
+          <thead className="bg-surface-subtle">
+            <tr className="border-b text-muted-foreground">
               <th className="p-3">ID</th>
               <th className="p-3">Course / Prof</th>
               <th className="p-3">Type</th>
@@ -178,19 +178,19 @@ export default function AdminCommentsClient() {
                 <td className="p-3">{comment.id}</td>
                 <td className="p-3">
                   {comment.course_code ?? "-"}
-                  <div className="text-xs text-gray-500">{comment.prof_id ?? "-"}</div>
+                  <div className="text-xs text-muted-foreground">{comment.prof_id ?? "-"}</div>
                 </td>
                 <td className="p-3 text-xs">
                   {comment.replyto ? `Reply #${comment.replyto}` : "Top-level"}
                 </td>
                 <td className="max-w-[420px] p-3">
-                  <CommentContent className="line-clamp-2 text-xs text-gray-700" content={comment.content ?? "-"} />
+                  <CommentContent className="line-clamp-2 text-xs text-foreground" content={comment.content ?? "-"} />
                   {comment.content_en ? (
-                    <CommentContent className="mt-1 line-clamp-2 text-xs text-gray-500" content={comment.content_en} />
+                    <CommentContent className="mt-1 line-clamp-2 text-xs text-muted-foreground" content={comment.content_en} />
                   ) : null}
                   {comment.img ? (
                     <a
-                      className="mt-1 inline-block text-xs text-blue-600 hover:underline"
+                      className="mt-1 inline-block text-xs text-brand hover:underline"
                       href={comment.img}
                       target="_blank"
                       rel="noreferrer"
@@ -205,7 +205,7 @@ export default function AdminCommentsClient() {
                 </td>
                 <td className="p-3 text-xs">
                   {comment.verify === 1 ? "Yes" : "No"}
-                  {comment.verify_account ? <div className="text-gray-500">{comment.verify_account}</div> : null}
+                  {comment.verify_account ? <div className="text-muted-foreground">{comment.verify_account}</div> : null}
                 </td>
                 <td className="p-3">{comment.hidden === 1 ? "Hidden" : "Visible"}</td>
                 <td className="p-3 text-xs">{String(comment.pub_time).slice(0, 19).replace("T", " ")}</td>
@@ -216,7 +216,7 @@ export default function AdminCommentsClient() {
             ))}
             {!loading && comments.length === 0 ? (
               <tr>
-                <td colSpan={9} className="p-6 text-center text-gray-500">No comments</td>
+                <td colSpan={9} className="p-6 text-center text-muted-foreground">No comments</td>
               </tr>
             ) : null}
           </tbody>
