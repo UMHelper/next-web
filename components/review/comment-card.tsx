@@ -57,13 +57,13 @@ const ReplyCard = ({ reply }: { reply: any }) => {
                 <div className="flex items-center gap-2">
                     <Popover>
                         <PopoverTrigger className="inline-flex">
-                            <span className='text-gray-400 text-xs'>
+                            <span className='text-foreground-subtle text-xs'>
                                 {/* convert 2022-10-20T03:44:32.219061 to 2022-10-20 */}
                                 {reply.pub_time.split('T')[0]}
                             </span>
                         </PopoverTrigger>
                         <PopoverContent side="right" className=" w-fit">
-                            <p className='text-xs text-gray-400'>Reply #{
+                            <p className='text-xs text-foreground-subtle'>Reply #{
                                 reply.id
                             }</p>
                         </PopoverContent>
@@ -88,7 +88,7 @@ const ReplySubmit = ({ comment, onSubmit }: { comment: any, onSubmit: any }) => 
     if (!isSignedIn) {
         return (
             <div>
-                <div className='text-gray-400 text-xs'>
+                <div className='text-foreground-subtle text-xs'>
                     You must sign in to reply!
                 </div>
             </div>
@@ -136,7 +136,7 @@ const ReplyComponent = ({ comment, reply_comment }: { comment: any, reply_commen
                     <div className="flex justify-between w-full items-center">
                         <div>
                             <div>You must sign in to reply!</div>
-                            <div className='text-xs text-gray-400'>您必須登入以回覆。</div>
+                            <div className='text-xs text-foreground-subtle'>您必須登入以回覆。</div>
                         </div>
                         <div className='py-1 px-2 ml-2 rounded bg-gradient-to-r from-blue-600 to-indigo-500 text-white'>
                             <SignInButton mode="modal" redirectUrl={pathname} />
@@ -156,7 +156,7 @@ const ReplyComponent = ({ comment, reply_comment }: { comment: any, reply_commen
                     <div className="flex justify-between w-full items-center">
                         <div>
                             <div>You must sign in to view all replies!</div>
-                            <div className='text-xs text-gray-400'>您必須登入以瀏覽全部回覆。</div>
+                            <div className='text-xs text-foreground-subtle'>您必須登入以瀏覽全部回覆。</div>
                         </div>
                         <div className='py-1 px-2 ml-2 rounded bg-gradient-to-r from-blue-600 to-indigo-500 text-white'>
                             <SignInButton mode="modal" redirectUrl={pathname} />
@@ -214,8 +214,8 @@ const ReplyComponent = ({ comment, reply_comment }: { comment: any, reply_commen
                     document.getElementById(`reply${comment.id}`)?.scrollTo({ top: 0})
                     
                 }}
-                    className={cn(" text-xs hover:text-blue-500 hover:cursor-pointer flex space-x-1 items-center",
-                        isReplyOpen ? 'text-blue-500' : ' text-gray-800')}
+                    className={cn(" text-xs hover:text-brand hover:cursor-pointer flex space-x-1 items-center",
+                        isReplyOpen ? 'text-brand' : ' text-foreground')}
                 >
                     <MessageSquare size={12} strokeWidth={2.5} />
                     <div>
@@ -225,8 +225,8 @@ const ReplyComponent = ({ comment, reply_comment }: { comment: any, reply_commen
                 </div>
                 <div
                     onClick={openReplySubmition}
-                    className={cn(" text-xs hover:text-blue-500 hover:cursor-pointer flex space-x-1 items-center",
-                        isReplySubmitOpen ? 'text-blue-500' : ' text-gray-800')}
+                    className={cn(" text-xs hover:text-brand hover:cursor-pointer flex space-x-1 items-center",
+                        isReplySubmitOpen ? 'text-brand' : ' text-foreground')}
                 >
                     <Reply size={14} strokeWidth={2.5} />
                     <div>
@@ -262,7 +262,7 @@ const ReplyComponent = ({ comment, reply_comment }: { comment: any, reply_commen
                     openReply()
                     document.getElementById(`reply${comment.id}`)?.scrollTo({ top: 0})
                 }}
-                    className={cn("py-2 place-content-center text-xs hover:text-blue-500 hover:cursor-pointer flex space-x-1 items-center text-blue-500" )}
+                    className={cn("py-2 place-content-center text-xs hover:text-brand hover:cursor-pointer flex space-x-1 items-center text-brand" )}
                 >
                     <ChevronsDown size={12} strokeWidth={2.5} />
                     <div>
@@ -390,7 +390,7 @@ const EmojiVote = ({ comment }: { comment: any }) => {
                     <div className="flex justify-between w-full items-center">
                         <div>
                             <div>You must sign in to vote!</div>
-                            <div className='text-xs text-gray-400'>您必須登入以投票。</div>
+                            <div className='text-xs text-foreground-subtle'>您必須登入以投票。</div>
                         </div>
                         <div className='py-1 px-2 ml-2 rounded bg-gradient-to-r from-blue-600 to-indigo-500 text-white'>
                             <SignInButton mode="modal" redirectUrl={pathname} />
@@ -470,8 +470,8 @@ const EmojiVote = ({ comment }: { comment: any }) => {
                     <div
                         className={cn('flex items-center me-2 mb-1 space-x-1 px-2 rounded-full',
                             emojiHistory.filter((emojiH: any) => emojiH.emoji === emoji.emoji).length > 0 ?
-                                'bg-sky-100 text-sky-600  border-sky-600 border hover:bg-blue-200' :
-                                'bg-white text-gray-800 border-gray-300 border hover:bg-gray-200'
+                                'bg-brand/10 text-brand  border-brand border hover:bg-brand/20' :
+                                'bg-background text-foreground border-border-strong border hover:bg-surface-strong'
                         )}
                         onClick={() => handleVote(0, emoji.emoji)}
                         key={index}
@@ -490,7 +490,7 @@ const EmojiVote = ({ comment }: { comment: any }) => {
 
                     <Popover>
                         <PopoverTrigger>
-                            <div className='flex items-center me-2 mb-1 px-2 py-1 rounded-full bg-gray-100 text-gray-800 border-gray-300 border hover:bg-gray-300'>
+                            <div className='flex items-center me-2 mb-1 px-2 py-1 rounded-full bg-muted text-foreground border-border-strong border hover:bg-surface-strong'>
                                 <SmilePlus size={12} strokeWidth={2.5} />
                             </div>
                         </PopoverTrigger>
@@ -505,8 +505,8 @@ const EmojiVote = ({ comment }: { comment: any }) => {
                                             className={cn('flex items-center px-2 py-1 rounded-full',
                                                 emojiHistory.filter((emojiH: any) =>
                                                     emojiH.emoji === emoji.emoji).length > 0 ?
-                                                    'bg-sky-100 text-sky-600  border-sky-600 border hover:bg-blue-200' :
-                                                    'bg-white text-gray-800 border-gray-300 border hover:bg-gray-200'
+                                                    'bg-brand/10 text-brand  border-brand border hover:bg-brand/20' :
+                                                    'bg-background text-foreground border-border-strong border hover:bg-surface-strong'
                                             )}
                                             onClick={() => handleVote(0, emoji.emoji)}
                                             key={index}
@@ -554,7 +554,7 @@ export const CommentCard = (
                         </PopoverTrigger>
                         <PopoverContent className="w-48">
                             <div className='grid grid-cols-3 gap-4 text-xs '>
-                                <div className='text-gray-400 col-span-2 '>
+                                <div className='text-foreground-subtle col-span-2 '>
                                     <div >
                                         Recommend:
                                     </div>
@@ -600,13 +600,13 @@ export const CommentCard = (
                     <Popover>
                         <PopoverTrigger className="inline-flex">
 
-                            <span className='text-gray-400 text-xs'>
+                            <span className='text-foreground-subtle text-xs'>
                                 {/* convert 2022-10-20T03:44:32.219061 to 2022-10-20 */}
                                 {comment.pub_time.split('T')[0]}
                             </span>
                             <span className={
                                 comment.verify === 1 ?
-                                    'text-green-600 text-xs flex mx-2' :
+                                    'text-success text-xs flex mx-2' :
                                     'hidden'
                             }>
                                 <BadgeCheck size={16} strokeWidth={1.75} absoluteStrokeWidth />
@@ -618,7 +618,7 @@ export const CommentCard = (
 
                         </PopoverTrigger>
                         <PopoverContent className=" w-fit">
-                            <p className='text-xs text-gray-400'>Comment #{
+                            <p className='text-xs text-foreground-subtle'>Comment #{
                                 comment.id
                             }</p>
                             <p className='text-xs'>{
@@ -638,7 +638,7 @@ export const CommentCard = (
             </CardContent>
             {//<Separator className='my-2' />
             }
-            <CardFooter className='block bg-gray-50 py-1 pl-5'>
+            <CardFooter className='block bg-surface-subtle py-1 pl-5'>
                 <ReplyComponent comment={comment} reply_comment={reply_comment} />
             </CardFooter>
         </Card>

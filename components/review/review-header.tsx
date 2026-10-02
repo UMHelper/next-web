@@ -56,12 +56,12 @@ export async function ReviewHeader({
                 <div className='font-bold text-3xl break-all'>{profInfo['prof_id']}</div>
               </Link>
               {shouldShowOfferedBadge(isPreenrollmentOpen, is_offered) ? (
-                <span className='text-sm font-semibold rounded-3xl bg-gradient-to-r from-green-600 to-green-600 h-fit py-0.5 px-2 shadow font-normal'> Offered</span>
+                <span className='text-sm font-semibold rounded-3xl bg-gradient-to-r from-success to-success h-fit py-0.5 px-2 shadow font-normal'> Offered</span>
               ) : null}
             </div>
             <div className='flex-row flex space-x-2'>
               <Link href={`/submit/${encodeURIComponent(code)}/${encodeURIComponent(prof)}`}>
-                <Button className='text-sm px-2 hover:shadow-lg bg-white text-blue-800 hover:bg-gray-200'>
+                <Button className='text-sm px-2 hover:shadow-lg bg-background text-brand-strong hover:bg-surface-strong'>
                   <ClipboardEdit size={16} /><span> Submit Review</span>
                 </Button>
               </Link>
@@ -70,7 +70,7 @@ export async function ReviewHeader({
                 is_offered ?
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button className='text-sm px-2 hover:shadow-lg  bg-white text-blue-800 hover:bg-gray-200'>
+                      <Button className='text-sm px-2 hover:shadow-lg  bg-background text-brand-strong hover:bg-surface-strong'>
                         <CalendarRange size={16} /> <span>Timetable</span>
                       </Button>
                     </PopoverTrigger>
@@ -116,7 +116,7 @@ export async function ReviewHeader({
                   </div>
                   <Progress value={Number(profInfo['reward']) * 20} className='h-2' />
                 </div>
-                <p className='text-xs italic text-gray-500'>Based on the reviews from users.</p>
+                <p className='text-xs italic text-muted-foreground'>Based on the reviews from users.</p>
               </div>
             </CardContent>
           </Card>
