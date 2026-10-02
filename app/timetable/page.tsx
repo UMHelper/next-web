@@ -33,17 +33,17 @@ const TimetablePage = () => {
     return (
       <div className="mx-auto max-w-3xl px-4 py-16 text-center">
         <h1 className="text-2xl font-bold">My Timetable</h1>
-        <p className="mt-2 text-sm text-slate-500">
+        <p className="mt-2 text-sm text-muted-foreground">
           Create your first timetable plan, then add courses from any review page.
         </p>
         <button
           type="button"
           onClick={() => createPlan("我的课表", currentTerm())}
-          className="mt-6 rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white"
+          className="mt-6 rounded-md bg-brand px-4 py-2 text-sm font-semibold text-white"
         >
           Create timetable
         </button>
-        <div className="mt-4 text-xs text-slate-400">
+        <div className="mt-4 text-xs text-foreground-subtle">
           or <Link className="underline" href="/">browse courses</Link>
         </div>
       </div>
@@ -68,10 +68,10 @@ const TimetablePage = () => {
         onDelete={deletePlan}
       />
 
-      <div className="flex items-center gap-4 text-sm text-slate-500">
+      <div className="flex items-center gap-4 text-sm text-muted-foreground">
         <span>{activePlan.payload.sections.length} sections</span>
         <span>{credits} credits</span>
-        <span className={conflicts.length > 0 ? "text-red-600" : ""}>
+        <span className={conflicts.length > 0 ? "text-destructive" : ""}>
           {conflicts.length} conflicts
         </span>
         <span>{syncState === "saving" ? "Saving..." : "Saved locally"}</span>
@@ -86,7 +86,7 @@ const TimetablePage = () => {
             onRemove={(key) => removeSection(activePlan.clientRef, key)}
           />
 
-          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white p-4">
+          <div className="overflow-x-auto rounded-xl border border-border bg-background p-4">
             <WeekGrid sections={activePlan.payload.sections} />
           </div>
         </div>

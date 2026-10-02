@@ -86,7 +86,7 @@ export const TimetableScheduleCard = ({
 
         return (
           <div key={scheduleEntry.section}>
-            <div className="rounded bg-slate-100 p-1 text-base">
+            <div className="rounded bg-muted p-1 text-base">
               Section {scheduleEntry.section}
             </div>
             <div className="py-2">
@@ -105,7 +105,7 @@ export const TimetableScheduleCard = ({
               size="xs"
               disabled={Boolean(existing)}
               onClick={add}
-              className="bg-gradient-to-r from-purple-600 to-blue-600 text-slate-100 hover:from-purple-500 hover:to-blue-500 hover:shadow"
+              className="bg-gradient-to-r from-purple-600 to-blue-600 text-white hover:from-purple-500 hover:to-blue-500 hover:shadow"
             >
               {existing ? (
                 <>
@@ -120,7 +120,7 @@ export const TimetableScheduleCard = ({
           </div>
         );
       })}
-      <div className="text-xs italic text-gray-500">Data Source: reg.um.edu.mo</div>
+      <div className="text-xs italic text-muted-foreground">Data Source: reg.um.edu.mo</div>
     </div>
   );
 };
