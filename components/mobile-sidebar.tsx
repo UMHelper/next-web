@@ -40,8 +40,8 @@ const MobileSidebar = () => {
                         {menuList.map((menu: MenuItem) => {
                             return (
                                 <Link href={menu.href}
-                                    className={menu.href === pathname ? "text-blue-700 px-1 py-2 rounded" :
-                                        "text-gray-900 hover:bg-gray-100 hover:text-blue-500 px-1 rounded py-2"}
+                                    className={menu.href === pathname ? "text-brand-strong px-1 py-2 rounded" :
+                                        "text-foreground hover:bg-muted hover:text-brand px-1 rounded py-2"}
                                     key={menu.href}
                                 >
                                     {menu.name}

@@ -23,13 +23,13 @@ export default function NavbarList() {
                     </div>
                 </Link>
             <div className="hidden w-full md:block md:w-auto">
-                <div className="font-medium flex flex-col p-4 md:p-0 mt-4 border border-gray-100 rounded-lg bg-gray-50 md:flex-row md:space-x-8 md:mt-0 md:border-0 md:bg-white">
+                <div className="font-medium flex flex-col p-4 md:p-0 mt-4 border border-border-subtle rounded-lg bg-surface-subtle md:flex-row md:space-x-8 md:mt-0 md:border-0 md:bg-background">
                     {menuList.map((menu: MenuItem) => {
                         return (
                             <div className="flex flex-row items-center justify-start space-x-0.5" key={menu.href}>
                             <Link href={menu.href}
-                                className={menu.href === pathname ? "text-blue-700 px-1 rounded" :
-                                    "text-gray-900 hover:bg-gray-100 hover:text-blue-500 px-1 rounded"}
+                                className={menu.href === pathname ? "text-brand-strong px-1 rounded" :
+                                    "text-foreground hover:bg-muted hover:text-brand px-1 rounded"}
                                 key={menu.href}
                             >
                                 {menu.name}

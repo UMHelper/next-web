@@ -14,7 +14,7 @@ import Link from "next/link";
 const Footer = async () => {
     // const git = await fetchGitData();
     return (
-        <div className='bg-gray-300/10'>
+        <div className='bg-surface-subtle'>
             <div className='max-w-screen-xl mx-auto px-6 py-10 space-y-4 '>
                 <div className="flex flex-wrap items-center justify-start pb-2">
                     <Cat size={24} strokeWidth={2} className="me-2 text-brand-logo"/>
@@ -40,8 +40,8 @@ const Footer = async () => {
                         Sitemap
                     </Link>
                 </div>
-                <div className='text-gray-500 text-xs'>
-                    Version &quot;Next&quot; licensed under <Link className='text-black font-semibold underline underline-offset-1' href='/'>GNU General Public License v3.0</Link>. Designed and built by the <Link className='text-black font-semibold underline underline-offset-1' href='https://github.com/UMHelper/Feedback-and-Join-Us/blob/master/Join.md'>UMHelper</Link> team with the help of our contributors.
+                <div className='text-muted-foreground text-xs'>
+                    Version &quot;Next&quot; licensed under <Link className='text-foreground font-semibold underline underline-offset-1' href='/'>GNU General Public License v3.0</Link>. Designed and built by the <Link className='text-foreground font-semibold underline underline-offset-1' href='https://github.com/UMHelper/Feedback-and-Join-Us/blob/master/Join.md'>UMHelper</Link> team with the help of our contributors.
                     {/* Latest update <Link className='text-black font-semibold underline underline-offset-1' href={git['commit']['html_url']}>{git['commit']['commit']['author']['date']}</Link>  */}
                 </div>
 
@@ -49,7 +49,7 @@ const Footer = async () => {
                     {/* <div className='text-gray-500 text-xs'>
                         <UAText/>
                     </div> */}
-                    <span className='text-gray-500 text-xs'>© 2020-{new Date().getFullYear()} UMHelper Team. All rights reserved.</span>
+                    <span className='text-muted-foreground text-xs'>© 2020-{new Date().getFullYear()} UMHelper Team. All rights reserved.</span>
                 </div>
             </div>
             <div className="grid-cols-1">
