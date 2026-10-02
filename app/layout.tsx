@@ -15,6 +15,7 @@ import { Banner } from '@/components/banner';
 import { rootMetadata } from '@/lib/seo';
 import { JsonLd } from '@/components/seo/json-ld';
 import { TimetablePlannerProvider } from '@/components/timetable/planner-provider';
+import { ThemeProvider } from '@/components/providers/theme-provider';
 import FloatingPlanner from '@/components/timetable/floating-planner';
 
 
@@ -28,7 +29,7 @@ export default function RootLayout({
     children: React.ReactNode
 }) {
     return (
-        <html lang="zh-Hant">
+        <html lang="zh-Hant" suppressHydrationWarning>
                 <head>
                     {process.env.GTM_ID ? (
                         <Script id='gtm'>{`(function(w,d,s,l,i){w[l] = w[l] || [];w[l].push({'gtm.start':
@@ -50,6 +51,7 @@ export default function RootLayout({
                     />
                 </head>
                 <body className={cn(inter.className)}>
+                    <ThemeProvider>
                     <ClerkProviderClient>
                     <JsonLd
                         data={{
@@ -104,6 +106,7 @@ export default function RootLayout({
                     <FloatingPlanner />
                     </TimetablePlannerProvider>
                     </ClerkProviderClient>
+                    </ThemeProvider>
                 </body>
             </html>
     )
