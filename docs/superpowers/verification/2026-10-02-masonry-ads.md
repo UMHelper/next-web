@@ -2,7 +2,9 @@
 
 ## Status
 
-Spec、实施计划与全部 7 个 task 已实现并提交在本地分支 `feat/masonry-ads`（基于 `main` 的 `b987a9d`）。未 push、未部署。
+Spec、实施计划与全部 7 个 task 已实现，并通过 `--ff-only` 合并回 `main`（工作分支 `feat/masonry-ads` 已删除）。`main` 因此领先 `origin/main` 10 个 commit：**未 push、未部署**。
+
+合并后在 `main` 上复跑：`npm run test` 105 files / 337 tests passed、`npm run lint` 无告警、`npx tsc --noEmit` 通过。
 
 ## Commits
 
@@ -14,11 +16,12 @@ Spec、实施计划与全部 7 个 task 已实现并提交在本地分支 `feat/
 - `80a71f4 feat(ads): withAdSlots list decorator with SSR coverage`
 - `1ead000 feat(ads): load AdSense only when GTM is absent`
 - `95c2913 feat(ads): place 10% ad slots in all masonry lists`
+- `89aef03 test: update buildReviewPath expectation to the path suffix format`
 
 ## Commands run
 
 - [x] `npx vitest run tests/ads tests/components/ad-slot.test.tsx tests/components/masonry-ads.test.tsx` — 8 files / 42 tests passed
-- [x] `npm run test` — 104 files / 336 tests passed, **1 pre-existing failure**（见下方 Known issues，与本次改动无关）
+- [x] `npm run test` — **105 files / 337 tests passed**（含 `89aef03` 修好的旧期望）
 - [x] `npm run lint` — `✔ No ESLint warnings or errors`
 - [x] `npx tsc --noEmit` — passed (exit 0)
 - [x] `npm run build` — passed；First Load JS shared 仍为 87.6 kB
@@ -48,7 +51,7 @@ Spec、实施计划与全部 7 个 task 已实现并提交在本地分支 `feat/
 
 ## Known issues
 
-- `tests/site-urls.test.ts > encodes professor path and review page suffix` **在 `main` 上就是红的**，与本次改动无关：`git diff main --name-only -- lib/site.ts tests/site-urls.test.ts` 为空。根因是 `b987a9d` 把 `buildReviewPath` 改成 `/reviews/CODE/PROF/3`（`lib/review-route.ts:29-37` 的 `parseReviewRoute` 确实支持尾段数字），但测试仍期待旧的 `/reviews/CODE/PROF/page/3`。修法是改这一行测试期望（1 行），未纳入本次范围。
+- ~~`tests/site-urls.test.ts > encodes professor path and review page suffix` 在 `main` 上就是红的~~ → 已在 `89aef03` 修好（把期望改成路径后缀格式 `/reviews/CODE/PROF/3`）。根因是 `b987a9d` 改了 `buildReviewPath` 的实现（`lib/review-route.ts:29-37` 的 `parseReviewRoute` 确实支持尾段数字、`components/review-pagination.tsx:17` 也走同一个 builder），但测试仍期待旧的 `/page/3`。当前 `main` 上全量测试已全绿。
 
 ## Deployment requirements (not yet done)
 
