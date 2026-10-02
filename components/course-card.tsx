@@ -15,7 +15,7 @@ const CourseCard=({data}:{data:any})=>{
                                 </div>
                                 {
                                     parseInt(data.New_code[4])<=4 && (data.Is_Offered===1 ?
-                                        <span className='text-white text-xs rounded-3xl bg-gradient-to-r from-green-600 to-green-600 h-fit py-0.5 px-2 shadow font-normal'> Offered</span>
+                                        <span className='text-white text-xs rounded-3xl bg-gradient-to-r from-success to-success h-fit py-0.5 px-2 shadow font-normal'> Offered</span>
                                         : null)
                                         // <div className='text-white text-xs rounded-3xl bg-gradient-to-r from-neutral-700 to-stone-900 h-fit py-0.5 px-2 shadow'> Not Offered</div>)
                                 }
@@ -25,10 +25,10 @@ const CourseCard=({data}:{data:any})=>{
                         <CardDescription>{data.courseTitleChi}</CardDescription>
                     </div>
                 </CardHeader>
-                <CardFooter className='bg-gray-50 pt-2 pb-3'>
+                <CardFooter className='bg-surface-subtle pt-2 pb-3'>
                     <div className='flex flex-row text-sm space-x-2 mb-0'>
                         <div>
-                            <div className='font-light text-gray-500 text-xs'>
+                            <div className='font-light text-muted-foreground text-xs'>
                                 Credits
                             </div>
                             <div>
@@ -38,7 +38,7 @@ const CourseCard=({data}:{data:any})=>{
 
                         {data.Offering_Department && (
                             <div>
-                                <div className='font-light text-gray-500 text-xs'>
+                                <div className='font-light text-muted-foreground text-xs'>
                                     Dept.
                                 </div>
                                 <div>
@@ -48,7 +48,7 @@ const CourseCard=({data}:{data:any})=>{
                         )}
 
                         <div>
-                            <div className='font-light text-gray-500 text-xs'>
+                            <div className='font-light text-muted-foreground text-xs'>
                                 Faculty
                             </div>
                             <div>
@@ -57,7 +57,7 @@ const CourseCard=({data}:{data:any})=>{
                         </div>
 
                         <div>
-                            <div className='font-light text-gray-500 text-xs'>
+                            <div className='font-light text-muted-foreground text-xs'>
                                 Language
                             </div>
                             <div>

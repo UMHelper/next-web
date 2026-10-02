@@ -56,7 +56,7 @@ export default function CourseFilter({ data, ads }: { data: any[]; ads: AdConfig
                 {
                     option[courseKeysToCount[0]] && courseKeysToCount.map((key, index) => {
                         return (
-                            <div key={index} className="text-sm text-slate-600">
+                            <div key={index} className="text-sm text-muted-foreground">
                                 <div className="pb-1">
                                     {CourseFilterName[key]}
                                 </div>

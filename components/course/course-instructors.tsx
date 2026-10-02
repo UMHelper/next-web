@@ -17,7 +17,7 @@ export default async function CourseInstructors({ code }: { code: string }) {
         (profList.length == 0 || profList === undefined) ? (
           <div className="flex space-x-1 items-center bg-gradient-to-r from-blue-600 to-indigo-500 bg-clip-text text-transparent">
             <div className='text-xl font-semibold py-4'>No Instructor Found</div>
-            <div className="text-indigo-500">
+            <div className="text-brand">
               <Frown size={24} strokeWidth={2} />
             </div>
           </div>
