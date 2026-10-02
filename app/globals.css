@@ -27,6 +27,9 @@
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
+    /* 文字/描边用的危险色：--destructive 是"面"token（配 --destructive-foreground 使用），
+       直接当文字色用只有 3.76:1，深色下更是 2.00:1。 */
+    --destructive-strong: 0 72% 41%;
 
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
@@ -48,6 +51,22 @@
 
     --success: 142.1 76.2% 36.3%;
     --warning: 26 90.5% 37.1%;
+
+    /* 饱和"面"token 上的前景色（Offered 徽章、实心品牌按钮）。深色下
+       --success / --brand 都是亮色，白字只有 1.74:1 / 2.54:1，必须翻成近黑。 */
+    --success-foreground: 210 40% 98%;
+    --brand-foreground: 210 40% 98%;
+
+    /* get_bg() 的四档等级渐变色（bg-clip-text 数字色）。浅色值 = 迁移前的原色阶，
+       深色值是同名色系提亮一档的结果，见 docs/superpowers/verification 的对比度表。 */
+    --grade-none-from: 217.9 10.6% 64.9%;
+    --grade-none-to: 220 9% 46%;
+    --grade-low-from: 341.5 75.5% 30.4%;
+    --grade-low-to: 295.4 70.2% 32.9%;
+    --grade-mid-from: 37.7 92.1% 50.2%;
+    --grade-mid-to: 24.6 95% 53.1%;
+    --grade-high-from: 142 69% 58%;
+    --grade-high-to: 160.1 84.1% 39.4%;
 
     --radius: 0.5rem;
   }
@@ -76,6 +95,7 @@
 
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
+    --destructive-strong: 0 91% 71%;
 
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
@@ -83,7 +103,7 @@
 
     --surface-subtle: 222.2 47.4% 9%;
     --surface-strong: 217.2 32.6% 24%;
-    --subtle-foreground: 215 20.2% 45%;
+    --subtle-foreground: 215 20.2% 52%;
 
     --border-subtle: 217.2 32.6% 12%;
     --border-strong: 217.2 32.6% 28%;
@@ -97,6 +117,18 @@
 
     --success: 141.9 69.2% 58%;
     --warning: 43.3 96.4% 56.3%;
+
+    --success-foreground: 222.2 47.4% 11.2%;
+    --brand-foreground: 222.2 47.4% 11.2%;
+
+    --grade-none-from: 213 27% 84%;
+    --grade-none-to: 215 20% 65%;
+    --grade-low-from: 351.3 94.5% 71.4%;
+    --grade-low-to: 292 91.4% 72.5%;
+    --grade-mid-from: 43.3 96.4% 56.3%;
+    --grade-mid-to: 27 96% 61%;
+    --grade-high-from: 142 69% 58%;
+    --grade-high-to: 158.1 64.4% 51.6%;
   }
   .theme {
     --animate-pulse: pulse var(--duration) ease-out infinite;
