@@ -23,16 +23,28 @@ export const THEME_OPTIONS: { value: ThemeValue; label: string; Icon: LucideIcon
 
 /**
  * 三选项列表：桌面下拉之外，移动端侧边栏直接复用。
- * 不做 mounted 守卫 —— 服务端与首次客户端渲染的 theme 都是 undefined，
- * 两边输出一致，因此不会产生 hydration 不匹配。
+ *
+ * 必须做 mounted 守卫：next-themes 在服务端拿不到 localStorage，theme 是
+ * undefined；而首次客户端渲染会同步解析出 localStorage 或 defaultTheme
+ * （首次访问的访客即 "light"）。若不守卫，服务端输出「三行都未选中」，
+ * hydration 的首次渲染却把 Light 标为选中，造成 hydration mismatch
+ * （属性不一致告警，并短暂高亮错误的行）。因此挂载前一律按未选中渲染，
+ * 挂载后再点亮真实选中项 —— 服务端与客户端首次渲染的 DOM 因此完全一致。
  */
 export function ThemeOptions({ className }: { className?: string }) {
   const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => setMounted(true), []);
 
   return (
-    <div className={cn("flex flex-col gap-1", className)}>
+    <div
+      role="radiogroup"
+      aria-label="Theme"
+      className={cn("flex flex-col gap-1", className)}
+    >
       {THEME_OPTIONS.map(({ value, label, Icon }) => {
-        const active = theme === value;
+        const active = mounted && theme === value;
         return (
           <button
             key={value}
