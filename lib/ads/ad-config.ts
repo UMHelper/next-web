@@ -16,3 +16,9 @@ export function getAdsenseSlotId(): string | null {
 export function isAdsenseConfigured(): boolean {
   return getAdsenseClientId() !== null && getAdsenseSlotId() !== null;
 }
+
+// Production loads the AdSense loader from the GTM container, so only inject our
+// own copy where GTM is absent (local dev, preview).
+export function shouldSelfHostAdsenseLoader(): boolean {
+  return getAdsenseClientId() !== null && !process.env.GTM_ID;
+}

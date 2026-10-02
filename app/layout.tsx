@@ -5,6 +5,7 @@ import { Inter } from 'next/font/google'
 import React from "react";
 
 import Navbar from "@/components/navbar";
+import { AdsenseScript } from "@/components/ads/adsense-script";
 import { cn } from "@/lib/utils";
 import Footer from "@/components/footer";
 import { Toaster } from "@/components/ui/sonner"
@@ -36,6 +37,8 @@ export default function RootLayout({
                         'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
                             })(window,document,'script','dataLayer','${process.env.GTM_ID}');`}</Script>
                     ) : null}
+
+                    <AdsenseScript />
 
                     <meta name='theme-color' content='#2563EB' />
                     <meta name='apple-mobile-web-app-status-bar-style' content='#2563EB' />
