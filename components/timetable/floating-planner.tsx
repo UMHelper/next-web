@@ -76,7 +76,7 @@ const FloatingPlanner = () => {
             : "Open timetable"
         }
         onClick={() => setMobileOpen(true)}
-        className="fixed bottom-4 left-1/2 z-40 flex h-12 w-12 -translate-x-1/2 items-center justify-center rounded-full bg-brand text-white shadow-lg transition-colors hover:bg-brand-strong md:hidden"
+        className="fixed bottom-4 left-1/2 z-40 flex h-12 w-12 -translate-x-1/2 items-center justify-center rounded-full bg-brand text-brand-foreground shadow-lg transition-colors hover:bg-brand-strong md:hidden"
       >
         <CalendarDays size={20} />
         {conflictCount > 0 && (

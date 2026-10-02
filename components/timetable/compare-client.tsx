@@ -30,7 +30,7 @@ export default function CompareClient({ token }: { token: string }) {
 
   if (error || !sharedPlan) {
     return (
-      <div className="p-8 text-center text-sm text-destructive">
+      <div className="p-8 text-center text-sm text-destructive-strong">
         This share link is invalid or no longer available.
       </div>
     );

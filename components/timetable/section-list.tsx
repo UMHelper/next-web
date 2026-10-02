@@ -28,7 +28,7 @@ export default function SectionList({
         <div
           key={section.key}
           className={`flex items-start justify-between rounded-lg border bg-background p-3 ${
-            conflictKeys.has(section.key) ? "border-destructive" : "border-border"
+            conflictKeys.has(section.key) ? "border-destructive-strong" : "border-border"
           }`}
         >
           <div>

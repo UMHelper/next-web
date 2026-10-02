@@ -45,7 +45,9 @@ describe("WeekGrid", () => {
 
   it("marks conflicting events", () => {
     const view = render(<WeekGrid sections={sections} />);
-    const conflict = view.container.querySelector(".border-destructive");
+    // 冲突描边改用文字/描边向的 --destructive-strong（--destructive 是"面"token，
+    // 深色下当描边只有 2.00:1）
+    const conflict = view.container.querySelector(".border-destructive-strong");
     expect(conflict).toBeTruthy();
   });
 

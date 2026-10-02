@@ -44,7 +44,7 @@ export default async function CourseHeader({ code }: { code: string }) {
                 </div>
                 {
                   parseInt(course['courseCode'][4]) <= 4 && (isOffer ?
-                    <span className='text-sm font-semibold rounded-3xl bg-gradient-to-r from-success to-success h-fit py-0.5 px-2 shadow font-normal'> Offered</span>
+                    <span className='text-success-foreground text-sm font-semibold rounded-3xl bg-gradient-to-r from-success to-success h-fit py-0.5 px-2 shadow font-normal'> Offered</span>
                     : null)
                 }
               </div>

@@ -113,7 +113,7 @@ export default function PlannerSidebar() {
               setSelectedProf("");
             }}
             className={`flex-1 rounded px-2 py-1 ${
-              mode === value ? "bg-brand text-white" : "text-muted-foreground"
+              mode === value ? "bg-brand text-brand-foreground" : "text-muted-foreground"
             }`}
           >
             {value === "course" ? "Course" : "Instructor"}
@@ -176,7 +176,7 @@ export default function PlannerSidebar() {
           ))}
         </div>
       )}
-      {error && <div className="text-xs text-destructive">{error}</div>}
+      {error && <div className="text-xs text-destructive-strong">{error}</div>}
 
       <div className="max-h-[420px] space-y-2 overflow-auto">
         {items.map((item: any) =>

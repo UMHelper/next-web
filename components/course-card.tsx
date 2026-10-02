@@ -15,7 +15,7 @@ const CourseCard=({data}:{data:any})=>{
                                 </div>
                                 {
                                     parseInt(data.New_code[4])<=4 && (data.Is_Offered===1 ?
-                                        <span className='text-white text-xs rounded-3xl bg-gradient-to-r from-success to-success h-fit py-0.5 px-2 shadow font-normal'> Offered</span>
+                                        <span className='text-success-foreground text-xs rounded-3xl bg-gradient-to-r from-success to-success h-fit py-0.5 px-2 shadow font-normal'> Offered</span>
                                         : null)
                                         // <div className='text-white text-xs rounded-3xl bg-gradient-to-r from-neutral-700 to-stone-900 h-fit py-0.5 px-2 shadow'> Not Offered</div>)
                                 }

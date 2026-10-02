@@ -64,7 +64,7 @@ export default function PlanHeader({
         <button
           type="button"
           onClick={onCreate}
-          className="inline-flex items-center gap-1 rounded-md bg-brand px-3 py-1.5 text-sm font-semibold text-white"
+          className="inline-flex items-center gap-1 rounded-md bg-brand px-3 py-1.5 text-sm font-semibold text-brand-foreground"
         >
           <Plus size={14} /> New plan
         </button>
@@ -76,7 +76,7 @@ export default function PlanHeader({
               onDelete(activePlan.clientRef);
             }
           }}
-          className="rounded-md border border-destructive/30 p-2 text-destructive"
+          className="rounded-md border border-destructive/30 p-2 text-destructive-strong"
         >
           <Trash2 size={14} />
         </button>

@@ -168,7 +168,7 @@ export default function AdminReportsClient() {
                     report.status === "open"
                       ? "rounded bg-warning/10 px-2 py-0.5 text-xs text-warning"
                       : report.status === "resolved"
-                        ? "rounded bg-success/15 px-2 py-0.5 text-xs text-success"
+                        ? "rounded bg-success/20 px-2 py-0.5 text-xs text-success"
                         : "rounded bg-muted px-2 py-0.5 text-xs text-muted-foreground"
                   }>
                     {report.status}

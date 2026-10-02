@@ -56,7 +56,7 @@ export async function ReviewHeader({
                 <div className='font-bold text-3xl break-all'>{profInfo['prof_id']}</div>
               </Link>
               {shouldShowOfferedBadge(isPreenrollmentOpen, is_offered) ? (
-                <span className='text-sm font-semibold rounded-3xl bg-gradient-to-r from-success to-success h-fit py-0.5 px-2 shadow font-normal'> Offered</span>
+                <span className='text-success-foreground text-sm font-semibold rounded-3xl bg-gradient-to-r from-success to-success h-fit py-0.5 px-2 shadow font-normal'> Offered</span>
               ) : null}
             </div>
             <div className='flex-row flex space-x-2'>

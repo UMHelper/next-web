@@ -39,7 +39,7 @@ const TimetablePage = () => {
         <button
           type="button"
           onClick={() => createPlan("我的课表", currentTerm())}
-          className="mt-6 rounded-md bg-brand px-4 py-2 text-sm font-semibold text-white"
+          className="mt-6 rounded-md bg-brand px-4 py-2 text-sm font-semibold text-brand-foreground"
         >
           Create timetable
         </button>
@@ -71,7 +71,7 @@ const TimetablePage = () => {
       <div className="flex items-center gap-4 text-sm text-muted-foreground">
         <span>{activePlan.payload.sections.length} sections</span>
         <span>{credits} credits</span>
-        <span className={conflicts.length > 0 ? "text-destructive" : ""}>
+        <span className={conflicts.length > 0 ? "text-destructive-strong" : ""}>
           {conflicts.length} conflicts
         </span>
         <span>{syncState === "saving" ? "Saving..." : "Saved locally"}</span>

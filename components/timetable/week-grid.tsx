@@ -66,7 +66,7 @@ export default function WeekGrid({
                       }
                       className={[
                         "absolute left-1 right-1 overflow-hidden rounded px-1 py-0.5 text-left text-white shadow-sm",
-                        conflict ? "border-2 border-destructive" : "",
+                        conflict ? "border-2 border-destructive-strong" : "",
                       ].join(" ")}
                       style={{
                         top,

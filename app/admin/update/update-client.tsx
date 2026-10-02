@@ -23,9 +23,9 @@ function taskBadge(state: TaskState | undefined) {
     case "running":
       return { label: "运行中", className: "bg-brand/10 text-brand-strong" };
     case "done":
-      return { label: "完成", className: "bg-success/15 text-success" };
+      return { label: "完成", className: "bg-success/20 text-success" };
     case "error":
-      return { label: "失败", className: "bg-destructive/10 text-destructive" };
+      return { label: "失败", className: "bg-destructive/10 text-destructive-strong" };
     default:
       return { label: "待执行", className: "bg-muted text-muted-foreground" };
   }
@@ -246,7 +246,7 @@ export default function UpdateClient() {
 
         <div className="mt-4 flex flex-wrap items-center gap-2">
           <button
-            className="rounded bg-brand px-3 py-1 text-white disabled:opacity-50"
+            className="rounded bg-brand px-3 py-1 text-brand-foreground disabled:opacity-50"
             disabled={running || rows.length === 0}
             onClick={() => void run()}
           >
@@ -262,7 +262,7 @@ export default function UpdateClient() {
           {running ? (
             <span className="text-xs font-medium text-brand">运行中…（进度见下方 Step 3）</span>
           ) : error ? (
-            <span className="text-xs font-medium text-destructive">执行失败</span>
+            <span className="text-xs font-medium text-destructive-strong">执行失败</span>
           ) : finished ? (
             <span className="text-xs font-medium text-success">已完成 ✓</span>
           ) : rows.length === 0 ? (
@@ -273,7 +273,7 @@ export default function UpdateClient() {
         </div>
 
         {error ? (
-          <div className="mt-3 rounded border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</div>
+          <div className="mt-3 rounded border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive-strong">{error}</div>
         ) : null}
       </div>
 
