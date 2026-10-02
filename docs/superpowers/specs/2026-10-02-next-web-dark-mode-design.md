@@ -48,7 +48,7 @@ web 与 iOS 用的**是同一份图形**：
 - **G4**：浅色模式的观感变化**有界且可列举**：全部位移项写进 §5.6，逐条可对照验证。
 - **G5**：无首屏闪烁（FOUC）、无 hydration mismatch、无 hydration 警告。
 - **G6**：主题不进入服务端渲染产物，不影响现有 SSR / ISR / Cloudflare 缓存语义。
-- **G7**：删除现有 18 处 `dark:` 双写，避免 token 与双写两套机制并存。
+- **G7**：删除现有 19 处 `dark:` 双写，避免 token 与双写两套机制并存。
 - **G8**：用守卫测试把"迁移完整度"变成可机械核验的事实，而不是靠人眼确认。
 - **G9**：`npm test`、`npm run lint`、`npx tsc --noEmit`、`npm run build` 四个门全绿。
 - **G10**：产出 spec / plan / verification 三份文档。
@@ -147,7 +147,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
 处理：
 
-- 静态 SSR 值改为 `<meta name="theme-color" content="#FFFFFF" />`；新建 `components/theme-color-meta.tsx`（`'use client'`）在 `useEffect` 中**直接改写该 meta 元素的 `content` 属性**（不是用 React 渲染 meta —— 避免依赖 React 的 head 提升行为），`system` 模式下额外订阅 `window.matchMedia('(prefers-color-scheme: dark)')` 的 `change`。深色值取 `#020817`（即既有 `.dark` 的 `--background`）。
+- 静态 SSR 值改为 `<meta name="theme-color" content="#FFFFFF" />`；新建 `components/theme-color-meta.tsx`（`'use client'`）在 `useEffect` 中**直接改写该 meta 元素的 `content` 属性**（不是用 React 渲染 meta —— 避免依赖 React 的 head 提升行为）。深色值取 `#020817`（即既有 `.dark` 的 `--background`）。
+- **不额外订阅 `matchMedia`**：`enableSystem` 打开时 `next-themes` 已经把系统偏好解析进 `resolvedTheme`（并自带 media query 监听），因此组件只需依赖 `resolvedTheme`，`system` 模式天然跟随。少一处手写监听、少一类竞态。
 - `apple-mobile-web-app-status-bar-style` 修正为 `default`，不随主题变化。
 - 不用"两条 media-query meta"的方案：它无法反映用户的手动覆盖。
 
@@ -257,7 +258,7 @@ colors: {
 | 字标/品牌文字渐变 `from-sky-500 to-indigo-600`（`navbar-list` / `footer` / `cs-banner`，3 处）与 `from-sky-600 to-indigo-600`（`banner`，2 处） | 10 | `from-wordmark-from to-wordmark-to`（顺带统一两种字标蓝，见 §5.7 S11） |
 | `from-green-600 to-green-600`（Offered 徽章，4 处 × 2） | 8 | `from-success to-success` |
 | `text-slate-100`（饱和渐变上的按钮文字） | 1 | `text-white` |
-| `dark:*` 双写（`dark:bg-gray-800` ×6、`dark:text-gray-300` ×5、`dark:text-white` ×4、`dark:border-gray-700` ×2、`dark:bg-gray-900` ×1） | 18 | **删除**，由 token 接管 |
+| `dark:*` 双写共 19 处（`dark:bg-gray-800` ×6、`dark:hover:bg-gray-800` ×1、`dark:text-gray-300` ×5、`dark:text-white` ×4、`dark:border-gray-700` ×2、`dark:bg-gray-900` ×1） | 19 | **整段删除**，由 token 接管。注意 `dark:text-white` 属放行 token、守卫测试不会强制，但按本表仍须删除 |
 
 ### 5.6 明确保持不变（守卫测试放行）
 
@@ -355,11 +356,20 @@ if (!mounted) return <div className="h-9 w-9" aria-hidden />;
 
 ## 8. 迁移清单
 
-54 个文件（排除 `components/ui/**` 与死代码 `components/timetable-calendar.tsx`），按下表逐文件推进与核对。处数为**硬编码颜色类命中数**（`grep -oE '\b(bg|text|border|from|to|via)-(white|black|gray|slate|zinc|neutral|stone|sky|blue|indigo|green|red|amber)-?[0-9]*(/[0-9]+)?'`，含 §5.6 的放行项），合计 **423**。
+本节是**原始清单**：54 个文件、423 处硬编码颜色类命中（`grep -oE '\b(bg|text|border|from|to|via)-(white|black|gray|slate|zinc|neutral|stone|sky|blue|indigo|green|red|amber)-?[0-9]*(/[0-9]+)?'`），用于评估工作量与拆分批次。
 
-按 §5.5 / §5.6 拆解这 423 处：**46 处放行不改**（`text-white` 27 + `text-white/80` 3 + `bg-white/NN` 16）、**18 处 `dark:` 双写删除**、**34 处渐变放行**、**18 处渐变迁移**（字标 10 + Offered 徽章 8）、**307 处类名替换**（46 + 18 + 34 + 18 + 307 = 423）。
+**实际需要迁移的是 48 个文件、335 处**（守卫测试口径：先剥离注释、再剔除 §5.6 的放行 token）。两套口径的差额已逐项核对：
 
-口径说明：上表的 grep 覆盖 white / black / gray / slate / zinc / neutral / stone / sky / blue / indigo / green / red / amber，因此 §5.6 的渐变放行清单合计 42 处中，有 **8 处在 423 之外**（`from-teal-400` ×2、`via-violet-400` ×2、`from-violet-500` ×1、`to-fuchsia-500` ×1、`from-purple-600` ×1、`from-purple-500` ×1）。放行清单以 §5.6 为准（守卫测试与 423 无关），分解式的 34 处只统计落在 423 内的部分。
+| 口径 | 处数 |
+|---|---|
+| 原始命中 | 423 |
+| 仅存在于注释里（扫描器剥离后不参与匹配） | 11 |
+| 落在 §5.6 放行清单内（`text-white` / `text-white/80` / `bg-white/NN` / 品牌与装饰渐变） | 77 |
+| **守卫口径需迁移** | **335**（423 − 11 − 77） |
+
+其中 **6 个文件在原始清单里出现、但守卫口径下为 0 处**，不需要任何迁移：`app/layout.tsx`（3 处命中全在注释里）、`components/navbar-avatar.tsx`、`components/search.tsx`、`components/search/search-form.tsx`、`components/comments.tsx`、`app/professor/[...name]/page.tsx`（这 5 个文件的命中全部是放行项）。下表处数为原始命中数，这些文件的实际替换量为 0。
+
+逐文件原始命中数（按路径排序）：
 
 | # | 文件 | 处数 |
 |---|---|---|
@@ -426,18 +436,31 @@ if (!mounted) return <div className="h-9 w-9" aria-hidden />;
 
 ## 9. 测试策略（TDD）
 
-先写红灯测试，再迁移到绿灯。T1–T6 全部为新增测试文件。
+先写红灯测试，再迁移到绿灯。T1–T7 全部为新增测试文件。
 
 | ID | 文件 | 断言 |
 |---|---|---|
 | T1 | `tests/theme-tokens.test.ts`（node） | 解析 `app/globals.css`：① `:root` 与 `.dark` 的**颜色**变量键集合完全一致 —— 比较时忽略已声明的非颜色例外 `--radius`（它只存在于 `:root`，是圆角尺寸而非颜色），深色漏定义颜色 token 是这类改动最高频的 bug；② §5.2 的 12 个 token 在两个作用域都存在；③ `--brand-logo` 浅色解析值 = `#003DB8`、深色 = `#FFFFFF`（HSL → HEX 零容差往返）；④ **跨仓库交叉校验**：若 `../next-ios/What2REG@UM/Assets.xcassets/CatLogo.imageset/cat-blue.svg` 存在，断言其 `stroke` 值等于 `--brand-logo` 的浅色值，`cat-white.svg` 的 `stroke` 等于深色值（用 `existsSync` 守卫，CI 无该仓库时跳过） |
-| T2 | `tests/no-light-only-colors.test.ts`（node） | 守卫：递归扫 `app/**`、`components/**`（排除 `components/ui/**`、`components/timetable-calendar.tsx`，后者附注释说明是死代码），**先剥离 `{/* */}`、`/* */`、`//` 注释**再匹配；禁止裸 `bg-white`（不含 `/NN`）、`text-black`、`(text\|bg\|border)-(gray\|slate\|zinc\|neutral\|stone)-?[0-9]*`、`text-blue-*`、`bg-blue-*`、`text-red-*`、`bg-red-*`、`text-green-*`、`bg-green-*`、`text-amber-*`、`bg-amber-*`、`border-red-*`、`border-amber-*`；渐变位一律禁止，**精确放行** §5.6 的字符串：`text-white`、`text-white/80`、`bg-white/20`、`bg-white/25`、`bg-white/30`、`from-blue-600`、`to-indigo-500`、`from-teal-400`、`via-violet-400`、`to-blue-500`、`from-neutral-700`、`to-stone-900`、`from-purple-600`、`from-purple-500`、`to-blue-600`、`from-violet-500`、`to-fuchsia-500`、`from-blue-400`、`to-indigo-400`；失败信息按 `file:line  matched` 输出完整违规清单 |
-| T3 | `tests/theme-provider.test.tsx`（jsdom） | `vi.mock('next-themes')` 捕获 props：断言 `attribute="class"`、`defaultTheme="light"`、`enableSystem`、`disableTransitionOnChange`、`storageKey="umeh-theme"`；另断言 `app/layout.tsx` 源码里 `<html>` 带 `suppressHydrationWarning`（源码契约断言） |
-| T4 | `tests/components/theme-toggle.test.tsx`（jsdom） | mock `next-themes`（`theme`、`resolvedTheme`、`setTheme`）：① 挂载前渲染等尺寸占位、不含任何主题图标；② 挂载后渲染触发按钮；③ 打开下拉后出现 `Light` / `Dark` / `System` 三项；④ 点击 `Dark` 恰好调用一次 `setTheme('dark')`；⑤ 当前项带勾选态 |
-| T5 | `tests/components/brand-logo.test.tsx`（jsdom） | 渲染 `navbar-list` 与 `footer`：① 猫图标 `svg` 的 class 含 `text-brand-logo`；② `svg` **不含** `color=` 硬编码属性（防止回归到 `color='rgb(14 165 233)'`）；③ 字标元素 class 含 `from-wordmark-from` 与 `to-wordmark-to`，且不含 `from-sky-500` |
-| T6 | `tests/theme-color-meta.test.tsx`（jsdom） | `components/theme-color-meta.tsx`：在 `document.head` 预置 `<meta name="theme-color">`；`resolvedTheme='light'` → `content='#FFFFFF'`；`'dark'` → `content='#020817'`；`theme='system'` 且 `matchMedia` 命中 dark 后再触发 `change` 事件 → 跟随更新（mock `matchMedia`） |
+| T2 | `tests/no-light-only-colors.test.ts`（node） | 守卫：递归扫 `app/**`、`components/**`（排除 `components/ui/**`、`components/timetable-calendar.tsx`，后者附注释说明是死代码），**先剥离 `{/* */}`、`/* */`、`//` 注释**再匹配；用单一 token 正则 `\b(text\|bg\|border\|from\|via\|to\|ring\|divide\|placeholder\|fill\|stroke)-(white\|black\|gray\|slate\|zinc\|neutral\|stone\|sky\|blue\|indigo\|green\|red\|amber\|teal\|violet\|fuchsia\|purple)(-[0-9]+)?(\/[0-9]+)?` 提取**完整**类名 token（含前缀 `hover:` / `md:` 与后缀 `/NN` 透明度），再与 §5.6 的**精确放行清单**逐 token 比对（不是逐行正则匹配 —— 否则 `bg-white/30` 会被 `bg-white` 规则误伤）；失败信息按 `file:line  token` 输出完整违规清单 |
+| T3 | `tests/components/theme-provider.test.tsx`（jsdom） | `vi.mock('next-themes')` 捕获 props：断言 `attribute="class"`、`defaultTheme="light"`、`enableSystem`、`disableTransitionOnChange`、`storageKey="umeh-theme"`；另断言 `app/layout.tsx` 源码匹配 `/<html[^>]*suppressHydrationWarning/`（源码契约断言）。**路径必须在 `tests/components/` 下** —— `vitest.config.ts` 只把该目录设为 jsdom 环境 |
+| T4 | `tests/components/theme-toggle.test.tsx`（jsdom） | mock `next-themes`（`theme`、`resolvedTheme`、`setTheme`）：① `ThemeOptions` 渲染三项、当前项 `aria-checked="true"`；② 点击 `Dark` 恰好调用一次 `setTheme('dark')`；③ `ThemeToggle` 用 `renderToStaticMarkup`（effect 不执行）断言挂载前渲染等尺寸占位、且不含任何主题图标；④ RTL 渲染后出现 `aria-label="Switch theme"` 的触发按钮 |
+| T5 | `tests/components/brand-logo.test.tsx`（jsdom） | mock `next/link`、`next/navigation`、`@/components/timetable/planner-provider`：① `NavbarList` 渲染出的 `svg` class 含 `text-brand-logo` 且 `color` 属性为 `null`（防止回归到 `color='rgb(14 165 233)'`）；② 字标元素 class 含 `from-wordmark-from` 与 `to-wordmark-to`、不含 `from-sky-500`；③ `await Footer()` + `renderToStaticMarkup` 断言页脚同上 |
+| T6 | `tests/components/theme-color-meta.test.tsx`（jsdom） | 在 `document.head` 预置 `<meta name="theme-color">`：`resolvedTheme='light'` → `content='#FFFFFF'`；`'dark'` → `content='#020817'`；`theme='system'` 且 `resolvedTheme='dark'` → `'#020817'`（证明 system 由 `resolvedTheme` 天然跟随）；meta 不存在时不抛错 |
 
-回归与构建门（§10 AC1）：`npm test`（现有 105 个测试文件必须全绿）、`npm run lint`、`npx tsc --noEmit`、`npm run build`。
+| T7 | `tests/theme-mounts.test.ts`（node） | 挂载契约（源码扫描，沿用仓库现有守卫测试写法）：`components/navbar.tsx` 含 `from "@/components/theme-toggle"` 与 `<ThemeToggle />`；`components/mobile-sidebar.tsx` 含 `<ThemeOptions`；`app/layout.tsx` 含 `<ThemeProvider>` 与 `<ThemeColorMeta />`。**理由**：`Navbar` / `MobileSidebar` 直接渲染需要 mock Clerk 与 Radix Portal，成本高且脆弱；而"入口到底挂没挂上"正是最容易在重构中静默失效的一点，用源码契约锁住，真实交互交给 §10 AC6 的浏览器走查 |
+
+**测试基建前置修正（实测发现，必须做）**：`tsconfig.json` 的 `jsx` 是 `preserve`，vitest/esbuild 因此按**经典 runtime** 转译 JSX，而 Next 14 的组件大多不写 `import React`（`components/navbar-list.tsx`、`components/footer.tsx` 都没有）。于是任何"渲染这些组件的测试"都会在渲染期抛 `ReferenceError: React is not defined`。修法是在 `vitest.config.ts` 里让测试转译与 Next 对齐：
+
+```ts
+export default defineConfig({
+  esbuild: { jsx: "automatic" },
+  // …原有 resolve / test 配置不变
+});
+```
+
+已实测：加上这一行后 **107 个现有测试文件 / 359 个用例全部通过**（未加时 T3/T4/T5 会因 React 未定义而失败；加后只剩预期的断言失败）。备选方案（给被测组件补 `import React`）被否决 —— 那是为测试基建改动生产源码。
+
+回归与构建门（§10 AC1）：`npm test`（现有 **107** 个测试文件 / 359 个用例必须全绿）、`npm run lint`、`npx tsc --noEmit`、`npm run build`。
 
 ## 10. 验收标准
 
@@ -466,6 +489,6 @@ if (!mounted) return <div className="h-9 w-9" aria-hidden />;
 ## 12. 交付物
 
 - 新增代码：`components/providers/theme-provider.tsx`、`components/theme-toggle.tsx`、`components/theme-color-meta.tsx`
-- 修改代码：`app/layout.tsx`（Provider、`suppressHydrationWarning`、`theme-color` meta、状态栏 meta 修正）、`app/globals.css`（12 个新 token + 3 处值调整）、`tailwind.config.js`（嵌套色板扩展）、`components/navbar.tsx`、`components/mobile-sidebar.tsx`、§8 的 54 个文件
-- 测试：§9 的 T1–T6
+- 修改代码：`app/layout.tsx`（Provider、`suppressHydrationWarning`、`theme-color` meta、状态栏 meta 修正）、`app/globals.css`（12 个新 token + 3 处值调整）、`tailwind.config.js`（嵌套色板扩展）、`vitest.config.ts`（`esbuild: { jsx: "automatic" }`）、`components/navbar.tsx`、`components/mobile-sidebar.tsx`、§8 清单中的 48 个文件
+- 测试：§9 的 T1–T7
 - 文档：本 spec、`docs/superpowers/plans/2026-10-02-next-web-dark-mode.md`、`docs/superpowers/verification/2026-10-02-next-web-dark-mode.md`
