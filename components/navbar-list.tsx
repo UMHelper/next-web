@@ -16,8 +16,8 @@ export default function NavbarList() {
     return (
         <div className="flex flex-wrap items-center justify-start ">
                 <Link href="/" className="flex items-center mr-10">
-                    <Cat size={24} strokeWidth={2} color='rgb(14 165 233)' className="me-2"/>
-                    <div className="self-center font-semibold whitespace-nowrap bg-gradient-to-r from-sky-500 to-indigo-600 bg-clip-text text-transparent">
+                    <Cat size={24} strokeWidth={2} className="me-2 text-brand-logo"/>
+                    <div className="self-center font-semibold whitespace-nowrap bg-gradient-to-r from-wordmark-from to-wordmark-to bg-clip-text text-transparent">
                     <div className="text-lg">What2Reg @UM</div>
                     <div className="text-xs">澳大選咩課</div>
                     </div>
