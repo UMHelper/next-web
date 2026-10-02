@@ -39,21 +39,7 @@ const TOKEN_PATTERN =
 // （app/layout.tsx 命中全在注释里；navbar-avatar / search / search-form / comments /
 //  professor 页面 的命中全部是 §5.6 放行项），因此不在本列表中。
 const PENDING: string[] = [
-  "app/catalog/[...departments]/page.tsx",
-  "app/catalog/page.tsx",
-  "app/not-found.tsx",
-  "app/page.tsx",
-  "components/admin-entry.tsx",
-  "components/banner.tsx",
-  "components/catalog-navigation.tsx",
-  "components/cs-banner.tsx",
-  "components/faculty-statistics.tsx",
-  "components/footer.tsx",
-  "components/mobile-sidebar.tsx",
-  "components/navbar-list.tsx",
-  "components/navbar.tsx",
-  "components/popular-courses.tsx",
-  "components/prof-card.tsx",
+
 ];
 
 // R3：多批迁移任务在各自 worktree 并行推进，每批只关心自己那几个文件——用 GUARD_SCOPE
