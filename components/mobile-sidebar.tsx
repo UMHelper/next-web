@@ -12,6 +12,7 @@ import NavbarAvatar from "@/components/navbar-avatar";
 import { SignInButton, SignedOut } from "@clerk/nextjs";
 import { useState } from "react";
 import SearchButton from "@/components/search-button";
+import { ThemeOptions } from "@/components/theme-toggle";
 
 const MobileSidebar = () => {
     const pathname = usePathname()
@@ -27,6 +28,12 @@ const MobileSidebar = () => {
                     </div>
                 </SheetTrigger>
                 <SheetContent>
+                    <div className="px-4 pt-6">
+                        <div className="px-1 pb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                            Theme
+                        </div>
+                        <ThemeOptions />
+                    </div>
                     <div className="font-bold flex flex-col p-4 mt-4 space-y-4" onClick={()=>{
                         wait().then(() => setOpen(false));
                     }}>
