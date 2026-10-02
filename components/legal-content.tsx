@@ -20,7 +20,7 @@ const LegalContent = ({ content, switchHref, switchLabel }: LegalContentProps) =
                     </div>
                     <Link
                         href={switchHref}
-                        className='shrink-0 rounded-full border border-gray-300 px-4 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800'
+                        className='shrink-0 rounded-full border border-border-strong px-4 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-muted'
                     >
                         {switchLabel}
                     </Link>
@@ -50,7 +50,7 @@ const LegalContent = ({ content, switchHref, switchLabel }: LegalContentProps) =
                         {content.contactPrefix}
                         <Link
                             href={FEEDBACK_FORM_URL}
-                            className='text-blue-600 underline underline-offset-2 hover:text-blue-800'
+                            className='text-brand underline underline-offset-2 hover:text-brand-strong'
                         >
                             {content.contactLinkText}
                         </Link>

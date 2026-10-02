@@ -141,7 +141,7 @@ export function AdminTableSkeleton({ columns = 6, rows = 8 }: { columns?: number
   return (
     <div className="overflow-x-auto rounded-lg border">
       <table className="w-full min-w-[760px] text-left text-sm">
-        <thead className="bg-gray-50">
+        <thead className="bg-surface-subtle">
           <tr className="border-b">
             {Array.from({ length: columns }).map((_, index) => (
               <th key={index} className="p-3">

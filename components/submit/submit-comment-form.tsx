@@ -377,7 +377,7 @@ export default function SubmitCommentForm({ code, prof }: { code: string; prof: 
                                         Note: The comment will be posted anonymously (logged in as {user?.firstName} {user?.lastName}).
                                     </FormDescription>
                                 ) :
-                                    <FormDescription className=' text-red-400'>
+                                    <FormDescription className=' text-destructive'>
                                         <span>
                                             You must <SignInButton mode='modal'><span className='underline hover:cursor-pointer'>Sign in (click here)</span></SignInButton> to upload an image for our content safety. <br />
                                             為保證內容安全，您必須 <SignInButton mode='modal'><span className='underline hover:cursor-pointer'>登入 (點擊此處)</span></SignInButton> 以上載圖像。
