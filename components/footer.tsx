@@ -17,9 +17,9 @@ const Footer = async () => {
         <div className='bg-gray-300/10'>
             <div className='max-w-screen-xl mx-auto px-6 py-10 space-y-4 '>
                 <div className="flex flex-wrap items-center justify-start pb-2">
-                    <Cat size={24} strokeWidth={2} color='rgb(14 165 233)' className="me-2"/>
+                    <Cat size={24} strokeWidth={2} className="me-2 text-brand-logo"/>
                     <Link href="/" className="flex items-center mr-10">
-                        <span className="self-center text-2xl font-semibold whitespace-nowrap bg-gradient-to-r from-sky-500 to-indigo-600 bg-clip-text text-transparent">What2Reg @UM</span>
+                        <span className="self-center text-2xl font-semibold whitespace-nowrap bg-gradient-to-r from-wordmark-from to-wordmark-to bg-clip-text text-transparent">What2Reg @UM</span>
                     </Link>
                 </div>
 
