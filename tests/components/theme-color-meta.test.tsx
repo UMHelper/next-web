@@ -81,4 +81,21 @@ describe("ThemeColorMeta", () => {
 
     expect(layout).toMatch(/<html[^>]*lang="zh-Hant"/);
   });
+
+  // 删掉 app/layout.tsx 里的 <ThemeColorMeta /> 时，其余测试全绿（theme-mounts 只查
+  // navbar / mobile-sidebar），而深色状态栏色因此静默失效。补一条挂载断言：
+  // 组件必须在 <ThemeProvider> 与 </ThemeProvider> 之间，不能只写在别处或被挪出 provider。
+  it("mounts ThemeColorMeta inside the theme provider in the root layout", () => {
+    const layout = readFileSync(join(process.cwd(), "app/layout.tsx"), "utf8");
+
+    const themeOpen = layout.indexOf("<ThemeProvider>");
+    const themeClose = layout.indexOf("</ThemeProvider>");
+    const meta = layout.indexOf("<ThemeColorMeta />");
+
+    expect(meta).toBeGreaterThanOrEqual(0);
+    expect(themeOpen).toBeGreaterThanOrEqual(0);
+    expect(themeClose).toBeGreaterThanOrEqual(0);
+    expect(themeOpen).toBeLessThan(meta);
+    expect(meta).toBeLessThan(themeClose);
+  });
 });
