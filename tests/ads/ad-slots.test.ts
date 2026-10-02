@@ -1,6 +1,8 @@
+import React from "react";
 import { describe, expect, it } from "vitest";
 
-import { AD_RATE, fnv1a32, isAdSlot } from "@/lib/ads/ad-slots";
+import { AdSlot } from "@/components/ads/ad-slot";
+import { AD_RATE, fnv1a32, isAdSlot, withAdSlots } from "@/lib/ads/ad-slots";
 
 function keys(count: number): string[] {
   return Array.from({ length: count }, (_, index) => `COURSE-${index}`);
@@ -46,5 +48,54 @@ describe("fnv1a32", () => {
     expect(value).toBeGreaterThanOrEqual(0);
     expect(value).toBeLessThan(2 ** 32);
     expect(fnv1a32("a")).not.toBe(fnv1a32("b"));
+  });
+});
+
+const CARDS = Array.from({ length: 12 }, (_, index) => `CARD-${index}`);
+
+function decorate(salt: string | null, rate?: number) {
+  return withAdSlots(CARDS, {
+    getKey: (key) => key,
+    renderItem: (key) => React.createElement("div", { key }, key),
+    salt,
+    rate,
+  });
+}
+
+function adCount(nodes: React.ReactNode[]): number {
+  return nodes.filter((node) => React.isValidElement(node) && node.type === AdSlot).length;
+}
+
+describe("withAdSlots", () => {
+  it("inserts no ads when the salt is null", () => {
+    const nodes = decorate(null);
+    expect(nodes).toHaveLength(CARDS.length);
+    expect(adCount(nodes)).toBe(0);
+  });
+
+  it("inserts no ads when the rate is zero", () => {
+    const nodes = decorate("test-salt", 0);
+    expect(adCount(nodes)).toBe(0);
+  });
+
+  it("inserts one ad per card when the rate is one", () => {
+    const nodes = decorate("test-salt", 1);
+    expect(nodes).toHaveLength(CARDS.length * 2);
+    expect(adCount(nodes)).toBe(CARDS.length);
+  });
+
+  it("places the slot right after the selected card", () => {
+    const nodes = decorate("test-salt");
+    expect(adCount(nodes)).toBe(1);
+
+    const adIndex = nodes.findIndex((node) => React.isValidElement(node) && node.type === AdSlot);
+    const card = nodes[adIndex - 1];
+    expect(React.isValidElement(card) && (card.props as { children: string }).children).toBe("CARD-8");
+  });
+
+  it("keeps the original items untouched", () => {
+    const items = [...CARDS];
+    withAdSlots(items, { getKey: (key) => key, renderItem: (key) => key, salt: "test-salt" });
+    expect(items).toEqual(CARDS);
   });
 });
