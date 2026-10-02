@@ -16,6 +16,20 @@ const NEW_TOKENS = [
   "--wordmark-to",
   "--success",
   "--warning",
+  // fix wave 新增：--destructive 是"面"token，正文/描边用它只有 2.00:1（深色）
+  "--destructive-strong",
+  // 饱和底上的前景色（Offered 徽章 / 实心品牌按钮），深色下必须翻成近黑
+  "--success-foreground",
+  "--brand-foreground",
+  // get_bg() 的四档等级渐变（lib/utils.ts 返回类名，此前在守卫盲区）
+  "--grade-none-from",
+  "--grade-none-to",
+  "--grade-low-from",
+  "--grade-low-to",
+  "--grade-mid-from",
+  "--grade-mid-to",
+  "--grade-high-from",
+  "--grade-high-to",
 ];
 
 // 只在 :root 定义的非颜色 token：纳入比较会误报

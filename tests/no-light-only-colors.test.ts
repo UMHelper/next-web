@@ -2,7 +2,9 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-const ROOTS = ["app", "components"];
+// lib/ 也在 tailwind.config.js 的 content 扫描范围里（`./lib/**/*.{ts,tsx}`），
+// 并且 lib/utils.ts 的 get_bg() 会返回类名字符串；漏掉它等于给守卫留了盲区。
+const ROOTS = ["app", "components", "lib"];
 
 // components/ui 已是 token 化的 shadcn 原语；timetable-calendar.tsx 是死代码
 // （唯一使用 @aldabil/react-scheduler 的文件，全仓库无人 import，课表页用的是自研 WeekGrid）
@@ -31,8 +33,39 @@ const ALLOWED_TOKENS = [
   "to-indigo-400",
 ];
 
-const TOKEN_PATTERN =
-  /\b(?:text|bg|border|from|via|to|ring|divide|placeholder|fill|stroke)-(?:white|black|gray|slate|zinc|neutral|stone|sky|blue|indigo|green|red|amber|teal|violet|fuchsia|purple)(?:-[0-9]+)?(?:\/[0-9]+)?/g;
+// 色系名单 = Tailwind 默认色板全部彩色系（外加 white / black）。少一个色系就是
+// 一条静默的漏网通道：此前缺 rose / emerald / orange / pink / cyan / lime / yellow。
+const COLOR_FAMILIES = [
+  "white",
+  "black",
+  "slate",
+  "gray",
+  "zinc",
+  "neutral",
+  "stone",
+  "red",
+  "orange",
+  "amber",
+  "yellow",
+  "lime",
+  "green",
+  "emerald",
+  "teal",
+  "cyan",
+  "sky",
+  "blue",
+  "indigo",
+  "violet",
+  "purple",
+  "fuchsia",
+  "pink",
+  "rose",
+].join("|");
+
+const TOKEN_PATTERN = new RegExp(
+  `\\b(?:text|bg|border|from|via|to|ring|divide|placeholder|fill|stroke)-(?:${COLOR_FAMILIES})(?:-[0-9]+)?(?:\\/[0-9]+)?`,
+  "g",
+);
 
 function collectFiles(dir: string): string[] {
   return readdirSync(dir).flatMap((entry) => {
@@ -61,7 +94,7 @@ function isExcluded(file: string): boolean {
   return EXCLUDED.some((excluded) => file === excluded || file.startsWith(`${excluded}/`));
 }
 
-/** 守卫扫描的文件宇宙：范围匹配与违规扫描共用，保证两者不会有口径差 */
+/** 守卫扫描的文件宇宙：ROOTS 去掉排除项，违规扫描就以这一份清单为输入 */
 function collectScannedFiles(): string[] {
   return ROOTS.flatMap((root) => collectFiles(root)).filter((file) => !isExcluded(file));
 }
@@ -85,7 +118,7 @@ export function collectTokenViolations(): string[] {
 }
 
 describe("light-only color guard", () => {
-  it("has no raw color scales anywhere in app or components", () => {
+  it("has no raw color scales anywhere in app, components or lib", () => {
     expect(collectTokenViolations()).toEqual([]);
   });
 });
