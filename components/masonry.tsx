@@ -17,7 +17,7 @@ export const Masonry = ({ children, col = 3, className = "" }: MasonryProps) => 
         : "grid-cols-1";
 
   return (
-    <div className={cn("grid items-start gap-4", gridClass, className)}>
+    <div className={cn("grid items-start gap-4 masonry-lanes", gridClass, className)}>
       {children}
     </div>
   );

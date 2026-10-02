@@ -88,3 +88,14 @@
     }
   }
 }
+/*
+ * CSS Grid Lanes (the native masonry layout). Safari 26.4+/iOS 26.4+ support it
+ * today; Chrome, Edge and Firefox still fall back to the plain grid above, so
+ * the DOM order, the server output and the cache entries stay identical — only
+ * the display value is upgraded.
+ */
+@supports (display: grid-lanes) {
+  .masonry-lanes {
+    display: grid-lanes;
+  }
+}
