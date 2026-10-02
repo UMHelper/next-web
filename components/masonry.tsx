@@ -1,5 +1,6 @@
 import React, { type ReactNode } from "react";
 
+import { MasonryColumns } from "@/components/masonry-columns";
 import { cn } from "@/lib/utils";
 
 type MasonryProps = {
@@ -18,7 +19,7 @@ export const Masonry = ({ children, col = 3, className = "" }: MasonryProps) => 
 
   return (
     <div className={cn("grid items-start gap-4 masonry-lanes", gridClass, className)}>
-      {children}
+      <MasonryColumns col={col}>{children}</MasonryColumns>
     </div>
   );
 };

@@ -38,4 +38,12 @@ describe("Masonry", () => {
     expect(html).toContain("gap-4");
     expect(html).toContain("grid-cols-1 md:grid-cols-2");
   });
+
+  it("renders the cards flat in the server HTML so hydration still matches", () => {
+    const html = renderMasonry();
+
+    expect(html).not.toContain("flex flex-col gap-4");
+    expect(html).toContain(">alpha<");
+    expect(html).toContain(">beta<");
+  });
 });
