@@ -357,7 +357,9 @@ if (!mounted) return <div className="h-9 w-9" aria-hidden />;
 
 54 个文件（排除 `components/ui/**` 与死代码 `components/timetable-calendar.tsx`），按下表逐文件推进与核对。处数为**硬编码颜色类命中数**（`grep -oE '\b(bg|text|border|from|to|via)-(white|black|gray|slate|zinc|neutral|stone|sky|blue|indigo|green|red|amber)-?[0-9]*(/[0-9]+)?'`，含 §5.6 的放行项），合计 **423**。
 
-按 §5.5 / §5.6 拆解这 423 处：**46 处放行不改**（`text-white` 27 + `text-white/80` 3 + `bg-white/NN` 16）、**18 处 `dark:` 双写删除**、**42 处渐变放行**（品牌渐变 24 + 装饰渐变 18）、**18 处渐变迁移**（字标 10 + Offered 徽章 8）、**299 处类名替换**（46 + 18 + 42 + 18 + 299 = 423）。
+按 §5.5 / §5.6 拆解这 423 处：**46 处放行不改**（`text-white` 27 + `text-white/80` 3 + `bg-white/NN` 16）、**18 处 `dark:` 双写删除**、**34 处渐变放行**、**18 处渐变迁移**（字标 10 + Offered 徽章 8）、**307 处类名替换**（46 + 18 + 34 + 18 + 307 = 423）。
+
+口径说明：上表的 grep 覆盖 white / black / gray / slate / zinc / neutral / stone / sky / blue / indigo / green / red / amber，因此 §5.6 的渐变放行清单合计 42 处中，有 **8 处在 423 之外**（`from-teal-400` ×2、`via-violet-400` ×2、`from-violet-500` ×1、`to-fuchsia-500` ×1、`from-purple-600` ×1、`from-purple-500` ×1）。放行清单以 §5.6 为准（守卫测试与 423 无关），分解式的 34 处只统计落在 423 内的部分。
 
 | # | 文件 | 处数 |
 |---|---|---|
