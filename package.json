@@ -15,7 +15,8 @@
     "telegram:get-chat-id": "node scripts/get-telegram-chat-id.mjs",
     "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
     "test": "vitest run",
-    "sync:um": "node scripts/sync-um.mjs --missing"
+    "sync:um": "node scripts/sync-um.mjs --missing",
+    "analytics:manifest": "node scripts/print-analytics-manifest.mjs"
   },
   "dependencies": {
     "@aldabil/react-scheduler": "^2.7.26",
