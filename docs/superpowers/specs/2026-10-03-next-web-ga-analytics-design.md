@@ -216,6 +216,7 @@ export const FORBIDDEN_PARAM_NAMES: readonly string[] = [ … ];  // 见 5.4
 - `item_list_name` 取值固定为五个：`catalog`、`search_course`、`search_instructor`、`course_instructors`、`professor_courses`；
 - `item_id`：课程卡用 `data.New_code ?? data.courseCode`，讲师卡用 `data.prof_id`，教授页的课程卡用 `data.course_id`；
 - `faculty` 仅在数据里真有该字段时带上（`CourseCard` 用 `data.Offering_Unit`；`ProfCard` 没有学院字段就**不带**该可选参数，不硬凑）；
+- `search_term` 一律**大写**后上报（由 `trackSearch` 内部完成）：URL 经 `buildSearchPath` 已是大写，`view_search_results` 的 `term` 也来自 URL；若 `search` 保留原始大小写，GA4 的同一个「搜索字词」维度会出现两种大小写、提交→结果无法配对（实施期修订 R18，原口径「保留用户原始输入」作废）；
 - `entry_point` 直接取 `SearchForm` 的 `variant` 值：`hero`（首页）、`header`（搜索页顶栏 `components/search/search-header.tsx`）、`dialog`（`components/search-button.tsx` 弹窗）。`inline` 在类型里保留但当前无调用方，注册表只为它保留说明、不产生 GTM 变量。
 
 ### 6.3 Phase 2（转化类，同一份 spec 定义、分阶段实施）
@@ -321,7 +322,7 @@ Phase 2 的公共约束：
 | 3 | 触发器 A | 自定义事件；事件名称**精确等于** `um_event` | 唯一锚点：新增事件永不改容器 |
 | 4 | 标签 | `Google Analytics: GA4 事件`；Measurement ID `G-V1KZT6Q50E`；Event Name = `{{DL - um_name}}`；事件参数表逐行 `参数名 → {{DL - 参数名}}`；触发器 = A；**发送电子商务数据保持关闭** | 一个标签承载所有业务事件 |
 | 5 | 触发器 B | `History Change` | 软导航 `page_view` 的唯一来源 |
-| 6 | 触发器 B 的过滤 | 条件：`History Source` 等于 `pushState`（或自定义 JS 变量比较"去掉 query 的旧/新路径"） | 避免 `CourseFilter` 的筛选 `replaceState` 产生噪声 `page_view`（R3） |
+| 6 | 触发器 B 的过滤 | 条件：`History Source` **不等于** `replaceState`（即 `pushState` 与 `popstate` 都触发） | 避免 `CourseFilter` 的筛选 `replaceState` 产生噪声 `page_view`（R3），同时**不丢**浏览器后退/前进的 `page_view`（实施期修订 R17：写成「等于 pushState」会丢掉全部 `popstate`） |
 | 7 | 标签 | `Google 标签`，ID `G-V1KZT6Q50E`，配置参数 `page_location = {{Page URL}}`、`page_title = {{Page Title}}`、`update = true`；触发器 = B | 官方 SPA 方案：`update: true` 合并配置且不额外发 `page_view` |
 | 8 | 发布 | 提交并**发布**容器版本 | 未发布的版本对访客无效（R9 / AC6） |
 

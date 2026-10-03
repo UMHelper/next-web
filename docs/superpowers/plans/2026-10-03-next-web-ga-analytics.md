@@ -1512,8 +1512,8 @@ describe("SearchForm", () => {
     expect(pushed()[0]).toEqual({
       event: "um_event",
       um_name: "search",
-      // 口径说明：URL 会被 buildSearchPath 规范成大写，但事件里保留用户原始输入。
-      search_term: "acct1000",
+      // 口径说明：search_term 由 trackSearch 统一转大写，与结果页 view_search_results 的 term（来自 URL）对齐。
+      search_term: "ACCT1000",
       search_scope: "course",
       entry_point: "inline",
     });
@@ -2457,7 +2457,7 @@ export function renderManifest() {
   lines.push("| 名称 | 类型 | 条件 |");
   lines.push("|---|---|---|");
   lines.push("| `Trigger - um_event` | 自定义事件 | 事件名称 **精确等于** `um_event` |");
-  lines.push("| `Trigger - History Change` | 历史记录更改 | 附加上游过滤：`History Source` 等于 `pushState`（避免筛选改 query 产生噪声 page_view） |");
+  lines.push("| `Trigger - History Change` | 历史记录更改 | 附加上游过滤：`History Source` 不等于 `replaceState`（即 pushState 与 popstate 都触发；只写「等于 pushState」会丢掉浏览器后退/前进的 page_view，R17） |");
   lines.push("");
   lines.push("## 3. GTM 标签");
   lines.push("");
