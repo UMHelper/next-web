@@ -58,7 +58,7 @@
 ### Task 1: GTM 冒烟验证（人工，可与后续任务并行）
 
 **Files:**
-- Create: `docs/analytics/gtm-setup.md`（本 task 只写"冒烟验证记录"一节，Task 10 会由脚本重写整个文件）
+- 记录位置：R1 的冒烟验证结论写入 `docs/superpowers/verification/2026-10-03-next-web-ga-analytics.md`（Task 11 创建）；**不要**写进生成物 `docs/analytics/gtm-setup.md`
 
 **Interfaces:**
 - Produces: 桥 A 成立与否的结论（决定后续 GTM 配置是"通用事件标签"还是"Custom HTML 桥"）。**代码侧不依赖该结论**：`emit()` 与事件字典在两种桥下完全一致。
@@ -91,7 +91,7 @@ Expected：Tag Assistant 里出现 `um_event` 事件 → 上面那个标签被�
 
 - [ ] **Step 3: 记录结论**
 
-在 `docs/analytics/gtm-setup.md` 写下结论（Task 10 会重写该文件，但这一节会被保留）：
+把结论写到 **Task 11 的验证文档** `docs/superpowers/verification/2026-10-03-next-web-ga-analytics.md` 里（不是 `docs/analytics/gtm-setup.md` —— 后者是脚本生成物，`--check` 做逐字比对，手工追加会让守卫测试失败；见 Ruling R16）：
 
 ```markdown
 ## 冒烟验证（R1：Event Name 能否填变量）
@@ -2288,7 +2288,7 @@ git commit -m "feat(analytics): report filter changes and search result counts"
 
 **Files:**
 - Create: `scripts/print-analytics-manifest.mjs`
-- Create: `docs/analytics/gtm-setup.md`（由脚本生成；保留 Task 1 的冒烟验证一节）
+- Create: `docs/analytics/gtm-setup.md`（**完全由脚本生成，逐字比对**；不含任何手工追加内容）
 - Test: `tests/analytics/wiring.test.ts`
 - Modify: `package.json`（新增 script）
 
@@ -2541,7 +2541,7 @@ main();
 Run: `mkdir -p docs/analytics && node scripts/print-analytics-manifest.mjs`
 Expected: 输出 `[analytics] wrote …/docs/analytics/gtm-setup.md`。
 
-再打开生成的 `docs/analytics/gtm-setup.md`，把 Task 1 的"冒烟验证（R1）"一节内容追加到文件**末尾**（脚本不会生成这一节，手工记录一次即可），然后：
+生成的 `docs/analytics/gtm-setup.md` 不得手工追加任何内容（`--check` 逐字比对）；R1 的冒烟验证结论记录在 Task 11 的验证文档里。然后：
 
 Run: `npx vitest run tests/analytics/wiring.test.ts`
 Expected: PASS（7 tests）。
