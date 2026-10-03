@@ -109,7 +109,8 @@ Astro 6 **移除**了 legacy content collections（无兼容层），并且：
 
 - [ ] **Step 1: 升级依赖**
 
-Run:
+**命令必须包含 `@types/react-dom@^18.3.0`**（见下方冲突说明），否则 npm 会以 `ERESOLVE` 失败：
+
 ```bash
 cd /Users/box/UMHelper/.worktrees/blog-phase0
 export npm_config_cache=/Users/box/UMHelper/.npm-cache
@@ -117,10 +118,23 @@ npm install astro@^7.3.5 \
   @astrojs/react@^7.0.0 @astrojs/sitemap@^3.7.4 @astrojs/rss@^4.0.19 \
   satori@^0.35.0 @resvg/resvg-js@latest fuse.js@latest \
   --no-audit --no-fund
-npm install -D @astrojs/check@latest typescript@latest @divriots/jampack@^0.34.1 --no-audit --no-fund
+npm install -D @astrojs/check@latest typescript@latest @divriots/jampack@^0.34.1 \
+  @types/react-dom@^18.3.0 --no-audit --no-fund
 ```
-Expected: 安装成功。
-注意：`@astrojs/react@7` 的 peer 允许 `react ^17 || ^18 || ^19`，**不强制 React 19**，但**新增了一个必需 peer `oxc-transform-react@^0.145.0`** —— 若 npm 因缺少该 peer 报错，按提示一并安装。
+Expected: 两个命令都成功（渲染冲突已由 `@types/react-dom` 显式钉版解决）。
+
+**为什么必须显式钉 `@types/react-dom`（实测冲突，勿删）**：本仓库**从未声明** `@types/react-dom`，它一直是传递依赖。升级时 npm 为满足 `@astrojs/react@7` 的 peer `@types/react-dom@"^17.0.17 || ^18.0.6 || ^19.0.0"` 会选**最新的 19.3.0**，而 `@types/react-dom@19.3.0` 又要求 peer `@types/react@^19.3.0`，与本仓库钉住的 `@types/react@18.3.31` 冲突：
+
+```
+npm error Found: @types/react@18.3.31
+npm error   peer @types/react@"^17.0.50 || ^18.0.21 || ^19.0.0" from @astrojs/react@7.0.0
+npm error Could not resolve dependency:
+npm error   peer @types/react@"^19.3.0" from @types/react-dom@19.3.0
+```
+
+**裁定：把类型钉到 18，而不是把 React 升到 19。** 依据：`@astrojs/react@7` 明确允许 React 18（`react ^17.0.2 || ^18.0.0 || ^19.0.0`），而 Phase 0 的硬指标是「零视觉/行为变化」—— 升级 React **运行时**到 19 会引入一个行为变化面（React 19 有破坏性变更），与 Phase 0 的定位直接冲突。这个冲突纯粹是**类型解析**产物：运行时保持 React 18，类型也钉在 18，两者一致。
+
+注意：`@astrojs/react@7` 还新增了一个必需 peer `oxc-transform-react@^0.145.0`；若 npm 因缺少该 peer 报错，按提示一并安装。
 
 - [ ] **Step 2: 迁移内容集合配置（新建 `src/content.config.ts`）**
 
