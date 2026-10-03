@@ -72,7 +72,7 @@ web 与 iOS 用的**是同一份图形**：
 | # | 决策点 | 结论 | 理由 |
 |---|---|---|---|
 | D1 | 覆盖范围 | **整站 light/dark 可用**（而非只改品牌区） | 用户明确选择"全站暗色模式" |
-| D2 | 默认主题 | **默认 light**，选项 `light` / `dark` / `system`，`localStorage` 持久化 | 对已上线站点与 SEO 零风险；iOS 默认 dark 的行为不照搬到 web |
+| D2 | 默认主题 | ~~**默认 light**，选项 `light` / `dark` / `system`~~；**后续按用户实测反馈改为：默认跟随系统（`defaultTheme="system"`），选项只有 `light` / `dark`，不再有 System 与下拉菜单，点击图标即在两者间切换并持久化** | 原决定以「对已上线站点与 SEO 零风险」为由默认 light；用户实测后要求「默认跟随系统、由用户自己改」，故推翻原决定 |
 | D3 | 实现方案 | **语义 token 迁移**（非逐处双写 `dark:`） | 单一事实来源；迁移完整度可用守卫测试机械核验 |
 | D4 | 浅色收敛策略 | **token 的 light 值迁就现有硬编码色**，接受 §5.6 列出的微量位移 | 收敛 token 数量，同时把浅色变化压到可列举、可核验 |
 | D5 | 品牌区 | 猫图标**照搬 iOS 两色**；字标**保留渐变**、深色下提亮 | 图标对齐诉求最彻底；字标保留现有品牌感 |
@@ -329,6 +329,15 @@ S6–S7 是**有意为之的统一**：这两组在现有代码里本来就是�
 - `components/footer.tsx:17`：`bg-gray-300/10` → `bg-surface-subtle`。
 
 ## 7. 切换入口
+
+> **本节已按用户实测反馈修订（2026-10-03），以修订为准：** 不再有下拉菜单，也不再有 System 选项。
+> `components/theme-toggle.tsx` 现在的形态是：
+> - 导出的 `THEME_OPTIONS` 只有 `light` / `dark` 两项，供移动端侧边栏的 `ThemeOptions` 列表使用；
+> - `ThemeToggle` 是**单个图标按钮**，单击即在浅色/深色之间切换（`setTheme(resolvedTheme === "dark" ? "light" : "dark")`），
+>   图标显示当前 `resolvedTheme`（浅色太阳 / 深色月亮），`aria-label` 随之为 `Switch to light theme` / `Switch to dark theme`；
+> - 未显式选择过的访客主题**跟随系统**（`defaultTheme="system"` + `enableSystem`），点击后写入 `localStorage` 并持久化；
+> - 按钮样式与相邻的 search 按钮一致（`flex items-center outline-none`，无内边距、无 hover 底色、无聚焦描边）。
+> 下面 7.1 起是修订前的原始设计，保留作为背景。
 
 ### 7.1 `components/theme-toggle.tsx`（`'use client'`）
 

@@ -7,7 +7,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   return (
     <NextThemesProvider
       attribute="class"
-      defaultTheme="light"
+      // 未显式选择过的访客跟随系统偏好（prefers-color-scheme）；一旦用户点击切换，
+      // next-themes 会把选择写入 localStorage 并优先使用它。
+      defaultTheme="system"
       enableSystem
       disableTransitionOnChange
       storageKey="umeh-theme"

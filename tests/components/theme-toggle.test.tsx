@@ -62,19 +62,28 @@ afterEach(() => {
 });
 
 describe("ThemeOptions", () => {
-  it("renders the three modes and marks the active one", () => {
-    useThemeMock.mockReturnValue({ theme: "dark", setTheme });
+  it("renders the two modes and marks the active one", () => {
+    useThemeMock.mockReturnValue({ theme: "dark", resolvedTheme: "dark", setTheme });
     const view = render(React.createElement(ThemeOptions));
 
     const buttons = [...view.container.querySelectorAll("button")];
-    expect(buttons.map((button) => button.textContent)).toEqual(["Light", "Dark", "System"]);
+    expect(buttons.map((button) => button.textContent)).toEqual(["Light", "Dark"]);
     expect(buttons[1].getAttribute("aria-checked")).toBe("true");
     expect(buttons[0].getAttribute("aria-checked")).toBe("false");
 
     const group = view.container.querySelector("[role='radiogroup']");
     expect(group).toBeTruthy();
     expect(group?.getAttribute("aria-label")).toBe("Theme");
-    expect(group?.querySelectorAll("[role='radio']")).toHaveLength(3);
+    expect(group?.querySelectorAll("[role='radio']")).toHaveLength(2);
+  });
+
+  it("marks the resolved theme while the preference is still following the system", () => {
+    useThemeMock.mockReturnValue({ theme: "system", resolvedTheme: "dark", setTheme });
+    const view = render(React.createElement(ThemeOptions));
+
+    const buttons = [...view.container.querySelectorAll("button")];
+    expect(buttons[1].getAttribute("aria-checked")).toBe("true");
+    expect(buttons[0].getAttribute("aria-checked")).toBe("false");
   });
 
   it("sets the chosen theme exactly once", () => {
@@ -100,48 +109,63 @@ describe("ThemeToggle", () => {
     expect(html).not.toContain("lucide-monitor");
   });
 
-  it("renders the trigger after mount", () => {
+  it("renders a single toggle button with no dropdown", () => {
     useThemeMock.mockReturnValue({ theme: "dark", resolvedTheme: "dark", setTheme });
 
     const view = render(React.createElement(ThemeToggle));
 
-    expect(view.container.querySelector("[aria-label='Switch theme']")).toBeTruthy();
+    expect(view.container.querySelector("[aria-label='Switch to light theme']")).toBeTruthy();
+    // 下拉菜单已移除：不再有 trigger/menu 角色与 portal 内容
+    expect(view.container.querySelector("[aria-haspopup]")).toBeNull();
+    expect(document.querySelector("[role='menu']")).toBeNull();
+    expect(document.querySelector("[role='menuitem']")).toBeNull();
   });
 
-  it("sets the system theme from the dropdown exactly once", () => {
+  it("clicking while dark switches to light exactly once", () => {
     useThemeMock.mockReturnValue({ theme: "dark", resolvedTheme: "dark", setTheme });
 
     const view = render(React.createElement(ThemeToggle));
-    const trigger = view.container.querySelector("[aria-label='Switch theme']");
-    expect(trigger).toBeTruthy();
-
-    // Radix renders the menu into a portal, so the items live on document.body.
-    fireEvent.keyDown(trigger as Element, { key: "ArrowDown" });
-    const items = [...document.querySelectorAll("[role='menuitem']")];
-    expect(items.map((item) => item.textContent)).toEqual(["Light", "Dark", "System"]);
-
-    fireEvent.click(items[2]);
+    fireEvent.click(view.container.querySelector("[aria-label='Switch to light theme']")!);
 
     expect(setTheme).toHaveBeenCalledTimes(1);
-    expect(setTheme).toHaveBeenCalledWith("system");
+    expect(setTheme).toHaveBeenCalledWith("light");
+  });
+
+  it("clicking while light switches to dark exactly once", () => {
+    useThemeMock.mockReturnValue({ theme: "light", resolvedTheme: "light", setTheme });
+
+    const view = render(React.createElement(ThemeToggle));
+    fireEvent.click(view.container.querySelector("[aria-label='Switch to dark theme']")!);
+
+    expect(setTheme).toHaveBeenCalledTimes(1);
+    expect(setTheme).toHaveBeenCalledWith("dark");
+  });
+
+  it("shows the sun and follows the system while no explicit choice was made", () => {
+    useThemeMock.mockReturnValue({ theme: "system", resolvedTheme: "light", setTheme });
+
+    const view = render(React.createElement(ThemeToggle));
+
+    expect(view.container.querySelector(".lucide-sun")).toBeTruthy();
+    expect(view.container.querySelector("[aria-label='Switch to dark theme']")).toBeTruthy();
   });
 });
 
 describe("ThemeOptions hydration", () => {
   const PROVIDER_PROPS = {
     attribute: "class" as const,
-    defaultTheme: "light",
+    defaultTheme: "system",
     enableSystem: true,
     storageKey: "umeh-theme",
   };
 
   /**
-   * A stored value matching none of the three options. On a real server,
+   * A stored value matching neither option. On a real server,
    * next-themes' `isServer` flag is captured when the module loads and is true,
    * so `theme` is `undefined` there. jsdom defines `window`, so the provider in
    * this environment always resolves *some* theme; pointing it at an
    * unrecognised stored value is what makes the real component render the
-   * server's markup (all three rows unchecked). The resulting string is
+   * server's markup (both rows unchecked). The resulting string is
    * byte-identical to the markup the same tree produces in a node environment
    * with no `window` at all.
    */
@@ -176,10 +200,10 @@ describe("ThemeOptions hydration", () => {
     // 1. The server's markup: the provider cannot resolve a theme, so nothing is checked.
     stored = STORED_VALUE_MATCHING_NO_OPTION;
     const serverHtml = renderToStaticMarkup(tree());
-    // A first-time visitor: the client now resolves defaultTheme "light".
+    // A first-time visitor: the client follows the system, which jsdom reports as light.
     stored = null;
 
-    expect(serverHtml.match(/aria-checked="false"/g)).toHaveLength(3);
+    expect(serverHtml.match(/aria-checked="false"/g)).toHaveLength(2);
     expect(serverHtml).not.toContain('aria-checked="true"');
 
     // 2. Hydrate that exact markup with the real provider.
@@ -211,7 +235,6 @@ describe("ThemeOptions hydration", () => {
     const radios = [...container.querySelectorAll("[aria-checked]")];
     expect(radios.map((radio) => radio.getAttribute("aria-checked"))).toEqual([
       "true",
-      "false",
       "false",
     ]);
     expect(radios[0].textContent).toBe("Light");

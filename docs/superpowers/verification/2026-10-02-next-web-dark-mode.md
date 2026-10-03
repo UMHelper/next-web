@@ -162,7 +162,7 @@ dev log 里 **0 条 error / warning**；只有一条与本改动无关的 canius
 `next-themes` 注入的是 `<body>` 的第一个子元素，一段**阻塞式内联脚本**，位于全部页面内容之前：
 
 ```html
-<body class="__className_f367f3"><script>!function(){try{var d=document.documentElement,c=d.classList;c.remove('light','dark');var e=localStorage.getItem('umeh-theme');if('system'===e||(!e&&false)){var t='(prefers-color-scheme: dark)',m=window.matchMedia(t);if(m.media!==t||m.matches){d.style.colorScheme = 'dark';c.add('dark')}else{d.style.colorScheme = 'light';c.add('light')}}else if(e){c.add(e|| '')}else{c.add('light')}if(e==='light'||e==='dark'||!e)d.style.colorScheme=e||'light'}catch(e){}}()</script>
+<body class="__className_f367f3"><script>!function(){try{var d=document.documentElement,c=d.classList;c.remove('light','dark');var e=localStorage.getItem('umeh-theme');if('system'===e||(!e&&true)){var t='(prefers-color-scheme: dark)',m=window.matchMedia(t);if(m.media!==t||m.matches){d.style.colorScheme = 'dark';c.add('dark')}else{d.style.colorScheme = 'light';c.add('light')}}else if(e){c.add(e|| '')}else{c.add('light')}if(e==='light'||e==='dark'||!e)d.style.colorScheme=e||'light'}catch(e){}}()</script>
 ```
 
 逐项对应设计：
@@ -171,8 +171,8 @@ dev log 里 **0 条 error / warning**；只有一条与本改动无关的 canius
 |---|---|
 | `c.remove('light','dark')` | 先清掉两种 class，避免残留 |
 | `localStorage.getItem('umeh-theme')` | `storageKey="umeh-theme"` 生效 |
-| `'system'===e \|\| (!e&&false)` | `enableSystem` 已开；`&&false` 是因为 `defaultTheme="light"` 而非 `"system"` |
-| `matchMedia('(prefers-color-scheme: dark)')` | System 模式下**在首次绘制前**就解析系统偏好 |
+| `'system'===e \|\| (!e&&true)` | `enableSystem` 已开且 `defaultTheme="system"`；因此**未选择过的访客在首帧前**就走 matchMedia 解析系统偏好 |
+| `matchMedia('(prefers-color-scheme: dark)')` | 首次访问（无 `localStorage` 值）时**在首次绘制前**解析系统偏好 |
 | `else{c.add('light')}` | 无存储值时落回 `defaultTheme="light"` |
 | `d.style.colorScheme = ...` | 同步 `color-scheme`，让滚动条/表单控件也跟着切换 |
 
@@ -477,15 +477,15 @@ itemStyles={{                                                            // :543
 
 一个需要说清的细节：紧跟着的菜单块 `className="font-bold flex flex-col p-4 mt-4 ..."` 也嵌在同一个 `SheetContent` 里，它的水平内缩同样是 24+16 = 40px —— **所以 Theme 区和菜单区在水平方向是对齐的**，`px-4` 只是让它们一致地"多缩了一层"，并不是"两块没对齐"。真正会显得怪的是：整块内容的水平内缩是 40px 而不是 SheetContent 名义上的 24px，顶部是 48px。
 
-要回答的问题：≤768px 宽下把侧边栏拉出来，**顶部 Theme 三选项（Light / Dark / System，「Theme」大写小标题）这一块是否显得过于内缩 / 与 Sheet 的关闭按钮（`absolute right-4 top-4`）挤在一起？** 如果觉得过头，就是把 `px-4 pt-6` 收掉或改小。
+要回答的问题：≤768px 宽下把侧边栏拉出来，**顶部 Theme 两选项（Light / Dark，「Theme」大写小标题）这一块是否显得过于内缩 / 与 Sheet 的关闭按钮（`absolute right-4 top-4`）挤在一起？** 如果觉得过头，就是把 `px-4 pt-6` 收掉或改小。
 
 ### 4.6 切换与持久化行为 / 无闪烁 / 无 hydration 告警
 
 1. **持久化**：点 `Dark` → 刷新（普通 reload）→ 仍是深色。同时看 DevTools → Application → Local Storage：key 应为 **`umeh-theme`**，值为 `dark`（`components/providers/theme-provider.tsx:13`）。再切 `Light` → 刷新 → 浅色；`localStorage` 值为 `light`。
-2. **System 跟随**：点 `System` → 改操作系统外观（macOS 外观切换，或 DevTools → Rendering → Emulate CSS `prefers-color-scheme`）→ **应立即跟随，无需刷新**。`localStorage` 值应为 `system`。
+2. **默认跟随系统**：删掉 `localStorage` 的 `umeh-theme` 键后刷新 → **首帧即应呈现系统偏好的主题**；此时改操作系统外观（macOS 外观切换，或 DevTools → Rendering → Emulate CSS `prefers-color-scheme`）→ **应立即跟随，无需刷新**，且该键应仍为空（表示用户未显式选择过）。
 3. **首次访问默认**：清掉 `localStorage` 后刷新 → 应为**浅色**（`defaultTheme="light"`）。注入脚本的 `else{c.add('light')}` 分支就是这条路径（§2.4 已见）。
-4. **首屏无闪烁**：DevTools → Network 勾 `Disable cache` + Performance 面板把 **CPU throttling 调到 6×** → 在深色模式下 hard reload（Cmd+Shift+R）。`<html class="dark">` 必须在**首次绘制前**就位：不得出现"先白一下再变黑"。用 Performance 录制看首帧，或截图逐帧看。**切到 System + 系统为深色时也应同样不闪。**
-5. **无 hydration 告警**：Console 全程开着，覆盖这几种操作 —— 切 Dark/Light/System、普通刷新、hard reload、客户端路由往返（`/` → `/course/CISC1001` → 浏览器返回）。**不得出现 "Hydration failed" / "Text content does not match" / "Prop `className` did not match" / Minified React error #418 / #422 之类。**（注意：本项目历史上出过 `Minified React error #418 / #422`，见本目录 `2026-10-02-masonry-ads.md` 的"部署后事故与修复"一节，所以这条要认真看；`components/theme-toggle.tsx` 的挂载守卫正是为了避免同类问题。）
+4. **首屏无闪烁**：DevTools → Network 勾 `Disable cache` + Performance 面板把 **CPU throttling 调到 6×** → 在深色模式下 hard reload（Cmd+Shift+R）。`<html class="dark">` 必须在**首次绘制前**就位：不得出现"先白一下再变黑"。用 Performance 录制看首帧，或截图逐帧看。**未选择过的访客在系统为深色时也应同样不闪**（其首帧主题由注入脚本在绘制前解析）。
+5. **无 hydration 告警**：Console 全程开着，覆盖这几种操作 —— 点图标切换主题（两个方向）、删掉 `umeh-theme` 后刷新（默认跟随系统）、普通刷新、hard reload、客户端路由往返（`/` → `/course/CISC1001` → 浏览器返回）。**不得出现 "Hydration failed" / "Text content does not match" / "Prop `className` did not match" / Minified React error #418 / #422 之类。**（注意：本项目历史上出过 `Minified React error #418 / #422`，见本目录 `2026-10-02-masonry-ads.md` 的"部署后事故与修复"一节，所以这条要认真看；`components/theme-toggle.tsx` 的挂载守卫正是为了避免同类问题。）
 6. **移动端宽度（≤768px）**：打开侧边栏，顶部三个选项可用、点得动、选中态正确（`aria-checked`）。
 7. **`theme-color`**：切到深色后检查 `<head>` 里那枚 `<meta name="theme-color">` 是否被改成 `#020817`（SSR 输出的是静态 `#FFFFFF`，见 §2.3；`components/theme-color-meta.tsx` 负责改写）。iOS Safari / Android Chrome 加到主屏后状态栏颜色是否跟着变。
 

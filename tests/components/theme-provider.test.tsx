@@ -38,7 +38,7 @@ describe("ThemeProvider", () => {
 
     const props = providerProps.mock.calls[0][0];
     expect(props.attribute).toBe("class");
-    expect(props.defaultTheme).toBe("light");
+    expect(props.defaultTheme).toBe("system");
     expect(props.enableSystem).toBe(true);
     expect(props.disableTransitionOnChange).toBe(true);
     expect(props.storageKey).toBe("umeh-theme");
