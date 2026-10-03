@@ -41,6 +41,24 @@ describe("analytics registry", () => {
     }
   });
 
+  it("never registers a parameter name that collides with the payload shape or Object.prototype", () => {
+    // emit() 预填了 event / um_name，注册表若也允许这两个名字，
+    // 必填校验会被预填值自动满足（还可能是 GTM 保留前缀）；
+    // 同理，原型链上的成员名会让"参数已注册 / 必填未填"的判断失效。
+    const RESERVED_PARAM_NAMES = ["event", "um_name"];
+    const PROTOTYPE_MEMBER_NAMES = ["constructor", "toString", "valueOf", "hasOwnProperty", "__proto__"];
+
+    for (const [eventName, spec] of Object.entries(ANALYTICS_EVENTS)) {
+      for (const paramName of Object.keys(spec.params)) {
+        const where = `${eventName}.${paramName}`;
+        expect(RESERVED_PARAM_NAMES, where).not.toContain(paramName);
+        expect(PROTOTYPE_MEMBER_NAMES, where).not.toContain(paramName);
+        expect(paramName.startsWith("um_"), where).toBe(false);
+        expect(paramName.startsWith("gtm"), where).toBe(false);
+      }
+    }
+  });
+
   it("only uses whitelisted ga4 recommended event names", () => {
     for (const [eventName, spec] of Object.entries(ANALYTICS_EVENTS)) {
       if (spec.ga4 === "recommended") {

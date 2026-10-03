@@ -40,13 +40,48 @@ describe("emit", () => {
     expect(() => emit("search", SEARCH)).not.toThrow();
   });
 
+  // SSR 早退必须发生在校验之前，否则服务端渲染遇到脏数据会抛错。
+  it("does not throw on an invalid event without a window (server rendering)", () => {
+    vi.stubGlobal("window", undefined);
+    expect(() => emit("not_registered", {})).not.toThrow();
+  });
+
   it("rejects unknown events in development", () => {
     expect(() => emit("not_registered", {})).toThrow(/unknown event/);
     expect(layer()).toHaveLength(0);
   });
 
+  // 注册表是对象字面量，原型链上的键（constructor / toString / …）不是事件。
+  it("treats prototype-key event names as unknown events in development", () => {
+    const names = ["constructor", "toString", "valueOf", "hasOwnProperty", "__proto__"];
+
+    for (const name of names) {
+      expect(() => emit(name, {}), name).toThrow(/unknown event/);
+      expect(() => emit(name, { nope: "x" }), name).toThrow(/unknown event/);
+    }
+    expect(layer()).toHaveLength(0);
+  });
+
+  it("drops prototype-key event names in production instead of throwing", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    expect(() => emit("constructor", { nope: "x" })).not.toThrow();
+    expect(layer()).toHaveLength(0);
+    expect(warn).toHaveBeenCalledTimes(1);
+  });
+
   it("rejects unregistered parameters in development", () => {
     expect(() => emit("search", { ...SEARCH, nope: "x" })).toThrow(/not registered/);
+    expect(layer()).toHaveLength(0);
+  });
+
+  it("rejects prototype-key parameter names in development", () => {
+    const keys = ["constructor", "toString", "valueOf", "hasOwnProperty", "__proto__"];
+
+    for (const key of keys) {
+      expect(() => emit("search", { ...SEARCH, [key]: "x" }), key).toThrow(/not registered/);
+    }
     expect(layer()).toHaveLength(0);
   });
 
@@ -85,6 +120,49 @@ describe("emit", () => {
       has_results: false,
     });
     expect(layer()[1]).toMatchObject({ result_count: 0, has_results: 0 });
+  });
+
+  // 注册表声明了每个参数的类型，值必须与之匹配，否则会把字符串塞进 GA4 的数值指标。
+  it("rejects a string value for a numeric parameter in development", () => {
+    expect(() =>
+      emit("view_search_results", {
+        search_term: "ACCT1000",
+        search_scope: "course",
+        result_count: "3",
+        has_results: true,
+      }),
+    ).toThrow(/parameter "result_count" of event "view_search_results" must be type "number", got "string"/);
+    expect(layer()).toHaveLength(0);
+  });
+
+  it("rejects a numeric value for a string parameter in development", () => {
+    expect(() => emit("search", { ...SEARCH, search_scope: 5 })).toThrow(
+      /parameter "search_scope" of event "search" must be type "string", got "number"/,
+    );
+    expect(layer()).toHaveLength(0);
+  });
+
+  it("rejects a boolean value for a string parameter in development", () => {
+    expect(() => emit("search", { ...SEARCH, entry_point: true })).toThrow(
+      /parameter "entry_point" of event "search" must be type "string", got "boolean"/,
+    );
+    expect(layer()).toHaveLength(0);
+  });
+
+  it("drops a wrongly typed value in production instead of throwing", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    expect(() =>
+      emit("view_search_results", {
+        search_term: "ACCT1000",
+        search_scope: "course",
+        result_count: "3",
+        has_results: true,
+      }),
+    ).not.toThrow();
+    expect(layer()).toHaveLength(0);
+    expect(warn).toHaveBeenCalledTimes(1);
   });
 
   it("omits undefined and null parameters", () => {

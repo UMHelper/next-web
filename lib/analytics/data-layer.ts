@@ -58,8 +58,13 @@ export function emit(name: string, params: Record<string, AnalyticsParamValue> =
    * `emit` 的入参是 `string`（调用方可能传任何拼错的名字），而注册表的键是字面量
    * 联合类型，所以这里必须显式放宽成字符串索引：未知事件正是下面这一段要挡住的
    * 情况，返回 `undefined` 就是预期行为。
+   *
+   * 必须先用 `Object.hasOwn` 判断：注册表是对象字面量，`ANALYTICS_EVENTS["constructor"]`
+   * 会顺着原型链命中 `Object.prototype` 上的成员，`!spec` 就挡不住这种"未知事件"了。
    */
-  const spec = (ANALYTICS_EVENTS as Record<string, EventSpec | undefined>)[name];
+  const spec = Object.hasOwn(ANALYTICS_EVENTS, name)
+    ? (ANALYTICS_EVENTS as Record<string, EventSpec | undefined>)[name]
+    : undefined;
   if (!spec) {
     drop(`unknown event "${name}" — 先在 lib/analytics/registry-data.mjs 里登记它`, `event:${name}`);
     return;
@@ -79,7 +84,8 @@ export function emit(name: string, params: Record<string, AnalyticsParamValue> =
       return;
     }
 
-    const paramSpec = spec.params[key];
+    /** 同样只认自有属性：`spec.params["toString"]` 会命中 `Object.prototype`。 */
+    const paramSpec = Object.hasOwn(spec.params, key) ? spec.params[key] : undefined;
     if (!paramSpec) {
       drop(
         `parameter "${key}" is not registered for event "${name}" — 未注册的参数不会出现在 GA4 里`,
@@ -88,18 +94,31 @@ export function emit(name: string, params: Record<string, AnalyticsParamValue> =
       return;
     }
 
-    if (typeof value === "boolean") {
-      payload[key] = value ? 1 : 0;
-      continue;
-    }
-    if (typeof value === "number") {
-      if (!Number.isFinite(value)) {
-        drop(`parameter "${key}" must be a finite number`, `number:${name}.${key}`);
-        return;
+    /**
+     * 值类型必须与注册表声明的 `type` 一致：GA4 的数值参数收到字符串会变成垃圾数据，
+     * 反之亦然。唯一的例外是 `number` 参数接受布尔——业务代码里写 `has_results: true`
+     * 比写 1 自然，下面统一归一成 1/0。
+     */
+    if (paramSpec.type === "number") {
+      if (typeof value === "boolean") {
+        payload[key] = value ? 1 : 0;
+        continue;
       }
-      payload[key] = value;
-      continue;
+      if (typeof value === "number") {
+        if (!Number.isFinite(value)) {
+          drop(`parameter "${key}" must be a finite number`, `number:${name}.${key}`);
+          return;
+        }
+        payload[key] = value;
+        continue;
+      }
+      drop(
+        `parameter "${key}" of event "${name}" must be type "number", got "${typeof value}"`,
+        `type:${name}.${key}`,
+      );
+      return;
     }
+
     if (typeof value === "string") {
       const limit = paramSpec.maxLength ?? MAX_STRING_VALUE_LENGTH;
       if (value.length > limit) {
@@ -111,12 +130,16 @@ export function emit(name: string, params: Record<string, AnalyticsParamValue> =
       continue;
     }
 
-    drop(`parameter "${key}" has unsupported type "${typeof value}"`, `type:${name}.${key}`);
+    drop(
+      `parameter "${key}" of event "${name}" must be type "string", got "${typeof value}"`,
+      `type:${name}.${key}`,
+    );
     return;
   }
 
   for (const [key, paramSpec] of Object.entries(spec.params)) {
-    if (paramSpec.required && payload[key] === undefined) {
+    /** 同样用自有属性判断，避免 `toString` 这类键在 payload 上"凭空"满足必填。 */
+    if (paramSpec.required && !Object.hasOwn(payload, key)) {
       drop(`missing required parameter "${key}" for event "${name}"`, `missing:${name}.${key}`);
       return;
     }
