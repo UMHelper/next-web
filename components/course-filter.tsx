@@ -2,17 +2,27 @@
 import { useEffect, useState } from "react"
 import { Masonry } from "@/components/masonry"
 import CourseCard from "@/components/course-card"
-import type { ItemListName } from "@/lib/analytics/events"
+import { TrackSearchResults } from "@/components/analytics/track-search-results"
+import { trackFilterApply, type ItemListName, type SearchScope } from "@/lib/analytics/events"
 import { withAdSlots, type AdConfig } from "@/lib/ads/ad-slots"
 import { countUniqueValues, courseKeysToCount, CourseFilterName } from "@/lib/count-unique-values"
-import { SelectValue, Select, SelectTrigger, SelectContent, SelectGroup, SelectItem } from "@/components/ui/select"
 import {
     applyCourseFilters,
     createInitialFilterState,
+    nextFilterState,
     type CourseFilterState,
 } from "@/lib/course-filters"
+import { SelectValue, Select, SelectTrigger, SelectContent, SelectGroup, SelectItem } from "@/components/ui/select"
 
-export default function CourseFilter({ data, ads, listName }: { data: any[]; ads: AdConfig | null; listName: ItemListName }) {
+type CourseFilterProps = {
+    data: any[]
+    ads: AdConfig | null
+    listName: ItemListName
+    /** 只有搜索结果页会传：传了就上报一次 view_search_results（目录页不传，因此不上报）。 */
+    trackResults?: { term: string; scope: SearchScope }
+}
+
+export default function CourseFilter({ data, ads, listName, trackResults }: CourseFilterProps) {
     const [option, setOption] = useState<any>({})
 
     const [currentCourseList, setCurrentCourseList] = useState(data)
@@ -40,6 +50,13 @@ export default function CourseFilter({ data, ads, listName }: { data: any[]; ads
 
     return (
         <div>
+            {trackResults ? (
+                <TrackSearchResults
+                    term={trackResults.term}
+                    scope={trackResults.scope}
+                    resultCount={data.length}
+                />
+            ) : null}
             <div className="grid grid-cols-2 md:grid-cols-6 my-4 gap-2">
                 {
                     option[courseKeysToCount[0]] && courseKeysToCount.map((key, index) => {
@@ -48,22 +65,14 @@ export default function CourseFilter({ data, ads, listName }: { data: any[]; ads
                                 <div className="pb-1">
                                     {CourseFilterName[key]}
                                 </div>
-                                <Select disabled={option[key]?.length === 1} defaultValue={option[key][0]} onValueChange={(e) => {
-                                    let option: any = { ...filter }
-                                    if (key === 'Is_Offered') {
-                                        if (e === "All") {
-                                            option.Is_Offered = e
-                                        }
-                                        if (e === "Offered") {
-                                            option.Is_Offered = 1
-                                        }
-                                        if (e === "Not Offered") {
-                                            option.Is_Offered = 0
-                                        }
-                                        return setFilter(option)
-                                    }
-                                    option[key] = e
-                                    setFilter(option)
+                                <Select disabled={option[key]?.length === 1} defaultValue={option[key][0]} onValueChange={(value) => {
+                                    const next = nextFilterState(filter, key, value)
+                                    trackFilterApply({
+                                        name: key,
+                                        value,
+                                        resultCount: applyCourseFilters(data, next).length,
+                                    })
+                                    setFilter(next)
                                 }}>
                                     <SelectTrigger>
                                         <SelectValue placeholder={CourseFilterName[key]} />

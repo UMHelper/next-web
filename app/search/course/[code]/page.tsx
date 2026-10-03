@@ -21,7 +21,12 @@ async function CourseSearchResults({ code }: { code: string }) {
     const ads = createAdConfig()
     return(
         <div>
-            <CourseFilter data={courseList} ads={ads} listName="search_course" />
+            <CourseFilter
+                data={courseList}
+                ads={ads}
+                listName="search_course"
+                trackResults={{ term: code, scope: "course" }}
+            />
         </div>
     )
 }
