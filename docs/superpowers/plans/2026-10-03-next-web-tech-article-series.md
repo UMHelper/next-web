@@ -27,6 +27,7 @@
 - **每个数字与结论必须能指到 `file:line` 或 verification 文档**；没有实测支撑的收益标注"未量化"。
 - **计数一律现取**：仓库在被并行修改，测试数/页面数等用命令当场取，不沿用文档里的旧数字。
 - 零新 npm 依赖；渲染不联网。
+- **站点构建验证不在本计划内**：`blog` 仓库当前无 `node_modules`，`npm run build` 需要先 `npm install`（联网，且会改动 `package-lock.json`，而该文件有他人未提交的改动）。本计划用 `blog/scripts/check-post.mjs`（零依赖）做结构与 frontmatter 校验；**发布前由人工执行 `npm run build`**。
 - 非目标（来自 spec §2.2）：不写团队与项目八卦；不重写 `technical-optimization-audit.md`；不修改 blog 现有 3 篇文章与站点结构。
 
 ---
@@ -72,6 +73,7 @@ slug 对照（全系列，本计划只做前三个）：
 - Create: `blog/scripts/xhs-render.mjs`（已存在，待提交）
 - Create: `blog/xhs/next-web-caching/cards.mjs`（已存在，待提交）
 - Create: `blog/public/xhs/next-web-caching/01-cover.png`、`02-compare.png`（已存在，待提交）
+- Create: `blog/scripts/check-post.mjs`（新增，供 Task 2/4/6/8 校验文章）
 
 **Interfaces:**
 - Produces: 渲染器 CLI `node scripts/xhs-render.mjs --slug <slug> [--only N] [--check] [--list]`；`blog/xhs/<slug>/cards.mjs` 的导出约定（`export const cards` 或 `export default`，数组元素含 `kind` 字段）；三种模板名 `cover` / `compare` / `list`。
@@ -129,6 +131,78 @@ ps -eo pid,command | grep "xhs-tmp" | grep -v grep | wc -l
 ```
 
 Expected: `0`。非 0 时按 PID 精确清理（`kill -9 <pid>`），**不要用 `pkill Chrome`**——用户自己的浏览器会一起被杀。
+
+- [ ] **Step 7: 新增零依赖的文章校验脚本**
+
+`blog` 仓库当前没有 `node_modules`，`npm run build` 跑不了，所以用这个脚本顶上（零依赖，纯 Node）：
+
+新建 `blog/scripts/check-post.mjs`：
+
+```js
+#!/usr/bin/env node
+/** 校验 blog 文章的 frontmatter 与结构（零依赖；替代需要 npm install 的构建校验） */
+import { readFileSync } from "node:fs";
+import { basename } from "node:path";
+
+const REQUIRED = ["author", "pubDatetime", "title", "postSlug", "tags", "description"];
+const problems = [];
+
+for (const file of process.argv.slice(2)) {
+  const raw = readFileSync(file, "utf8");
+  const m = raw.match(/^---\n([\s\S]*?)\n---\n/);
+  if (!m) {
+    problems.push(`${file}: 缺少 frontmatter`);
+    continue;
+  }
+  const fm = m[1];
+  for (const key of REQUIRED) {
+    if (!new RegExp(`^${key}:`, "m").test(fm)) problems.push(`${file}: frontmatter 缺 ${key}`);
+  }
+  const slug = fm.match(/^postSlug:\s*(\S+)/m)?.[1];
+  if (slug && !slug.startsWith("next-web-")) {
+    problems.push(`${file}: postSlug 需以 next-web- 开头（当前 ${slug}）`);
+  }
+  if (slug && basename(file, ".md") !== slug) {
+    problems.push(`${file}: 文件名与 postSlug 不一致（${slug}）`);
+  }
+  const datetime = fm.match(/^pubDatetime:\s*(\S+)/m)?.[1];
+  if (datetime && Number.isNaN(Date.parse(datetime))) {
+    problems.push(`${file}: pubDatetime 不是合法时间（${datetime}）`);
+  }
+  const tagBlock = fm.match(/^tags:\n((?:\s+- .*\n)+)/m)?.[1] ?? "";
+  if (!/^\s+- next-web\s*$/m.test(tagBlock)) problems.push(`${file}: tags 缺 next-web`);
+
+  const body = raw.slice(m[0].length);
+  if (!/^## Table of contents\s*$/m.test(body)) problems.push(`${file}: 正文缺 ## Table of contents`);
+  if (!/^## TL;DR\s*$/m.test(body)) problems.push(`${file}: 正文缺 ## TL;DR`);
+  console.log(`${file}: 正文约 ${body.replace(/\s/g, "").length} 字`);
+}
+
+if (problems.length) {
+  for (const p of problems) console.error(`✗ ${p}`);
+  process.exit(1);
+}
+console.log("frontmatter 与结构校验通过");
+```
+
+- [ ] **Step 8: 验证校验脚本本身能挑出问题**
+
+```bash
+cd /Users/box/UMHelper/blog
+printf -- '---\ntitle: x\n---\n\n正文\n' > /tmp/bad-post.md
+node scripts/check-post.mjs /tmp/bad-post.md; echo "exit=$?"
+rm -f /tmp/bad-post.md
+```
+
+Expected: 打印多条 `✗`（缺 author、pubDatetime、postSlug、tags、description，文件名与 postSlug 缺失、正文缺 TOC/TL;DR），`exit=1`。这一步证明校验器不是永远返回成功。
+
+- [ ] **Step 9: 提交**
+
+```bash
+cd /Users/box/UMHelper/blog
+git add scripts/check-post.mjs
+git commit -m "chore(blog): add dependency-free post frontmatter checker"
+```
 
 ---
 
@@ -210,13 +284,13 @@ description: 把整站优化拆成 14 项能单独复用的技术：构建、缓
 
 对照 spec §7：数字可查、适用边界有实质内容、frontmatter 字段齐全、`postSlug` 前缀、`tags` 含 `next-web`、正文含 `## Table of contents`、未量化项已标注。发现不合格项就地改。
 
-- [ ] **Step 5: 用构建验证 frontmatter schema**
+- [ ] **Step 5: 用零依赖校验脚本验证 frontmatter 与结构**
 
 ```bash
-cd /Users/box/UMHelper/blog && npm run build
+cd /Users/box/UMHelper/blog && node scripts/check-post.mjs src/content/blog/next-web-overview.md
 ```
 
-Expected: 构建成功，无 content collection 校验报错。若报 `ogImage` 或必填字段错误，按 `blog/src/content/config.ts` 修正 frontmatter 后重跑。
+Expected: 打印 `frontmatter 与结构校验通过` 与正文字数，退出码 0。报错就按提示改 frontmatter（对照 `blog/src/content/config.ts`）。
 
 - [ ] **Step 6: 提交**
 
@@ -488,7 +562,7 @@ description: metadata、sitemap、robots、结构化数据在一个动态渲染�
 
 1. 文中每个数字都能指到 `docs/technical-optimization-audit.md`、`verification/*.md` 或代码 `file:line`
 2. 第 6 段"适用边界"有实质内容，不是套话
-3. frontmatter 能通过 `blog/src/content/config.ts` 的 schema（`npm run build` 过）
+3. frontmatter 通过 `blog/scripts/check-post.mjs`（对照 `blog/src/content/config.ts` 的字段要求）
 4. `postSlug` 有 `next-web-` 前缀，`tags` 含 `next-web`
 5. 正文含 `## Table of contents`
 6. 小红书正文 ≤900 字、卡片 3 张且均 1080×1440（第 1 批规模）
@@ -496,13 +570,13 @@ description: metadata、sitemap、robots、结构化数据在一个动态渲染�
 
 发现不合格项就地改，改完重跑本步骤。
 
-- [ ] **Step 5: 构建验证**
+- [ ] **Step 5: 零依赖校验**
 
 ```bash
-cd /Users/box/UMHelper/blog && npm run build
+cd /Users/box/UMHelper/blog && node scripts/check-post.mjs src/content/blog/next-web-seo.md
 ```
 
-Expected: 构建成功。
+Expected: `frontmatter 与结构校验通过`，退出码 0。
 
 - [ ] **Step 6: 提交**
 
@@ -712,19 +786,19 @@ Expected: 时长数字（1 小时 / 5 分钟）与失效机制在两边一致；
 
 1. 文中每个数字都能指到 `docs/technical-optimization-audit.md`、`verification/*.md` 或代码 `file:line`
 2. 第 6 段"适用边界"有实质内容，不是套话
-3. frontmatter 能通过 `blog/src/content/config.ts` 的 schema（`npm run build` 过）
+3. frontmatter 通过 `blog/scripts/check-post.mjs`（对照 `blog/src/content/config.ts` 的字段要求）
 4. `postSlug` 有 `next-web-` 前缀，`tags` 含 `next-web`
 5. 正文含 `## Table of contents`
 6. 小红书正文 ≤900 字、卡片 3 张且均 1080×1440（第 1 批规模）
 7. 未量化的收益已显式标注"未量化"
 
-- [ ] **Step 6: 构建验证**
+- [ ] **Step 6: 零依赖校验**
 
 ```bash
-cd /Users/box/UMHelper/blog && npm run build
+cd /Users/box/UMHelper/blog && node scripts/check-post.mjs src/content/blog/next-web-caching.md
 ```
 
-Expected: 构建成功。
+Expected: `frontmatter 与结构校验通过`，退出码 0。
 
 - [ ] **Step 7: 提交**
 
@@ -828,10 +902,10 @@ node scripts/xhs-render.mjs --slug next-web-overview --check
 node scripts/xhs-render.mjs --slug next-web-seo --check
 node scripts/xhs-render.mjs --slug next-web-caching --check
 shasum -a 256 public/xhs/*/*.png
-npm run build
+node scripts/check-post.mjs src/content/blog/next-web-overview.md src/content/blog/next-web-seo.md src/content/blog/next-web-caching.md
 ```
 
-Expected: `--list` 列出 3 个 slug；三份体检全过；构建成功。
+Expected: `--list` 列出 3 个 slug；三份体检全过；三篇文章的 frontmatter 与结构校验全部通过。
 
 - [ ] **Step 2: 记录两仓库的提交哈希**
 
