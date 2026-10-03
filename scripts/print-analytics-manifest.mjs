@@ -94,8 +94,8 @@ export function renderManifest() {
   }
   lines.push("## 7. 验收");
   lines.push("");
-  lines.push("1. GTM 预览里逐条触发四个事件，确认标签被触发、`um_name` 解析成正确的事件名。");
-  lines.push("2. GA4 DebugView 逐参数核对：每个参数都有值，**没有 not set**。");
+  lines.push(`1. GTM 预览里逐条触发全部 ${Object.keys(ANALYTICS_EVENTS).length} 个事件，确认标签被触发、\`um_name\` 解析成正确的事件名。`);
+  lines.push("2. GA4 DebugView 逐参数核对：**该事件在注册表里声明的**参数都要有值，**没有 not set**（未声明为该事件参数的可选参数不出现属正常）。");
   lines.push("3. 首屏 1 条 `page_view`；点课程卡后第 2 条；改筛选下拉**不产生** `page_view`；浏览器后退产生 1 条。");
   lines.push("4. 提交并**发布**容器版本后再回到线上复验一次。");
   lines.push("");

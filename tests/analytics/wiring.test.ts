@@ -24,11 +24,18 @@ function source(file: string): string {
   return readFileSync(file, "utf8");
 }
 
+/**
+ * 扫描的扩展名必须覆盖埋点层实际使用的文件形态：设计引入的注册表就是 `.mjs`，
+ * 只走 `.ts`/`.tsx` 的话，一个 `.mjs`/`.js` 的埋点辅助文件可以直接写
+ * `window.dataLayer` 而守卫仍然全绿。
+ */
+const SOURCE_EXTENSIONS = [".ts", ".tsx", ".js", ".jsx", ".mjs"];
+
 function collectSourceFiles(dir: string): string[] {
   return readdirSync(dir).flatMap((entry) => {
     const fullPath = join(dir, entry);
     if (statSync(fullPath).isDirectory()) return collectSourceFiles(fullPath);
-    return fullPath.endsWith(".ts") || fullPath.endsWith(".tsx") ? [fullPath] : [];
+    return SOURCE_EXTENSIONS.some((extension) => fullPath.endsWith(extension)) ? [fullPath] : [];
   });
 }
 
@@ -80,9 +87,11 @@ describe("analytics wiring", () => {
   });
 
   it("keeps the gtm manifest in sync with the registry", () => {
+    // execFileSync 在子进程退出码非 0 时抛错，因此这一条同时钉住退出码与成功行；
+    // 用 toContain("in sync") 会被 "is not in sync" 这类失败文案误命中。
     const output = execFileSync(process.execPath, ["scripts/print-analytics-manifest.mjs", "--check"], {
       encoding: "utf8",
     });
-    expect(output).toContain("in sync");
+    expect(output.trim()).toBe("[analytics] gtm-setup.md is in sync with the registry");
   });
 });
