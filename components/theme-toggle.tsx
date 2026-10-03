@@ -4,7 +4,6 @@ import { Check, Monitor, Moon, Sun, type LucideIcon } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 
-import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -74,7 +73,11 @@ export function ThemeToggle() {
 
   // resolvedTheme 在挂载前是 undefined：先渲染等尺寸占位，避免图标在服务端与客户端不一致
   if (!mounted) {
-    return <div className="h-9 w-9" aria-hidden />;
+    return (
+      <div className="flex items-center" aria-hidden>
+        <span className="h-5 w-5" />
+      </div>
+    );
   }
 
   const ActiveIcon = theme === "system" ? Monitor : resolvedTheme === "dark" ? Moon : Sun;
@@ -82,9 +85,10 @@ export function ThemeToggle() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="px-2 text-foreground" aria-label="Switch theme">
+        {/* 与相邻的 search 按钮同一样式：无内边距、无 hover 底色、无聚焦描边 */}
+        <button className="flex items-center" aria-label="Switch theme">
           <ActiveIcon size={20} strokeWidth={2} />
-        </Button>
+        </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         {THEME_OPTIONS.map(({ value, label, Icon }) => (

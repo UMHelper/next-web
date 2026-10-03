@@ -94,7 +94,7 @@ describe("ThemeToggle", () => {
 
     const html = renderToStaticMarkup(React.createElement(ThemeToggle));
 
-    expect(html).toContain("h-9 w-9");
+    expect(html).toContain("h-5 w-5");
     expect(html).not.toContain("lucide-sun");
     expect(html).not.toContain("lucide-moon");
     expect(html).not.toContain("lucide-monitor");
