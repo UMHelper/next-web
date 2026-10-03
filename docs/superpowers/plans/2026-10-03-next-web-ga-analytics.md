@@ -508,7 +508,7 @@ Expected: FAIL — `Failed to resolve import "@/lib/analytics/data-layer"`.
 `lib/analytics/data-layer.ts`：
 
 ```ts
-import { ANALYTICS_EVENTS } from "./registry";
+import { ANALYTICS_EVENTS, type EventSpec } from "./registry";
 
 declare global {
   interface Window {
@@ -564,7 +564,11 @@ export type AnalyticsParamValue = string | number | boolean | null | undefined;
 export function emit(name: string, params: Record<string, AnalyticsParamValue> = {}): void {
   if (typeof window === "undefined") return;
 
-  const spec = ANALYTICS_EVENTS[name];
+  // `emit` 必须接受任意字符串：未知事件名要在运行时被拒绝并给出可读错误，因此
+  // 这里对注册表做一次局部收窄断言（注册表的公开类型是窄的 Record<EventName,
+  // EventSpec>，直接用 string 下标会触发 TS7053）。真正的守卫是紧随其后的运行时
+  // 校验与单测，不是这个断言。
+  const spec = (ANALYTICS_EVENTS as Record<string, EventSpec | undefined>)[name];
   if (!spec) {
     drop(`unknown event "${name}" — 先在 lib/analytics/registry-data.mjs 里登记它`, `event:${name}`);
     return;
