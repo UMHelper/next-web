@@ -61,4 +61,16 @@ describe("TrackSearchResults", () => {
     rerender(<TrackSearchResults term="ACCT1000" scope="course" resultCount={2} />);
     expect(pushed()).toHaveLength(1);
   });
+
+  it("reports once more when it is unmounted and mounted again", () => {
+    const first = render(<TrackSearchResults term="ACCT1000" scope="course" resultCount={7} />);
+    expect(pushed()).toHaveLength(1);
+
+    first.unmount();
+
+    // 重新挂载是一次"新挂载"：去重只针对同一个组件实例，不能跨挂载共享
+    render(<TrackSearchResults term="ACCT1000" scope="course" resultCount={7} />);
+    expect(pushed()).toHaveLength(2);
+    expect(pushed()[1]).toEqual(pushed()[0]);
+  });
 });

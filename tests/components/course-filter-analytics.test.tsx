@@ -148,6 +148,31 @@ describe("CourseFilter analytics", () => {
     ]);
   });
 
+  it("reports the search results only once under StrictMode", () => {
+    render(
+      <React.StrictMode>
+        <CourseFilter
+          data={[CIS_COURSE, ACC_COURSE]}
+          ads={null}
+          listName="search_course"
+          trackResults={{ term: "CIS", scope: "course" }}
+        />
+      </React.StrictMode>,
+    );
+
+    // StrictMode 会双执行 effect，但 view_search_results 只应上报一次
+    expect(pushed()).toEqual([
+      {
+        event: "um_event",
+        um_name: "view_search_results",
+        search_term: "CIS",
+        search_scope: "course",
+        result_count: 2,
+        has_results: 1,
+      },
+    ]);
+  });
+
   it("reports zero results for an empty result set", () => {
     render(
       <CourseFilter data={[]} ads={null} listName="search_course" trackResults={{ term: "NOPE", scope: "course" }} />,
