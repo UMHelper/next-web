@@ -7,7 +7,7 @@ import { shouldShowOfferedBadge } from "@/lib/config/offered-badge";
 
 function OfferedBadge({ children }: { children: React.ReactNode }) {
   return (
-    <span className="text-xs font-semibold rounded-3xl bg-gradient-to-r from-green-600 to-green-600 h-fit py-0.5 px-2 shadow font-normal">
+    <span className="text-success-foreground text-xs font-semibold rounded-3xl bg-gradient-to-r from-success to-success h-fit py-0.5 px-2 shadow font-normal">
       {children}
     </span>
   );

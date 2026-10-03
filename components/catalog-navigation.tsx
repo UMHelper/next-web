@@ -15,8 +15,8 @@ const CatalogNavigation = () => {
             {
                 faculty.map((fac, index) => {
                     if (faculty_dept[fac].length === 0) {
-                        return (<div key={index} className={(fac === currentFaculty ? "text-blue-700 bg-gray-200" :
-                            "text-gray-900 hover:bg-gray-100 hover:text-blue-500") + " py-2 px-3 me-3 my-1 rounded hover:cursor-pointer"}
+                        return (<div key={index} className={(fac === currentFaculty ? "text-brand-strong bg-surface-strong" :
+                            "text-foreground hover:bg-muted hover:text-brand") + " py-2 px-3 me-3 my-1 rounded hover:cursor-pointer"}
                             onClick={() => {
                                 router.push(`/catalog/${fac}`)
                             }}
@@ -25,8 +25,8 @@ const CatalogNavigation = () => {
                         </div>)
                     }
                     if (faculty_dept[fac].length === 1) {
-                        return (<div key={index} className={(fac === currentFaculty ? "text-blue-700 bg-gray-200" :
-                            "text-gray-900 hover:bg-gray-100 hover:text-blue-500") + " py-2 px-3 me-3 my-1 rounded hover:cursor-pointer"}
+                        return (<div key={index} className={(fac === currentFaculty ? "text-brand-strong bg-surface-strong" :
+                            "text-foreground hover:bg-muted hover:text-brand") + " py-2 px-3 me-3 my-1 rounded hover:cursor-pointer"}
                             onClick={() => {
                                 router.push(`/catalog/${fac}/${faculty_dept[fac][0]}`)
                             }}
@@ -53,8 +53,8 @@ const CatalogNavigation = () => {
 
                             // }}
                             >
-                                <div key={index} className={(fac === currentFaculty ? "text-blue-700 bg-gray-200" :
-                                    "text-gray-900 hover:bg-gray-100 hover:text-blue-500") + " py-2 px-3 me-3 my-1 rounded flex flex-row items-center"} >
+                                <div key={index} className={(fac === currentFaculty ? "text-brand-strong bg-surface-strong" :
+                                    "text-foreground hover:bg-muted hover:text-brand") + " py-2 px-3 me-3 my-1 rounded flex flex-row items-center"} >
                                     <div>
                                         {getFacultyLabel(fac)}
                                     </div>
@@ -78,8 +78,8 @@ const CatalogNavigation = () => {
                                 {
                                     faculty_dept[fac].map((dept: any, index: number) => {
                                         return (
-                                            <DropdownMenuItem key={index} className={(dept === currentDept ? "text-blue-700 bg-gray-200" :
-                                                "text-gray-900 hover:bg-gray-100 hover:text-blue-500") + " py-2 px-3 my-1 rounded hover:cursor-pointer"}
+                                            <DropdownMenuItem key={index} className={(dept === currentDept ? "text-brand-strong bg-surface-strong" :
+                                                "text-foreground hover:bg-muted hover:text-brand") + " py-2 px-3 my-1 rounded hover:cursor-pointer"}
                                                 onClick={() => {
                                                     router.push(`/catalog/${fac}/${dept}`.replaceAll(" ",""))
                                                 }}

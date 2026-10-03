@@ -14,7 +14,7 @@ function RedactedPill() {
       <TooltipTrigger asChild>
         <span
           title="Redacted by UMHelper"
-          className="mx-0.5 inline-flex items-center gap-1 whitespace-nowrap rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 align-middle text-[10px] font-medium leading-none text-amber-800"
+          className="mx-0.5 inline-flex items-center gap-1 whitespace-nowrap rounded-full border border-warning/30 bg-warning/10 px-2 py-0.5 align-middle text-[10px] font-medium leading-none text-warning"
         >
           <ShieldAlert size={11} strokeWidth={2.5} />
           REDACTED

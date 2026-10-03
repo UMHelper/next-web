@@ -44,7 +44,7 @@ export function FacultyStatistics({ statistics }: FacultyStatisticsProps) {
         return (
           <Card
             key={row.id}
-            className="flex flex-col items-center p-4 text-center dark:bg-gray-800"
+            className="flex flex-col items-center p-4 text-center"
           >
             <Icon size={56} strokeWidth={1.25} className="pb-3" />
             <Link

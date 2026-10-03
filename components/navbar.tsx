@@ -4,11 +4,12 @@ import NavbarAvatar from '@/components/navbar-avatar';
 import AdminEntry from "@/components/admin-entry";
 import { UserButton } from "@clerk/nextjs";
 import SearchButton from "@/components/search-button";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 
 const Navbar = () => {
     return (
-        <div className="sticky top-0 left-0 right-0 z-50 bg-white border-b border-gray-200">
+        <div className="sticky top-0 left-0 right-0 z-50 bg-background border-b border-border">
             <div className="max-w-screen-xl mx-auto p-4">
                 <div className="flex flex-row justify-between">
                     <div className="flex flex-row">
@@ -17,6 +18,7 @@ const Navbar = () => {
                     </div>
                     <div className=" space-x-2 flex flex-row justify-end items-center">
                         <div className="flex flex-row space-x-3 items-center">
+                            <ThemeToggle />
                             <SearchButton />
                             <AdminEntry />
                             <NavbarAvatar />

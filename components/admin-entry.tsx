@@ -37,7 +37,7 @@ export default function AdminEntry({ className }: { className?: string }) {
       href="/admin"
       aria-label="Admin console"
       title="Admin console"
-      className={`inline-flex items-center justify-center rounded p-1.5 text-gray-900 hover:bg-gray-100 hover:text-blue-500 ${className ?? ""}`}
+      className={`inline-flex items-center justify-center rounded p-1.5 text-foreground hover:bg-muted hover:text-brand ${className ?? ""}`}
     >
       <ShieldCheck size={18} />
     </Link>

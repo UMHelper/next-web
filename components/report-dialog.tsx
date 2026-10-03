@@ -76,7 +76,7 @@ export function ReportDialog({ targetId, className }: { targetId: number; classN
         <button
           type="button"
           aria-label="Report comment"
-          className={className ?? "inline-flex items-center text-gray-400 hover:text-red-500"}
+          className={className ?? "inline-flex items-center text-foreground-subtle hover:text-destructive-strong"}
         >
           <Flag size={14} strokeWidth={2} />
         </button>

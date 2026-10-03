@@ -28,13 +28,13 @@ export default function PlanHeader({
   }, [activePlan.clientRef, activePlan.name]);
 
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 md:flex-row md:items-center md:justify-between">
+    <div className="flex flex-col gap-3 rounded-xl border border-border bg-background p-4 md:flex-row md:items-center md:justify-between">
       <div className="flex flex-col gap-2 md:flex-row md:items-center">
         <select
           aria-label="Select timetable plan"
           value={activePlan.clientRef}
           onChange={(event) => onSelect(event.target.value)}
-          className="rounded-md border border-slate-200 px-2 py-1 text-sm"
+          className="rounded-md border border-border px-2 py-1 text-sm"
         >
           {plans.map((plan) => (
             <option key={plan.clientRef} value={plan.clientRef}>
@@ -52,9 +52,9 @@ export default function PlanHeader({
               event.currentTarget.blur();
             }
           }}
-          className="rounded-md border border-slate-200 px-2 py-1 text-sm font-semibold"
+          className="rounded-md border border-border px-2 py-1 text-sm font-semibold"
         />
-        <span className="text-xs text-slate-500">
+        <span className="text-xs text-muted-foreground">
           {activePlan.year} Sem {activePlan.sem}
         </span>
       </div>
@@ -64,7 +64,7 @@ export default function PlanHeader({
         <button
           type="button"
           onClick={onCreate}
-          className="inline-flex items-center gap-1 rounded-md bg-blue-600 px-3 py-1.5 text-sm font-semibold text-white"
+          className="inline-flex items-center gap-1 rounded-md bg-brand px-3 py-1.5 text-sm font-semibold text-brand-foreground"
         >
           <Plus size={14} /> New plan
         </button>
@@ -76,7 +76,7 @@ export default function PlanHeader({
               onDelete(activePlan.clientRef);
             }
           }}
-          className="rounded-md border border-red-200 p-2 text-red-600"
+          className="rounded-md border border-destructive/30 p-2 text-destructive-strong"
         >
           <Trash2 size={14} />
         </button>

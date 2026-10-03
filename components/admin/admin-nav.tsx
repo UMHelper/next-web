@@ -31,8 +31,8 @@ export default function AdminNav({ isPlatformAdmin }: { isPlatformAdmin: boolean
             aria-current={active ? "page" : undefined}
             className={`shrink-0 ${
               active
-                ? "rounded bg-blue-50 px-3 py-2 font-medium text-blue-700"
-                : "rounded px-3 py-2 text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                ? "rounded bg-brand/10 px-3 py-2 font-medium text-brand-strong"
+                : "rounded px-3 py-2 text-muted-foreground hover:bg-muted hover:text-foreground"
             }`}
           >
             {item.label}

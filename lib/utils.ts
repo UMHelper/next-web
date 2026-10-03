@@ -5,18 +5,22 @@ export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs))
 }
 
+// 分数/等级的渐变色（用在 bg-clip-text 的数字上）。类名必须走语义 token：
+// 原来的硬编码色阶（rose-900/fuchsia-800 等）在深色底上只有 2.09:1 / 2.43:1，
+// 也就是"低绩点在深色下几乎看不见"。浅色值由 token 保持与原色阶一致，
+// 深色值在 app/globals.css 的 .dark 块里定义。
 export const get_bg = (n: number) => {
-    let result_bg = "bg-gradient-to-r from-gray-400 to-gray-500"
+    let result_bg = "bg-gradient-to-r from-grade-none-from to-grade-none-to"
     if (n > 0) {
-        result_bg = 'bg-gradient-to-r from-rose-900 to-fuchsia-800'
+        result_bg = 'bg-gradient-to-r from-grade-low-from to-grade-low-to'
         // 1 - 2.3
     }
     if (n >= 2.3) {
-        result_bg = 'bg-gradient-to-r from-amber-500 to-orange-500'
+        result_bg = 'bg-gradient-to-r from-grade-mid-from to-grade-mid-to'
         // 2.3 - 3.6
     }
     if (n >= 3.6) {
-        result_bg = 'bg-gradient-to-r from-green-400 to-emerald-500'
+        result_bg = 'bg-gradient-to-r from-grade-high-from to-grade-high-to'
         // 3.6 - 5.0
     }
     return result_bg

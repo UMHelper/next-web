@@ -21,13 +21,13 @@ const clock = () => new Date().toLocaleTimeString("zh-CN", { hour12: false });
 function taskBadge(state: TaskState | undefined) {
   switch (state) {
     case "running":
-      return { label: "运行中", className: "bg-blue-100 text-blue-700" };
+      return { label: "运行中", className: "bg-brand/10 text-brand-strong" };
     case "done":
-      return { label: "完成", className: "bg-green-100 text-green-700" };
+      return { label: "完成", className: "bg-success/20 text-success" };
     case "error":
-      return { label: "失败", className: "bg-red-100 text-red-700" };
+      return { label: "失败", className: "bg-destructive/10 text-destructive-strong" };
     default:
-      return { label: "待执行", className: "bg-gray-100 text-gray-500" };
+      return { label: "待执行", className: "bg-muted text-muted-foreground" };
   }
 }
 
@@ -208,7 +208,7 @@ export default function UpdateClient() {
               onChange={(event) => setTargetSem(Number(event.target.value))}
             />
           </label>
-          <span className={rows.length === 0 ? "font-medium text-amber-600" : "font-medium text-green-700"}>
+          <span className={rows.length === 0 ? "font-medium text-warning" : "font-medium text-success"}>
             {rows.length === 0 ? "尚未解析（请先选择 Excel 文件）" : `已解析 ${rows.length} 行 ✓`}
           </span>
         </div>
@@ -232,8 +232,8 @@ export default function UpdateClient() {
                     )
                   }
                 />
-                <code className="text-xs text-gray-700">{task.id}</code>
-                <span className="text-xs text-gray-500">{task.label}</span>
+                <code className="text-xs text-foreground">{task.id}</code>
+                <span className="text-xs text-muted-foreground">{task.label}</span>
                 {state ? (
                   <span className={`ml-auto rounded px-2 py-0.5 text-xs font-medium ${badge.className}`}>
                     {badge.label}
@@ -246,7 +246,7 @@ export default function UpdateClient() {
 
         <div className="mt-4 flex flex-wrap items-center gap-2">
           <button
-            className="rounded bg-blue-600 px-3 py-1 text-white disabled:opacity-50"
+            className="rounded bg-brand px-3 py-1 text-brand-foreground disabled:opacity-50"
             disabled={running || rows.length === 0}
             onClick={() => void run()}
           >
@@ -260,29 +260,29 @@ export default function UpdateClient() {
             取消
           </button>
           {running ? (
-            <span className="text-xs font-medium text-blue-600">运行中…（进度见下方 Step 3）</span>
+            <span className="text-xs font-medium text-brand">运行中…（进度见下方 Step 3）</span>
           ) : error ? (
-            <span className="text-xs font-medium text-red-600">执行失败</span>
+            <span className="text-xs font-medium text-destructive-strong">执行失败</span>
           ) : finished ? (
-            <span className="text-xs font-medium text-green-700">已完成 ✓</span>
+            <span className="text-xs font-medium text-success">已完成 ✓</span>
           ) : rows.length === 0 ? (
-            <span className="text-xs text-gray-500">等待上传 Excel</span>
+            <span className="text-xs text-muted-foreground">等待上传 Excel</span>
           ) : (
-            <span className="text-xs text-gray-500">就绪，共 {rows.length} 行</span>
+            <span className="text-xs text-muted-foreground">就绪，共 {rows.length} 行</span>
           )}
         </div>
 
         {error ? (
-          <div className="mt-3 rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
+          <div className="mt-3 rounded border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive-strong">{error}</div>
         ) : null}
       </div>
 
       <div className="rounded-lg border p-4" ref={logRef}>
         <div className="mb-2 font-semibold">Step 3 · 进度</div>
-        <div className="mb-1 h-2 w-full overflow-hidden rounded bg-gray-200">
-          <div className="h-2 rounded bg-blue-600 transition-all" style={{ width: `${overallPercent}%` }} />
+        <div className="mb-1 h-2 w-full overflow-hidden rounded bg-surface-strong">
+          <div className="h-2 rounded bg-brand transition-all" style={{ width: `${overallPercent}%` }} />
         </div>
-        <div className="mb-3 text-xs text-gray-500">
+        <div className="mb-3 text-xs text-muted-foreground">
           {overallPercent}% · 已完成 {completedCount}/{runnableTasks.length} 个任务
           {total > 0 ? ` · 当前任务 ${done}/${total}` : ""}
         </div>

@@ -6,8 +6,13 @@ import { Toaster as Sonner } from "sonner"
 type ToasterProps = React.ComponentProps<typeof Sonner>
 
 const Toaster = ({ ...props }: ToasterProps) => {
+  // 不接 theme 的话 <Sonner> 会一直用默认的 theme="light"，
+  // richColors 的 success/error/warning/info 配色在深色下就仍是浅色的那一套。
+  const { resolvedTheme } = useTheme()
+
   return (
     <Sonner
+      theme={resolvedTheme as ToasterProps["theme"]}
       className="toaster group"
       toastOptions={{
         classNames: {

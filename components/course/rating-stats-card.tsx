@@ -40,7 +40,7 @@ export function RatingStatsCard({ stats, labels }: RatingStatsCardProps) {
   return (
     <>
       <div className="text-sm font-semibold">
-        <div className="text-gray-400 text-xs">{finalLabels.overall}</div>
+        <div className="text-foreground-subtle text-xs">{finalLabels.overall}</div>
         <div className={cn(get_bg(result), "bg-clip-text text-transparent")}>
           {get_gpa(result)}
         </div>
@@ -48,26 +48,26 @@ export function RatingStatsCard({ stats, labels }: RatingStatsCardProps) {
       <Separator className="my-1" />
       <div className="flex flex-row text-xs font-semibold space-x-2">
         <div>
-          <div className="text-gray-400">{finalLabels.grade}</div>
+          <div className="text-foreground-subtle">{finalLabels.grade}</div>
           <div className={cn(get_bg(grade), "bg-clip-text text-transparent")}>
             {get_gpa(grade)}
           </div>
         </div>
         <div>
-          <div className="text-gray-400">{finalLabels.hard}</div>
+          <div className="text-foreground-subtle">{finalLabels.hard}</div>
           <div className={cn(get_bg(hard), "bg-clip-text text-transparent")}>
             {get_gpa(hard)}
           </div>
         </div>
         <div>
-          <div className="text-gray-400">{finalLabels.reward}</div>
+          <div className="text-foreground-subtle">{finalLabels.reward}</div>
           <div className={cn(get_bg(reward), "bg-clip-text text-transparent")}>
             {get_gpa(reward)}
           </div>
         </div>
         <div>
-          <div className="text-gray-400">{finalLabels.comments}</div>
-          <div className="text-black">{stats.comments}</div>
+          <div className="text-foreground-subtle">{finalLabels.comments}</div>
+          <div className="text-foreground">{stats.comments}</div>
         </div>
       </div>
     </>

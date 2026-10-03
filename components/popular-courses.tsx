@@ -23,7 +23,7 @@ export function PopularCourses({ courses }: PopularCoursesProps) {
       {courses.map((course, index) => (
         <li key={course.courseCode}>
           <Link href={`/course/${course.courseCode}`} className="block">
-            <Card className="flex items-center gap-4 p-4 transition-shadow hover:shadow-md dark:bg-gray-800">
+            <Card className="flex items-center gap-4 p-4 transition-shadow hover:shadow-md">
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
                 {index + 1}
               </span>

@@ -24,7 +24,7 @@ const CatalogPage = async () => {
           <Link
             key={fac}
             href={href}
-            className="rounded-lg border border-gray-200 bg-white p-5 transition-shadow hover:shadow-md dark:border-gray-700 dark:bg-gray-900"
+            className="rounded-lg border border-border bg-card p-5 transition-shadow hover:shadow-md"
           >
             <div className="text-lg font-semibold">{getFacultyLabel(fac)}</div>
             <div className="mt-1 text-sm text-muted-foreground">
