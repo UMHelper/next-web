@@ -346,11 +346,11 @@ Expected（通过时）: 计数 > 0
 
 - [ ] **Step 6: 处理 v4 默认值变化（U8/U9/U10）**
 
-v4 把 `border`/`divide` 的默认色改为 `currentColor`。`base.css` 的 `.prose` 块里 `prose-th:border` / `prose-td:border` 依赖旧默认值，必须显式补色：
+v4 把 `border`/`divide` 的默认色改为 `currentColor`。`base.css` 的 `.prose` 块里 `prose-th:border` / `prose-td:border` 依赖旧默认值，必须显式补色 —— **一律用 `border-skin-line`**：
 ```css
-prose-th:border-border prose-td:border-border
+prose-th:border-skin-line prose-td:border-skin-line
 ```
-（`border-border` 是否可用取决于 Task 3 Step 4/5 走哪条路径；走 `@config` 时该配置里尚无 `border` 键，此时直接用 `prose-th:border-skin-line` —— 与相邻的 `prose-td:border-skin-line` 保持一致，是本仓库既有的语义类名。）
+为什么是 `border-skin-line` 而不是 `border-border`：`prose-td` 本来就写 `border-skin-line`，而该键在 Task 3 的两条路径下**都存在**（Step 4 的 `@config` 路径下来自 `tailwind.config.cjs` 的 `borderColor.skin.line`；Step 5 的备选路径下来自 `@theme inline` 的 `--color-skin-line`）。它是唯一在两条路径下都成立的写法，因此这个分支被消除。
 
 同时检查 `focus:outline-none`（`Search.tsx:88`）：v4 中 `outline-none` 语义变为「真的设为 none」，而若要「视觉隐藏但保留无障碍」应用 `outline-hidden`。Phase 0 只要求**行为不变**，因此按 v3 语义替换为 `outline-hidden`。
 
@@ -468,11 +468,16 @@ describe("Tailwind 4 removed utilities", () => {
 });
 ```
 
-- [ ] **Step 3: 跑测试确认它失败**
+- [ ] **Step 3: 证明这条守卫真的会红（必做，不是可选）**
 
-Run: `npx vitest run tests/deprecated-utilities.test.ts`
-Expected: FAIL，列出 `styles/base.css` 与 `components/Search.tsx` 里的 5 处命中。
-（若此时 Task 3 Step 7 已清理完毕，此测试会直接通过 —— 那就把本步改为「先临时把一处类名加回去验证它会红」，确保测试不是摆设。）
+本任务排在 Task 3 之后，而 Task 3 Step 7 已经删掉了那 5 处失效类名，所以 T9 一写出来就是绿的 —— 直接用 `npx vitest run` 看到 PASS **不能**证明它有效。因此必须人为制造一次红：
+
+1. 临时把 `bg-opacity-70` 加回 `src/styles/base.css` 的 `body` 规则里；
+2. Run: `npx vitest run tests/deprecated-utilities.test.ts`
+   Expected: **FAIL**，并指出 `styles/base.css: bg-opacity-`；
+3. 把该临时改动撤销，再跑一次拿到 PASS。
+
+理由：一个从不失败的守卫等于没有守卫 —— spec §12.2 对 T9 的要求是「让这类问题机器可查」，而「永远通过的测试」正是本轮明确要避免的反模式。留下这次人为变红的记录（把命令与输出粘进 report）。
 
 - [ ] **Step 4: 写 ogImage 校验测试（把丢掉的能力补回测试期）**
 
@@ -487,23 +492,56 @@ const BLOG = path.resolve(__dirname, "../src/content/blog");
 /**
  * Phase 0 移除了 schema 里的 image().refine()（Content Layer 不支持），
  * 因此「ogImage 至少 1200x630」这条约束改在这里把关。
+ *
+ * 当前没有任何文章设置 ogImage，所以对真实文件的断言是空的 —— 因此把
+ * 匹配逻辑抽成纯函数并**用 fixture 单独证明它有效**，避免这条测试退化成
+ * 「永不失败的摆设」。
  */
+export function findLocalOgImages(text: string): string[] {
+  const out: string[] = [];
+  const re = /^ogImage:\s*["']?([^"'\s]+)["']?\s*$/gm;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text))) {
+    const value = m[1];
+    if (!/^https?:\/\//.test(value)) out.push(value);
+  }
+  return out;
+}
+
+describe("findLocalOgImages 的匹配逻辑（自证有效）", () => {
+  it("能命中本地相对路径", () => {
+    expect(findLocalOgImages("ogImage: ./assets/cover.png")).toEqual(["./assets/cover.png"]);
+  });
+  it("能命中带引号的本地路径", () => {
+    expect(findLocalOgImages('ogImage: "/uploads/cover.png"')).toEqual(["/uploads/cover.png"]);
+  });
+  it("不把远程 URL 当成 offender", () => {
+    expect(findLocalOgImages("ogImage: https://example.com/a.png")).toEqual([]);
+  });
+  it("没有该字段时返回空", () => {
+    expect(findLocalOgImages("title: hello\ndraft: false")).toEqual([]);
+  });
+});
+
 describe("ogImage frontmatter", () => {
-  it("任何显式声明的 ogImage 都不能是本地小图（<1200x630）", async () => {
+  it("扫描范围非空，且没有任何文章引用本地 ogImage", async () => {
     const files = (await readdir(BLOG)).filter(f => f.endsWith(".md"));
+    // 断言真的扫到了文件，否则下面的 offenders 为空毫无意义
+    expect(files.length).toBeGreaterThan(0);
+
     const offenders: string[] = [];
     for (const f of files) {
       const text = await readFile(path.join(BLOG, f), "utf8");
-      const m = /^ogImage:\s*(\S+)\s*$/m.exec(text);
-      if (m && !/^https?:/.test(m[1])) {
-        offenders.push(`${f}: ${m[1]}（本地图需人工确认 >= 1200x630）`);
+      for (const local of findLocalOgImages(text)) {
+        offenders.push(`${f}: ${local}（本地图需人工确认 >= 1200x630）`);
       }
     }
     expect(offenders).toEqual([]);
   });
 });
 ```
-说明：Astro 3 的 `image()` 能读图片尺寸，纯 JS 测试读不了 PNG/JPG 尺寸（除非引依赖）。因此这条测试的口径是「**本地图片路径必须显式登记并人工确认尺寸**」，而不是假装能自动量尺寸 —— 并且当前**没有任何文章设置 `ogImage`**，所以它现在是空的、但会在第一次有人用本地图时起作用。
+
+说明：Astro 3 的 `image()` 能读图片尺寸，纯 JS 测试读不了 PNG/JPG 尺寸（不引依赖的前提下）。因此这条测试的口径是「**本地图片路径必须显式登记并人工确认尺寸**」，而不是假装能自动量尺寸。它的价值在于：第一次有人给文章加本地 `ogImage` 时，构建期已不再拦截，这里会提醒。
 
 - [ ] **Step 5: 跑测试确认全绿**
 
