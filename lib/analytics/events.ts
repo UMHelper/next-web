@@ -18,7 +18,9 @@ export function trackSearch(input: {
   entryPoint: SearchEntryPoint;
 }): void {
   emit("search", {
-    search_term: input.term,
+    // 统一大写：`view_search_results` 的 search_term 来自 URL（buildSearchPath 已规范成大写），
+    // 这里如果原样上报用户输入（comp1001），GA4 会把大小写当成两个取值，提交→结果就对不上了。
+    search_term: input.term.toUpperCase(),
     search_scope: input.scope,
     entry_point: input.entryPoint,
   });

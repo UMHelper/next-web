@@ -6,7 +6,7 @@
  * 由注册表生成，而不是人手维护。`--check` 供 tests/analytics/wiring.test.ts 做
  * 防漂移断言（退出码 1 = 文档与注册表不一致）。
  */
-import { readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -16,6 +16,14 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const TARGET = join(ROOT, "docs/analytics/gtm-setup.md");
 const MEASUREMENT_ID = "G-V1KZT6Q50E";
 const CONTAINER_ID = "GTM-KGF3BFS";
+
+/**
+ * GA4 内置维度：这些参数名是推荐事件（`search` / `view_search_results` / `select_item`）
+ * 已经自带的，GA4 后台会直接把它们当维度用，再注册成自定义维度只会浪费配额
+ * （每个 GA4 属性的事件级自定义维度有上限）。清单里必须标出来，
+ * 否则照抄的人会多注册 4 个无用的自定义维度。
+ */
+const GA4_BUILTIN_DIMENSIONS = ["search_term", "item_id", "item_list_name", "position"];
 
 function variables() {
   const names = new Set(["um_name"]);
@@ -51,7 +59,9 @@ export function renderManifest() {
   lines.push("| 名称 | 类型 | 条件 |");
   lines.push("|---|---|---|");
   lines.push("| `Trigger - um_event` | 自定义事件 | 事件名称 **精确等于** `um_event` |");
-  lines.push("| `Trigger - History Change` | 历史记录更改 | 附加上游过滤：`History Source` 等于 `pushState`（避免筛选改 query 产生噪声 page_view） |");
+  lines.push(
+    "| `Trigger - History Change` | 历史记录更改 | 附加上游过滤：`History Source` **不等于** `replaceState`（只放行 `pushState` 与 `popstate`：App Router 的浏览器后退/前进上报的是 `popstate`，若写成「等于 `pushState`」这些 `page_view` 会被静默丢掉；筛选改 query 走 `replaceState`，正是要滤掉的噪声） |",
+  );
   lines.push("");
   lines.push("## 3. GTM 标签");
   lines.push("");
@@ -62,19 +72,20 @@ export function renderManifest() {
   lines.push("");
   lines.push("## 4. GA4 事件标签的参数行（逐行照抄）");
   lines.push("");
-  lines.push("| 参数名 | 值 |");
-  lines.push("|---|---|");
+  lines.push("| 参数名 | 值 | 备注 |");
+  lines.push("|---|---|---|");
   const paramNames = [...new Set(
     Object.values(ANALYTICS_EVENTS).flatMap((spec) => Object.keys(spec.params)),
   )].sort();
   for (const paramName of paramNames) {
-    lines.push(`| \`${paramName}\` | \`{{DL - ${paramName}}}\` |`);
+    const note = GA4_BUILTIN_DIMENSIONS.includes(paramName) ? "GA4 内置维度，无需注册" : "";
+    lines.push(`| \`${paramName}\` | \`{{DL - ${paramName}}}\` | ${note} |`);
   }
   lines.push("");
   lines.push("## 5. GA4 后台");
   lines.push("");
   lines.push("1. 关闭 `管理 → 数据收集和修改 → 数据流 → 增强衡量 → 网页浏览 → 基于浏览器历史事件的页面变化`（否则与 §3 的 Google Tag 双计 page_view）。");
-  lines.push("2. `管理 → 自定义定义 → 自定义维度`：把上表每个参数注册为**事件级**自定义维度（不注册则只能在 DebugView 看到）。");
+  lines.push(`2. \`管理 → 自定义定义 → 自定义维度\`：把 §4 表里**没有标「GA4 内置维度，无需注册」**的参数注册为**事件级**自定义维度（不注册则只能在 DebugView 看到；内置维度重复注册只会白占配额）。`);
   lines.push("3. 可选：把关键事件标记为转化。");
   lines.push("");
   lines.push("## 6. 事件字典（代码里的注册表）");
@@ -111,8 +122,15 @@ function main() {
     let current = "";
     try {
       current = readFileSync(TARGET, "utf8");
-    } catch {
-      console.error(`[analytics] ${TARGET} 不存在，请先运行 node scripts/print-analytics-manifest.mjs`);
+    } catch (error) {
+      // 分开报「文件不存在」和「读不动」：前者照提示重跑即可，后者（权限、EISDIR…）
+      // 再跑多少次生成命令也没用，必须把真实原因打出来。
+      const code = error?.code;
+      if (code === "ENOENT") {
+        console.error(`[analytics] ${TARGET} 文件不存在，请先运行 node scripts/print-analytics-manifest.mjs`);
+      } else {
+        console.error(`[analytics] 无法读取 ${TARGET}（${code ?? error?.message ?? error}），请检查文件权限/路径。`);
+      }
       process.exit(1);
     }
     if (current !== rendered) {
@@ -123,6 +141,8 @@ function main() {
     return;
   }
 
+  // docs/analytics/ 有可能被清理掉，写之前先补目录，否则生成命令会直接 ENOENT。
+  mkdirSync(dirname(TARGET), { recursive: true });
   writeFileSync(TARGET, rendered);
   console.log(`[analytics] wrote ${TARGET}`);
 }

@@ -27,7 +27,7 @@
 | 名称 | 类型 | 条件 |
 |---|---|---|
 | `Trigger - um_event` | 自定义事件 | 事件名称 **精确等于** `um_event` |
-| `Trigger - History Change` | 历史记录更改 | 附加上游过滤：`History Source` 等于 `pushState`（避免筛选改 query 产生噪声 page_view） |
+| `Trigger - History Change` | 历史记录更改 | 附加上游过滤：`History Source` **不等于** `replaceState`（只放行 `pushState` 与 `popstate`：App Router 的浏览器后退/前进上报的是 `popstate`，若写成「等于 `pushState`」这些 `page_view` 会被静默丢掉；筛选改 query 走 `replaceState`，正是要滤掉的噪声） |
 
 ## 3. GTM 标签
 
@@ -38,24 +38,24 @@
 
 ## 4. GA4 事件标签的参数行（逐行照抄）
 
-| 参数名 | 值 |
-|---|---|
-| `entry_point` | `{{DL - entry_point}}` |
-| `faculty` | `{{DL - faculty}}` |
-| `filter_name` | `{{DL - filter_name}}` |
-| `filter_value` | `{{DL - filter_value}}` |
-| `has_results` | `{{DL - has_results}}` |
-| `item_id` | `{{DL - item_id}}` |
-| `item_list_name` | `{{DL - item_list_name}}` |
-| `position` | `{{DL - position}}` |
-| `result_count` | `{{DL - result_count}}` |
-| `search_scope` | `{{DL - search_scope}}` |
-| `search_term` | `{{DL - search_term}}` |
+| 参数名 | 值 | 备注 |
+|---|---|---|
+| `entry_point` | `{{DL - entry_point}}` |  |
+| `faculty` | `{{DL - faculty}}` |  |
+| `filter_name` | `{{DL - filter_name}}` |  |
+| `filter_value` | `{{DL - filter_value}}` |  |
+| `has_results` | `{{DL - has_results}}` |  |
+| `item_id` | `{{DL - item_id}}` | GA4 内置维度，无需注册 |
+| `item_list_name` | `{{DL - item_list_name}}` | GA4 内置维度，无需注册 |
+| `position` | `{{DL - position}}` | GA4 内置维度，无需注册 |
+| `result_count` | `{{DL - result_count}}` |  |
+| `search_scope` | `{{DL - search_scope}}` |  |
+| `search_term` | `{{DL - search_term}}` | GA4 内置维度，无需注册 |
 
 ## 5. GA4 后台
 
 1. 关闭 `管理 → 数据收集和修改 → 数据流 → 增强衡量 → 网页浏览 → 基于浏览器历史事件的页面变化`（否则与 §3 的 Google Tag 双计 page_view）。
-2. `管理 → 自定义定义 → 自定义维度`：把上表每个参数注册为**事件级**自定义维度（不注册则只能在 DebugView 看到）。
+2. `管理 → 自定义定义 → 自定义维度`：把 §4 表里**没有标「GA4 内置维度，无需注册」**的参数注册为**事件级**自定义维度（不注册则只能在 DebugView 看到；内置维度重复注册只会白占配额）。
 3. 可选：把关键事件标记为转化。
 
 ## 6. 事件字典（代码里的注册表）

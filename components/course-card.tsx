@@ -4,6 +4,9 @@ import type { ItemListName } from "@/lib/analytics/events";
 
 
 const CourseCard=({data, listName, position}:{data:any; listName: ItemListName; position: number})=>{
+    // 口径说明（刻意不对称，别「顺手」改成一致）：跳转 href 只认 data.New_code，
+    // 而上报的 itemId 在 New_code 缺失时回退 data.courseCode（老数据只有这个字段）。
+    // 只要卡片渲染出来了，这次点击就该被记到，所以 itemId 不能跟着 href 一起收紧。
     return(
         <TrackedItemLink
             href={'/course/'+data.New_code}

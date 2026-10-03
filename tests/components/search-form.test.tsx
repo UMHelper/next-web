@@ -64,8 +64,9 @@ describe("SearchForm", () => {
     expect(pushed()[0]).toEqual({
       event: "um_event",
       um_name: "search",
-      // 口径说明：URL 会被 buildSearchPath 规范成大写，但事件里保留用户原始输入。
-      search_term: "acct1000",
+      // 口径说明：事件里的 search_term 会统一大写，与 view_search_results 从 URL 拿到的
+      // 大写课程号一致（否则 GA4 会把 comp1001 / COMP1001 当成两个取值，提交→结果对不上）。
+      search_term: "ACCT1000",
       search_scope: "course",
       entry_point: "inline",
     });

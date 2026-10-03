@@ -22,7 +22,12 @@ export function TrackSearchResults({ term, scope, resultCount }: TrackSearchResu
   useEffect(() => {
     if (reported.current) return;
     reported.current = true;
-    trackSearchResults({ term, scope, resultCount });
+    // dev 下 emit() 遇到形状不对的上报会直接抛错；一次埋点失败不能把整页渲染搞崩。
+    try {
+      trackSearchResults({ term, scope, resultCount });
+    } catch (error) {
+      console.error("[analytics]", error);
+    }
   }, [term, scope, resultCount]);
 
   return null;

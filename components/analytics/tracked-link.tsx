@@ -33,7 +33,13 @@ export function TrackedItemLink({
     <Link
       href={href}
       onClick={() => {
-        trackSelectItem({ itemId, listName, position, faculty });
+        // dev 下 emit() 遇到形状不对的上报会直接抛错；埋点绝不能挡住导航，
+        // 所以这里兜住并留一行日志（静默吞掉会让问题更难查）。lib/analytics/* 不吞错。
+        try {
+          trackSelectItem({ itemId, listName, position, faculty });
+        } catch (error) {
+          console.error("[analytics]", error);
+        }
       }}
     >
       {children}

@@ -8,6 +8,26 @@ const NAME_PATTERN = /^[a-z][a-z0-9_]*$/;
 const RESERVED_PREFIXES = ["ga_", "google_", "firebase_"];
 const RECOMMENDED_WHITELIST = ["search", "view_search_results", "select_item", "login"];
 const PHASE_1_EVENTS = ["search", "view_search_results", "filter_apply", "select_item"];
+/**
+ * 钉住禁报名单的内容本身：只断言"已注册参数不在名单里"的话，把名单删空（或删掉
+ * 其中一条）测试依然全绿，禁报就形同虚设。这份名单是 PII 底线，只能显式加、不能悄悄减。
+ */
+const FORBIDDEN_PARAM_NAMES_PINNED = [
+  "email",
+  "user_id",
+  "userid",
+  "full_name",
+  "name",
+  "clerk_user_id",
+  "content",
+  "details",
+  "comment",
+  "reply_text",
+  "url",
+  "token",
+  "share_url",
+  "ip",
+];
 
 describe("analytics registry", () => {
   it("declares the phase 1 events", () => {
@@ -39,6 +59,11 @@ describe("analytics registry", () => {
         expect(FORBIDDEN_PARAM_NAMES, `${eventName}.${paramName}`).not.toContain(paramName);
       }
     }
+  });
+
+  it("pins the forbidden pii list to exactly the reviewed 14 names", () => {
+    // 名单内容本身锁定：任何增删都要在这里显式改一次，评审能看到 diff。
+    expect([...FORBIDDEN_PARAM_NAMES]).toEqual(FORBIDDEN_PARAM_NAMES_PINNED);
   });
 
   it("never registers a parameter name that collides with the payload shape or Object.prototype", () => {

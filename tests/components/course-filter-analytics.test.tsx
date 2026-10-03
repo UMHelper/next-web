@@ -119,6 +119,9 @@ describe("CourseFilter analytics", () => {
     openSelectFor("Offering_Department");
     fireEvent.click((await screen.findAllByRole("option")).find((item) => item.textContent === "All")!);
 
+    // 先钉住条数：缺了这条，pushed()[1] 在没上报第二次时会静默变成 undefined，
+    // toMatchObject(undefined) 反而直接报错或误判。
+    expect(pushed()).toHaveLength(2);
     expect(pushed()[1]).toMatchObject({
       filter_name: "Offering_Department",
       filter_value: "All",
