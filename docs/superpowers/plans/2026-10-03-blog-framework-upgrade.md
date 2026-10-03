@@ -74,67 +74,72 @@ Expected: `✓ 零变化：可见文字与结构均与基线一致。`，退出�
 
 ---
 
-## Task 2: Astro 3.1.3 → 7.x（含 Content Layer 迁移与 ClientRouter）
+## Task 2: 升级到 Astro 7 + Tailwind 4，并换掉 Tailwind 集成
 
 **Files:**
-- Modify: `package.json`（依赖）
+- Modify: `package.json`（依赖与集成）
 - Create: `src/content.config.ts`
 - Delete: `src/content/config.ts`
 - Modify: `src/layouts/PostDetails.astro:8,20`
 - Modify: `src/layouts/Layout.astro:4,81`
+- Modify: `astro.config.ts`
+- Modify: `src/styles/base.css`（仅开头三行 + 一处 opacity 类，见 Step 7）
 
 **Interfaces:**
 - Consumes: Task 1 的 `node scripts/baseline.mjs check`
-- Produces: 内容集合仍导出名为 `blog` 的集合并提供同名字段；`PostDetails.astro` 仍从 `render()` 取得 `{ Content }`；页面仍由 `<ClientRouter />` 驱动客户端路由。
+- Produces: Astro 7 + Tailwind 4 的可构建工程；内容集合仍导出名为 `blog` 的集合并提供同名字段；`PostDetails.astro` 仍从 `render()` 取得 `{ Content }`；页面仍由 `<ClientRouter />` 驱动客户端路由；Tailwind 工具类仍由 `skin-*` 命名空间提供。
 
-### 背景：这一步要处理哪些破坏性变更（spec §14.2 U1–U4）
+### 为什么 Astro 与 Tailwind 必须一起升（实测，不要拆开）
 
-Astro 6 **移除**了 legacy content collections（无兼容层），并且：
-- 配置文件位置从 `src/content/config.ts` **改为 `src/content.config.ts`**（否则 `LegacyContentConfigError`）
-- 集合定义里的 `type: 'content'` **必须删除**（`ContentCollectionInvalidTypeError`）
-- 集合**必须**有 `loader`（否则 `ContentCollectionMissingALoaderError`）
-- `entry.render()` **方法已不存在**，改为从 `astro:content` 导入 `render()` 函数
-- **`image().refine()` 不受支持**（官方原文：「performing custom validation checks on images using `image().refine()` is unsupported」）
-- **Zod 升到 4**（`astro:schema` 与 `z from astro:content` 弃用）
-- `<ViewTransitions />` **已移除**，用 `<ClientRouter />`
+**`@astrojs/tailwind` 与 Astro 7 无法共存。** 实测 registry：该包**所有**近期版本（含最新 `6.0.2`）的 peer 都是 `astro ^3.0.0 || ^4.0.0 || ^5.0.0`。在 Astro 7 下这个 peer **永久不可满足**，于是**此后每一次 `npm install` 都会 `ERESOLVE`** —— 也就是说「先升 Astro、Tailwind 留到下一个任务」在 npm 层面根本走不通。
 
-**本仓库的实际命中面**（已 grep 核实）：20 个文件从 `astro:content` 导入，其中 1 处是 `entry.render()`、1 处是 `<ViewTransitions />`、11 处是纯类型 `CollectionEntry<'blog'>`（**仍然存在，无需改动**）；**没有**使用 `.slug`、`Astro.glob()`、`getEntryBySlug()`、`emitESMImage()`，因此这几条迁移不适用于本仓库。
+因此本任务把**依赖与集成的升级**做成一个原子单元：Astro 7 + Tailwind 4 + `@tailwindcss/vite` 一起换。这不是对 spec 的偏离 —— spec §14.2 U13 与 §14.3 本来就要求移除 `@astrojs/tailwind`、改用 `@tailwindcss/vite`；被纠正的是**原计划的拆分方式**。
 
-**spec §14.2 中经核实「不适用于本仓库」的条目**（一并列出，便于评审确认不是遗漏）：
+被否决的两个替代方案（记录在案）：
+- **用 PostCSS 跑 Tailwind 3**：要新建一份 `postcss.config.js`，而 Task 3 会立刻把它删掉 —— 纯粹的白工，且偏离 spec 规定的终态。
+- **`--legacy-peer-deps`**：掩盖真实不兼容。`@astrojs/tailwind@5` 会装上但在 Astro 7 下于构建期炸掉，属于 spec 明确禁止的「静默绕过」。
 
-| # | 变更 | 为何不适用 |
-|---|---|---|
-| U11 | `container` 的 `center` / `padding` 配置项在 v4 移除 | 本仓库从未使用 `container` 工具类，也没有该配置 |
-| U12 | v4 中 `hidden` 属性优先于 `display` 类 | 本仓库只在 Tailwind 类层面用 `display-none`（自定义类）+ `sm:flex`，没有用 `hidden` **属性** |
+**保留的边界**：Task 3 依然存在，但只剩 **Tailwind 4 的代码清理**（已删工具类、边框默认色、outline 语义、`@layer`→`@utility`、阴影/圆角尺度审计）。这样「依赖图上的原子性」与「可评审的改动边界」两者都保住了。
 
-- [ ] **Step 1: 升级依赖**
+- [ ] **Step 1: 升级依赖与集成（顺序很重要）**
 
-**命令必须包含 `@types/react-dom@^18.3.0`**（见下方冲突说明），否则 npm 会以 `ERESOLVE` 失败：
+先装类型钉版（**必须在主安装之前**，否则 npm 会因为在同一棵树里同时解析而 `ERESOLVE`）：
 
 ```bash
 cd /Users/box/UMHelper/.worktrees/blog-phase0
 export npm_config_cache=/Users/box/UMHelper/.npm-cache
+
+# 1) 先钉类型，消除 @types/react-dom 19 的冲突
+npm install -D @types/react-dom@^18.3.0 --no-audit --no-fund
+
+# 2) 换掉 Tailwind 集成并升到 v4
+npm uninstall @astrojs/tailwind
+npm install tailwindcss@^4.3.3 @tailwindcss/vite@^4.3.3 --no-audit --no-fund
+
+# 3) 升 Astro 与其余依赖；typescript 必须留在 ^5（见下）
 npm install astro@^7.3.5 \
   @astrojs/react@^7.0.0 @astrojs/sitemap@^3.7.4 @astrojs/rss@^4.0.19 \
+  @astrojs/markdown-remark@^7.3.0 \
   satori@^0.35.0 @resvg/resvg-js@latest fuse.js@latest \
   --no-audit --no-fund
-npm install -D @astrojs/check@latest typescript@latest @divriots/jampack@^0.34.1 \
-  @types/react-dom@^18.3.0 --no-audit --no-fund
-```
-Expected: 两个命令都成功（渲染冲突已由 `@types/react-dom` 显式钉版解决）。
 
-**为什么必须显式钉 `@types/react-dom`（实测冲突，勿删）**：本仓库**从未声明** `@types/react-dom`，它一直是传递依赖。升级时 npm 为满足 `@astrojs/react@7` 的 peer `@types/react-dom@"^17.0.17 || ^18.0.6 || ^19.0.0"` 会选**最新的 19.3.0**，而 `@types/react-dom@19.3.0` 又要求 peer `@types/react@^19.3.0`，与本仓库钉住的 `@types/react@18.3.31` 冲突：
-
-```
-npm error Found: @types/react@18.3.31
-npm error   peer @types/react@"^17.0.50 || ^18.0.21 || ^19.0.0" from @astrojs/react@7.0.0
-npm error Could not resolve dependency:
-npm error   peer @types/react@"^19.3.0" from @types/react-dom@19.3.0
+# 4) 工具链
+npm install -D @astrojs/check@^0.9.10 typescript@^5.9.3 \
+  @tailwindcss/typography@^0.5.20 @divriots/jampack@^0.34.1 \
+  --no-audit --no-fund
 ```
 
-**裁定：把类型钉到 18，而不是把 React 升到 19。** 依据：`@astrojs/react@7` 明确允许 React 18（`react ^17.0.2 || ^18.0.0 || ^19.0.0`），而 Phase 0 的硬指标是「零视觉/行为变化」—— 升级 React **运行时**到 19 会引入一个行为变化面（React 19 有破坏性变更），与 Phase 0 的定位直接冲突。这个冲突纯粹是**类型解析**产物：运行时保持 React 18，类型也钉在 18，两者一致。
+四条硬约束，每条都有实测依据：
 
-注意：`@astrojs/react@7` 还新增了一个必需 peer `oxc-transform-react@^0.145.0`；若 npm 因缺少该 peer 报错，按提示一并安装。
+| 约束 | 依据（已实测） |
+|---|---|
+| `@types/react-dom@^18.3.0` 必须显式钉、且**先装** | 本仓库**从未声明** `@types/react-dom`（一直是传递依赖）。npm 为满足 `@astrojs/react@7` 的 peer 会选最新 `19.3.0`，而它要求 peer `@types/react@^19.3.0`，与仓库钉住的 `@types/react@18.3.31` 冲突。**钉 18 而不是升 React 到 19**：`@astrojs/react@7` 明确允许 React 18，而 Phase 0 的硬指标是零行为变化，升 React 运行时到 19 会引入行为变化面。 |
+| `@astrojs/markdown-remark@^7.3.0` 必须显式安装 | Astro 7 起**不再自带**它，而本仓库的 `remark-toc` / `remark-collapse` 依赖该管线。不装则 `npx astro build` 直接失败。加装后插件行为不变（Astro 自身的 `coerceLegacyMarkdownPlugins` shim 即为此保留）。 |
+| `typescript` 必须钉 `^5.9.3`，**不能 `@latest`** | `@astrojs/check@0.9.10`（最新）的 peer 是 `typescript ^5.0.0 \|\| ^6.0.0`，而 `typescript@latest` 是 **7.0.2** —— 两者互不满足，与安装顺序无关。`astro check` 是四道门之一，检查器必须可用。 |
+| `@astrojs/tailwind` 必须移除 | 见本节开头：其 peer 上限是 `astro ^5`，留着他会让后续每次 `npm install` 都失败。 |
+
+Expected: 四条命令全部成功。
+**不要使用 `--force` 或 `--legacy-peer-deps`。** 若出现上述之外的冲突，停下来报告，不要绕过。
 
 - [ ] **Step 2: 迁移内容集合配置（新建 `src/content.config.ts`）**
 
@@ -164,7 +169,7 @@ const blog = defineCollection({
 export const collections = { blog };
 ```
 
-三处相对原文件的**有意**改动，逐条记录理由：
+四处相对原文件的**有意**改动，逐条记录理由：
 
 | # | 原 | 新 | 理由 |
 |---|---|---|---|
@@ -173,7 +178,7 @@ export const collections = { blog };
 | 3 | `pubDatetime: z.date()` | `z.coerce.date()` | Content Layer 下 frontmatter 日期以字符串进入 schema；Zod 4 的 `z.date()` 不再接受字符串，官方示例即 `z.coerce.date()` |
 | 4 | `ogImage: image().refine(…).or(z.string()).optional()` | `z.union([z.string(), z.object({ src: z.string() })]).optional()` | 官方明确 `image().refine()` 不受支持。保留 `{ src }` 形态是为了 `PostDetails.astro:22` 的 `ogImage?.src` 分支继续类型成立 |
 
-> **能力面收窄（已知且记录）**：原来由 schema 在构建期强制的「ogImage 至少 1200×630」校验随 `.refine()` 一并消失。**当前没有任何文章在 frontmatter 里设置 `ogImage`**（已核实），因此可见输出零变化（基线守卫会证明这点）。该校验的意图在 Task 4 以运行时测试的形式补回 —— 校验从 schema 期挪到测试期，而不是丢掉。
+> **能力面收窄（已知且记录）**：原来由 schema 在构建期强制的「ogImage 至少 1200×630」校验随 `.refine()` 一并消失。**当前没有任何文章在 frontmatter 里设置 `ogImage`**（已核实），因此可见输出零变化（基线守卫会证明这点）。该校验的意图在 Task 4 以运行时测试的形式补回 —— 从 schema 期挪到测试期，而不是丢掉。
 
 - [ ] **Step 3: 删除旧配置文件**
 
@@ -213,76 +218,7 @@ import { ClientRouter } from "astro:transitions";
 <ClientRouter />
 ```
 
-- [ ] **Step 6: 构建**
-
-Run: `npx astro build`
-Expected: 构建成功，23 页。若报 `LegacyContentConfigError` / `ContentCollectionMissingALoaderError` / `ContentSchemaContainsSlugError`，说明 Step 2/3 没落干净；若报 Zod 校验错误（例如 `pubDatetime` 类型不符），检查 Step 2 的第 3 条改动。
-
-- [ ] **Step 7: 核实 U3 —— 没有依赖 `astro:transitions` 的内部导出**
-
-```bash
-grep -rn "astro:transitions" src/
-```
-Expected: 只有 `src/layouts/Layout.astro` 一处，且导入名是 `ClientRouter`。
-Astro 7 移除了 `createAnimationScope()` / `isTransitionBeforePreparationEvent()` / `isTransitionBeforeSwapEvent()` / `TRANSITION_BEFORE_PREPARATION` 等内部导出；若 grep 出其它导入名，说明有内部依赖需要改写。
-另外确认 5 处 `transition:name`（`Card.tsx:15`、`Tag.astro:17`、`Main.astro:26`、`PostDetails.astro:50`、`tags/[tag].astro:48`）仍属公开 API —— 它们是 `transition:name` 指令而非导入，**不需要改动**，只需确认构建无对应警告。
-
-- [ ] **Step 8: 核实 U4 —— `astro:content` 没有进入客户端 bundle**
-
-```bash
-grep -rn "astro:content" src/components/ src/layouts/
-```
-Expected: `Card.tsx`、`Search.tsx`、`Posts.astro`、`PostDetails.astro` 等处的 `CollectionEntry` **全部是 `import type`**（纯类型，编译期被擦除）。
-Astro 5 起 `astro:content` 不能在客户端使用；`Search.tsx` 是 React 岛，经 props 收数据、不自行查询，因此当前写法安全 —— 但 `import type` 这一条**必须逐个确认**：任何非 type 导入都会把服务端模块拖进客户端 bundle。
-若发现非 type 导入，改为 `import type`。
-
-- [ ] **Step 9: 与基线比对**
-
-Run: `node scripts/baseline.mjs check`
-Expected: **可见文字零差异**（`check` 退出码 0）。
-结构/类名差异会以 `!` 列出 —— Astro 7 的 Shiki 4 会改变代码块标记，`ClientRouter` 会改变注入的 script，这些属于**预期位移**，需逐条确认后写进 `ACCEPTED_DELTAS`（新增条目必须带 `reason`）。
-
-- [ ] **Step 10: 提交**
-
-```bash
-git add -A
-git commit --no-verify -m "chore(deps)!: upgrade Astro 3.1.3 -> 7.x with content layer migration"
-```
-
----
-
-## Task 3: Tailwind 3.3.3 → 4.x
-
-**Files:**
-- Modify: `package.json`
-- Modify: `astro.config.ts`
-- Modify: `src/styles/base.css`
-- Modify: `tailwind.config.cjs`
-
-**Interfaces:**
-- Consumes: Task 2 完成的 Astro 7 环境
-- Produces: 全站样式类名与视觉效果**保持不变**；`skin-*`、`prose`、`.display-none`、`.focus-outline` 等既有类名继续可用。
-
-### 背景与关键取舍（spec §14.2 U5–U13）
-
-Tailwind 4 是引擎重写：入口从 `@tailwind base/components/utilities` 改为 `@import "tailwindcss"`；集成从 `@astrojs/tailwind` 改为 `@tailwindcss/vite`；配置改为 CSS-first 的 `@theme`；**`bg-opacity-*` / `border-opacity-*` / `text-opacity-*` 被彻底删除**；默认边框色从 `gray-200` 改为 `currentColor`；`outline-none` 改名 `outline-hidden`；`@layer components { .x }` 的推荐写法改为 `@utility`。
-
-**本计划采用「配置兼容优先」策略**，理由：spec §4.4 已经把「token 改为 CSS-first `@theme`」列为 **Phase 1** 的工作（因为那与品牌 token 迁移是同一件事）。Phase 0 的职责是「换引擎、不换样式」，所以优先用 v4 的 `@config` 兼容指令继续读现有的 `tailwind.config.cjs`，把 CSS-first 重写留给 Phase 1。这样 Phase 0 的改动面与风险都最小。
-
-**这一策略有一个必须实测的风险**：v4 的 `@config` 兼容层**可能不支持 JS 配置里的「颜色函数」**，而本仓库的 `tailwind.config.cjs` 恰恰用 `withOpacity()` 闭包生成 `skin-*` 颜色。Step 4 就是要证伪这一点，Step 5 是备选路径。
-
-- [ ] **Step 1: 装 Tailwind 4 并移除旧集成**
-
-Run:
-```bash
-export npm_config_cache=/Users/box/UMHelper/.npm-cache
-npm install tailwindcss@^4.3.3 @tailwindcss/vite@^4.3.3 --no-audit --no-fund
-npm install -D @tailwindcss/typography@^0.5.20 --no-audit --no-fund
-npm uninstall @astrojs/tailwind
-```
-Expected: `@astrojs/tailwind` 从 `package.json` 消失。
-
-- [ ] **Step 2: `astro.config.ts` 换用 vite 插件**
+- [ ] **Step 6: `astro.config.ts` 换掉 Tailwind 集成（U13）**
 
 ```ts
 import { defineConfig } from "astro/config";
@@ -309,7 +245,7 @@ export default defineConfig({
 ```
 要点：删除 `import tailwind from "@astrojs/tailwind"` 与 `tailwind({ applyBaseStyles: false })`；`vite.optimizeDeps.exclude` 的 `@resvg/resvg-js` **必须保留**（原生模块）。
 
-- [ ] **Step 3: `src/styles/base.css` 换入口并保留 v3 配置**
+- [ ] **Step 7: `src/styles/base.css` 换入口并保留 v3 配置**
 
 把开头 3 行：
 ```css
@@ -324,25 +260,30 @@ export default defineConfig({
 @plugin "@tailwindcss/typography";
 ```
 
-同时**从 `tailwind.config.cjs` 删除 `plugins: [require("@tailwindcss/typography")]`**，避免与 `@plugin` 重复注册（主题插件在 v4 由 `@plugin` 负责）。
+同时**从 `tailwind.config.cjs` 删除 `plugins: [require("@tailwindcss/typography")]`**，避免与 `@plugin` 重复注册。
 
-> `applyBaseStyles: false` 在 v4 没有对应概念：v4 的 `@import "tailwindcss"` 自带 preflight，行为与原来「由 base.css 的 `@tailwind base` 提供一次 preflight」一致。
+> `applyBaseStyles: false` 在 v4 没有对应概念：v4 的 `@import "tailwindcss"` 自带 preflight，与原来「由 base.css 的 `@tailwind base` 提供一次 preflight」行为一致。
+>
+> **策略说明**：`@config` 让 v4 继续读现有的 `tailwind.config.cjs`。把配置改成 CSS-first 的 `@theme` 是 **Phase 1** 的工作（与品牌 token 迁移是同一件事），Phase 0 只换引擎、不换样式。**这一策略有一个必须实测的风险**：v4 的 `@config` 兼容层**可能不支持 JS 配置里的颜色函数**，而本仓库的 `tailwind.config.cjs` 恰恰用 `withOpacity()` 闭包生成 `skin-*` 颜色 —— 由 Step 9 证伪，Step 10 是备选路径。
 
-- [ ] **Step 4: 实测 `@config` 是否支撑颜色函数（关键验证）**
+- [ ] **Step 8: 构建**
 
-Run: `npx astro build && node scripts/baseline.mjs check`
-Expected: 构建成功且**可见文字零差异**。
-逐项确认 `skin-*` 类是否真的生成了 CSS —— 若 `bg-skin-fill` 等类在产物 CSS 里**缺失**（不是「颜色不对」而是「整条工具类不存在」），说明 v4 的 `@config` 兼容层不支持 JS 颜色函数，**进入 Step 5**。若类存在且结构差异仅为预期位移，**跳过 Step 5**，直接 Step 6。
+Run: `npx astro build`
+Expected: 构建成功，23 页。若报 `LegacyContentConfigError` / `ContentCollectionMissingALoaderError` / `ContentSchemaContainsSlugError`，说明 Step 2/3 没落干净；若报 Zod 校验错误（例如 `pubDatetime` 类型不符），检查 Step 2 的第 3 条改动；若报 remark 插件找不到，检查 Step 1 的 `@astrojs/markdown-remark` 是否装上。
 
-检查方法：
-```bash
-grep -c "bg-skin-fill\|text-skin-base\|border-skin-line" dist/_astro/*.css
-```
-Expected（通过时）: 计数 > 0
+- [ ] **Step 9: 核实 `@config` 是否支撑颜色函数（关键验证）**
 
-- [ ] **Step 5:（备选路径）把 `skin-*` 翻译成 v4 原生 `@theme`**
+Run: `grep -c "bg-skin-fill\|text-skin-base\|border-skin-line" dist/_astro/*.css`
+Expected（通过时）: 计数 > 0。
 
-**仅在 Step 4 判定失败时执行。** 把 `tailwind.config.cjs` 里的六组 `skin-*` 映射改写为 CSS-first 形式，值取 `base.css` 顶部的 `--color-*` 变量：
+随后 Run: `node scripts/baseline.mjs check`
+Expected: **可见文字零差异**（退出码 0）。
+
+判定：若 `bg-skin-fill` 这类类在产物 CSS 里**整条缺失**（不是「颜色不对」而是「工具类不存在」），说明 `@config` 兼容层不支持 JS 颜色函数 → **执行 Step 10**。若类存在且差异只是预期位移 → **跳过 Step 10**。
+
+- [ ] **Step 10:（备选路径，仅在 Step 9 判定失败时执行）把 `skin-*` 翻译成 v4 原生 `@theme`**
+
+在 `base.css` 里用 `@theme inline` 声明这些颜色，值取文件顶部既有的 `--color-*` 变量：
 
 ```css
 @theme inline {
@@ -355,29 +296,104 @@ Expected（通过时）: 计数 > 0
   --color-skin-line: rgb(var(--color-border));
 }
 ```
-注意 `skin-inverted` / `border-skin-fill` / `outline-skin-fill` 三个键在原配置里名字与取值不符（`border-skin-fill` 实际解析到 `--color-text-base`、`outline-skin-fill` 实际解析到 `--color-accent`），翻译时**必须按实际取值**而不是按名字，否则会静默改变观感 —— 这正是基线守卫要挡住的错误。
-随后删除 `tailwind.config.cjs` 与 `@config` 行，并把 `screens: { sm: "640px" }` 也交给 v4 默认断点（v4 默认 `sm` 即 640px，零位移）。
 
-- [ ] **Step 6: 处理 v4 默认值变化（U8/U9/U10）**
+**必须按「实际取值」而不是「名字」翻译。** `tailwind.config.cjs` 里有三个键名与取值不符：`bg-skin-inverted` 实际是 `--color-fill`、`border-skin-fill` 实际解析到 `--color-text-base`、`outline-skin-fill` 实际解析到 `--color-accent`。照名字直译会**静默改变观感** —— 这正是基线守卫要挡住的错误。翻译完删除 `@config` 行与 `tailwind.config.cjs`。
 
-v4 把 `border`/`divide` 的默认色改为 `currentColor`。`base.css` 的 `.prose` 块里 `prose-th:border` / `prose-td:border` 依赖旧默认值，必须显式补色 —— **一律用 `border-skin-line`**：
-```css
-prose-th:border-skin-line prose-td:border-skin-line
+- [ ] **Step 11: 核实 U3 —— 没有依赖 `astro:transitions` 的内部导出**
+
+```bash
+grep -rn "astro:transitions" src/
 ```
-为什么是 `border-skin-line` 而不是 `border-border`：`prose-td` 本来就写 `border-skin-line`，而该键在 Task 3 的两条路径下**都存在**（Step 4 的 `@config` 路径下来自 `tailwind.config.cjs` 的 `borderColor.skin.line`；Step 5 的备选路径下来自 `@theme inline` 的 `--color-skin-line`）。它是唯一在两条路径下都成立的写法，因此这个分支被消除。
+Expected: 只有 `src/layouts/Layout.astro` 一处，且导入名是 `ClientRouter`。
+Astro 7 移除了 `createAnimationScope()` / `isTransitionBeforePreparationEvent()` / `isTransitionBeforeSwapEvent()` / `TRANSITION_BEFORE_PREPARATION` 等内部导出。另外确认 5 处 `transition:name`（`Card.tsx:15`、`Tag.astro:17`、`Main.astro:26`、`PostDetails.astro:50`、`tags/[tag].astro:48`）仍属公开 API —— 它们是 `transition:name` 指令而非导入，**不需要改动**。
 
-同时检查 `focus:outline-none`（`Search.tsx:88`）：v4 中 `outline-none` 语义变为「真的设为 none」，而若要「视觉隐藏但保留无障碍」应用 `outline-hidden`。Phase 0 只要求**行为不变**，因此按 v3 语义替换为 `outline-hidden`。
+- [ ] **Step 12: 核实 U4 —— `astro:content` 没有进入客户端 bundle**
 
-**U10 —— shadow / radius 尺度重命名**：v4 重命名了 shadow、radius、blur 的尺度（`shadow-sm` → `shadow-xs` 等；裸值仍兼容，但 `<utility>-sm` 的外观会变）。先做一次用量审计：
+```bash
+grep -rn "astro:content" src/components/ src/layouts/
+```
+Expected: `Card.tsx`、`Search.tsx`、`Posts.astro`、`PostDetails.astro` 等处的 `CollectionEntry` **全部是 `import type`**（纯类型，编译期被擦除）。Astro 5 起 `astro:content` 不能在客户端使用；`Search.tsx` 是 React 岛、经 props 收数据，当前写法安全 —— 但 `import type` 必须逐个确认：任何非 type 导入都会把服务端模块拖进客户端 bundle。
+
+- [ ] **Step 13: 与基线比对并记录预期位移**
+
+Run: `node scripts/baseline.mjs check`
+
+把输出的每一条结构差异分类：
+1. **预期位移**（Shiki 4 的代码块标记、`ClientRouter` 注入的 script、v4 的 CSS 变量命名等）→ 写进 `scripts/baseline.mjs` 的 `ACCEPTED_DELTAS`，**每条必须带 `reason`**；
+2. **非预期位移** → 是回归，修到消失。
+
+不允许「理由说不清」的条目 —— 那是把差异藏起来。**纯 `@config` 路径下本步的位移应当很少**（引擎换了但配置语义未变）；若位移过多，回看 Step 9 的判定是否正确。
+
+- [ ] **Step 14: 提交**
+
+```bash
+git add -A
+git commit --no-verify -m "chore(deps)!: upgrade to Astro 7 and Tailwind 4 with @tailwindcss/vite"
+```
+
+---
+
+## Task 3: Tailwind 4 代码清理（U6–U10）
+
+**Files:**
+- Modify: `src/styles/base.css`
+- Modify: `src/components/Search.tsx`
+
+**Interfaces:**
+- Consumes: Task 2 完成的 Astro 7 + Tailwind 4 工程（`skin-*` 类与 `@config` 路径已就位）
+- Produces: 一个不再依赖任何 v4 已删除工具类的代码库；渲染结果仍与基线一致
+
+### 背景
+
+Tailwind 4 删除了若干早已弃用的工具类，并改了两个默认值。本仓库的命中面很小（已 grep 核实，共 5 处 + 若干默认值依赖），因此这是一个小而独立的清理任务。
+
+- [ ] **Step 1: 审计 shadow / radius 尺度（U10）**
+
 ```bash
 grep -rnoE "(shadow|rounded|blur)-(sm|md|lg|xl|2xl|3xl)\b" src/ | sort | uniq -c | sort -rn
 ```
+v4 重命名了 shadow/radius/blur 尺度（`shadow-sm` → `shadow-xs` 等；裸值仍兼容，但 `<utility>-sm` 的外观会变）。
 Expected: 本仓库几乎不用 `shadow-*`；`rounded`（裸值）出现在 `Search.tsx` 与 `base.css` 的 `prose-code:rounded`，裸值在 v4 语义未变。
-处置原则：**Phase 0 不改观感** —— 若审计发现 `shadow-sm`/`rounded-sm` 这类会变外观的用法，逐个改成 v4 中等价的 `-xs` 命名，使渲染结果与基线一致；若审计结果为空，本步只需记录「无命中」。
+处置原则：**本任务不改观感** —— 若审计发现 `shadow-sm`/`rounded-sm` 这类会变外观的用法，逐个改成 v4 中等价的 `-xs` 命名使渲染结果与基线一致；若审计为空，记录「无命中」即可。
 
-- [ ] **Step 7: 处理 `@layer components` 与已删除的工具类（U6/U7）**
+- [ ] **Step 2: 清除 v4 已删除的工具类（U6）**
 
-`base.css` 尾部的 `@layer components { .display-none; .focus-outline }` 在 v4 的推荐写法是 `@utility`；但 v4 仍支持原生 `@layer`，**Phase 0 优先保持原样**以缩小改动面，只有在 Step 4/5 的构建报错时才改为：
+```bash
+grep -rn "bg-opacity-\|border-opacity-\|text-opacity-\|ring-opacity-\|divide-opacity-\|placeholder-opacity-\|flex-shrink-\|flex-grow-\|overflow-ellipsis" src/
+```
+Expected: 5 处命中 —— `base.css:33,56,62` 与 `Search.tsx:86,87`。
+
+**处置：直接删除这些类名，不要改写成斜杠语法。** 依据：这些类在 v3 下本就是**失效**的（`withOpacity()` 生成的声明是 `rgb(var(--x))`，不消费 `--tw-*-opacity`），删除它们**观感完全不变**。spec §10.1 F1 记录的正是这件事，而用斜杠语法**真正实现**那些透明度是 **Phase 1** 的工作（会改变观感，因此不属于零变化的 Phase 0）。
+
+逐个处理：
+- `base.css:33` body 的 `selection:bg-opacity-70` → 删除该类名
+- `base.css:56` `.prose` 的 `prose-blockquote:border-opacity-50` → 删除
+- `base.css:62` `.prose` 的 `prose-code:bg-opacity-75` → 删除
+- `Search.tsx:86` 的 `border-opacity-40` → 删除
+- `Search.tsx:87` 的 `placeholder:text-opacity-75` → 删除
+
+- [ ] **Step 3: 补上 v4 的边框默认色（U8）**
+
+v4 把 `border`/`divide` 的默认色从 `gray-200` 改为 **`currentColor`**。`base.css` 的 `.prose` 块里 `prose-th:border` 依赖旧默认值，必须显式补色 —— **一律用 `border-skin-line`**：
+```css
+prose-th:border-skin-line prose-td:border-skin-line
+```
+为什么是 `border-skin-line` 而不是别的：`prose-td` 本来就写 `border-skin-line`，而该键在 Task 2 的两条路径下**都存在**（`@config` 路径下来自 `tailwind.config.cjs` 的 `borderColor.skin.line`；Step 10 备选路径下来自 `@theme inline` 的 `--color-skin-line`）。它是唯一在两条路径下都成立的写法，因此这个分支被消除。
+
+同时全局扫一遍裸 `border` / `divide-` 用法，确认没有其它地方依赖旧默认色：
+```bash
+grep -rnE "\b(border|divide-[xy])\b" src/ | grep -v "border-skin\|border-border\|border-0\|border-" | head
+```
+
+- [ ] **Step 4: 修正 outline 语义（U9）**
+
+v4 中 `outline-none` 的语义变为「真的设为 `outline-style: none`」，而「视觉隐藏但保留无障碍可用性」改名成了 `outline-hidden`。
+`Search.tsx:88` 的 `focus:outline-none` 按 **v3 语义**替换为 `outline-hidden` —— 保持行为不变是本任务的唯一目标。
+另外 `base.css:40,133` 的 `outline-2 outline-offset-1 … focus-visible:outline-dashed` 在 v4 下仍是合法写法（v4 让 `outline-<number>` 自带 `outline-style: solid`），**先保持原样**，仅在构建报错时才调整。
+
+- [ ] **Step 5:（仅在构建报错时）`@layer components` → `@utility`（U7）**
+
+`base.css` 尾部的 `@layer components { .display-none; .focus-outline }` 在 v4 的推荐写法是 `@utility`，但 v4 仍支持原生 `@layer`。**优先保持原样**以缩小改动面；只有 Step 6 的构建因此报错时才改为：
 ```css
 @utility display-none { @apply hidden; }
 @utility focus-outline {
@@ -385,23 +401,25 @@ Expected: 本仓库几乎不用 `shadow-*`；`rounded`（裸值）出现在 `Sea
 }
 ```
 
-**已删除工具类的清理**（这些类名在 v4 下不再生成任何 CSS）：
-```bash
-grep -rn "bg-opacity-\|border-opacity-\|text-opacity-\|ring-opacity-\|flex-shrink-\|flex-grow-\|overflow-ellipsis" src/
-```
-Expected: 5 处命中 —— `base.css:33,56,62` 与 `Search.tsx:86,87`。
-把它们按「删除或改斜杠语法」处理，**但不改变观感**：这些类在 v3 下本就是**失效**的（`withOpacity()` 生成的声明不消费 `--tw-*-opacity`），所以正确做法是**直接删除**这几个类名，观感与之前完全一致。spec §10.1 F1 记录的就是这件事，Phase 1 会用斜杠语法把它们真正实现；**Phase 0 只做删除**。
-
-- [ ] **Step 8: 构建并与基线比对**
+- [ ] **Step 6: 构建并与基线比对**
 
 Run: `npx astro build && node scripts/baseline.mjs check`
-Expected: 可见文字零差异；退出码 0。
+Expected: **可见文字零差异**（硬指标，必须一模一样）；退出码 0。
 
-- [ ] **Step 9: 提交**
+**关于结构差异的正确预期（别去追它）**：本任务会从 `Search.tsx` 的 `className` 里删掉 `border-opacity-40` 与 `placeholder:text-opacity-75`，而基线守卫比对的是**渲染后的 class 属性**，因此**必然**报出 `search/index.html` 的结构差异。这是**预期内的**，且守卫对结构差异按设计返回 exit 0 —— 不要为了消除它去改 `ACCEPTED_DELTAS`（那会把差异藏起来）。
+
+判定标准不是「结构差异为零」，而是这三条：
+1. **可见文字零差异** —— 必须成立；
+2. 结构差异**只**出现在被删类名所在的元素上，且差异内容就是那几个类名消失；
+3. 产物 CSS 里不再出现 `--tw-border-opacity` / `--tw-placeholder-opacity` 这类孤立设置（v4 本就不生成它们，此条用于确认没有残留依赖）。
+
+若出现上述之外的差异，才是回归，需要回看。
+
+- [ ] **Step 7: 提交**
 
 ```bash
 git add -A
-git commit --no-verify -m "chore(deps)!: upgrade Tailwind CSS 3.3.3 -> 4.x via @tailwindcss/vite"
+git commit --no-verify -m "refactor(styles): drop Tailwind 4-removed utilities and restore border/outline defaults"
 ```
 
 ---
