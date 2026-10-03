@@ -1,7 +1,7 @@
-import Link from "next/link";
-
+import { TrackedItemLink } from "@/components/analytics/tracked-link";
 import { RatingStatsCard } from "@/components/course/rating-stats-card";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import type { ItemListName } from "@/lib/analytics/events";
 import { getAppConfig } from "@/lib/config/app-config";
 import { shouldShowOfferedBadge } from "@/lib/config/offered-badge";
 
@@ -13,10 +13,25 @@ function OfferedBadge({ children }: { children: React.ReactNode }) {
   );
 }
 
-const ProfCard = async ({ data, code }: { data: any; code: any }) => {
+const ProfCard = async ({
+  data,
+  code,
+  listName,
+  position,
+}: {
+  data: any;
+  code: any;
+  listName: ItemListName;
+  position: number;
+}) => {
   const { isPreenrollmentOpen } = await getAppConfig();
   return (
-    <Link href={"/reviews/" + code + "/" + data.prof_id}>
+    <TrackedItemLink
+      href={"/reviews/" + code + "/" + data.prof_id}
+      itemId={String(data.prof_id)}
+      listName={listName}
+      position={position}
+    >
       <Card className="hover:cursor-pointer hover:shadow-lg">
         <CardHeader className="pb-0.5">
           <div className="flex flex-row justify-between">
@@ -33,13 +48,28 @@ const ProfCard = async ({ data, code }: { data: any; code: any }) => {
           <RatingStatsCard stats={data} />
         </CardContent>
       </Card>
-    </Link>
+    </TrackedItemLink>
   );
 };
 
-export const ProfCourseCard = async ({ data, code }: { data: any; code: any }) => {
+export const ProfCourseCard = async ({
+  data,
+  code,
+  listName,
+  position,
+}: {
+  data: any;
+  code: any;
+  listName: ItemListName;
+  position: number;
+}) => {
   return (
-    <Link href={"/reviews/" + code + "/" + data.prof_id}>
+    <TrackedItemLink
+      href={"/reviews/" + code + "/" + data.prof_id}
+      itemId={String(data.course_id)}
+      listName={listName}
+      position={position}
+    >
       <Card className="hover:cursor-pointer hover:shadow-lg">
         <CardHeader className="pb-0.5">
           <div className="flex flex-row justify-between">
@@ -63,7 +93,7 @@ export const ProfCourseCard = async ({ data, code }: { data: any; code: any }) =
           />
         </CardContent>
       </Card>
-    </Link>
+    </TrackedItemLink>
   );
 };
 

@@ -1,10 +1,17 @@
 import {Card, CardDescription, CardFooter, CardHeader, CardTitle} from "@/components/ui/card";
-import Link from "next/link";
+import { TrackedItemLink } from "@/components/analytics/tracked-link";
+import type { ItemListName } from "@/lib/analytics/events";
 
 
-const CourseCard=({data}:{data:any})=>{
+const CourseCard=({data, listName, position}:{data:any; listName: ItemListName; position: number})=>{
     return(
-        <Link href={'/course/'+data.New_code}>
+        <TrackedItemLink
+            href={'/course/'+data.New_code}
+            itemId={String(data.New_code ?? data.courseCode)}
+            listName={listName}
+            position={position}
+            faculty={data.Offering_Unit ? String(data.Offering_Unit) : undefined}
+        >
             <Card className='hover:cursor-pointer hover:shadow-lg mx-auto'>
                 <CardHeader className='pb-2 flex-row flex justify-between align-middle'>
                     <div className=" space-y-1">
@@ -67,7 +74,7 @@ const CourseCard=({data}:{data:any})=>{
                     </div>
                 </CardFooter>
             </Card>
-        </Link>
+        </TrackedItemLink>
     )
 }
 

@@ -21,7 +21,7 @@ async function CourseSearchResults({ code }: { code: string }) {
     const ads = createAdConfig()
     return(
         <div>
-            <CourseFilter data={courseList} ads={ads}/>
+            <CourseFilter data={courseList} ads={ads} listName="search_course" />
         </div>
     )
 }

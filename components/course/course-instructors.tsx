@@ -29,7 +29,9 @@ export default async function CourseInstructors({ code }: { code: string }) {
       <Masonry col={3} className={""}>
         {withAdSlots(profList, {
           getKey: (data, index) => String(data.prof_id ?? index),
-          renderItem: (data, index) => <ProfCard key={index} data={data} code={code} />,
+          renderItem: (data, index) => (
+            <ProfCard key={index} data={data} code={code} listName="course_instructors" position={index} />
+          ),
           ads,
         })}
       </Masonry>

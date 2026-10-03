@@ -44,7 +44,7 @@ async function CatalogListSection({ departments }: { departments: string[] }) {
     return (
         <div>
             <div>
-                <CourseFilter data={courseList} ads={ads} />
+                <CourseFilter data={courseList} ads={ads} listName="catalog" />
             </div>
         </div>
     )

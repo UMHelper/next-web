@@ -45,7 +45,7 @@ async function InstructorSearchResults({ name }: { name: string }) {
                                         getKey: (course: any, index: number) =>
                                             String(course.courseCode ?? course.New_code ?? index),
                                         renderItem: (course: any, index: number) => (
-                                            <CourseCard data={course} key={index} />
+                                            <CourseCard data={course} key={index} listName="search_instructor" position={index} />
                                         ),
                                         ads,
                                     })}

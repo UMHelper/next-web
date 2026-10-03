@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react"
 import { Masonry } from "@/components/masonry"
 import CourseCard from "@/components/course-card"
+import type { ItemListName } from "@/lib/analytics/events"
 import { withAdSlots, type AdConfig } from "@/lib/ads/ad-slots"
 import { countUniqueValues, courseKeysToCount, CourseFilterName } from "@/lib/count-unique-values"
 import { SelectValue, Select, SelectTrigger, SelectContent, SelectGroup, SelectItem } from "@/components/ui/select"
@@ -11,7 +12,7 @@ import {
     type CourseFilterState,
 } from "@/lib/course-filters"
 
-export default function CourseFilter({ data, ads }: { data: any[]; ads: AdConfig | null }) {
+export default function CourseFilter({ data, ads, listName }: { data: any[]; ads: AdConfig | null; listName: ItemListName }) {
     const [option, setOption] = useState<any>({})
 
     const [currentCourseList, setCurrentCourseList] = useState(data)
@@ -89,8 +90,13 @@ export default function CourseFilter({ data, ads }: { data: any[]; ads: AdConfig
             <Masonry col={3} className="mx-auto">
                 {withAdSlots(currentCourseList, {
                     getKey: (course: any) => String(course.New_code ?? course.courseCode),
-                    renderItem: (course: any) => (
-                        <CourseCard data={course} key={course.New_code ?? course.courseCode} />
+                    renderItem: (course: any, index: number) => (
+                        <CourseCard
+                            data={course}
+                            key={course.New_code ?? course.courseCode}
+                            listName={listName}
+                            position={index}
+                        />
                     ),
                     ads,
                 })}

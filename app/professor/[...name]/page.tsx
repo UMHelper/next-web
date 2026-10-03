@@ -30,7 +30,13 @@ async function ProfessorCourses({ name }: { name: string }) {
                 {withAdSlots(data, {
                     getKey: (course: any, index: number) => String(course.course_id ?? index),
                     renderItem: (course: any, index: number) => (
-                        <ProfCourseCard key={index} data={course} code={course.course_id} />
+                        <ProfCourseCard
+                            key={index}
+                            data={course}
+                            code={course.course_id}
+                            listName="professor_courses"
+                            position={index}
+                        />
                     ),
                     ads,
                 })}
