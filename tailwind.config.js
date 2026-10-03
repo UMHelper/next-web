@@ -15,6 +15,10 @@ module.exports = {
       },
     },
     extend: {
+      fontFamily: {
+        // 花体手写字体，供 wordmark 的「by」等小装饰文字使用，由 app/layout.tsx 注入 CSS 变量
+        script: ["var(--font-dancing-script)", "cursive"],
+      },
       colors: {
         border: {
           DEFAULT: "hsl(var(--border))",

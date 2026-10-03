@@ -1,7 +1,7 @@
 import './globals.css'
 import '@smastrom/react-rating/style.css'
 
-import { Inter } from 'next/font/google'
+import { Inter, Dancing_Script } from 'next/font/google'
 import React from "react";
 
 import Navbar from "@/components/navbar";
@@ -21,6 +21,13 @@ import FloatingPlanner from '@/components/timetable/floating-planner';
 
 
 const inter = Inter({ subsets: ['latin'] })
+
+// 花体手写字体：只用于 wordmark 里的「by」这类装饰性小字
+const dancingScript = Dancing_Script({
+    subsets: ['latin'],
+    weight: ['400', '700'],
+    variable: '--font-dancing-script',
+})
 
 export const metadata = rootMetadata;
 
@@ -51,7 +58,7 @@ export default function RootLayout({
                         href="/icon/72.jpg"
                     />
                 </head>
-                <body className={cn(inter.className)}>
+                <body className={cn(inter.className, dancingScript.variable)}>
                     <ThemeProvider>
                     <ThemeColorMeta />
                     <ClerkProviderClient>
