@@ -62,7 +62,7 @@ export function emit(name: string, params: Record<string, AnalyticsParamValue> =
    * 必须先用 `Object.hasOwn` 判断：注册表是对象字面量，`ANALYTICS_EVENTS["constructor"]`
    * 会顺着原型链命中 `Object.prototype` 上的成员，`!spec` 就挡不住这种"未知事件"了。
    */
-  const spec = Object.hasOwn(ANALYTICS_EVENTS, name)
+  const spec = Object.prototype.hasOwnProperty.call(ANALYTICS_EVENTS, name)
     ? (ANALYTICS_EVENTS as Record<string, EventSpec | undefined>)[name]
     : undefined;
   if (!spec) {
@@ -85,7 +85,7 @@ export function emit(name: string, params: Record<string, AnalyticsParamValue> =
     }
 
     /** 同样只认自有属性：`spec.params["toString"]` 会命中 `Object.prototype`。 */
-    const paramSpec = Object.hasOwn(spec.params, key) ? spec.params[key] : undefined;
+    const paramSpec = Object.prototype.hasOwnProperty.call(spec.params, key) ? spec.params[key] : undefined;
     if (!paramSpec) {
       drop(
         `parameter "${key}" is not registered for event "${name}" — 未注册的参数不会出现在 GA4 里`,
@@ -139,7 +139,7 @@ export function emit(name: string, params: Record<string, AnalyticsParamValue> =
 
   for (const [key, paramSpec] of Object.entries(spec.params)) {
     /** 同样用自有属性判断，避免 `toString` 这类键在 payload 上"凭空"满足必填。 */
-    if (paramSpec.required && !Object.hasOwn(payload, key)) {
+    if (paramSpec.required && !Object.prototype.hasOwnProperty.call(payload, key)) {
       drop(`missing required parameter "${key}" for event "${name}"`, `missing:${name}.${key}`);
       return;
     }
