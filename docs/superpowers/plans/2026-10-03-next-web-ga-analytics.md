@@ -640,8 +640,10 @@ export function emit(name: string, params: Record<string, AnalyticsParamValue> =
 
 - [ ] **Step 4: Run test to verify it passes**
 
+> **实施记录（2026-10-03，事后追加）**：本步骤落地后，代码评审发现两个真实缺陷并已修复，因此上面这段实现**已被取代**，请以仓库现状为准：① 注册表查找必须用 own-property 判定（`Object.prototype.hasOwnProperty.call`）——否则 `constructor` / `toString` / `__proto__` 这类名字会顺着原型链命中 `Object.prototype` 成员，绕过 `!spec` 守卫并在生产环境抛未捕获的 `TypeError`，而不是"丢弃 + warn"；② 必须按注册表声明的 `paramSpec.type` 强制值类型（`number` 参数接受有限数字或布尔→1/0，`string` 参数只接受字符串），因为 spec §5.2 的校验契约明确包含"值类型合规"。相关提交：`842838f`（两项硬化）、`1d3cb76`（改用 ES5 安全的 `hasOwnProperty.call`）。最终 `tests/analytics` 为 27 个用例。
+
 Run: `npx vitest run tests/analytics/data-layer.test.ts`
-Expected: PASS（12 tests）。
+Expected: PASS（修复轮后为 20 tests；`tests/analytics` 合计 27 tests）。
 
 - [ ] **Step 5: Commit**
 
