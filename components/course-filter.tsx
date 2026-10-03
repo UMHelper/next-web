@@ -5,23 +5,18 @@ import CourseCard from "@/components/course-card"
 import { withAdSlots, type AdConfig } from "@/lib/ads/ad-slots"
 import { countUniqueValues, courseKeysToCount, CourseFilterName } from "@/lib/count-unique-values"
 import { SelectValue, Select, SelectTrigger, SelectContent, SelectGroup, SelectItem } from "@/components/ui/select"
+import {
+    applyCourseFilters,
+    createInitialFilterState,
+    type CourseFilterState,
+} from "@/lib/course-filters"
 
 export default function CourseFilter({ data, ads }: { data: any[]; ads: AdConfig | null }) {
     const [option, setOption] = useState<any>({})
 
     const [currentCourseList, setCurrentCourseList] = useState(data)
 
-    const [filter, setFilter] = useState<any>({
-        'Medium_of_Instruction': 'All',
-        'Offering_Department': 'All',
-        'Course_Duration': 'All',
-        'Credits': 'All',
-        'Is_Offered': 'All',
-        'Offering_Unit': 'All',
-        'courseType': 'All',
-        'offeringProgLevel': 'All',
-        'suggestedYearOfStudy': 'All'
-    })
+    const [filter, setFilter] = useState<CourseFilterState>(createInitialFilterState)
 
     useEffect(() => {
         const option = countUniqueValues(data, courseKeysToCount)
@@ -30,15 +25,7 @@ export default function CourseFilter({ data, ads }: { data: any[]; ads: AdConfig
     }, [data])
 
     useEffect(() => {
-        let curCourseList = [...data]
-        for (const key in filter) {
-            if (filter[key] !== 'All') {
-                curCourseList = curCourseList.filter((course) => {
-                    return course[key] === filter[key]
-                })
-            }
-        }
-        setCurrentCourseList([...curCourseList])
+        setCurrentCourseList(applyCourseFilters(data, filter))
 
         if (typeof window === "undefined") return
         const params = new URLSearchParams()
