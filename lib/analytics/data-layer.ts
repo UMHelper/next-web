@@ -59,7 +59,7 @@ export function emit(name: string, params: Record<string, AnalyticsParamValue> =
    * 联合类型，所以这里必须显式放宽成字符串索引：未知事件正是下面这一段要挡住的
    * 情况，返回 `undefined` 就是预期行为。
    *
-   * 必须先用 `Object.hasOwn` 判断：注册表是对象字面量，`ANALYTICS_EVENTS["constructor"]`
+   * 必须先用 `Object.prototype.hasOwnProperty.call` 判断：注册表是对象字面量，`ANALYTICS_EVENTS["constructor"]`
    * 会顺着原型链命中 `Object.prototype` 上的成员，`!spec` 就挡不住这种"未知事件"了。
    */
   const spec = Object.prototype.hasOwnProperty.call(ANALYTICS_EVENTS, name)
