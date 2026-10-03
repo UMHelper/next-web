@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { trackSearch } from "@/lib/analytics/events";
 import { cn } from "@/lib/utils";
 import { buildSearchPath } from "@/lib/site";
 
@@ -58,6 +59,11 @@ export default function SearchForm({
   const isProf = form.watch("is_prof");
 
   function onSubmit(values: z.infer<typeof formSchema>) {
+    trackSearch({
+      term: values.code,
+      scope: values.is_prof ? "instructor" : "course",
+      entryPoint: variant,
+    });
     router.push(buildSearchPath(values.is_prof ? "instructor" : "course", values.code));
     onSubmitted?.();
   }
