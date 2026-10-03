@@ -22,7 +22,7 @@ export default function SearchButton() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger className="flex items-center" aria-label="Search">
+      <DialogTrigger className="flex items-center outline-none" aria-label="Search">
         <Search size={20} strokeWidth={2} />
       </DialogTrigger>
       <DialogContent>

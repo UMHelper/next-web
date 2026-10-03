@@ -86,7 +86,7 @@ export function ThemeToggle() {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         {/* 与相邻的 search 按钮同一样式：无内边距、无 hover 底色、无聚焦描边 */}
-        <button className="flex items-center" aria-label="Switch theme">
+        <button className="flex items-center outline-none" aria-label="Switch theme">
           <ActiveIcon size={20} strokeWidth={2} />
         </button>
       </DropdownMenuTrigger>
