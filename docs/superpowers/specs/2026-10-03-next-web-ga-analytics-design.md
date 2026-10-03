@@ -101,7 +101,7 @@ client component（交互点）
   │              ├─ dev：console.debug 一行可读日志
   │              └─ window.dataLayer.push({ event: "um_event", um_name: name, ...params })
   │
-  └─ <TrackedLink> / <TrackOnMount>                  components/analytics/*    ← 声明式接线叶子
+  └─ <TrackedItemLink> / <TrackSearchResults>         components/analytics/*    ← 声明式接线叶子（只收可序列化 props）
          （'use client'，内部同样只调 events.ts）
 
         ▼  dataLayer
@@ -122,7 +122,7 @@ client component（交互点）
                    GA4（G-V1KZT6Q50E）→ DebugView / 实时报告 / 自定义维度
 ```
 
-**一次点击的完整链路（示例）**：用户点课程卡 → `TrackedLink` 的 onClick → `trackSelectItem({...})` → `emit("select_item", {...})` → `dataLayer.push` → GTM 触发器 A 命中 → GA4 事件标签用 `{{DL - um_name}}` 取名 `select_item`、逐参数取值 → GA4 DebugView 出现 `select_item` 且参数齐全；同时 `next/link` 的默认导航照常发生。
+**一次点击的完整链路（示例）**：用户点课程卡 → `TrackedItemLink` 的 onClick → `trackSelectItem({...})` → `emit("select_item", {...})` → `dataLayer.push` → GTM 触发器 A 命中 → GA4 事件标签用 `{{DL - um_name}}` 取名 `select_item`、逐参数取值 → GA4 DebugView 出现 `select_item` 且参数齐全；同时 `next/link` 的默认导航照常发生。
 
 ---
 
@@ -203,9 +203,9 @@ export const FORBIDDEN_PARAM_NAMES: readonly string[] = [ … ];  // 见 5.4
 | 事件 | GA4 类型 | 参数 | 接线点 | 为什么 URL 表达不了 |
 |---|---|---|---|---|
 | `search` | 推荐 | `search_term`(string,必需)、`search_scope`(string,必需,`course`/`instructor`)、`entry_point`(string,必需,`hero`/`header`/`dialog`) | `components/search/search-form.tsx` `onSubmit` | 提交意图（同一搜索页也可由外链直接到达）；入口来源（首屏大搜索框 / 搜索页顶栏 / 弹窗） |
-| `view_search_results` | 推荐 | `search_term`(string,必需)、`search_scope`(string,必需)、`result_count`(number,必需)、`has_results`(number 0/1,必需) | 课程结果：`components/course-filter.tsx`（`trackResults` 存在时 `TrackOnMount`）；讲师结果：`app/search/instructor/[...name]/page.tsx` | 结果数——尤其 `result_count = 0`，这是"教务库缺这门课/这位老师"的唯一信号 |
+| `view_search_results` | 推荐 | `search_term`(string,必需)、`search_scope`(string,必需)、`result_count`(number,必需)、`has_results`(number 0/1,必需) | 课程结果：`components/course-filter.tsx`（`trackResults` 存在时 `TrackSearchResults`）；讲师结果：`app/search/instructor/[...name]/page.tsx` | 结果数——尤其 `result_count = 0`，这是"教务库缺这门课/这位老师"的唯一信号 |
 | `filter_apply` | 自定义 | `filter_name`(string,必需)、`filter_value`(string,必需)、`result_count`(number,必需) | `components/course-filter.tsx` `onValueChange` | 用户真正用了哪个筛选维度（9 个下拉；query 串里的值是 URL 编码的系统字段名，报表里几乎无法聚合） |
-| `select_item` | 推荐 | `item_id`(string,必需)、`item_list_name`(string,必需)、`position`(number,必需)、`faculty`(string,可选) | `components/course-card.tsx`、`components/prof-card.tsx` 的链接换为 `TrackedLink` | 点击位置（算列表 CTR / 首屏价值）与来源列表；`faculty` 用于跨列表按学院聚合 |
+| `select_item` | 推荐 | `item_id`(string,必需)、`item_list_name`(string,必需)、`position`(number,必需)、`faculty`(string,可选) | `components/course-card.tsx`、`components/prof-card.tsx` 的链接换为 `TrackedItemLink` | 点击位置（算列表 CTR / 首屏价值）与来源列表；`faculty` 用于跨列表按学院聚合 |
 
 **参数口径（必须在实现时严格按此，避免"同名不同义"）**
 
@@ -256,9 +256,9 @@ Phase 2 的公共约束：
 | `lib/analytics/registry.ts` | 从数据源再导出 + 类型标注 + 禁止项清单 | 纯数据 + 类型，无副作用，可被测试直接 import |
 | `lib/analytics/data-layer.ts` | `emit()`：SSR 守卫、注册表校验、归一、dev 日志、唯一 push | **全仓唯一允许出现 `dataLayer.push` 的文件** |
 | `lib/analytics/events.ts` | 语义化函数（Phase 1 四个 + Phase 2 八个） | 参数类型由 TS 约束；函数体内只调 `emit()`，不含业务判断 |
-| `components/analytics/tracked-link.tsx` | `'use client'`：包 `next/link`，`onClick` 上报后照常导航 | 不 `preventDefault`、不改导航时序；`children` 作为 props 透传 → 服务端渲染的卡片内容仍然是 server component |
-| `components/analytics/track-on-mount.tsx` | `'use client'`：挂载上报一次 | `useRef` 去重，StrictMode 双执行下只上报一次；卸载不补发 |
-| `lib/course-filters.ts` | 把 `CourseFilter` 里内联的筛选循环抽成纯函数 `applyCourseFilters(data, filter)` | 让 `filter_apply` 能在**事件处理函数内同步**算出"筛选后条数"，而不是在 state 更新的副作用里事后补报（否则计数与事件会错一拍）；纯函数可单测 |
+| `components/analytics/tracked-link.tsx` | `'use client'`：导出 `TrackedItemLink`，包 `next/link`，`onClick` 上报 `select_item` 后照常导航。**props 必须是可序列化数据**（`href` / `itemId` / `listName` / `position` / `faculty`），不能是回调函数——调用方 `CourseCard` / `ProfCard` 是 server component，RSC 边界不允许传函数 | 不 `preventDefault`、不改导航时序；`children` 作为 props 透传 → 服务端渲染的卡片内容仍然是 server component |
+| `components/analytics/track-search-results.tsx` | `'use client'`：导出 `TrackSearchResults`，props 为 `{ term, scope, resultCount }`（同样只收数据，因为讲师搜索页是 server component）；挂载上报一次 `view_search_results` | `useRef` 去重，StrictMode 双执行下只上报一次；卸载不补发；`resultCount` 后续变化不重复上报 |
+| `lib/course-filters.ts` | 把 `CourseFilter` 里内联的筛选逻辑抽成纯函数：`createInitialFilterState()` / `nextFilterState(current, key, value)`（含 `Is_Offered` 的三态映射）/ `applyCourseFilters(data, filter)` | 让 `filter_apply` 能在**事件处理函数内同步**算出"筛选后条数"，而不是在 state 更新的副作用里事后补报（否则计数与事件会错一拍）；纯函数可单测 |
 | `scripts/print-analytics-manifest.mjs` | 从 `registry-data.mjs` 生成 `docs/analytics/gtm-setup.md` | 零依赖（见 §7.3） |
 | `docs/analytics/gtm-setup.md` | 生成的清单：触发器 / 变量 / 参数行 / GA4 自定义维度 / 验收步骤 | 由脚本生成，人工不得手改（防漂移测试会比对） |
 
@@ -267,12 +267,12 @@ Phase 2 的公共约束：
 | 文件 | 改动 |
 |---|---|
 | `components/search/search-form.tsx` | `onSubmit` 中上报 `search`；`entry_point` 取 `variant`，`search_scope` 取 `is_prof ? "instructor" : "course"`，`search_term` 取表单已通过 zod 校验的 `code` |
-| `components/course-filter.tsx` | 新增 `listName: string`（必需）与 `trackResults?: { term: string; scope: "course" \| "instructor" }`（可选）；筛选循环改为调用 `applyCourseFilters()`；`onValueChange` 用「新筛选条件 → `applyCourseFilters` → 条数」上报 `filter_apply`；`trackResults` 存在时用 `TrackOnMount` 上报 `view_search_results`（`result_count = data.length`） |
+| `components/course-filter.tsx` | 新增 `listName: string`（必需）与 `trackResults?: { term: string; scope: "course" \| "instructor" }`（可选）；筛选循环改为调用 `applyCourseFilters()`；`onValueChange` 用「新筛选条件 → `applyCourseFilters` → 条数」上报 `filter_apply`；`trackResults` 存在时渲染 `TrackSearchResults` 上报 `view_search_results`（`result_count = data.length`） |
 | `app/catalog/[...departments]/page.tsx` | 传 `listName="catalog"` |
 | `app/search/course/[code]/page.tsx` | 传 `listName="search_course"` 与 `trackResults={{ term: code, scope: "course" }}` |
-| `app/search/instructor/[...name]/page.tsx` | 卡片传 `listName="search_instructor"`；结果集与 0 结果分支各用 `TrackOnMount` 上报 `view_search_results` |
-| `components/course-card.tsx` | `<Link>` → `<TrackedLink>`；新增 `listName`、`position` 两个 prop |
-| `components/prof-card.tsx` | `ProfCard` / `ProfCourseCard` 的 `<Link>` → `<TrackedLink>`；新增 `listName`、`position` |
+| `app/search/instructor/[...name]/page.tsx` | 卡片传 `listName="search_instructor"`；结果集与 0 结果分支各渲染 `TrackSearchResults` 上报 `view_search_results` |
+| `components/course-card.tsx` | `<Link>` → `<TrackedItemLink>`；新增 `listName`、`position` 两个 prop |
+| `components/prof-card.tsx` | `ProfCard` / `ProfCourseCard` 的 `<Link>` → `<TrackedItemLink>`；新增 `listName`、`position` |
 | `components/course/course-instructors.tsx` | 传 `listName="course_instructors"` 与 `position` |
 | `app/professor/[...name]/page.tsx` | 传 `listName="professor_courses"` 与 `position` |
 
@@ -297,14 +297,14 @@ Phase 2 的公共约束：
 | `SearchForm` 输入不足 4 字符 | zod 校验失败 → `onSubmit` 不执行 → **不上报**（表单已阻止提交） |
 | 用户在弹窗里提交搜索 | 上报 `entry_point = "dialog"`，随后弹窗按既有逻辑 100ms 后关闭，不影响上报 |
 | 课程搜索返回 0 条 | `CourseFilter` 拿到空数组 → `view_search_results` 带 `result_count = 0, has_results = 0`；页面本身的"无结果"渲染不受影响 |
-| 讲师搜索返回 0 条 | `app/search/instructor/[...name]/page.tsx` 的 `data.length === 0` 分支渲染 `TrackOnMount`，同样上报 `result_count = 0`（该分支当前 `return` 得很早，注意把上报组件放进返回的 JSX 里） |
+| 讲师搜索返回 0 条 | `app/search/instructor/[...name]/page.tsx` 的 `data.length === 0` 分支渲染 `TrackSearchResults`，同样上报 `result_count = 0`（该分支当前 `return` 得很早，注意把上报组件放进返回的 JSX 里） |
 | 同一筛选连点两次相同值 | Radix `Select` 不会对相同值触发 `onValueChange`；若触发则如实上报两次（口径=用户操作，不做去重） |
 | `filter_apply` 之后 `CourseFilter` 会 `replaceState` 改 query | 该 `replaceState` 可能触发 GTM 的 `History Change` → 由 R3 的触发器过滤兜住，**不产生** `page_view` |
-| 卡片点击后导航 | `TrackedLink` 先同步 push 再放行导航；dataLayer push 是同步内存操作，不会因为页面切换而丢失（SPA 导航不触发页面卸载） |
+| 卡片点击后导航 | `TrackedItemLink` 先同步 push 再放行导航；dataLayer push 是同步内存操作，不会因为页面切换而丢失（SPA 导航不触发页面卸载） |
 | 新标签页/中键打开卡片 | `onClick` 仍会触发（mouse 中键会触发 `auxclick` 而非 `click`，因此中键打开**不上报**——口径=真实点击，接受） |
 | 广告位出现在列表中 | `position` 只数真实条目，广告位不占号（`withAdSlots` 的 `renderItem` 收到的就是原始下标） |
-| 服务端渲染这些组件 | `emit()` 在无 `window` 时直接返回；`TrackOnMount` 只在客户端 `useEffect` 里上报 → 不污染 SSR 输出 |
-| React StrictMode（`reactStrictMode: true`） | `TrackOnMount` 用 `useRef` 去重；组件测试必须在 StrictMode 下断言只上报一次 |
+| 服务端渲染这些组件 | `emit()` 在无 `window` 时直接返回；`TrackSearchResults` 只在客户端 `useEffect` 里上报 → 不污染 SSR 输出 |
+| React StrictMode（`reactStrictMode: true`） | `TrackSearchResults` 用 `useRef` 去重；组件测试必须在 StrictMode 下断言只上报一次 |
 
 ---
 
@@ -344,19 +344,23 @@ Phase 2 的公共约束：
 | 单元 | `tests/analytics/data-layer.test.ts` | payload 恒为 `{event:"um_event", um_name, ...params}`；无 `window` 时不 push 且不抛错；`window.dataLayer` 缺失时被初始化为数组；未注册事件名/参数名在 dev 抛错、在 prod 丢弃且 warn 一次；缺必需参数 dev 抛错；布尔归一为 1/0；数字保持 number；超长字符串截断到 100 且 warn；payload 里不出现 `undefined` 值 |
 | 单元 | `tests/analytics/registry.test.ts` | `registry-data.mjs` 能被 Node 直接 import（脚本与运行时同源）；事件名/参数名满足 `^[a-z][a-z0-9_]*$` 且 ≤40 字符；非保留前缀；单事件参数 ≤25；`FORBIDDEN_PARAM_NAMES` 不出现在任何事件参数表；每个 `wiring` 指向的文件真实存在（防文档腐烂）；`recommended` 事件名在白名单内 |
 | 单元 | `tests/analytics/events.test.ts` | 每个语义函数的入参到 payload 的映射正确（含可选参数缺省时不出现该键） |
-| 单元 | `tests/course-filters.test.ts` | `applyCourseFilters()` 与既有筛选语义逐项一致（9 个维度、`All` 表示不过滤、`Is_Offered` 的 `Offered`/`Not Offered` → 1/0 映射）；空结果返回空数组 |
-| 组件 | `tests/components/search-form-analytics.test.tsx` | 合法提交 → `search` 事件且 `entry_point` = 传入 variant；`is_prof` 切换 → `search_scope = "instructor"`；校验失败 → 无上报 |
+| 单元 | `tests/course-filters.test.ts` | `nextFilterState()` 的三态映射与既有语义逐项一致（`Offered`/`Not Offered`/`All` → `1`/`0`/`All`）；`applyCourseFilters()` 覆盖 9 个状态维度、`All` 表示不过滤、多维度 AND 组合、空结果、不改动入参与原状态 |
+| 组件 | **扩展**既有 `tests/components/search-form.test.tsx`（不新建重复文件；它已有 `vi.mock("next/navigation")` 与 `ResizeObserver` 桩） | 合法提交 → `search` 事件且 `entry_point` = 传入 variant；`is_prof` 切换 → `search_scope = "instructor"`；校验失败（<4 字符）→ 无上报 |
+| 组件 | `tests/components/course-card-analytics.test.tsx` | 渲染 `CourseCard` → 点击 → `select_item` 带 `item_id`/`item_list_name`/`position`/`faculty`；`href` 指向 `/course/<code>`；无 `faculty` 字段时不带该参数。**`ProfCard` 是 async server component，RTL 无法直接渲染** → 它的接线由 `tests/analytics/wiring.test.ts` 的源码断言覆盖 |
 | 组件 | `tests/components/course-filter-analytics.test.tsx` | 切换下拉 → `filter_apply` 三参数正确（`result_count` = 筛选后条数）；`trackResults` 存在 → 挂载上报一次 `view_search_results`；StrictMode 下仍只上报一次；无 `trackResults` → 不上报 |
-| 组件 | `tests/components/tracked-link.test.tsx` | 点击 → `select_item` 带 `item_id`/`item_list_name`/`position`；`href` 未被改写；可选 `faculty` 缺失时不出现在 payload |
+| 组件 | `tests/components/tracked-item-link.test.tsx` | 点击 → `select_item` 带 `item_id`/`item_list_name`/`position`；`href` 未被改写；可选 `faculty` 缺失时不出现在 payload |
+| 组件 | `tests/components/track-search-results.test.tsx` | 挂载 → 上报一次 `view_search_results`；`resultCount` 变化不重复上报；StrictMode 双执行仍只上报一次；卸载重挂一次按"新挂载"再上报一次 |
 | 守卫 | `tests/analytics/wiring.test.ts` | 源码扫描：除 `lib/analytics/data-layer.ts` 外无 `dataLayer` 直接写入、无 `gtag(`；`events.ts` 里用到的参数名全部在注册表内；`CourseCard`/`ProfCard` 中不存在裸 `next/link` 的 `<Link>` 直连；`docs/analytics/gtm-setup.md` 与脚本生成结果**逐字一致**（防漂移） |
 
-测试写法、目录与命名遵循仓库既有惯例（`tests/ads/*`、`tests/components/*`；`vitest.config.ts` 中 `tests/components/**` 走 jsdom，其余走 node）。
+测试写法、目录与命名遵循仓库既有惯例（`tests/ads/*`、`tests/components/*`；`vitest.config.ts` 中 `tests/components/**` 走 jsdom，其余走 node；`tests/analytics/**` 需要浏览器全局的文件用文件头 `/** @vitest-environment jsdom */` 单独声明）。
+
+**关于 Radix `Select` 的测试方式（已实测确定）**：在 jsdom 下补 4 个 pointer API 桩（`Element.prototype.hasPointerCapture` / `setPointerCapture` / `releasePointerCapture` / `scrollIntoView`）后，**可以真正用 DOM 交互驱动筛选下拉**（探针已验证：点击 combobox → 选项出现 → 点击选项 → 列表确实收窄）。因此 `filter_apply` 做**行为测试**，不需要退化成源码断言。两点实现细节：① 下拉的渲染顺序由 `courseKeysToCount`（6 个维度）决定，测试用它定位控件下标；② 某维度只有 1 个取值时该下拉 disabled 且其选项不会被 `unshift("All")`，构造测试数据时必须让目标维度有 ≥2 个取值。筛选逻辑仍抽成纯函数 `nextFilterState()` / `applyCourseFilters()`，以便对三态映射与多维度组合做独立的单测。
 
 ---
 
 ## 11. 验收标准
 
-- **AC1** `npm run test` 全绿（现有 105 个文件 / 337 个测试 + 新增 8 个测试文件）；`npm run lint`、`npx tsc --noEmit`、`npm run build` 全部通过。
+- **AC1** `npm run test` 全绿（现有 105 个文件 / 337 个测试 + 新增 9 个测试文件并扩展 1 个既有测试）；`npm run lint`、`npx tsc --noEmit`、`npm run build` 全部通过。
 - **AC2** §10 表格里的全部断言有对应测试且通过。
 - **AC3** 无新增依赖（`package.json` 的 dependencies/devDependencies 不变）；`npm run build` 的 shared First Load JS 增量 < 3 kB（对比 `main` 基线输出）。
 - **AC4** 手工（GTM Preview + 本地 `npm run dev`）：Phase 1 四个事件逐条核对 dataLayer payload；**并在 GA4 DebugView 里逐参数核对"每个参数都有值、没有 not set"**——这是桥 A 唯一的静默失败点。
@@ -376,11 +380,11 @@ Phase 2 的公共约束：
 | R3 | `CourseFilter` 的 `window.history.replaceState` 触发 `History Change` → 每次筛选产生噪声 `page_view` | `page_view` 指标被污染 | §9.1 第 6 步的触发器上游过滤；AC5-③ 专门核对 |
 | R4 | Next.js 内部的 `replaceState` / 浏览器回退 → `page_view` 漏计或重计 | 页面浏览数据不准 | AC5-① ② ④ 覆盖前进与后退路径 |
 | R5 | 新增事件绕过注册表、口径漂移 | 字典失效、报表口径混乱 | 守卫测试（唯一 push 出口 + 注册表校验 + `wiring` 文件存在性） |
-| R6 | StrictMode 双执行 / 组件重挂载 → 重复上报 | 事件数虚高 | `TrackOnMount` 用 ref 去重；组件测试在 StrictMode 下断言"只发一次" |
+| R6 | StrictMode 双执行 / 组件重挂载 → 重复上报 | 事件数虚高 | `TrackSearchResults` 用 ref 去重；组件测试在 StrictMode 下断言"只发一次" |
 | R7 | GA4 参数限制（每事件 ≤25、名称 ≤40、字符串 ≤100 字符） | 参数被 GA4 截断/丢弃 | 注册表测试断言上限；`emit()` 运行时截断 + warn |
 | R8 | `window.dataLayer` 尚未初始化 | push 抛错、丢事件 | `emit()` 中按 GTM 标准做法兜底初始化数组 |
 | R9 | 事件只在本地可见、线上无数据 | 上线后误判"埋点没生效" | AC6 要求先发布容器版本再复验；verification 文档记录容器版本号 |
-| R10 | `TrackedLink` 替换 `<Link>` 时误伤导航（例如阻止默认行为、丢 `prefetch`） | 用户体验回归 | 组件测试断言 `href` 未被改写、默认行为未被阻止；接入后核对 `next/link` 的 `prefetch` 行为不变 |
+| R10 | `TrackedItemLink` 替换 `<Link>` 时误伤导航（例如阻止默认行为、丢 `prefetch`） | 用户体验回归 | 组件测试断言 `href` 未被改写、默认行为未被阻止；接入后核对 `next/link` 的 `prefetch` 行为不变 |
 
 ---
 
@@ -390,5 +394,5 @@ Phase 2 的公共约束：
 2. `docs/superpowers/plans/2026-10-03-next-web-ga-analytics.md`（由 `writing-plans` 生成，Phase 1 / Phase 2 分阶段任务）
 3. `docs/analytics/gtm-setup.md`（脚本生成的 GTM + GA4 手工配置清单）
 4. 源码：`lib/analytics/*`（含 `registry-data.mjs`）、`components/analytics/*`、`lib/course-filters.ts`、`scripts/print-analytics-manifest.mjs`，以及 §7.2 的 9 处接线改动
-5. 测试：`tests/analytics/*`、`tests/course-filters.test.ts`、`tests/components/search-form-analytics.test.tsx`、`tests/components/course-filter-analytics.test.tsx`、`tests/components/tracked-link.test.tsx`
+5. 测试：`tests/analytics/*`（registry / data-layer / events / wiring）、`tests/course-filters.test.ts`、`tests/components/tracked-item-link.test.tsx`、`tests/components/track-search-results.test.tsx`、`tests/components/course-card-analytics.test.tsx`、`tests/components/course-filter-analytics.test.tsx`，并扩展既有 `tests/components/search-form.test.tsx`
 6. `docs/superpowers/verification/2026-10-03-next-web-ga-analytics.md`（实施后的验证记录，含 AC1–AC8 证据与 GTM 容器版本号）
