@@ -1,6 +1,6 @@
 import React from "react";
 import { render, cleanup } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { TrackSearchResults } from "@/components/analytics/track-search-results";
 
@@ -10,11 +10,17 @@ function pushed(): Payload[] {
   return (window as unknown as { dataLayer: Payload[] }).dataLayer;
 }
 
+let debug: ReturnType<typeof vi.spyOn>;
+
 beforeEach(() => {
+  debug = vi.spyOn(console, "debug").mockImplementation(() => {});
   (window as unknown as { dataLayer?: Payload[] }).dataLayer = [];
 });
 
-afterEach(cleanup);
+afterEach(() => {
+  debug.mockRestore();
+  cleanup();
+});
 
 describe("TrackSearchResults", () => {
   it("reports the result count once on mount", () => {

@@ -15,12 +15,18 @@ function pushed(): Payload[] {
   return (window as unknown as { dataLayer: Payload[] }).dataLayer;
 }
 
+let debug: ReturnType<typeof vi.spyOn>;
+
 beforeEach(() => {
+  debug = vi.spyOn(console, "debug").mockImplementation(() => {});
   (window as unknown as { dataLayer?: Payload[] }).dataLayer = [];
   push.mockClear();
 });
 
-afterEach(cleanup);
+afterEach(() => {
+  debug.mockRestore();
+  cleanup();
+});
 
 describe("TrackedItemLink", () => {
   it("keeps the destination href untouched", () => {
