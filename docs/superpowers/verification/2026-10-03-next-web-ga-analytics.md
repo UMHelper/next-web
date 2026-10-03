@@ -4,10 +4,10 @@
 
 Phase 1（埋点层：事件注册表 + 唯一 dataLayer 写入口 + `search` / `view_search_results` / `filter_apply` / `select_item` 四个事件 + 9 处接线 + 由注册表生成的 GTM 清单）已全部实现，10 个 task 的产物都在工作分支 `feat/ga-analytics-phase1` 上。
 
-- 分支：`feat/ga-analytics-phase1`（基于 `main`，24 个 commit，含本文档与复查轮的两个 commit）
+- 分支：`feat/ga-analytics-phase1`（基于 `main`，**26 个 commit** —— `git rev-list --count main..HEAD` 实测；含本文档与复查轮、最终修复轮的 commit，不含本次文档修复自身所在的 commit）
 - **未合并、未 push、未部署**；线上 `umeh.top` 仍是旧版本，本文所有结论只对本地生产构建成立
 - Phase 2 的 8 个转化类事件（`review_submit` / `review_vote` / `review_reply` / `review_report` / `timetable_add_section` / `timetable_remove_section` / `timetable_share` / `login`）**未实现**，见 AC8 一节
-- 表格里所有数字都是本轮在本机实测输出，只有明确标为**估算**的差值例外（见 Bundle evidence 一节的残差说明）；未执行的人工步骤在文中明确标为"未完成"
+- 表格里所有数字都是本机实测输出，只有明确标为**估算**的差值例外（见 Bundle evidence 一节的残差说明）；未执行的人工步骤在文中明确标为"未完成"。**本文有两批测量**：上一轮在 `d94da06` 的构建上测的（Bundle evidence 的表格主体），以及本轮文档修复轮在干净树里重建 `main`/HEAD 一对构建后复测的（同节的"文档修复轮的复测"）；两批各自标明口径与来源，凡是 `c5771df` 改过的数字（触发条件、埋点本体大小、chunk 名）都成对列出
 - 全文的 **gzip 字节数一律用 `gzip -9 -n -c`**（level 9，且 `-n` 不写文件名与 mtime）。默认的 `gzip -c` 是另一回事（level 6 且会写文件名/时间头），得到的数字更大，**不是本文口径**：例如同样两个 chunk，`gzip -c` 是 3,872 / 4,669 B，本文口径是 3,845 / 4,641 B。每个 gzip 数字旁边都重复标注了该命令。
 
 ## Commits
@@ -36,24 +36,36 @@ Phase 1（埋点层：事件注册表 + 唯一 dataLayer 写入口 + `search` / 
 - `da0cef6 docs(plan): keep the generated manifest pure and move the smoke record to verification`
 - `ea35ade chore(analytics): derive the manifest counts and widen the data-layer guard`
 - `a578e77 test(analytics): cover the remount and StrictMode assertions from spec 10`
+- `8081981 docs(analytics): phase 1 verification record`
+- `c5771df fix(analytics): keep back/forward page_views and unify the search_term casing`
+- `d23ba70 test(analytics): prove the client leaves survive a throwing emit`
 
-列表之外还有一条：**本文档自身所在的收尾 commit**（`docs(analytics): audit the AC2 mapping and make every bundle figure traceable`）—— 它只改本文档，正文因此不引用自己的 SHA，否则任何一次正文改动都会让它失效。
+列表里 `8081981` 是本文档的初版（只改本文档）。列表之外还有两条**只改本文档**的 commit：复查轮的 `d94da06 docs(analytics): audit the AC2 mapping and make every bundle figure traceable`，以及本轮文档修复自身所在的 commit。本文档不引用后者自己的 SHA，否则任何一次正文改动都会让它失效。
 
-`ea35ade` 是做掉的 Task 10 复查遗留项（清单计数改为从注册表派生、DebugView 措辞修正、`wiring.test.ts` 防漂移断言钉死成功行、源码扫描放宽到 `.js`/`.jsx`/`.mjs`），与验收正文分开提交。`a578e77` 与收尾 commit 是本文件被复查后补做的：前者补上 spec §10 漏掉的两条断言（卸载重挂、StrictMode），后者修正本文档（AC2 逐行对照、gzip 口径、残差与路由差值的如实标注）。细节见 `task-11-report.md` 的复查轮记录。
+`ea35ade` 是做掉的 Task 10 复查遗留项（清单计数改为从注册表派生、DebugView 措辞修正、`wiring.test.ts` 防漂移断言钉死成功行、源码扫描放宽到 `.js`/`.jsx`/`.mjs`），与验收正文分开提交。`a578e77` 与 `d94da06` 是本文件被复查后补做的：前者补上 spec §10 漏掉的两条断言（卸载重挂、StrictMode），后者修正本文档（AC2 逐行对照、gzip 口径、残差与路由差值的如实标注）。细节见 `task-11-report.md` 的复查轮记录。
+
+`c5771df` 与 `d23ba70` 是**最终修复轮**（代码/测试/清单，含本文档之外的文件，不与验收正文混提）：
+
+1. **C1（关键）**：生成清单的 `Trigger - History Change` 条件由「`History Source` **等于** `pushState`」改为「**不等于** `replaceState`」。GTM 的 `History Source` 取值是 `pushState` / `replaceState` / `popstate`，而 App Router 的浏览器前进/后退上报 `popstate` —— 旧条件会把这些 `page_view` **全部静默丢掉**；新条件放行 `pushState` + `popstate`，仍滤掉筛选 query 同步用的 `replaceState`。
+2. **I2**：`trackSearch` 上报的 `search_term` 统一大写，与结果页（`view_search_results` 的 term 来自 URL，`buildSearchPath` 已规范成大写）口径一致，否则 GA4 会把 `comp1001` 与 `COMP1001` 记成同一维度的两个取值、提交→结果无法对上。
+3. **I4**：`registry.test.ts` 新增 `pins the forbidden pii list to exactly the reviewed 14 names`，把 PII 黑名单钉死为审查过的 14 个名字（含顺序），删掉一条不再能让套件保持绿色。
+4. **M5–M13**：两个客户端叶子把埋点调用包进 `try/catch`（dev 下 `emit()` 抛错不再阻断导航/渲染，`lib/analytics/*` 仍照旧抛错）；`gtag` 守卫补上 `window.gtag?.(…)` 与 `window["gtag"](…)`；`dataLayer` 守卫改为「写操作模式 + 字面量感知的标识符检查」，因此 `app/layout.tsx` 不再需要整文件豁免；清单 §4 增加「GA4 内置维度，无需注册」备注列；清单 §7.1 的事件数改为从注册表派生。
+
+`d23ba70` 是 M5 的覆盖（只增不删）：`tests/components/analytics-leaves-resilience.test.tsx` 让 events 模块整体抛错，断言卡片链接仍能导航、结果叶子仍能渲染、错误被 `console.error("[analytics]", …)` 记下。**人工步骤不因这一轮减少**：C1 只有人工在容器里把过滤条件改对并**发布容器版本**后才生效（见 AC5 与 Outstanding manual steps）。
 
 ## Commands run
 
 | 命令 | 结果 |
 |---|---|
-| `npm run test` | **124 files / 468 tests passed**，exit 0（5.86s） |
-| `npm run lint` | `✔ No ESLint warnings or errors`，exit 0 |
-| `npx tsc --noEmit` | exit 0，无输出 |
-| `npm run build` | exit 0；`First Load JS shared by all` = **87.6 kB** |
-| `node scripts/print-analytics-manifest.mjs --check` | `[analytics] gtm-setup.md is in sync with the registry`（exit 0） |
+| `npm run test` | **125 files / 471 tests passed**，exit 0（本轮文档修复轮实跑，6.60s） |
+| `npm run lint` | `✔ No ESLint warnings or errors`，exit 0（同上实跑） |
+| `npx tsc --noEmit` | exit 0，无输出（同上实跑） |
+| `npm run build` | exit 0；`First Load JS shared by all` = **87.6 kB**（实现者那一轮在库内构建的打印值）。**本轮在干净树里重建 `main` 与 HEAD 各一次复验：两侧都打印 87.5 kB**，即 Δ ≈ 0.0 kB —— 0.1 kB 的差是本文记录的同源构建噪声在 Next 3 位有效数字打印上的表现，见 Bundle evidence 的"文档修复轮复测" |
+| `node scripts/print-analytics-manifest.mjs --check` | `[analytics] gtm-setup.md is in sync with the registry`（exit 0，同上实跑） |
 
-（本文档在复查轮里补齐了 spec §10 的两条断言 —— 见 AC2 一节的"本轮补齐"，测试数因此由 466 变成 468：`tests/components/track-search-results.test.tsx` 5 → 6 条、`tests/components/course-filter-analytics.test.tsx` 6 → 7 条。文件数不变，仍是 124。）
+（测试数的一路变化：本轮文档修复轮之前的 HEAD 是 **124 files / 469 tests** —— 复查轮补两条断言时是 466 → 468，`c5771df` 的 I4 再 +1（PII 白名单钉死）到 469；`d23ba70` 新增 `tests/components/analytics-leaves-resilience.test.tsx` 一个文件 2 条用例到 **125 files / 471 tests**。**471 与 125 都不是转述：本轮实跑 `npm run test` 得到的就是这个输出**，见上表。）
 
-测试文件数说明：spec 写作时预期 105 + 9 = 114 个文件，但 `main` 上现在已经不止 105 个——本轮实测 `main` 有 **115** 个测试文件，HEAD 有 **124** 个（`git ls-tree` 计数），即本分支新增 9 个测试文件（`tests/analytics/*` 4 个、`tests/components/{tracked-item-link,track-search-results,course-card-analytics,course-filter-analytics}.test.tsx`、`tests/course-filters.test.ts`）并扩展了既有 `tests/components/search-form.test.tsx`，与 spec §10 的清单逐条对应。
+测试文件数说明：spec 写作时预期 105 + 9 = 114 个文件，但 `main` 上现在已经不止 105 个——本轮实测 `main` 有 **115** 个测试文件，HEAD 有 **125** 个（`git ls-tree -r --name-only main/HEAD | grep -E '^tests/.*\.(test|spec)\.(ts|tsx|js|jsx)$' | wc -l`），即本分支新增 **10** 个测试文件（`tests/analytics/*` 4 个、`tests/components/{tracked-item-link,track-search-results,course-card-analytics,course-filter-analytics,analytics-leaves-resilience}.test.tsx`、`tests/course-filters.test.ts`）并扩展了既有 `tests/components/search-form.test.tsx`，与 spec §10 的清单逐条对应（`analytics-leaves-resilience.test.tsx` 是 `d23ba70` 为 M5 补的，不在 spec §10 的清单内）。
 
 清单自检（Step 4，逐条核对生成的 `docs/analytics/gtm-setup.md`，用脚本对比注册表而不是目测）：
 
@@ -64,25 +76,27 @@ import { ANALYTICS_EVENTS } from "./lib/analytics/registry-data.mjs";
 const params = [...new Set(Object.values(ANALYTICS_EVENTS).flatMap((s) => Object.keys(s.params)))].sort();
 const doc = readFileSync("docs/analytics/gtm-setup.md", "utf8");
 const vars = [...new Set([...doc.matchAll(/^\| `DL - ([a-z_]+)` \|/gm)].map((m) => m[1]))].sort();
-const rows = [...new Set([...doc.matchAll(/^\| `([a-z_]+)` \| `\{\{DL - \1\}\}` \|$/gm)].map((m) => m[1]))].sort();
+const rows = [...new Set([...doc.matchAll(/^\| `([a-z_]+)` \| `\{\{DL - \1\}\}` \|/gm)].map((m) => m[1]))].sort();
 console.log("registry params (" + params.length + "):", params.join(","));
 console.log("vars cover all params:", params.every((p) => vars.includes(p)));
 console.log("rows cover all params:", params.every((p) => rows.includes(p)));
-console.log("history filter:", /History Source` 等于 `pushState/.test(doc));
+console.log("history filter (not equals replaceState):", /`History Source` \*\*不等于\*\* `replaceState`/.test(doc));
 console.log("ga4 switch 1 (enhanced measurement):", /增强衡量 → 网页浏览 → 基于浏览器历史事件的页面变化/.test(doc));
 console.log("ga4 switch 2 (event-scoped custom dimensions):", /事件级\*\*自定义维度/.test(doc));
 ```
 
-以 `node --input-type=module -e` 跑上面这段，实测输出：
+以 `node --input-type=module -e` 跑上面这段，实测输出（本轮文档修复轮重跑，逐字）：
 
 ```text
 registry params (11): entry_point,faculty,filter_name,filter_value,has_results,item_id,item_list_name,position,result_count,search_scope,search_term
 vars cover all params: true
 rows cover all params: true
-history filter: true
+history filter (not equals replaceState): true
 ga4 switch 1 (enhanced measurement): true
 ga4 switch 2 (event-scoped custom dimensions): true
 ```
+
+**这段自检相对上一版改了两处，都是 `c5771df` 带来的、不改就会给出假结论的地方**：① §4 参数行新增了「备注」列（M8），旧正则末尾的 `$` 因此匹配不到任何一行，`rows cover all params` 会变成 `false`；② 触发条件由「等于 `pushState`」改成「不等于 `replaceState`」（C1），旧正则断言的是**已经不存在**的字符串，`history filter` 会变成 `false`。两处都按现在生成清单的真实文本改成正则后重跑，输出如上（全部 `true`）。
 
 只跑埋点相关的子集也是全绿（用于确认新增断言真的在跑）：
 
@@ -91,10 +105,12 @@ npx vitest run tests/analytics tests/components/course-card-analytics.test.tsx \
   tests/components/track-search-results.test.tsx tests/components/tracked-item-link.test.tsx \
   tests/components/course-filter-analytics.test.tsx tests/course-filters.test.ts \
   tests/components/search-form.test.tsx
-# → Test Files 10 passed (10) / Tests 80 passed (80)
+# → Test Files 10 passed (10) / Tests 81 passed (81)   （上一版是 80：c5771df 的 I4 在 tests/analytics/registry.test.ts 里 +1）
 ```
 
 ## Bundle evidence (AC3)
+
+> 本节以下表格与数字默认是**上一轮（`d94da06` 的构建）**测的；本节末尾的"文档修复轮的复测"是本轮在同一台机器上重建 `main`/HEAD 一对构建后的独立复测，两批数字都各自标明来源，别把两批混在一次减法里。
 
 **测量方法**：`npm run build`（Next 14.2.35），从路由表里读 `First Load JS shared by all`。为了不拿历史数字做唯一依据，本轮**在同机同工具链上重新构建了一份 `main` 基线**：`git archive main | tar -x` 到独立目录、软链同一份 `node_modules`、拷贝同一份 `.env.local`，然后在该目录里跑同一条 `npm run build`。两次数值因此可直接相减。
 
@@ -106,7 +122,7 @@ npx vitest run tests/analytics tests/components/course-card-analytics.test.tsx \
 | `feat/ga-analytics-phase1` | **87.6 kB** | `chunks/2117` 31.9 + `chunks/fd9d1056` 53.6 + other shared 2 |
 | 历史参照（2026-10-02 masonry 记录） | 87.6 kB | — |
 
-**增量 ≈ 0.0 kB**，AC3 的 "< 3 kB" 成立。同一角色的共享 chunk 本身也只有几字节变化：`chunks/119` 124,760 B → `chunks/2117` 124,729 B（`gzip -9 -n -c` 31,897 B → 31,898 B）。
+**增量 ≈ 0.0 kB**，AC3 的 "< 3 kB" 成立。同一角色的共享 chunk 本身也只有几字节变化：`chunks/119` 124,760 B → `chunks/2117` 124,729 B（`gzip -9 -n -c` 31,897 B → 31,898 B）。**本轮干净树复测**：两侧打印值同为 **87.5 kB**（组成 `chunks/1b43a8d6` 53.6 + `chunks/5432` 31.9 + other 2.01，两侧同名同值），Δ 同样是 ≈ 0.0 kB；也就是说 87.6 与 87.5 只是两次同源构建的打印差，AC3 的结论不依赖取哪一个（见"文档修复轮的复测"）。
 
 路由级 `First Load JS` 的差值同样只落在真正接线的页面上：
 
@@ -139,9 +155,19 @@ npx vitest run tests/analytics tests/components/course-card-analytics.test.tsx \
 /compare/[token]/page: main 132,504 B -> HEAD 132,498 B   (Δ = -6 B)
 ```
 
-Next 打印时只保留 3 位有效数字，而这条路由正好骑在 `.5 kB` 边界上：132.504 kB → `133 kB`，132.498 kB → `132 kB`，于是"−6 B"被打印成"−1 kB"。这 −6 B 的构成（按两份构建里该路由 first-load chunk 的位置配对，位置配对的可靠性见下段）：路由自己的 page chunk `app/compare/[token]/page-*.js` **+3 B**（3,126 → 3,129），共享/公共 chunk 合计 **−9 B**（`webpack` −1、`chunks/4f051027` → `fd9d1056` −1、`chunks/119` → `2117` −1、`main-app` −4、`chunks/9539` → `8332` −3、`chunks/2534` → `5592` +1）。
+Next 打印时只保留 3 位有效数字，而这条路由正好骑在 `.5 kB` 边界上：132.504 kB → `133 kB`，132.498 kB → `132 kB`，于是"−6 B"被打印成"−1 kB"。**这 −6 B 是实测的路由级差值**（口径：把该路由 `.next/app-build-manifest.json` 列出的每个 JS chunk 逐个 `gzip -9 -n -c` 后求和），**不是"chunk 重排噪声"这种说法**；它的量级（个位数到几十字节）与接线路由的 +2.6 ~ +3.1 kB 差两到三个数量级，且同样出现在完全没接埋点的路由上。
 
-**配对方式说明**：两份构建的 chunk 文件名带内容哈希，必然不同，因此这里按 `.next/app-build-manifest.json` 里每个路由的 chunk **顺序**配对（抽查的 3 条路由里，两份清单形状都一致：webpack → 两个共享 chunk → main-app → 若干异步 chunk → 路由自己的 page chunk）。即使个别异步 chunk 配错了，也只是把 ±3 B 的抖动在两三个文件之间挪动，不会改变"这一档是几十字节"的量级判断。
+**上一版本文档在这里附过一段"按 chunk 位置配对"的逐项拆分，本轮把它删掉了**：那段拆分里 `chunks/119` → `chunks/2117` 一项写成 **−1 B**，而本文档自己上一节记录的同两个 chunk 的 gzip 实测是 31,897 → **31,898 B（+1 B）**；也就是说那段拆分没有标明压缩口径，且其中一项的符号与本文档声明的 `gzip -9 -n -c` 口径相反，小计 −9 B 在该口径下对不上。与其猜口径或改一个数字让加减好看，这里只保留可直接复现的路由级差值；逐 chunk 拆分改用下面这次**本轮干净树配对复测**的结果（那次各项都能逐文件闭合）。
+
+**文档修复轮的干净树配对复测（本轮新做，不是转述）**：`git archive main` / `git archive HEAD` 各解到独立目录、软链同一份 `node_modules`、拷贝同一份 `.env.local`，各跑一次 `npm run build`。同一口径（每个 first-load chunk 逐个 `gzip -9 -n -c` 求和）实测：
+
+```text
+/compare/[token]/page: main 132,384 B -> HEAD 132,383 B   (Δ = -1 B)
+  逐文件闭合：9 个 chunk 里 8 个**字节完全相同**（含两个共享 chunk 53,659 / 31,868 B、main-app 227 B、webpack 1,773 B），
+  唯一差异是该路由自己的 page chunk：`page-39f6bb67c7034155.js` 3,133 B → `page-083458825ff0f474.js` 3,132 B（−1 B）
+```
+
+这一对构建里 Next 两侧都打印 `132 kB`（打印值不变），逐字节差 −1 B。**配对口径**：两份构建的 chunk 文件名带内容哈希；这次 9 个 chunk 里有 8 个两侧**同名**（内容哈希相同 → 逐字节精确配对，不存在配对猜测），只有该路由自己的 page chunk 哈希不同，按它在 `.next/app-build-manifest.json` 名单里的位置与角色（最后一个、且与上一对构建的 page chunk 同尺寸档）配对 —— 即便这一个配错，也只是把 1 B 挪到旁边，量级判断不变。**结论与上一版一致且更硬**：这条路由的差值是几字节级的构建抖动、与埋点无关，`−1 kB` 只是 3 位有效数字打印造成的错觉。
 
 同样的 ±几字节抖动**出现在每一条路由上，包括完全没接埋点的路由**：`/privacy-policy/page` 实测 96,475 → 96,465 B（−10 B），`/admin/update/page` 341,122 → 341,090 B（−32 B），35 条未接线路由的 Δ 落在 **−5 ~ −32 B**（打印值都不变，所以上表写"打印值不变"而不是"+0.00 kB"）。原因已定位到证据级、但未逐字节归因：两份构建里**同一个模块的 webpack 模块 id 不同**，例如共享 chunk 里同一个模块是 `18970:function(...)` → `65157:function(...)`、`29492:function(...)` → `91572:function(...)`（模块 id 是 chunk 里的字面量，位数变化就会让字节数抖动几十字节）；至于每个 chunk 具体多了/少了几字节、以及为什么模块 id 会这样重排，本文没有逐模块核对，属于**未解释但有界的构建噪声**（≤32 B，与接线路由 +2.6 ~ +3.1 kB 的真实增量相差两个数量级，不影响 AC3 的任何结论）。
 
@@ -174,12 +200,43 @@ grep -rlF "[analytics]" .next/static/chunks --include='*.js'
 
   （两列都覆盖同一批文件：`polyfills-42372ed130431b0a.js` 在两份构建里同名同内容，raw 112,594 B / gzip 39,373 B，两侧相抵。）
 
-  raw 这一侧可以**逐文件闭合**：把两份构建里角色对应的 17 个 chunk（两个共享 chunk、若干异步 chunk、page chunk、layout、not-found、webpack）按 HTML 里 `<script src>` 的出现顺序配对（HEAD 多出的 `9249` 单独计；`polyfills-42372ed130431b0a.js` 两侧同名同大小，互相抵消），得到 `+12,218`（新增 `9249`）`+ (−6,952)`（layout 30,072 → 23,120）`+ (−71)`（其余 16 个被引用 chunk 的净变化：−76 + 3 + 2）`= +5,195`，与直接量出来的差值**完全一致**。上一版文档里那个 −71 B 的缺口就是这么来的，即：差的不是埋点，而是这 16 个 chunk 自己也抖了几十字节（同 `webpack 模块 id 重排`，见路由一节）。gzip 侧同理：`+4,641`（`9249`）`+ (−1,774)`（layout 8,426 → 6,652）`+ (−1)`（其余 16 个 chunk）= `+2,866`。
+  **本轮文档修复轮在干净树里复测同一页（同一口径、同一命令，见下文"文档修复轮的复测"）**：raw 787,530 B（18 个 chunk）→ 792,816 B（19 个 chunk）= **+5,286 B**；gzip 239,110 → 241,978 B = **+2,868 B**。与上一版的 +5,195 / +2,866 差 91 B / 2 B，同样落在构建噪声档内，即**两轮独立测量都支持"无埋点页面每页多付 ≈ +2.87 kB gzip"**。
+
+  raw 这一侧可以**逐文件闭合**：把两份构建里角色对应的 17 个 chunk（两个共享 chunk、若干异步 chunk、page chunk、layout、not-found、webpack）按 HTML 里 `<script src>` 的出现顺序配对（HEAD 多出的 `9249` 单独计；`polyfills-42372ed130431b0a.js` 两侧同名同大小，互相抵消），得到 `+12,218`（新增 `9249`）`+ (−6,952)`（layout 30,072 → 23,120）`+ (−71)`（其余 16 个被引用 chunk 的净变化：−76 + 3 + 2）`= +5,195`，与直接量出来的差值**完全一致**。上一版文档里那个 −71 B 的缺口就是这么来的，即：差的不是埋点，而是这 16 个 chunk 自己也抖了几十字节（同 `webpack 模块 id 重排`，见路由一节）。gzip 侧同理：`+4,641`（`9249`）`+ (−1,774)`（layout 8,426 → 6,652）`+ (−1)`（其余 16 个 chunk）= `+2,866`。（复测那一对的同型分解是 `+4,645`（新增 `7301`）`+ (−1,776)`（layout 8,437 → 6,661）`+ (−1)`（`not-found` 642 → 641）= `+2,868`，两侧都能闭合到字节。）
 - 其中埋点本体占多少：`lib/analytics/events.ts` 作为入口 bundle（含 `data-layer.ts` / `registry.ts` / `registry-data.mjs`）用
-  `./node_modules/.bin/esbuild lib/analytics/events.ts --bundle --minify --format=esm --define:process.env.NODE_ENV='"production"'`（esbuild 0.27.0）实测 **5,661 B raw / 2,217 B gzip（`gzip -9 -n -c`）**。
-  上一版本文档写的 gzip 值是 **2,230 B，用文中声明的任何方法都复现不出来**（`gzip -9 -n -c` = 2,217、`gzip -6 -n -c` = 2,217、`gzip -9 -c`（带头）= 2,237、node `zlib.gzipSync(level 9)` = 2,240），本轮已按可复现口径改为 **2,217 B**。
-- **埋点本体与"每页增量"之差是估算，不是测量**：`+5,195 − 5,661 = −466 B`（raw，即整页净增量比单独打包出来的埋点本体还小 466 B——因为 layout chunk 自己缩了 6,952 B）、`+2,866 − 2,217 = +649 B`（gzip）。这两个差值**不做逐字节归因**，可能的原因（**推断，未逐字节验证**）：① 独立的 esbuild 打包与 Next 打包后的产物不同，analytics 模块在 Next 侧与 `9249` 里的 `SearchForm` 等共用一批 helper，而 esbuild 单独打包时会把这份开销都算进它自己的 5,661 B；② gzip 大小不可加——把代码拆到两个文件后，"逐文件 gzip 求和"与"合并后 gzip"不是一回事。上一版文档把这 637 B（按旧的 2,230 算出来的残差）写成"归因于 chunk 拆分本身的开销（不是埋点代码）"，那是**推断当成了测量**，本轮改为按上面两个可复现的口径分开列示，并明确标注为估算。
-- 结论：共享 chunk 指标不变（87.6 kB，AC3 通过），但"只在用到埋点的页面付这份字节"在**顶栏搜索**这一处不成立——这是设计与数据表现一致的取舍（顶栏搜索框在所有页面都在），记录在下面的 known limitations 里。
+  `./node_modules/.bin/esbuild lib/analytics/events.ts --bundle --minify --format=esm --define:process.env.NODE_ENV='"production"'`（esbuild 0.27.0）实测。**这个数字被 `c5771df` 改过，两处都列出来**：
+  - `d94da06`（`c5771df` 之前）：**5,661 B raw / 2,217 B gzip（`gzip -9 -n -c`）**——本文档上一版记的就是这一对，本轮用完全相同的命令重建 `d94da06` 的 `lib/` 复跑，逐字节复现（5,661 / 2,217）。
+  - HEAD（`c5771df` 之后）：**5,675 B raw / 2,230 B gzip（`gzip -9 -n -c`）**，即 I2 的 `.toUpperCase()` 与那段中文注释带来 **+14 B raw / +13 B gzip**。
+  - 需要说清一处巧合：上一版本文档写过"旧的 gzip 值 2,230 B 用文中声明的任何方法都复现不出来（`gzip -9 -n -c` = 2,217、`gzip -6 -n -c` = 2,217、`gzip -9 -c`（带头）= 2,237、node `zlib.gzipSync(level 9)` = 2,240）"。那句话对**当时的源码（`d94da06`）**仍然成立，本轮复跑也确认 2,217 是那个修订版的可复现值；而 **2,230 B 现在是 HEAD 用 `gzip -9 -n -c` 得到的确切值**——两个 2,230 数值相同但来源不同（一个是不可复现的旧记录，一个是新源码的可复现实测），不要拿它当"旧记录被平反"。
+- **埋点本体与"每页增量"之差是估算，不是测量**。按本文档上一版那一对（`d94da06`）：`+5,195 − 5,661 = −466 B`（raw）、`+2,866 − 2,217 = +649 B`（gzip）。按本轮 HEAD 的复测对：`+5,286 − 5,675 = −389 B`（raw）、`+2,868 − 2,230 = **+638 B**（gzip）。这两个差值**不做逐字节归因**，可能的原因（**推断，未逐字节验证**）：① 独立的 esbuild 打包与 Next 打包后的产物不同，analytics 模块在 Next 侧与 `SearchForm` 所在的 chunk 等共用一批 helper，而 esbuild 单独打包时会把这份开销都算进它自己的 5,675 B；② gzip 大小不可加——把代码拆到两个文件后，"逐文件 gzip 求和"与"合并后 gzip"不是一回事。上一版文档把这 637 B（按旧的 2,230 算出来的残差）写成"归因于 chunk 拆分本身的开销（不是埋点代码）"，那是**推断当成了测量**，本文按上面两组可复现的口径分开列示，并明确标注为估算。
+- 结论：共享 chunk 指标不变（87.6 kB，本轮复测 87.5 kB，两侧同值 ⇒ Δ ≈ 0.0 kB，AC3 通过），但"只在用到埋点的页面付这份字节"在**顶栏搜索**这一处不成立——这是设计与数据表现一致的取舍（顶栏搜索框在所有页面都在），记录在下面的 known limitations 里。
+
+### 文档修复轮的复测（本轮新做，命令与输出都在本节）
+
+上一节所有 bundle 数字都是**在 `d94da06` 那一轮**（即 `c5771df` 之前）测的。本文档修复轮为了不把旧数字当成 HEAD 的事实，在同一台机器上用同一条命令重建了一对构建复测：`git archive main | tar -x -C /tmp/ga-doc-verify/main`、`git archive HEAD | tar -x -C /tmp/ga-doc-verify/head`，两个目录各自软链同一份 `node_modules`、拷同一份 `.env.local`，各跑一次 `npm run build`。观察到的值：
+
+| 项目 | `main` 基线 | HEAD | 备注 |
+|---|---|---|---|
+| `First Load JS shared by all`（打印值） | **87.5 kB** | **87.5 kB** | **两侧同值，Δ ≈ 0.0 kB**，AC3 的 < 3 kB 闸门复验通过；组成两侧也一样（`chunks/1b43a8d6` 53.6 + `chunks/5432` 31.9 + other 2.01） |
+| `/privacy-policy` 每页 gzip 求和（`gzip -9 -n -c`） | 239,110 B（18 chunk） | 241,978 B（19 chunk） | **Δ = +2,868 B**（raw 787,530 → 792,816 = **+5,286 B**），逐文件闭合见上 |
+| `/compare/[token]/page` gzip 求和 | 132,384 B | 132,383 B | **Δ = −1 B**，两侧都打印 `132 kB` |
+| `/page`（首页）gzip 求和 | 156,622 B | 159,154 B | Δ = **+2,532 B**（同档量级） |
+| `/privacy-policy/page` gzip 求和 | 96,394 B | 96,394 B | **Δ = 0 B**（这条路由的第一方 chunk 两侧同名同内容） |
+| 埋点本体（esbuild，见上） | — | 5,675 B raw / 2,230 B gzip | `d94da06` 同命令为 5,661 / 2,217 |
+
+**与旧数字的差**：shared 打印值 87.6 → 87.5 kB（同一提交、不同次构建），`/catalog/[...departments]`、`/search/course/[code]` 两条路由的打印值这次是 `139 kB`（旧那轮是 `138 kB`），`/`、`/course/[code]`、`/professor/[...name]`、`/search/instructor/[...name]` 与旧一轮完全一致。这些 ±0.1 kB 就是本文已记录的构建抖动（chunk/模块 id 在同源两次构建间重排）在 Next 3 位有效数字打印上的表现；**两轮都得到"shared 两侧同值、增量 ≈ 0.0 kB"，AC3 的结论不依赖具体是 87.5 还是 87.6**。
+
+**泄漏检查在本轮 HEAD 上重跑，结论有一处变化（如实记录）**：
+
+```bash
+grep -rl  "um_event"    .next/static/chunks --include='*.js'   # → 2 个：7301-…js、2421-…js
+grep -rlF "[analytics]" .next/static/chunks --include='*.js'   # → 4 个：7301-…js、2421-…js、7475-…js、page-62d19deff7f63d11.js
+# 同一对 main 基线树上两条命令都是 0 命中
+```
+
+- `7301-97901ebb24ad709c.js`（12,223 B / 4,645 B gzip）＝ 上一轮记的 `9249`，`SearchForm` + analytics，被 `/layout`、`/page`、`/search/layout` 引用（每页）；`2421-a003a1450a158b56.js`（9,425 B / 3,869 B gzip）＝ 上一轮记的 `7462`，含 `TrackedItemLink`，被 5 条接线路由引用。
+- **`[analytics]` 这次多命中两个 chunk**：`7475-ff9de894f58c2e96.js`（8,747 B / 3,153 B，`/search/course/[code]` 与 `/catalog/[...departments]` 引用）与 `app/search/instructor/[...name]/page-62d19deff7f63d11.js`（1,925 B / 852 B）。这两个字符串来自 `c5771df` 的 M5（两个客户端叶子里新增的 `console.error("[analytics]", …)`），也**可能**同时受两次构建之间 chunk 切分差异的影响——本轮没有逐字节归因是哪一种。
+- **关键结论不变**：组成 `First Load JS shared by all` 的两个共享 chunk（`1b43a8d6` 172,836 B、`5432` 124,689 B）在这两条 grep 下**都零命中**，埋点层仍没有被塞进"每页都加载的共享 chunk"；`main` 基线两侧都零命中。
 
 依赖未变（AC3 的另一半）：
 
@@ -195,47 +252,56 @@ git diff main..HEAD -- package.json
 
 ### AC1 — 全量测试/静态检查/构建全绿
 
-- [x] `npm run test` 124 files / 468 tests passed；`npm run lint` 无告警；`npx tsc --noEmit` exit 0；`npm run build` exit 0（见上一节表格）
+- [x] `npm run test` **125 files / 471 tests passed**（本轮文档修复轮实跑）；`npm run lint` 无告警；`npx tsc --noEmit` exit 0；`npm run build` exit 0（见上一节表格；shared 增量两轮复测都是 ≈ 0.0 kB）
 
 ### AC2 — spec §10 表格里的每一条断言都有对应测试且通过
 
-**核对方法**：按 spec §10 的**行**逐条对照（而不是从测试文件反推后挑好看的写）。下表每一行给出"§10 要求什么 → 哪个用例真的断言了它"。下表 10 个文件的用例全部在 `npm run test`（124 files / 468 tests）里通过。
+**核对方法**：按 spec §10 的**行**逐条对照（而不是从测试文件反推后挑好看的写）。下表每一行给出"§10 要求什么 → 哪个用例真的断言了它"。下表 10 个文件的用例全部在 `npm run test`（**125 files / 471 tests**，本轮文档修复轮实跑）里通过；另有 `c5771df`/`d23ba70` 新增的 `tests/components/analytics-leaves-resilience.test.tsx`（2 条，M5 用），不在 §10 的 10 行清单内。
 
 | spec §10 的行 | 覆盖用例（含本轮补齐） |
 |---|---|
 | 单元 `tests/analytics/data-layer.test.ts`（20 条） | payload 恒为 `{event:"um_event", um_name, ...params}` → `pushes the canonical payload shape`；无 `window` 时不 push 且不抛错 → `does nothing without a window (server rendering)` + `does not throw on an invalid event without a window (server rendering)`；`window.dataLayer` 缺失时被初始化为数组 → `initialises window.dataLayer when it is missing`；未注册事件名 dev 抛错 → `rejects unknown events in development`，prod 丢弃且 warn 一次 → `drops and warns once instead of throwing in production`；未注册参数名 dev 抛错 → `rejects unregistered parameters in development`；缺必需参数 dev 抛错 → `rejects missing required parameters in development`；布尔归一为 1/0、数字保持 number → `normalises booleans to 1/0 and keeps numbers as numbers`；超长字符串截断到 100 且 warn → `truncates long string values to 100 characters`；payload 里不出现 `undefined` → `omits undefined and null parameters`（连 `null` 一起断言）。另有 §10 未要求但已覆盖的：保留名被拒（`rejects reserved parameter names`）、原型链键名（`treats prototype-key event names as unknown events in development`、`drops prototype-key event names in production instead of throwing`、`rejects prototype-key parameter names in development`）、类型不符 dev 抛错/prod 丢弃（`rejects a string value for a numeric parameter in development`、`rejects a numeric value for a string parameter in development`、`rejects a boolean value for a string parameter in development`、`drops a wrongly typed value in production instead of throwing`）、prod 静默（`stays silent in production`） |
-| 单元 `tests/analytics/registry.test.ts`（7 条） | `registry-data.mjs` 能被 Node 直接 import → `keeps the data source importable by plain node`；事件名/参数名满足 `^[a-z][a-z0-9_]*$` 且 ≤40 字符、非保留前缀（`ga_`/`google_`/`firebase_`）、单事件参数 ≤25 → `keeps every event and parameter name ga4-compatible`（这四条在同一用例里逐项断言）；`FORBIDDEN_PARAM_NAMES` 不出现在任何事件参数表 → `never registers a forbidden pii parameter`；每个 `wiring` 指向的文件真实存在 → `points every event at wiring files that exist`；`recommended` 事件名在白名单内 → `only uses whitelisted ga4 recommended event names`。另有：`declares the phase 1 events`（钉死四个事件名）、`never registers a parameter name that collides with the payload shape or Object.prototype` |
+| 单元 `tests/analytics/registry.test.ts`（**8 条**，`c5771df` 起 7 → 8） | `registry-data.mjs` 能被 Node 直接 import → `keeps the data source importable by plain node`；事件名/参数名满足 `^[a-z][a-z0-9_]*$` 且 ≤40 字符、非保留前缀（`ga_`/`google_`/`firebase_`）、单事件参数 ≤25 → `keeps every event and parameter name ga4-compatible`（这四条在同一用例里逐项断言）；`FORBIDDEN_PARAM_NAMES` 不出现在任何事件参数表 → `never registers a forbidden pii parameter`；**黑名单本身被钉死为审查过的 14 个名字（含顺序），删一条就会红** → `pins the forbidden pii list to exactly the reviewed 14 names`（**`c5771df`/I4 新增**）；每个 `wiring` 指向的文件真实存在 → `points every event at wiring files that exist`；`recommended` 事件名在白名单内 → `only uses whitelisted ga4 recommended event names`。另有：`declares the phase 1 events`（钉死四个事件名）、`never registers a parameter name that collides with the payload shape or Object.prototype` |
 | 单元 `tests/analytics/events.test.ts`（10 条） | 四个语义函数的入参→payload 映射 → `maps search arguments onto ga4 parameters`、`maps instructor search scope and the header entry point`、`reports zero results as has_results = 0`、`reports non-zero results as has_results = 1`、`maps filter arguments`、`includes faculty when it is provided`；可选参数缺省时不出现该键 → `omits the optional faculty parameter when it is absent`。另有 §10 未要求但已覆盖的：`logs one readable line in development`、`stays silent about logging in production`、`only ever emits parameters that the registry knows`（同时是 §10 wiring 行那条断言的覆盖者，见下） |
 | 单元 `tests/course-filters.test.ts`（10 条） | `nextFilterState()` 三态映射 → `maps Offered and Not Offered onto 1 and 0 for Is_Offered` + `falls back to All when an unrecognised Is_Offered value arrives`；9 个状态维度 → `keeps the nine filter state dimensions in their existing order` + `starts with every dimension set to All`；`All` 表示不过滤 → `treats All as no filtering`；多维度 AND → `combines dimensions with AND`；空结果 → `returns an empty list when nothing matches`；不改动入参与原状态 → `does not mutate the input array or the previous state`（另有 `filters by a plain string dimension`、`clears a dimension when All is chosen again`） |
-| 组件 **扩展**既有 `tests/components/search-form.test.tsx`（5 条） | 合法提交 → `search` 事件且 `entry_point` = 传入 variant → `reports the submitted course search with its entry point`（`variant="inline"` → `entry_point: "inline"`，逐字段 `toEqual`）+ `reports the instructor scope for the hero entry point`（`variant="hero"` → `entry_point: "hero"`）；`is_prof` 切换 → `search_scope = "instructor"` → 事件侧由 `reports the instructor scope for the hero entry point` 断言（`search_scope: "instructor"`），导航侧由 `submits instructor search when switch is enabled` 断言（跳到 `/search/instructor/…`）；校验失败（<4 字符）→ 无上报 → `reports nothing when the form is invalid`；另有既有回归 `submits course search by default` |
+| 组件 **扩展**既有 `tests/components/search-form.test.tsx`（5 条） | 合法提交 → `search` 事件且 `entry_point` = 传入 variant → `reports the submitted course search with its entry point`（`variant="inline"` → `entry_point: "inline"`，逐字段 `toEqual`）+ `reports the instructor scope for the hero entry point`（`variant="hero"` → `entry_point: "hero"`）；`is_prof` 切换 → `search_scope = "instructor"` → 事件侧由 `reports the instructor scope for the hero entry point` 断言（`search_scope: "instructor"`），导航侧由 `submits instructor search when switch is enabled` 断言（跳到 `/search/instructor/…`）；校验失败（<4 字符）→ 无上报 → `reports nothing when the form is invalid`；另有既有回归 `submits course search by default`。**`c5771df`/I2 起 `search_term` 统一大写**（该文件的期望值随之由小写输入改成 `"ACCT1000"`），因为结果页的 `search_term` 来自已被 `buildSearchPath` 大写的 URL —— 这两处口径必须一致，否则 `search` 与 `view_search_results` 对不上 |
 | 组件 `tests/components/course-card-analytics.test.tsx`（3 条） | `href` 指向 `/course/<code>` → `keeps linking to the course page`；点击 → `select_item` 带 `item_id`/`item_list_name`/`position`/`faculty` → `reports select_item with the list name, position and faculty`；无 `faculty` 字段时不带该参数 → `omits faculty when the course row has no Offering_Unit`。`ProfCard` 是 async server component，RTL 不能直接渲染 → 由 `tests/analytics/wiring.test.ts` 的 `routes every card link through the tracked link` + `passes a list name to every card list`（`LIST_CALLERS` 含 `app/professor/[...name]/page.tsx` 等 4 处传 `listName`）覆盖，与 §10 的写法一致 |
 | 组件 `tests/components/course-filter-analytics.test.tsx`（**7 条**，本轮 6 → 7） | 用真实 DOM 交互驱动 Radix 下拉 → `filter_apply` 三参数正确（`result_count` = 筛选后条数）→ `reports filter_apply with the post-filter result count`；`trackResults` 存在 → 挂载上报一次 `view_search_results` → `reports the search results once when trackResults is provided`；**StrictMode 下仍只上报一次** → `reports the search results only once under StrictMode`（**本轮补齐**）；无 `trackResults` → 不上报 → `stays silent on the catalog page (no trackResults)`。另有：`reports the offered label rather than the numeric flag for Is_Offered`、`reports filter_apply when a dimension is cleared back to All`、`reports zero results for an empty result set` |
 | 组件 `tests/components/tracked-item-link.test.tsx`（5 条） | 点击 → `select_item` 带 `item_id`/`item_list_name`/`position` → `reports select_item with the list and position on click`；`href` 未被改写 → `keeps the destination href untouched`；可选 `faculty` 缺失时不出现在 payload → `omits faculty when the caller does not have it`。另有：`does not block the default navigation`、`reports once per click, not twice under StrictMode` |
 | 组件 `tests/components/track-search-results.test.tsx`（**6 条**，本轮 5 → 6） | 挂载 → 上报一次 → `reports the result count once on mount`；`resultCount` 变化不重复上报 → `does not report again when the result count changes`；StrictMode 双执行仍只上报一次 → `does not report twice under StrictMode`；**卸载重挂一次按"新挂载"再上报一次** → `reports once more when it is unmounted and mounted again`（**本轮补齐**）。另有：`reports zero results`、`renders nothing` |
-| 守卫 `tests/analytics/wiring.test.ts`（7 条） | 除白名单外无 `dataLayer` 直接写入 → `writes to the data layer from exactly one module`；无 `gtag(` → `never calls gtag directly`；`CourseCard`/`ProfCard` 中不存在裸 `next/link` 直连 → `routes every card link through the tracked link`；两个搜索结果面都接 `TrackSearchResults` → `reports search results from both result surfaces`；`docs/analytics/gtm-setup.md` 与脚本生成结果逐字一致 → `keeps the gtm manifest in sync with the registry`（`--check` 退出码 + 成功行逐字钉死，且源码扫描已放宽到 `.ts`/`.tsx`/`.js`/`.jsx`/`.mjs`）。另有：`passes a list name to every card list`、`keeps the client tracking leaves free of callback props` |
+| 守卫 `tests/analytics/wiring.test.ts`（7 条） | 除写入口外无 `dataLayer` 写入 → `writes to the data layer from exactly one module`（`c5771df`/M7 起：匹配 `dataLayer.push(…)`/索引与普通赋值三种写形态，外加"剥掉字符串与注释后不得出现 `dataLayer` 标识符"的别名检查——**不再使用任何文件级白名单**，唯一允许写入的文件仍是 `lib/analytics/data-layer.ts`）；无 `gtag(` → `never calls gtag directly`（`c5771df`/M6 起覆盖 `gtag(…)`、`window.gtag(…)`、`window.gtag?.(…)`、`window["gtag"](…)` 四种形态）；`CourseCard`/`ProfCard` 中不存在裸 `next/link` 直连 → `routes every card link through the tracked link`；两个搜索结果面都接 `TrackSearchResults` → `reports search results from both result surfaces`；`docs/analytics/gtm-setup.md` 与脚本生成结果逐字一致 → `keeps the gtm manifest in sync with the registry`（`--check` 退出码 + 成功行逐字钉死，且源码扫描已放宽到 `.ts`/`.tsx`/`.js`/`.jsx`/`.mjs`）。另有：`passes a list name to every card list`、`keeps the client tracking leaves free of callback props`；`c5771df` 还为 M6/M7 加了守卫自身的自检断言（三种写样本必须命中、`const dl = window.dataLayer;` 必须被别名检查抓到、GTM 引导字符串必须不命中） |
 
 **本轮补齐的两条（复查发现 §10 有断言没有测试）**：§10 的 `track-search-results` 行要求"卸载重挂一次按'新挂载'再上报一次"（原来只有 `rerender` 用例，那是"同一实例不重复上报"，是另一种行为），`course-filter-analytics` 行要求"StrictMode 下仍只上报一次"（该文件里原本一条 `StrictMode` 都没有）。两条都按"只增不删"补进了对应文件，做法与红灯证据见 `task-11-report.md` 的复查轮记录。
 
-**两处"§10 的写法与实际覆盖位置不同"（如实记录，不是漏测）**：
+**一处已澄清的误判（本轮按源码复核后补记，防止以后被写回来）**：不存在"讲师搜索结果全部折叠时不会上报 `view_search_results`"这回事 —— `app/search/instructor/[...name]/page.tsx` 里 `trackResults`（`<TrackSearchResults …/>`）是**两个分支都渲染的兄弟节点**：空结果分支在第 33 行、非空分支在第 43 行，`<Accordion …>` 从第 44 行开始且只包卡片，不含上报元素。因此手风琴全折叠时 `view_search_results` 照样发出（这不改变"卡片点击只有在展开后才有卡片可点"这一显然事实，但那是 UI 行为，不是上报缺失）。本轮在本文件里也没有找到任何这类"折叠 → 无事件"的条目可删（见 `final-fix-b-report.md` 的逐项记录）。
 
-1. §10 的 wiring 行写的是"除 `lib/analytics/data-layer.ts` 外无 `dataLayer` 直接写入"，但守卫的白名单实际是 `lib/analytics/data-layer.ts` + `app/layout.tsx`。多出来的那个文件是既有的 GTM 引导片段（其中的 `dl=l!='dataLayer'` 与 `})(window,document,'script','dataLayer',…)` 只是嵌入的 GTM 标准脚本字符串），它**不含任何埋点写入、也不调用 `emit()`**，所以这是为了让守卫与既有代码兼容而列的白名单，不是放水。
+**剩下的"§10 的写法与实际覆盖位置不同"（如实记录，不是漏测）**：
+
+1. §10 的 wiring 行写的是"除 `lib/analytics/data-layer.ts` 外无 `dataLayer` 直接写入"，而上一版本文档在这里记的"守卫白名单实际还含 `app/layout.tsx`"**已经不再成立**：`c5771df` 的 M7 把守卫从文件白名单改成了"写形态 + 别名标识符"检查，`app/layout.tsx` 的 GTM 引导片段里的 `dl=l!='dataLayer'`、`})(window,document,'script','dataLayer',…)` 全部落在字符串里，剥掉字符串后不命中，于是**豁免被删除**，守卫与 §10 的写法现在一致。`app/layout.tsx` 本身仍然不含任何埋点写入、也不调用 `emit()`（这一点没变）。
 2. §10 把"`events.ts` 里用到的参数名全部在注册表内"写在 wiring 行（暗示源码扫描），实际没有源码扫描，覆盖它的是 `tests/analytics/events.test.ts` 的 `only ever emits parameters that the registry knows`：dev 下未注册参数会直接抛错，该用例再逐 payload 断言每个键都在注册表内。当前 `lib/analytics/events.ts` 里出现的参数键与注册表的 11 个参数**集合完全相同**（本轮实测：`entry_point,faculty,filter_name,filter_value,has_results,item_id,item_list_name,position,result_count,search_scope,search_term` 两侧各 11 个，互相无差集），且四个语义函数（含 `faculty` 有/无两条分支）都在测试里被调用过，所以这条断言目前是真覆盖的；但它是运行时断言而非源码扫描 —— 若以后有人在 `events.ts` 里加一个只在未测分支里出现的参数名，这条不会自动报警。已记入"未做的事 / 已知限制"。
 
-**结论**：§10 表格的 10 行断言在补齐上述两条后**逐条有测试覆盖**，没有需要留空的行使；两条"覆盖位置与 §10 写法不同"的点如上如实标注。
+**结论**：§10 表格的 10 行断言在补齐上述两条后**逐条有测试覆盖**，没有需要留空的行使；第 1 点那处"覆盖位置与 §10 写法不同"已由 `c5771df` 消除，第 2 点（运行时断言 vs 源码扫描）仍然成立并如实标注。
 
 ### AC3 — 无新依赖 + shared First Load JS 增量 < 3 kB
 
-- [x] 见 "Bundle evidence" 一节：依赖未变；shared 87.6 kB → 87.6 kB（Δ ≈ 0.0 kB，逐 chunk 实测几字节）；埋点字符串只出现在 `chunks/7462`（接线页面）与 `chunks/9249`（顶栏 SearchForm），不在三个 shared chunk 里；8 条接线入口（6 条页面路由 + `/layout`、`/search/layout`）的字节级增量为 +2,578 ~ +3,140 B，35 条未接线路由实测 −5 ~ −32 B（Next 打印值不变）
+- [x] 见 "Bundle evidence" 一节：依赖未变；shared 87.6 kB → 87.6 kB（Δ ≈ 0.0 kB，逐 chunk 实测几字节；本轮干净树复测两侧同为 87.5 kB，同样 Δ ≈ 0.0 kB）；埋点字符串出现在接线页面 chunk（`d94da06` 那轮叫 `chunks/7462`，本轮叫 `2421-…js`）与顶栏 SearchForm chunk（`d94da06` 那轮叫 `chunks/9249`，本轮叫 `7301-…js`），本轮复测还多命中两个带有 M5 新增的 `console.error("[analytics]", …)` 字符串的 chunk，但**组成 shared 的 chunk 一个都没命中**；8 条接线入口（6 条页面路由 + `/layout`、`/search/layout`）的字节级增量为 +2,578 ~ +3,140 B，35 条未接线路由实测 −5 ~ −32 B（Next 打印值不变）
+- [x] **但"shared 增量 ≈ 0.0 kB"不等于"埋点不花字节"，AC3 这一行必须连这个数字一起读**：按预渲染 HTML 里每个 `<script src>` 逐文件实测（口径同 Bundle evidence：逐个 `gzip -9 -n -c` 求和），**本身完全没有埋点的页面 `/privacy-policy` 也从 239,161 B gzip 涨到 242,027 B gzip，即 +2,866 B**（raw +5,195 B；本轮干净树复测同页 +2,868 B gzip / +5,286 B raw）。原因是 root layout 顶栏搜索弹窗里的 `SearchForm` 调用 `trackSearch`，analytics 核心因此随该 chunk 上了每一页；其中埋点本体（esbuild 单独打包 `lib/analytics/events.ts`）实测 **2,230 B gzip**（HEAD；`c5771df` 前是 2,217 B），占这 +2,866 B 的绝大部分。
+- [x] **这是有意识接受的取舍，且余量很小**：顶栏搜索框本来就在所有页面，所以"埋点只在用到它的页面付这份字节"这一条在**顶栏搜索**这一处不成立；+2,866 B 距 AC3 的 3 kB 只剩约 **134 B**。闸门的字面口径是 shared 增量 < 3 kB，实测 ≈ 0.0 kB，因此**当前不违反**；但按"每页实际下载字节"衡量已经贴着上限，任何后续在 layout 依赖图里再加一点埋点代码都可能顶破它。**Phase 2 应重新评估 analytics 核心是否该留在 layout 依赖图里**（例如把 `trackSearch` 改成提交回调里的 `await import("@/lib/analytics/events")` 动态导入，让首屏路径不再下载埋点字节），评估前不要在这个依赖图里加代码。
 
 ### AC4 — 手工：GTM Preview 逐条核对四个事件的 dataLayer payload + GA4 DebugView 逐参数核对
 
 - [ ] **未完成（需人工）**：步骤与责任人见 `## Outstanding manual steps` 的 (a)(b)。生成的核对清单是 `docs/analytics/gtm-setup.md` §7.1、§7.2
-- 代码侧可自动保证的部分已覆盖：payload 形状由 `data-layer.test.ts` 钉死、参数名与注册表一致由 `events.test.ts` 钉死、清单与注册表一致由 `wiring.test.ts` 钉死——即"GTM 里该声明哪些参数"这件事不会静默漂移
+- [ ] **（本轮补入的手工检查）同一结果页上用顶栏表单先后提交两个不同的搜索词 → DebugView 里应有两条 `view_search_results`。** Next 14 的动态段以**参数值**作为 key，`/search/course/COMP1001` → `/search/course/COMP1002` 会让 `TrackSearchResults` **重新挂载**，因此"第二次上报"是**预期行为**（与 `track-search-results.test.tsx` 里"卸载重挂再报一次"的断言同源），不是重复上报 bug；反过来，如果只看到一条，说明去重守卫被提升到了跨挂载的作用域（那才是 bug）。同一搜索词重复提交是否会重挂，本轮**未验证**，不在本条判定内
+- [ ] **（本轮补入的手工检查）做一次"不改变 query string"的筛选操作（例如把某个维度改成某值再改回 `All`，或选一个筛选结果与当前 query 等价的项）→ 确认没有产生重复 `page_view`。** 这条同时校验 `Trigger - History Change` 的 `不等于 replaceState` 过滤：query 没变时筛选仍可能触发 `router.replace`，此时不应多出 `page_view`
+- 代码侧可自动保证的部分已覆盖：payload 形状由 `data-layer.test.ts` 钉死、参数名与注册表一致由 `events.test.ts` 钉死、清单与注册表一致由 `wiring.test.ts` 钉死、两个客户端叶子在 `emit()` 抛错时仍不阻断导航/渲染由 `analytics-leaves-resilience.test.tsx` 钉死（`d23ba70`）——即"GTM 里该声明哪些参数""埋点失败会不会连带弄坏页面"这两件事不会静默漂移
 
 ### AC5 — 手工：GA4 实时报告的 page_view 行为（首屏 1 条 / 点卡后第 2 条 / 改筛选不产生 / 后退产生 1 条）
 
 - [ ] **未完成（需人工）**：步骤见 `## Outstanding manual steps` 的 (b)
-- 风险 R3 的代码侧前提已具备：`filter_apply` 走的是 `window.history.replaceState`，生成的清单 §2 给 `Trigger - History Change` 写了上游过滤 `History Source 等于 pushState`，因此筛选改 query 不会产生噪声 `page_view`
+- **期望行为（照生成的清单 §2 现在的口径）**：`Trigger - History Change` 的上游过滤是 `History Source` **不等于 `replaceState`**，也就是 **`pushState` 与 `popstate` 都要放行**——App Router 的浏览器前进/后退上报的是 `popstate`，只有筛选 query 同步用的 `replaceState` 被滤掉。GTM 里若仍写成「等于 `pushState`」（`c5771df`/C1 之前的条件），浏览器后退的 `page_view` 会被**静默丢弃**，AC5 的 ④ 会直接失败
+- **③ 改筛选不产生噪声 `page_view` 的代码侧前提（本轮按事实改写）**：全仓唯一的 `replaceState` 就是**筛选 query 同步**，位置是 `components/course-filter.tsx:47`（`window.history.replaceState(null, "", query ? … : window.location.pathname)`；`grep -rn "replaceState\|pushState" app components lib` 只命中这一条）。因此"筛选改 query 不产生噪声 `page_view`"靠的**不是**"代码侧已经不发 `replaceState`"这类说法，而是**上游把 `replaceState` 排除掉**这一条：`replaceState` 恰恰是筛选走的那条路径，正是它必须被 GTM 滤掉。上一版本文档把这句写成"代码侧前提已具备 + 过滤条件为等于 `pushState`"，等于把 C1 的错误条件当成了前提，本轮改正
+- **③ 与 ④ 都必须人工验证，且 ④ 是硬性闸门**：③ 改筛选不产生 `page_view`；④ 浏览器后退产生**恰好 1 条** `page_view`（不是"正确条数"这种含糊说法，也不接受把 ④ 当成可选检查——C1 修的就是它）
+- 补充说明：④ 在"改完筛选后立刻后退"的组合下也要成立（退回应回到上一条 `pushState` 的 URL 并只产生 1 条 `page_view`），这条组合本轮**未验证**，属于手工步骤要覆盖的情形之一
 
 ### AC6 — 手工：容器发布后线上复验
 
@@ -243,7 +309,7 @@ git diff main..HEAD -- package.json
 
 ### AC7 — payload 无 PII
 
-- [x] 自动守卫：`registry.test.ts` 断言 `FORBIDDEN_PARAM_NAMES`（email / user_id / name / content / details / comment / reply_text / url / token / share_url / ip 等 14 项）不出现在任何事件的参数表；`data-layer.test.ts` 断言保留名（`event` / `um_name` / `um_*` / `gtm*`）被拒；`events.test.ts` 断言 payload 的键只可能来自注册表——payload 的形状因此被限制为 `{event, um_name, <注册表内的短枚举/数字参数>}`，没有自由文本字段
+- [x] 自动守卫：`registry.test.ts` 断言 `FORBIDDEN_PARAM_NAMES`（email / user_id / name / content / details / comment / reply_text / url / token / share_url / ip 等 14 项）不出现在任何事件的参数表，**并由 `pins the forbidden pii list to exactly the reviewed 14 names` 把黑名单本身钉死为那 14 个名字（含顺序，`c5771df`/I4 新增：删掉一条不再能让套件保持绿色）**；`data-layer.test.ts` 断言保留名（`event` / `um_name` / `um_*` / `gtm*`）被拒；`events.test.ts` 断言 payload 的键只可能来自注册表——payload 的形状因此被限制为 `{event, um_name, <注册表内的短枚举/数字参数>}`，没有自由文本字段
 - [ ] 人工：一次真实事件在 DebugView 里的截图/记录——**未完成**，随 AC4 一起做
 
 ### AC8 — Phase 2 事件清单固定，新增必须同时更新注册表/清单/测试
@@ -262,7 +328,7 @@ git diff main..HEAD -- package.json
 
 - [ ] §1 建 12 个数据层变量：`DL - entry_point` / `DL - faculty` / `DL - filter_name` / `DL - filter_value` / `DL - has_results`(=数字) / `DL - item_id` / `DL - item_list_name` / `DL - position`(=数字) / `DL - result_count`(=数字) / `DL - search_scope` / `DL - search_term` / `DL - um_name`
 - [ ] §1 内置变量启用：`Page URL`、`Page Title`、`History Source`
-- [ ] §2 触发器：`Trigger - um_event`（自定义事件，事件名称**精确等于** `um_event`）；`Trigger - History Change`（附加上游过滤 `History Source` 等于 `pushState`——R3 的噪声 `page_view` 就靠这一条挡住）
+- [ ] §2 触发器：`Trigger - um_event`（自定义事件，事件名称**精确等于** `um_event`）；`Trigger - History Change`（附加上游过滤 **`History Source` 不等于 `replaceState`**——它放行 `pushState` + `popstate`、只挡住筛选 query 同步走的 `replaceState`，R3 的噪声 `page_view` 就靠这一条挡住。**不要写成「等于 `pushState`」**：那是 `c5771df`/C1 修掉的错误条件，会把浏览器后退/前进的 `page_view` 静默丢掉）
 - [ ] §3 标签：`GA4 Event - um_event`（Measurement ID = `G-V1KZT6Q50E`；Event Name = `{{DL - um_name}}`；发送电子商务数据 **关闭**；触发器 `Trigger - um_event`）；`Google Tag - SPA update`（ID = `G-V1KZT6Q50E`；`page_location={{Page URL}}`、`page_title={{Page Title}}`、`update=true`；触发器 `Trigger - History Change`）
 - [ ] §4 在 GA4 事件标签里逐行照抄 11 个参数行（`entry_point` / `faculty` / `filter_name` / `filter_value` / `has_results` / `item_id` / `item_list_name` / `position` / `result_count` / `search_scope` / `search_term`，值均为 `{{DL - …}}`）
 - [ ] §7.1 GTM 预览里逐条触发全部 4 个事件，确认标签被触发、`um_name` 解析成正确的事件名
@@ -274,7 +340,9 @@ git diff main..HEAD -- package.json
 - [ ] `管理 → 数据收集和修改 → 数据流 → 增强衡量`：确认"网页浏览"的其余项按预期工作
 - [ ] （可选）把关键事件标记为转化
 - [ ] AC4：DebugView 里对四个事件逐参数核对——**该事件在注册表里声明的**参数都要有值，没有 `not set`（未声明为该事件参数的可选参数不出现属正常，例如 `search` 事件本来就没有 `faculty`）
-- [ ] AC5：① 首屏只有 1 条 `page_view`；② 点课程卡进课程页后出现第 2 条 `page_view`；③ 改动任一筛选下拉**不产生** `page_view`；④ 浏览器后退一次产生正确的 `page_view`
+- [ ] AC4（本轮补入）：停在某个搜索结果页，用**顶栏表单**先后提交**两个不同的**搜索词 → 应有**两条** `view_search_results`（动态段以参数值为 key，第二次提交会重挂 `TrackSearchResults`，**两条是预期**；只有一条才说明去重作用域写错了）
+- [ ] AC4（本轮补入）：做一次**不改变 query string** 的筛选操作 → 不应因此多出 `page_view`（该操作仍可能触发筛选的 query 同步，`不等于 replaceState` 的过滤要挡住它）
+- [ ] AC5：① 首屏只有 1 条 `page_view`；② 点课程卡进课程页后出现第 2 条 `page_view`；③ 改动任一筛选下拉**不产生** `page_view`；④ **（硬性闸门，不可跳过）**浏览器后退一次产生**恰好 1 条** `page_view`（前置条件：容器里 `Trigger - History Change` 的上游过滤是 `History Source` 不等于 `replaceState`；写成等于 `pushState` 时这一步必然失败）
 - [ ] AC7 人工部分：把一次真实事件的 DebugView 记录/截图留档到本文件
 
 ### (c) R1 冒烟验证：GA4 事件标签的 Event Name 能否用变量（**未执行，本轮未做**）
@@ -291,16 +359,17 @@ git diff main..HEAD -- package.json
 ### (d) 发布容器版本并线上复验（AC6）
 
 - [ ] GTM 里 `提交` → `发布` 容器版本，记录**容器版本号**（填到本节与 `## Status`）：`________`
-- [ ] 发布后回到线上 `umeh.top`（需先合并并部署本分支）复验一次 AC4 / AC5 的四条 `page_view` 行为与参数核对——否则上面的结论只对本地/预览有效
+- [ ] 发布后回到线上 `umeh.top`（需先合并并部署本分支）复验一次 AC4 / AC5 的四条 `page_view` 行为、参数核对，以及 AC4 本轮补入的两条（两次提交两个搜索词 → 两条 `view_search_results`；不改 query 的筛选 → 不产生重复 `page_view`）——否则上面的结论只对本地/预览有效
 - [ ] 本分支的合并与部署本身也是人工步骤（当前 `feat/ga-analytics-phase1` 尚未合并、尚未部署，线上 `umeh.top` 没有埋点）
 
 ## Known limitations / accepted trade-offs
 
 - **讲师搜索页的 `position` 会在每个手风琴里重新从 0 开始。** `app/search/instructor/[...name]/page.tsx` 按讲师分组渲染，每组的 `CourseCard` 拿到的 `position` 是组内下标，而 `item_list_name` 统一是 `search_instructor`。因此同一 `item_list_name` 下 `position` 会重复出现。GA4 里"列表第 2 位点击率"这类按 `position` 聚合的报表在讲师搜索页会失真；按 `item_id` 聚合（课程维度）不受影响。若要唯一位置，需要在 Phase 2 或后续单独设计（例如把讲师 id 并进 `item_list_name`）。
-- **顶栏搜索弹窗让埋点字节上了每一页。** `SearchForm` 在 root layout 的顶栏弹窗里，它调用 `trackSearch`，于是 analytics 模块随 `chunks/9249` 每页异步加载。需要注意两个口径不一致：Next 的 `First Load JS shared by all` 与路由级 `First Load JS` 对这条 async layout chunk 不敏感（87.6 kB → 87.6 kB，未接线路由打印值不变），但**直接量预渲染 HTML 里的每个 `<script src>` 文件**时，未接线页面 `/privacy-policy` 实际从 787,695 B 涨到 792,890 B（raw **+5,195 B**；gzip `gzip -9 -n -c` 239,161 → 242,027 B，**+2,866 B**）。其中埋点本体（esbuild 单独打包 `lib/analytics/events.ts`）实测 5,661 B raw / 2,217 B gzip，与整页增量的差（raw −466 B / gzip +649 B）是**估算项**、不逐字节归因（原因见 Bundle evidence 一节）。也就是说"只在用到埋点的页面付这份字节"在顶栏搜索这一处不成立——这是设计取舍而非缺陷（顶栏搜索本来就每页都在），AC3 的闸门（shared < +3 kB）通过。
-- **两根构建之间每个 chunk 都有几十字节级别的抖动（未逐字节解释）。** 用同机同工具链重建 `main` 基线后，35 条未接线路由的 `First Load JS` 实测变化 −5 ~ −32 B（打印值不变），`/compare/[token]` 是 −6 B（打印成 −1 kB，见 Bundle evidence 一节）。已定位到"webpack 模块 id 在两份构建里不同（`18970` → `65157` 之类）"这一层证据，但没有逐模块核对每个 chunk 具体差在哪几个字节。结论不受影响：这档抖动 ≤32 B，比接线路由的真实增量（+2.6 ~ +3.1 kB）小两个数量级。
+- **顶栏搜索弹窗让埋点字节上了每一页。** `SearchForm` 在 root layout 的顶栏弹窗里，它调用 `trackSearch`，于是 analytics 模块随顶栏搜索那个 chunk（`d94da06` 那轮叫 `chunks/9249`，本轮复测叫 `7301-97901ebb24ad709c.js`）每页异步加载。需要注意两个口径不一致：Next 的 `First Load JS shared by all` 与路由级 `First Load JS` 对这条 async layout chunk 不敏感（87.6 kB → 87.6 kB，未接线路由打印值不变；本轮复测两侧同为 87.5 kB），但**直接量预渲染 HTML 里的每个 `<script src>` 文件**时，未接线页面 `/privacy-policy` 实际从 787,695 B 涨到 792,890 B（raw **+5,195 B**；gzip `gzip -9 -n -c` 239,161 → 242,027 B，**+2,866 B**；本轮干净树复测同页 +5,286 B raw / **+2,868 B** gzip）。其中埋点本体（esbuild 单独打包 `lib/analytics/events.ts`）实测 **HEAD 5,675 B raw / 2,230 B gzip**（`c5771df` 之前的 `d94da06` 是 5,661 / 2,217，该数字也被 `c5771df` 的 I2 改过），与整页增量的差（HEAD 一对：raw −389 B / gzip **+638 B**）是**估算项**、不逐字节归因（原因见 Bundle evidence 一节）。也就是说"只在用到埋点的页面付这份字节"在顶栏搜索这一处不成立——这是设计取舍而非缺陷（顶栏搜索本来就每页都在），AC3 的闸门（shared < +3 kB）通过，但按每页字节衡量只剩约 134 B 余量，Phase 2 应重新评估该核心是否该留在 layout 依赖图里（见 AC3 一节）。
+- **两根构建之间每个 chunk 都有几十字节级别的抖动（未逐字节解释）。** 用同机同工具链重建 `main` 基线后，35 条未接线路由的 `First Load JS` 实测变化 −5 ~ −32 B（打印值不变），`/compare/[token]` 在那一对里是 **−6 B**（打印成 −1 kB，见 Bundle evidence 一节）；本轮干净树配对里同一条路由是 **−1 B**（两侧都打印 132 kB），逐文件看只是该路由自己的 page chunk 少了 1 B。已定位到"webpack 模块 id 在两份构建里不同（`18970` → `65157` 之类）"这一层证据，但没有逐模块核对每个 chunk 具体差在哪几个字节。结论不受影响：这档抖动在几十字节以内，比接线路由的真实增量（+2.6 ~ +3.1 kB）小两个数量级。
+- **`c5771df` 的 M7 让 dataLayer 守卫比"只看写操作"更严。** 除了三种写形态，守卫还要求"剥掉字符串与注释后，除 `lib/analytics/data-layer.ts` 外任何文件都不得出现 `dataLayer` 这个标识符"。这条能抓住别名转发（`const dl = window.dataLayer; dl.push(…)`），代价是将来若有**只读**的调试 helper 提到 `dataLayer`，守卫也会红——那时需要一个有意的例外，而不是放宽整条守卫。这是本轮新引入的严格度，如实记在这里。
 - **§10 的 wiring 行那条"`events.ts` 里用到的参数名全部在注册表内"是运行时断言，不是源码扫描。** 覆盖它的是 `events.test.ts` 的 `only ever emits parameters that the registry knows`（dev 下未注册参数直接抛错 + 逐 payload 断言键在注册表内）；`wiring.test.ts` 里并没有这条源码扫描。当前两侧参数集合实测完全相同（各 11 个），所以现状是真覆盖的，但 `events.ts` 里若新增一个只出现在未测分支里的参数名，这条守卫不会报警。
-- **jsdom 在点击真实 `<a>` 时打印 `Not implemented: navigation to another Document`。** 本轮全量测试里出现 6 条（`tracked-item-link.test.tsx` 4 条、`course-card-analytics.test.tsx` 2 条），是 jsdom 不实现真实文档导航的噪声，不是断言失败；测试断言的是 `href` 未被改写、默认行为未被阻止、push 只发生一次。要消除需要给 jsdom 补导航桩，收益不大，暂不处理。
+- **jsdom 在点击真实 `<a>` 时打印 `Not implemented: navigation to another Document`。** 上一版记录的是 6 条（`tracked-item-link.test.tsx` 4 条、`course-card-analytics.test.tsx` 2 条）；本轮全量测试实测 **7 条**，多出来的 1 条来自 `d23ba70` 新增的 `tests/components/analytics-leaves-resilience.test.tsx`（它也会点击真实的卡片链接，单跑该文件实测 1 条）。都是 jsdom 不实现真实文档导航的噪声，不是断言失败；测试断言的是 `href` 未被改写、默认行为未被阻止、push 只发生一次、埋点抛错时导航仍成立。要消除需要给 jsdom 补导航桩，收益不大，暂不处理。
 - **`TrackSearchResults` 只在挂载时上报一次。** `resultCount` 变化不重复上报（`track-search-results.test.tsx` 钉住），这是刻意的：`view_search_results` 的口径是"服务端返回的原始结果条数"，用户后续在客户端筛选不会重新上报；筛选行为由 `filter_apply` 单独记录。
 - **`filter_apply` 的 `result_count` 是客户端筛选后的条数，`view_search_results` 的 `result_count` 是服务端原始条数。**同名参数在两个事件里口径不同，已在生成的清单 §6 的说明列里写明，报表里不要混用。
 - **dev 环境 `emit()` 对未注册事件/参数直接抛错，prod 丢弃并 warn 一次。** 这是刻意的（宁可少一条数据也不污染报表），但意味着本地开发时拼错参数名会立刻报错——属于设计行为，不是 bug。
@@ -309,7 +378,9 @@ git diff main..HEAD -- package.json
 
 - Phase 2 的 8 个转化类事件未实现，不在本计划范围
 - AC4 / AC5 / AC6 / AC7 的人工部分、R1 冒烟验证、GTM 容器配置与发布：**全部未执行**，本文按"待人工"逐条列出步骤，未编造结论
-- spec §10 表格里**没有仍然缺测试的断言**（补齐两条后逐行对照，见 AC2 一节）；但有两处"覆盖位置与 §10 的写法不同"如实记录在 AC2 一节：wiring 行的 `dataLayer` 白名单实际含 `app/layout.tsx`；"`events.ts` 参数名全部在注册表内"由运行时断言而非源码扫描覆盖
-- 两份构建之间每个 chunk 的几十字节抖动只定位到"webpack 模块 id 重排"这一层，**未逐模块核对具体字节差异**（有界：≤32 B，见 Known limitations）
-- 埋点本体（2,217 B gzip）与整页增量（+2,866 B gzip）之差 **+649 B 是估算、不逐字节归因**；raw 侧同一处的差是 −466 B（原因见 Bundle evidence 一节）
+- spec §10 表格里**没有仍然缺测试的断言**（补齐两条后逐行对照，见 AC2 一节）；原先记录的两处"覆盖位置与 §10 的写法不同"现在只剩一处：wiring 行的 `dataLayer` 文件白名单那处已由 `c5771df`/M7 消除（守卫改按写形态 + 别名标识符检查，不再有白名单）；"`events.ts` 参数名全部在注册表内"仍由运行时断言而非源码扫描覆盖
+- 两份构建之间每个 chunk 的几十字节抖动只定位到"webpack 模块 id 重排"这一层，**未逐模块核对具体字节差异**（有界：几十字节，见 Known limitations）
+- 埋点本体与整页增量之差是**估算、不逐字节归因**：`d94da06` 那一对是 `+2,866 − 2,217 = +649 B`（gzip，raw 侧 −466 B），本轮 HEAD 复测对是 `+2,868 − 2,230 = +638 B`（gzip，raw 侧 −389 B）（原因见 Bundle evidence 一节）
+- **本轮只改了文档**：没有动任何源码、测试、生成清单或配置；`c5771df`/`d23ba70` 是别人（实现者）已经提交的，本文只是把它们的后果写进验收记录
+- 本轮**没有**重新验证的东西（如实声明）：GTM 容器里的实际过滤条件（那要人工进 GTM 改，见 AC5）、`/search/instructor` 页在真实浏览器里两次提交搜索词的重挂行为、以及"不改 query 的筛选是否真的不触发 `replaceState`"——这三件都仍是人工步骤
 - 未 push、未合并、未部署
