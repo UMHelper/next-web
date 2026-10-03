@@ -26,6 +26,7 @@ beforeEach(() => {
 
 afterEach(() => {
   debug.mockRestore();
+  vi.unstubAllEnvs();
 });
 
 describe("analytics events", () => {
@@ -49,6 +50,16 @@ describe("analytics events", () => {
       "search",
       expect.objectContaining({ um_name: "search" }),
     );
+  });
+
+  it("stays silent about logging in production", () => {
+    // isDev() 的判据是 NODE_ENV !== "production"，所以只有切到 production 才真正覆盖静默那一支。
+    vi.stubEnv("NODE_ENV", "production");
+    trackSearch({ term: "ACCT1000", scope: "course", entryPoint: "hero" });
+
+    expect(pushed()).toHaveLength(1);
+    expect(pushed()[0]).toMatchObject({ um_name: "search", search_term: "ACCT1000" });
+    expect(debug).not.toHaveBeenCalled();
   });
 
   it("maps instructor search scope and the header entry point", () => {

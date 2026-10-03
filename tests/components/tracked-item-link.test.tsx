@@ -2,6 +2,8 @@ import React from "react";
 import { fireEvent, render, screen, cleanup } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+// 这段 mock 是历史遗留：next/link 读的是 AppRouterContext，并不走 useRouter，
+// 所以它（连同下面的 push.mockClear()）守不住任何路由行为，别当成路由覆盖看。
 const push = vi.fn();
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push }),
@@ -71,6 +73,7 @@ describe("TrackedItemLink", () => {
       </TrackedItemLink>,
     );
     fireEvent.click(screen.getByRole("link"));
+    expect(pushed()).toHaveLength(1);
     expect(pushed()[0]).not.toHaveProperty("faculty");
   });
 
