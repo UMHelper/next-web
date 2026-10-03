@@ -31,7 +31,7 @@ export async function ReviewHeader({
   ]);
 
   return (
-    <div className='bg-gradient-to-r from-blue-600 to-indigo-500 text-white p-6'>
+    <div className='bg-gradient-to-r from-brand-from to-brand-to text-white p-6'>
       <div className='max-w-screen-xl mx-auto p-4'>
         <div className='flex flex-col md:flex-row justify-between'>
           <div className="py-3">

@@ -4,6 +4,9 @@
 
 @layer base {
   :root {
+    /* 让原生控件（滚动条 / 表单控件 / 自动填充）跟随主题 */
+    color-scheme: light;
+
     --background: 0 0% 100%;
     --foreground: 220.9 39.3% 11%;
 
@@ -46,6 +49,10 @@
     --brand-strong: 224.3 76.3% 48%;
     --brand-logo: 220.1 100% 36.1%;
 
+    /* 品牌渐变（blue-600 → indigo-500）：浅色即原有观感 */
+    --brand-from: 221.2 83.2% 53.3%;
+    --brand-to: 238.7 83.5% 66.7%;
+
     --wordmark-from: 198.6 88.7% 48.4%;
     --wordmark-to: 243.4 75.4% 58.6%;
 
@@ -72,6 +79,8 @@
   }
 
   .dark {
+    color-scheme: dark;
+
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
 
@@ -111,6 +120,10 @@
     --brand: 213.1 93.9% 67.8%;
     --brand-strong: 211.7 96.4% 78.4%;
     --brand-logo: 0 0% 100%;
+
+    /* 品牌渐变在深色下压深（blue-800 → indigo-700），避免大块高亮刺眼；白字对比度 8.6:1 / 7.4:1 */
+    --brand-from: 224.3 76.3% 33.1%;
+    --brand-to: 243.4 75.4% 51.2%;
 
     --wordmark-from: 198.4 93.2% 59.6%;
     --wordmark-to: 234.5 89.5% 74%;

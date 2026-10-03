@@ -36,6 +36,8 @@ const MIGRATION_UTILITIES = [
   "bg-surface-subtle/40",
   "from-wordmark-from",
   "to-wordmark-to",
+  "from-brand-from",
+  "to-brand-to",
   "text-brand-logo",
   "text-success-foreground",
   "text-brand-foreground",

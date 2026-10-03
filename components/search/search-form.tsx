@@ -111,7 +111,7 @@ export default function SearchForm({
           <Button
             type="submit"
             className={cn(
-              "bg-gradient-to-r from-blue-600 to-indigo-500",
+              "bg-gradient-to-r from-brand-from to-brand-to text-white",
               variant === "dialog" && "w-full",
             )}
           >

@@ -66,7 +66,7 @@ export function CatalogGridSkeleton({ count = 9 }: { count?: number }) {
 
 export function CourseHeaderSkeleton() {
   return (
-    <div className="bg-gradient-to-r from-blue-600 to-indigo-500 p-3">
+    <div className="bg-gradient-to-r from-brand-from to-brand-to p-3">
       <div className="mx-auto flex max-w-screen-xl flex-col justify-between gap-6 p-4 md:flex-row">
         <div className="space-y-3 py-6">
           <Skeleton className="h-4 w-24 bg-white/30" />
@@ -94,7 +94,7 @@ export function CourseGridSkeleton({ count = 6 }: { count?: number }) {
 
 export function ProfessorHeaderSkeleton() {
   return (
-    <div className="bg-gradient-to-r from-blue-600 to-indigo-500 p-3">
+    <div className="bg-gradient-to-r from-brand-from to-brand-to p-3">
       <div className="mx-auto max-w-screen-xl p-4">
         <Skeleton className="h-9 w-2/3 max-w-full bg-white/30" />
       </div>
@@ -104,7 +104,7 @@ export function ProfessorHeaderSkeleton() {
 
 export function ReviewHeaderSkeleton() {
   return (
-    <div className="bg-gradient-to-r from-blue-600 to-indigo-500 p-6">
+    <div className="bg-gradient-to-r from-brand-from to-brand-to p-6">
       <div className="mx-auto flex max-w-screen-xl flex-col justify-between gap-6 p-4 md:flex-row">
         <div className="space-y-3 py-3">
           <Skeleton className="h-4 w-24 bg-white/30" />

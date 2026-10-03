@@ -435,7 +435,7 @@ export default function SubmitCommentForm({ code, prof }: { code: string; prof: 
 
                         <div className=' space-y-6'>
 
-                            <Button type="submit" className='space-x-2 bg-gradient-to-r from-violet-500 to-fuchsia-500' disabled={isSubmitting}>
+                            <Button type="submit" className='space-x-2 bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white' disabled={isSubmitting}>
                                 <UploadCloud size={18} strokeWidth={2.5} />
                                 <span>Submit</span>
                             </Button>

@@ -37,6 +37,8 @@ module.exports = {
           strong: "hsl(var(--brand-strong))",
           logo: "hsl(var(--brand-logo))",
           foreground: "hsl(var(--brand-foreground))",
+          from: "hsl(var(--brand-from))",
+          to: "hsl(var(--brand-to))",
         },
         wordmark: {
           from: "hsl(var(--wordmark-from))",

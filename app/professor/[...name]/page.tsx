@@ -44,7 +44,7 @@ const ProfessorPage = ({ params: { name } }: { params: { name: string[] } }) => 
 
     return (
         <>
-            <div className='bg-gradient-to-r from-blue-600 to-indigo-500 text-white p-3'>
+            <div className='bg-gradient-to-r from-brand-from to-brand-to text-white p-3'>
                 <div className='max-w-screen-xl mx-auto p-4'>
                     <div className='break-words text-3xl font-semibold'>
                         {prof_name.toUpperCase().replaceAll("%20", " ").replaceAll('%24', '/')}

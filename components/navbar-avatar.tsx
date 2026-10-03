@@ -20,7 +20,7 @@ export default function NavbarAvatar() {
             </SignedIn>
             <SignedOut>
                 {/* Signed out users get sign in button */}
-                <div className='py-1 px-2 ml-2 rounded bg-gradient-to-r from-blue-600 to-indigo-500 text-white'>
+                <div className='py-1 px-2 ml-2 rounded bg-gradient-to-r from-brand-from to-brand-to text-white'>
                 <SignInButton mode="modal" redirectUrl={pathname}>Sign In</SignInButton>
                 </div>
             </SignedOut>

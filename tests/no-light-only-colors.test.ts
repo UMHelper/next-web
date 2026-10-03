@@ -17,8 +17,6 @@ const ALLOWED_TOKENS = [
   "bg-white/20",
   "bg-white/25",
   "bg-white/30",
-  "from-blue-600",
-  "to-indigo-500",
   "from-teal-400",
   "via-violet-400",
   "to-blue-500",
