@@ -59,6 +59,13 @@ describe("course filters", () => {
     expect(applyCourseFilters(COURSES, notOffered).map((course) => course.New_code)).toEqual(["COMP2001"]);
   });
 
+  it("falls back to All when an unrecognised Is_Offered value arrives", () => {
+    const offered = nextFilterState(createInitialFilterState(), "Is_Offered", "Offered");
+    const bogus = nextFilterState(offered, "Is_Offered", "bogus");
+    expect(bogus.Is_Offered).toBe("All");
+    expect(applyCourseFilters(COURSES, bogus)).toHaveLength(3);
+  });
+
   it("clears a dimension when All is chosen again", () => {
     const filtered = nextFilterState(createInitialFilterState(), "Offering_Department", "CIS");
     const cleared = nextFilterState(filtered, "Offering_Department", "All");

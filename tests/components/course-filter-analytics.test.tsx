@@ -84,6 +84,32 @@ describe("CourseFilter analytics", () => {
     expect(screen.queryByText("ACCT1000")).toBeTruthy();
   });
 
+  it("reports the offered label rather than the numeric flag for Is_Offered", async () => {
+    render(<CourseFilter data={[CIS_COURSE, ACC_COURSE]} ads={null} listName="search_course" />);
+
+    openSelectFor("Is_Offered");
+    const options = await screen.findAllByRole("option");
+    const labels = options.map((item) => item.textContent);
+    // 该维度有两个取值，所以下拉可用、且 All 在列
+    expect(labels).toContain("All");
+    expect(labels).toContain("Offered");
+
+    fireEvent.click(options.find((item) => item.textContent === "Offered")!);
+
+    // 口径是 UI 标签 "Offered"，不是状态里那个数字 1
+    expect(pushed()).toEqual([
+      {
+        event: "um_event",
+        um_name: "filter_apply",
+        filter_name: "Is_Offered",
+        filter_value: "Offered",
+        result_count: 1,
+      },
+    ]);
+    expect(screen.queryByText("COMP1001")).toBeTruthy();
+    expect(screen.queryByText("ACCT1000")).toBeNull();
+  });
+
   it("reports filter_apply when a dimension is cleared back to All", async () => {
     render(<CourseFilter data={[CIS_COURSE, ACC_COURSE]} ads={null} listName="search_course" />);
 
