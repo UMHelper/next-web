@@ -1,7 +1,7 @@
 /**
  * @vitest-environment jsdom
  */
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   trackFilterApply,
@@ -17,8 +17,15 @@ function pushed(): Payload[] {
   return (window as unknown as { dataLayer: Payload[] }).dataLayer;
 }
 
+let debug: ReturnType<typeof vi.spyOn>;
+
 beforeEach(() => {
+  debug = vi.spyOn(console, "debug").mockImplementation(() => {});
   (window as unknown as { dataLayer?: Payload[] }).dataLayer = [];
+});
+
+afterEach(() => {
+  debug.mockRestore();
 });
 
 describe("analytics events", () => {
@@ -33,6 +40,15 @@ describe("analytics events", () => {
         entry_point: "hero",
       },
     ]);
+  });
+
+  it("logs one readable line in development", () => {
+    trackSearch({ term: "ACCT1000", scope: "course", entryPoint: "hero" });
+    expect(debug).toHaveBeenCalledWith(
+      "[analytics]",
+      "search",
+      expect.objectContaining({ um_name: "search" }),
+    );
   });
 
   it("maps instructor search scope and the header entry point", () => {
@@ -62,6 +78,7 @@ describe("analytics events", () => {
 
   it("omits the optional faculty parameter when it is absent", () => {
     trackSelectItem({ itemId: "COMP1001", listName: "catalog", position: 3 });
+    expect(pushed()).toHaveLength(1);
     expect(pushed()[0]).not.toHaveProperty("faculty");
   });
 
