@@ -679,7 +679,7 @@ git commit -m "feat(analytics): single dataLayer emit with registry validation"
 /**
  * @vitest-environment jsdom
  */
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   trackFilterApply,
@@ -695,8 +695,17 @@ function pushed(): Payload[] {
   return (window as unknown as { dataLayer: Payload[] }).dataLayer;
 }
 
+let debug: ReturnType<typeof vi.spyOn>;
+
 beforeEach(() => {
   (window as unknown as { dataLayer?: Payload[] }).dataLayer = [];
+  // emit() 在 dev 下会打一行 console.debug：测试里既屏蔽它的 stdout 噪声，
+  // 又借此断言"dev 可观测"这条被 spec 写明的行为确实存在。
+  debug = vi.spyOn(console, "debug").mockImplementation(() => {});
+});
+
+afterEach(() => {
+  debug.mockRestore();
 });
 
 describe("analytics events", () => {
@@ -711,6 +720,15 @@ describe("analytics events", () => {
         entry_point: "hero",
       },
     ]);
+  });
+
+  it("logs one readable line in development", () => {
+    trackSearch({ term: "ACCT1000", scope: "course", entryPoint: "hero" });
+    expect(debug).toHaveBeenCalledWith(
+      "[analytics]",
+      "search",
+      expect.objectContaining({ um_name: "search" }),
+    );
   });
 
   it("maps instructor search scope and the header entry point", () => {
@@ -882,7 +900,7 @@ git commit -m "feat(analytics): semantic event functions for the phase 1 events"
 **Interfaces:**
 - Produces:
   - `COURSE_FILTER_KEYS: readonly string[]`（9 个维度的顺序与既有 UI 一致）
-  - `type CourseFilterState = Record<string, string | number>`
+  - `type CourseFilterState = Record<string, string | number | undefined>`（值类型含 `undefined`，用于表达"该维度未设置"；见 Step 3 的注释）
   - `createInitialFilterState(): CourseFilterState`
   - `nextFilterState(current: CourseFilterState, key: string, value: string): CourseFilterState`（含 `Is_Offered` 的 `Offered → 1` / `Not Offered → 0` 映射）
   - `applyCourseFilters<T extends Record<string, unknown>>(data: T[], filter: CourseFilterState): T[]`
