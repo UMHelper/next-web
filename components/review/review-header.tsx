@@ -12,6 +12,7 @@ import { shouldShowOfferedBadge } from "@/lib/config/offered-badge";
 import { getCourseInfo } from "@/lib/database/get-course-info";
 import getScheduleList from "@/lib/database/get-schedule-list";
 import type { ProfWithCourseRow } from "@/lib/database/types";
+import { buildSubmitPath } from "@/lib/site";
 
 export async function ReviewHeader({
   code,
@@ -23,6 +24,11 @@ export async function ReviewHeader({
   profInfo: ProfWithCourseRow;
 }) {
   const is_offered = profInfo.is_offered;
+
+  // 路由片段传进来时仍是百分号编码形态（`parseReviewRoute` 也要专门还原 `%2C`），
+  // 而 URL 构造器期望已解码的姓名 —— 不先解码就会把 `%20` 再编码成 `%2520`，
+  // 让同一个页面多出一个 URL 形态。与 `components/review-pagination.tsx` 同一写法。
+  const decodedProf = decodeURIComponent(prof).replaceAll("$", "/");
 
   const [course_info, { isPreenrollmentOpen }, timetable] = await Promise.all([
     getCourseInfo(code),
@@ -60,7 +66,7 @@ export async function ReviewHeader({
               ) : null}
             </div>
             <div className='flex-row flex space-x-2'>
-              <Link href={`/submit/${encodeURIComponent(code)}/${encodeURIComponent(prof)}`}>
+              <Link href={buildSubmitPath(code, decodedProf)}>
                 <Button className='text-sm px-2 hover:shadow-lg bg-background text-brand-strong hover:bg-surface-strong'>
                   <ClipboardEdit size={16} /><span> Submit Review</span>
                 </Button>
