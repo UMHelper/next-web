@@ -31,6 +31,8 @@ const PUBLIC_PAGE_PREFIXES = [
   "/sign-in",
   "/sign-up",
   "/submit",
+  // 插件 listing 的 support URL，必須匿名可達（Task 10）。
+  "/support",
   "/terms-of-service",
   "/timetable",
 ];

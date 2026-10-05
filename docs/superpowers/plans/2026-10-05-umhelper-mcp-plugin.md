@@ -168,8 +168,8 @@ git commit -m "feat: add OpenAI domain verification endpoint"
 
 使用 Clerk helper mock 覆盖：
 
-- `auth({ acceptsToken: "oauth_token", audience: MCP_RESOURCE_URL })` 被精确调用；
-- 无 token、签名无效、过期、audience 错误返回 unauthorized；
+- `auth({ acceptsToken: "oauth_token" })` 被精确调用（Clerk SDK 不提供 `audience` 选项，audience/resource 由 Clerk 授权服务器签发时绑定，见 spec §5.1 实施修正）；
+- 无 token、签名无效、过期返回 unauthorized；
 - 缺 `umhelper:read` 返回 forbidden；
 - 缺 `userId` 返回 unauthorized；
 - 合法 token 被规范化为 handler v2 所需的 `AuthInfo`，保留 token、scopes、clientId，并把 `userId` 放入受控 `extra`；
@@ -593,7 +593,7 @@ git commit -m "docs: add plugin support and privacy disclosures"
 
 - [ ] **Step 4: 生成并检查品牌 assets**
 
-使用现有 `public/whole-icon.png`、`public/favicon.png`、`public/icon/512.jpg` 作为品牌参考，通过 image generation 生成 512×512 透明 PNG。不得直接放大低清 favicon。人工检查小尺寸可读性和透明边缘。
+插件图标来源为共享品牌标记：iOS 端 `CatLogo` 使用的 lucide "cat" 矢量图形（`cat-blue.svg`，描边 `#003DB8`，ISC 许可）。把受许可的源文件复制到 `design/cat-logo.svg`，用 `scripts/build-plugin-assets.mjs`（`npm run plugin:assets`）无损渲染为 512×512 透明 PNG。`public/whole-icon.png` 已弃用不得使用；不得直接放大低清 favicon。人工检查小尺寸可读性和透明边缘。展示名必须使用站点规范名 `What2Reg @ UM 澳大選咩課`（`lib/site.ts` 的 `SITE_NAME`），短描述为 `澳門大學課程與教師評價平台（澳大選咩課）`。
 
 - [ ] **Step 5: 验证并生成候选 ZIP**
 
@@ -627,7 +627,7 @@ git commit -m "feat: package What2Reg public agent plugin"
 
 - 启用 Authorization Code + S256 PKCE 和 CIMD；
 - 添加 `umhelper:read`，并确认 `openid profile email umhelper:read` 可申请；
-- 资源/audience 使用 `https://umeh.top/mcp`；
+- 资源/audience 使用 `https://umeh.top/mcp`（这是 audience 的唯一绑定点：资源服务器不重复校验，见 spec §5.1 实施修正）；
 - 允许 ChatGPT/Codex 官方 CIMD client；DCR 保持关闭，除非实际客户端明确要求；
 - 确认授权页展示应用名称、scope 和撤销入口。
 
