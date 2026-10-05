@@ -55,3 +55,6 @@ tmp
 
 # local git worktrees
 .worktrees
+
+# release artifacts (candidate plugin ZIPs, not committed)
+artifacts/

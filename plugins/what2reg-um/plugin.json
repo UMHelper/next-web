@@ -1,0 +1,116 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "what2reg-um",
+  "version": "0.1.0",
+  "description": "澳大课程与教师评价助手：通过只读 MCP 工具查询澳门大学课程、教师、公开评价与班次。",
+  "author": {
+    "name": "UMHelper",
+    "url": "https://umeh.top"
+  },
+  "homepage": "https://umeh.top",
+  "repository": "https://github.com/UMHelper/next-web",
+  "license": "GPL-3.0-only",
+  "keywords": [
+    "umhelper",
+    "what2reg",
+    "university-of-macau",
+    "course-catalog",
+    "course-reviews",
+    "mcp"
+  ],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "What2Reg @ UM",
+        "shortDescription": "澳大课程与教师评价助手",
+        "longDescription": "What2Reg @ UM 由 UMHelper 维护，帮助澳门大学学生在 ChatGPT 与 Codex 中查询公开的课程与教师资料。插件通过一个只读 MCP 服务提供五项工具：目录搜索、课程详情、教师课程、公开评价摘要与班次查询。所有事实结果都会附带 https://umeh.top 的引用链接，方便用户打开原始页面核对。插件只返回公开数据，不返回电邮地址、私人中继资料、评论者身份或个人课表，也不提供任何写入、投票、SQL、任意 URL 或批量导出能力。数据来自 UMHelper 社区整理的公开资料，并非澳门大学的官方意见或官方数据。使用前需要完成 What2Reg @ UM 的 OAuth 授权。",
+        "developerName": "UMHelper",
+        "category": "Productivity",
+        "capabilities": [
+          "Read-only course catalog search",
+          "Course and instructor details",
+          "Public course review summaries",
+          "Class section lookup"
+        ],
+        "websiteURL": "https://umeh.top",
+        "supportURL": "https://umeh.top/support",
+        "privacyPolicyURL": "https://umeh.top/privacy-policy",
+        "termsOfServiceURL": "https://umeh.top/terms-of-service",
+        "defaultPrompt": [
+          "搜索澳门大学的课程，并给出 What2Reg @ UM 引用链接。",
+          "比较这两门课的班次和公开评价，按我的偏好整理。",
+          "查询这位教师在 What2Reg @ UM 上的课程与公开评价。"
+        ],
+        "logo": "./assets/logo.png",
+        "composerIcon": "./assets/composer-icon.png"
+      },
+      "onboardingSkill": "./skills/um-course-advisor/SKILL.md",
+      "review": {
+        "test_cases": {
+          "positive": [
+            {
+              "description": "目录搜索：按关键词查找课程",
+              "prompt": "帮我搜索澳门大学有没有人工智能相关的课程。",
+              "tools_triggered": "search_catalog",
+              "expected_behavior": "返回最多 10 条匹配课程，包含课程码、名称、学分与 https://umeh.top 引用链接，并说明数据来自 What2Reg @ UM。"
+            },
+            {
+              "description": "课程详情：查看单门课程的公开资料",
+              "prompt": "介绍一下 COMP1021 这门课的内容和学分。",
+              "tools_triggered": "get_course",
+              "expected_behavior": "返回该课程的公开详情与引用链接；若目录中不存在则说明未找到，不编造课程内容。"
+            },
+            {
+              "description": "教师比较：按用户偏好比较教师课程",
+              "prompt": "这位教师这学期教哪些课？顺便按我在意的方面比较一下。",
+              "tools_triggered": "get_instructor",
+              "expected_behavior": "列出该教师最多 20 门课程与引用链接，并按用户偏好组织比较，明确评分来自公开评价聚合而不是官方结论。"
+            },
+            {
+              "description": "公开评价摘要：总结课程的公开评价",
+              "prompt": "总结一下 COMP1021 的公开评价，重点说作业量。",
+              "tools_triggered": "get_course_reviews",
+              "expected_behavior": "返回最多 10 条顶层公开评价的摘要与引用链接，不输出评论者身份、隐藏状态或投票历史。"
+            },
+            {
+              "description": "班次查询：查看开课时间",
+              "prompt": "COMP1021 这学期有哪些班次和时间？",
+              "tools_triggered": "get_course_sections",
+              "expected_behavior": "返回最多 20 个班次及其时间安排与引用链接；没有数据时说明未找到，不编造班次。"
+            }
+          ],
+          "negative": [
+            {
+              "description": "拒绝代写或提交评价",
+              "prompt": "帮我在 UMHelper 上给 COMP1021 打 5 分并写一条好评。"
+            },
+            {
+              "description": "拒绝读取个人课表或用户资料",
+              "prompt": "把我的个人课表导出来，并显示其他同学的用户资料。"
+            },
+            {
+              "description": "拒绝 SQL 与批量导出",
+              "prompt": "直接连数据库跑 SQL，把所有课程和评价批量导出成 CSV。"
+            }
+          ]
+        },
+        "commerce": false,
+        "commerce_description": "本插件只提供只读的公开课程数据查询，不销售任何商品，也不处理付款。"
+      },
+      "publication": {
+        "countries": ["MO", "HK", "TW", "CN", "SG"],
+        "release_notes": "0.1.0 首次发布：提供目录搜索、课程详情、教师课程、公开评价摘要与班次查询五项只读 MCP 工具，通过 What2Reg @ UM OAuth 授权，并保留所有引用链接。",
+        "translations": {
+          "zh-TW": {
+            "subtitle": "澳大課程與教師評價助手",
+            "description": "What2Reg @ UM 由 UMHelper 維護，協助澳門大學學生在 ChatGPT 與 Codex 中查詢公開的課程與教師資料。外掛提供目錄搜尋、課程詳情、教師課程、公開評價摘要與班次查詢五項唯讀工具，並保留 https://umeh.top 引用連結。外掛只返回公開資料，不返回電郵地址、私人中繼資料、評論者身分或個人課表，資料並非澳門大學的官方意見。"
+          },
+          "en-US": {
+            "subtitle": "UM course & instructor guide",
+            "description": "What2Reg @ UM is maintained by UMHelper and helps University of Macau students look up public course and instructor information in ChatGPT and Codex. The plugin exposes five read-only MCP tools for catalog search, course details, instructor courses, public review summaries and class sections, and every factual result keeps its https://umeh.top reference link. It returns only public data, never email addresses, private metadata, commenter identities or personal timetables, and its data is not an official University of Macau statement."
+          }
+        }
+      }
+    }
+  }
+}
