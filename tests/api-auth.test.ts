@@ -15,7 +15,7 @@ import { requireWriteIdentity, resolveReportIdentity } from "@/lib/api-auth";
 describe("requireWriteIdentity", () => {
   it("returns a web identity from Clerk", async () => {
     verifyIOSRequest.mockReturnValue(false);
-    auth.mockReturnValue({ userId: "user_2abcDEF" });
+    auth.mockResolvedValue({ userId: "user_2abcDEF" });
     const request = new Request("http://localhost/api/reply", { method: "POST" });
 
     const result = await requireWriteIdentity(request);
@@ -25,7 +25,7 @@ describe("requireWriteIdentity", () => {
 
   it("returns 401 when there is no Clerk session", async () => {
     verifyIOSRequest.mockReturnValue(false);
-    auth.mockReturnValue({ userId: null });
+    auth.mockResolvedValue({ userId: null });
     const request = new Request("http://localhost/api/reply", { method: "POST" });
 
     const result = await requireWriteIdentity(request);
@@ -69,7 +69,7 @@ describe("requireWriteIdentity", () => {
 describe("resolveReportIdentity", () => {
   it("returns a web identity for signed-in users", async () => {
     verifyIOSRequest.mockReturnValue(false);
-    auth.mockReturnValue({ userId: "user_2abcDEF" });
+    auth.mockResolvedValue({ userId: "user_2abcDEF" });
     const request = new Request("http://localhost/api/report", { method: "POST" });
 
     const result = await resolveReportIdentity(request);
@@ -83,7 +83,7 @@ describe("resolveReportIdentity", () => {
 
   it("returns 401 for anonymous web users", async () => {
     verifyIOSRequest.mockReturnValue(false);
-    auth.mockReturnValue({ userId: null });
+    auth.mockResolvedValue({ userId: null });
     const request = new Request("http://localhost/api/report", { method: "POST" });
 
     const result = await resolveReportIdentity(request);

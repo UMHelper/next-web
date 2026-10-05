@@ -1,11 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { getUserList } = vi.hoisted(() => ({ getUserList: vi.fn() }));
+const { getUserList, clerkClient } = vi.hoisted(() => ({
+  getUserList: vi.fn(),
+  clerkClient: vi.fn(),
+}));
 
 vi.mock("server-only", () => ({}));
-vi.mock("@clerk/nextjs/server", () => ({
-  clerkClient: { users: { getUserList } },
-}));
+vi.mock("@clerk/nextjs/server", () => ({ clerkClient }));
 
 import {
   __resetDirectoryCacheForTests,
@@ -33,6 +34,7 @@ function clerkUser(overrides: Record<string, unknown> = {}) {
 describe("user-directory", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    clerkClient.mockResolvedValue({ users: { getUserList } });
     __resetDirectoryCacheForTests();
   });
 
@@ -78,6 +80,8 @@ describe("user-directory", () => {
     expect(first?.id).toBe("user_1");
     expect(second?.id).toBe("user_1");
     expect(getUserList).toHaveBeenCalledTimes(1);
+    // The cache must also prevent a second clerkClient() resolution.
+    expect(clerkClient).toHaveBeenCalledTimes(1);
   });
 
   it("chunks large id lists into batches of at most 100", async () => {

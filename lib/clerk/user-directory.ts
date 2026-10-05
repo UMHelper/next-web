@@ -105,7 +105,8 @@ export async function getDirectoryUsers(
   for (let index = 0; index < missing.length; index += MAX_USERS_PER_CALL) {
     const chunk = missing.slice(index, index + MAX_USERS_PER_CALL);
     try {
-      const users = await clerkClient.users.getUserList({
+      const client = await clerkClient();
+      const users = await client.users.getUserList({
         userId: chunk,
         limit: chunk.length,
       });
