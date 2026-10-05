@@ -172,6 +172,44 @@ Notes:
   to `/sign-in`; a raw HTTP client sees `200`. No admin navigation or admin data is present in
   that HTML (only the layout title from `metadata`). Confirm the browser-visible redirect once
   during the remaining manual smoke test.
-- Still to complete manually, because they need a real browser, real Clerk sessions, and the
-  configured preview environment: modal sign-in return, sign-up, sign-out, non-admin vs admin
-  `/admin`, comment/reply/vote/report and timetable CRUD, and one iOS HMAC request.
+### 10.1 Second preview run with the local server-only environment
+
+The first run had no server-only bindings. The preview was repeated after deriving an
+uncommitted `.dev.vars` from the ignored `.env.local` (quotes stripped, values never printed),
+so the worker had `CLERK_SECRET_KEY`, `SUPABASE_SECRET_KEY` and `UM_IOS_API_SECRET`. The file was
+deleted immediately after the run and was never staged.
+
+Public pages, anonymous:
+
+| Request | Observed |
+| --- | --- |
+| `GET /`, `GET /catalog`, `GET /catalog/FBA` | `200` HTML |
+| `GET /course/ACCT1000`, `GET /professor/TEACHER` | `200` HTML |
+| `GET /reviews/ACCT1000/TEACHER` | `200` HTML |
+| `GET /search/course/ACCT`, `GET /search/instructor/TEACHER` | `200` HTML |
+| `GET /timetable` | `200` HTML |
+| `GET /api/timetable/plans`, `GET /api/vote/me`, `GET /api/admin/me` | `401` JSON |
+
+iOS HMAC path (signature = `HMAC-SHA256(UM_IOS_API_SECRET, "GET\n/api/comment/ACCT1000/TEACHER\n<ts>")`):
+
+| Request | Observed | Meaning |
+| --- | --- | --- |
+| valid signature, current timestamp | `404` `{"error":"not found"}` | HMAC accepted; request reached `getReviewInfo` and the data layer (no such course/prof mapping) |
+| wrong signature, current timestamp | `401` `{"error":"unauthorized"}` | signature rejected |
+| valid signature, timestamp 60 s old | `401` `{"error":"unauthorized"}` | 5-second window still enforced |
+
+This covers the plan's "one existing iOS HMAC request still succeeds": authentication passes and
+the request is not turned away by the migration. `404` rather than `200` only reflects that
+`ACCT1000`/`TEACHER` is not a real course/professor pairing in the configured database.
+
+### 10.2 Still manual
+
+These need a real browser with real Clerk sessions and the configured preview environment, and
+were not performed:
+
+- modal sign-in returning to the invoking page, `/sign-up`, and sign-out;
+- non-admin denied vs admin loading under `/admin` (only the anonymous redirect was observed);
+- comment / reply / vote / report and timetable CRUD (deliberately not exercised — the
+  configured Supabase project holds real data);
+- confirming the browser follows the streamed `/admin` redirect.
+
