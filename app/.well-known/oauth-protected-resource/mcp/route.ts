@@ -1,6 +1,6 @@
 import { generateClerkProtectedResourceMetadata } from "@clerk/mcp-tools/server";
 
-import { MCP_REQUIRED_SCOPE, MCP_RESOURCE_URL } from "@/lib/mcp/constants";
+import { MCP_REQUIRED_SCOPE, resolveMcpResourceUrl } from "@/lib/mcp/constants";
 
 export const dynamic = "force-dynamic";
 
@@ -15,10 +15,11 @@ const CORS_HEADERS = {
  * RFC 9728 protected resource metadata for the MCP endpoint.
  *
  * Public protocol metadata only: it never reads course, review, user or database
- * data. `resource` is the explicit production MCP URL rather than an origin
- * derived from the incoming request.
+ * data. `resource` is the pinned production MCP URL; in `next dev` it is derived
+ * from the request so local discovery stays self-consistent (see
+ * `resolveMcpResourceUrl`).
  */
-export function GET() {
+export function GET(request: Request) {
   const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
   if (!publishableKey) {
     return new Response(null, { status: 500, headers: CORS_HEADERS });
@@ -26,7 +27,7 @@ export function GET() {
 
   const metadata = generateClerkProtectedResourceMetadata({
     publishableKey,
-    resourceUrl: MCP_RESOURCE_URL,
+    resourceUrl: resolveMcpResourceUrl(request),
     properties: {
       scopes_supported: ["openid", "profile", "email", MCP_REQUIRED_SCOPE],
       resource_documentation: "https://umeh.top/support",

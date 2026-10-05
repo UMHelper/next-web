@@ -15,6 +15,7 @@
 ## 固定边界
 
 - 生产 MCP resource 是精确字符串 `https://umeh.top/mcp`。
+- 开发环境(`next dev`)下 resource 与 401 challenge 的 origin 从请求派生,使本地 OAuth 自洽(否则本地服务端会把客户端指向生产 metadata,而它持有 dev Clerk 密钥,token 永远验不过)。`process.env.NODE_ENV` 由 Next 在构建期内联,`next build` 产物中该分支被完全移除(`.next/server/app/mcp/route.js` 里不含 `new URL("/mcp"`),因此生产不可能广播本地 origin。
 - 所有五个业务工具都需要有效 Clerk OAuth Bearer token、匹配的 audience/resource、非空 `userId` 和 `umhelper:read` scope。
 - `/mcp` 不接受 Clerk cookie、query-string key、iOS HMAC 或共享 secret 作为替代认证。
 - `GET /.well-known/openai-apps-challenge` 匿名公开且只返回 portal 下发的精确 token；它不调用 Clerk、MCP 或 Supabase。

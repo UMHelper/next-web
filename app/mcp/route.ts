@@ -5,6 +5,7 @@ import {
   MCP_REQUIRED_SCOPE,
   MCP_RESOURCE_METADATA_PATH,
   MCP_RESOURCE_URL,
+  isProductionRuntime,
 } from "@/lib/mcp/constants";
 import { enforceBodyLimit } from "@/lib/mcp/http";
 import {
@@ -34,7 +35,10 @@ const authorizedHandler = withMcpAuth(mcpHandler, verifyMcpAccessToken, {
   // `resourceMetadataPath` to build the `resource_metadata` challenge URL
   // (`${origin}${path}`). Passing the full resource URL would emit
   // `https://umeh.top/mcp/.well-known/oauth-protected-resource/mcp`, which 404s.
-  resourceUrl: new URL(MCP_RESOURCE_URL).origin,
+  //
+  // Production pins the exact origin; `next dev` leaves it undefined so the
+  // handler derives the origin from the request (any dev port/host works).
+  resourceUrl: isProductionRuntime() ? new URL(MCP_RESOURCE_URL).origin : undefined,
   resourceMetadataPath: MCP_RESOURCE_METADATA_PATH,
 });
 

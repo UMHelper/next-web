@@ -113,7 +113,7 @@ MCP structuredContent + 简短文本摘要
 
 Clerk 作为授权服务器，MCP 路由作为资源服务器。使用 Authorization Code Flow + S256 PKCE，并启用 Clerk 的 CIMD 支持。首版不启用 DCR，ChatGPT 与 Codex 通过其 HTTPS Client ID Metadata Document 接入。Clerk 已有账号登录与注册页面继续作为用户入口。
 
-MCP 资源标识使用生产端点 `https://umeh.top/mcp`。实现必须验证：
+MCP 资源标识使用生产端点 `https://umeh.top/mcp`。生产构建里它是编译期常量;仅 `next dev` 会从请求派生 origin,让本地 OAuth 与本地 Clerk 实例自洽(见 plan「固定边界」)。实现必须验证：
 
 - 签名来自配置的 Clerk instance；
 - token 未过期且尚未生效时间有效；

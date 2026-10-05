@@ -10,15 +10,23 @@ const PUBLISHABLE_KEY = `pk_test_${Buffer.from("clerk.test.invalid$")
 
 const PROTECTED_RESOURCE_ROUTE = "app/.well-known/oauth-protected-resource/mcp/route.ts";
 
+const protectedResourceRequest = (origin = "https://umeh.top") =>
+  new Request(`${origin}/.well-known/oauth-protected-resource/mcp`);
+
 describe("protected resource metadata", () => {
   beforeEach(() => {
     process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = PUBLISHABLE_KEY;
   });
 
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   it("publishes the exact MCP resource, public scopes and documentation URL", async () => {
+    vi.stubEnv("NODE_ENV", "production");
     const { GET } = await import("@/app/.well-known/oauth-protected-resource/mcp/route");
 
-    const response = await GET();
+    const response = await GET(protectedResourceRequest());
 
     expect(response.status).toBe(200);
     const body = await response.json();
@@ -29,6 +37,24 @@ describe("protected resource metadata", () => {
     );
     expect(body.resource_documentation).toBe("https://umeh.top/support");
     expect(response.headers.get("access-control-allow-origin")).toBe("*");
+  });
+
+  it("pins the production resource even when the request origin is local", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    const { GET } = await import("@/app/.well-known/oauth-protected-resource/mcp/route");
+
+    const response = await GET(protectedResourceRequest("http://localhost:4000"));
+
+    expect((await response.json()).resource).toBe(MCP_RESOURCE_URL);
+  });
+
+  it("derives the resource from the request outside production", async () => {
+    vi.stubEnv("NODE_ENV", "development");
+    const { GET } = await import("@/app/.well-known/oauth-protected-resource/mcp/route");
+
+    const response = await GET(protectedResourceRequest("http://localhost:4000"));
+
+    expect((await response.json()).resource).toBe("http://localhost:4000/mcp");
   });
 
   it("answers an anonymous CORS preflight", async () => {
