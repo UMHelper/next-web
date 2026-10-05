@@ -1,6 +1,6 @@
 # next-web Clerk v4 → v6 升级设计（P2）
 
-> 状态：Draft，等待人工 review
+> 状态：Superseded；由 `2026-10-05-next15-clerk7-upgrade-design.md` 取代
 > 日期：2026-09-21
 > 前置：P0（鉴权边界收口）、P1（账户生命周期 webhook）已上线
 > 后续：review 通过后由 `writing-plans` 生成实施计划
