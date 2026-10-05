@@ -199,7 +199,7 @@ export default function AdminCourseNotesClient() {
       />
 
       <Dialog open={editingMapping !== null} onOpenChange={(open) => !open && setEditingMapping(null)}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl" onOpenAutoFocus={(e) => e.preventDefault()}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl" onOpenAutoFocus={(e) => e.preventDefault()} aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle>
               Edit notes for {editingMapping?.course_id} / {editingMapping?.prof_id}

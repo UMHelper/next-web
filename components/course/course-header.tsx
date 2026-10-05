@@ -105,7 +105,7 @@ export default async function CourseHeader({ code }: { code: string }) {
                       <ArrowUpRightSquare size={12} />
                     </div>
                   </DialogTrigger>
-                  <DialogContent className="sm:max-w-[425px]" >
+                  <DialogContent className="sm:max-w-[425px]" aria-describedby={undefined} >
                     <DialogHeader>
                       <DialogTitle>Course Description</DialogTitle>
                     </DialogHeader>
@@ -130,7 +130,7 @@ export default async function CourseHeader({ code }: { code: string }) {
                       <ArrowUpRightSquare size={12} />
                     </div>
                   </DialogTrigger>
-                  <DialogContent className="sm:max-w-[425px]">
+                  <DialogContent className="sm:max-w-[425px]" aria-describedby={undefined}>
                     <DialogHeader>
                       <DialogTitle>Intended Learning Outcomes</DialogTitle>
                     </DialogHeader>

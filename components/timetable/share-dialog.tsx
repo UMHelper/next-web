@@ -85,7 +85,7 @@ export default function ShareDialog({ plan }: { plan: LocalPlan }) {
           <Share2 size={14} /> Share
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle>Share timetable</DialogTitle>
         </DialogHeader>

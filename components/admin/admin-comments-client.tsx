@@ -230,7 +230,7 @@ export default function AdminCommentsClient() {
       />
 
       <Dialog open={editing !== null} onOpenChange={(open) => !open && setEditing(null)}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl" onOpenAutoFocus={(e) => e.preventDefault()}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl" onOpenAutoFocus={(e) => e.preventDefault()} aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle>Edit comment #{editing?.id}</DialogTitle>
           </DialogHeader>

@@ -8,7 +8,9 @@ import SearchForm from "@/components/search/search-form";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
+  DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
 
@@ -27,6 +29,11 @@ export default function SearchButton() {
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
+          {/* No visible heading: keep the required title/description for screen readers only. */}
+          <DialogTitle className="sr-only">Search</DialogTitle>
+          <DialogDescription className="sr-only">
+            Search courses and instructors.
+          </DialogDescription>
           <SearchForm
             variant="dialog"
             onSubmitted={() => {
