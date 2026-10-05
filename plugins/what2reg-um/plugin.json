@@ -2,7 +2,7 @@
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "what2reg-um",
   "version": "0.1.0",
-  "description": "澳大课程与教师评价助手：通过只读 MCP 工具查询澳门大学课程、教师、公开评价与班次。",
+  "description": "What2Reg @ UM 澳大選咩課（UMHelper）：以只讀 MCP 工具查詢澳門大學課程、教師、公開評價與班次。",
   "author": {
     "name": "UMHelper",
     "url": "https://umeh.top"
@@ -21,9 +21,9 @@
   "extensions": {
     "com.openai": {
       "interface": {
-        "displayName": "What2Reg @ UM",
-        "shortDescription": "澳大课程与教师评价助手",
-        "longDescription": "What2Reg @ UM 由 UMHelper 维护，帮助澳门大学学生在 ChatGPT 与 Codex 中查询公开的课程与教师资料。插件通过一个只读 MCP 服务提供五项工具：目录搜索、课程详情、教师课程、公开评价摘要与班次查询。所有事实结果都会附带 https://umeh.top 的引用链接，方便用户打开原始页面核对。插件只返回公开数据，不返回电邮地址、私人中继资料、评论者身份或个人课表，也不提供任何写入、投票、SQL、任意 URL 或批量导出能力。数据来自 UMHelper 社区整理的公开资料，并非澳门大学的官方意见或官方数据。使用前需要完成 What2Reg @ UM 的 OAuth 授权。",
+        "displayName": "What2Reg @ UM 澳大選咩課",
+        "shortDescription": "澳門大學課程與教師評價平台（澳大選咩課）",
+        "longDescription": "What2Reg @ UM 澳大選咩課 由 UMHelper 维护，帮助澳门大学学生在 ChatGPT 与 Codex 中查询公开的课程与教师资料。插件通过一个只读 MCP 服务提供五项工具：目录搜索、课程详情、教师课程、公开评价摘要与班次查询。所有事实结果都会附带 https://umeh.top 的引用链接，方便用户打开原始页面核对。插件只返回公开数据，不返回电邮地址、私人中继资料、评论者身份或个人课表，也不提供任何写入、投票、SQL、任意 URL 或批量导出能力。数据来自 UMHelper 社区整理的公开资料，并非澳门大学的官方意见或官方数据。使用前需要完成 What2Reg @ UM 的 OAuth 授权。",
         "developerName": "UMHelper",
         "category": "Productivity",
         "capabilities": [
@@ -102,11 +102,11 @@
         "release_notes": "0.1.0 首次发布：提供目录搜索、课程详情、教师课程、公开评价摘要与班次查询五项只读 MCP 工具，通过 What2Reg @ UM OAuth 授权，并保留所有引用链接。",
         "translations": {
           "zh-TW": {
-            "subtitle": "澳大課程與教師評價助手",
+            "subtitle": "澳門大學課程與教師評價平台",
             "description": "What2Reg @ UM 由 UMHelper 維護，協助澳門大學學生在 ChatGPT 與 Codex 中查詢公開的課程與教師資料。外掛提供目錄搜尋、課程詳情、教師課程、公開評價摘要與班次查詢五項唯讀工具，並保留 https://umeh.top 引用連結。外掛只返回公開資料，不返回電郵地址、私人中繼資料、評論者身分或個人課表，資料並非澳門大學的官方意見。"
           },
           "en-US": {
-            "subtitle": "UM course & instructor guide",
+            "subtitle": "UM course review platform",
             "description": "What2Reg @ UM is maintained by UMHelper and helps University of Macau students look up public course and instructor information in ChatGPT and Codex. The plugin exposes five read-only MCP tools for catalog search, course details, instructor courses, public review summaries and class sections, and every factual result keeps its https://umeh.top reference link. It returns only public data, never email addresses, private metadata, commenter identities or personal timetables, and its data is not an official University of Macau statement."
           }
         }

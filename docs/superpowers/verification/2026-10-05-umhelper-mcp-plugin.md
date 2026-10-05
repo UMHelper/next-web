@@ -56,8 +56,9 @@ MCP 自有测试 11 个文件 / 207 测试；插件包 38 测试；法律披露 
 4. **zod 桥接**：仓库捆绑的 zod 4.0.x（经 `zod/v4`）没有 `~standard.jsonSchema`，而 `@modelcontextprotocol/server` 在 `registerTool` 中要求它。新增 `toMcpSchema()`，用仓库自身的 `z.toJSONSchema` 补齐，未新增依赖、未使用 `any`、未关闭类型检查。
 5. **教师名大写**：`prof_with_course.prof_id` 用大小写敏感的 `.eq` 查询且库内为大写（网站各路由都先 `toUpperCase()`），因此 `get_instructor` / `get_course_reviews` / `get_course_sections` 的教师名归一化为 trim + 折叠空白 + 大写，避免模型给 title/lower case 时必然 `not_found`。
 6. **法律文案位置**：现有法律正文在 `lib/privacy-policy.ts` / `lib/terms-of-service.ts`，本次披露按计划要求加在路由页文件中（组合 lib 内容 + 追加章节）。后续可集中回 `lib/`。
-7. **插件图标是派生占位图**：环境无图像生成工具，`assets/logo.png` 与 `composer-icon.png` 由 `public/icon/512.jpg`（原生 512×512）经白色转 alpha + 圆角遮罩生成，**未放大低清素材**。计划要求的品牌设计评审仍需人工完成并替换。
+7. **插件图标是派生占位图**：环境无图像生成工具，`assets/logo.png` 与 `composer-icon.png` 由 `public/icon/512.jpg`（原生 512×512）经白色转 alpha + 圆角遮罩生成，**未放大低清素材**。`public/whole-icon.png` 已弃用，未参与生成。计划要求的品牌设计评审仍需人工完成并替换。
 8. **支持页语言切换**沿用站内既有 `?lang=zh` 模式（无 `/support/zh` 路由）；`/support` 尚未加入 sitemap/footer。
+9. **对外品牌名与文案修正（2026-10-05，评审反馈）**：产品对外名是站点规范名 `What2Reg @ UM 澳大選咩課`（`lib/site.ts` 的 `SITE_NAME`），不是"澳大选课助手/课程助手"。`plugin.json` 的 `interface.displayName` 已改为该规范名，`shortDescription` 改为 `澳門大學課程與教師評價平台（澳大選咩課）`，顶层 `description`、`zh-TW` / `en-US` 的 `subtitle` 同步修正；spec §11 与 plan Task 11 Step 4 的措辞也已更正。`public/whole-icon.png` 已弃用，品牌参考只用 `public/icon/*`。
 
 ## 6. 仍需人工/控制台完成
 

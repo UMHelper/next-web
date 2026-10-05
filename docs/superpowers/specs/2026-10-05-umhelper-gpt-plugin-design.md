@@ -354,7 +354,7 @@ plugins/what2reg-um/
 
 `mcp.json` 只声明生产 Streamable HTTP 地址 `https://umeh.top/mcp`，不包含 Token、Clerk secret 或 Supabase secret。技能说明模型如何选择五个工具、保留引用、处理无数据结果，并禁止把站外知识包装成 UMHelper 数据。
 
-`plugin.json` 使用 Agent Plugins 1.0，展示名为 `What2Reg @ UM`，短描述固定为 `澳大课程与教师评价助手`。`assets/logo.png` 与 `assets/composer-icon.png` 使用同一张新制作的 512×512 透明 PNG，以现有 What2Reg 品牌图形和配色为基础；首版不声明 dark-mode 变体或自定义 brand color。
+`plugin.json` 使用 Agent Plugins 1.0，展示名固定为站点规范名 `What2Reg @ UM 澳大選咩課`（即 `lib/site.ts` 的 `SITE_NAME`），短描述为 `澳門大學課程與教師評價平台（澳大選咩課）`。`assets/logo.png` 与 `assets/composer-icon.png` 使用同一张新制作的 512×512 透明 PNG，以现有 What2Reg 品牌图形和配色为基础（`public/icon/*`；`public/whole-icon.png` 已弃用，不得再作为品牌参考）；首版不声明 dark-mode 变体或自定义 brand color。
 
 公共发布包不得包含 `.app.json` 或本地 MCP 配置。四个 listing URL 固定为：
 
