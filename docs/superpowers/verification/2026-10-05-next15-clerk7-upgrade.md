@@ -242,3 +242,34 @@ documented browser-correct behaviour with no data leak; and `eslint . --max-warn
 eslint-config-next's `overrides[].files` to include TypeScript, noted as a latent risk if the
 config is ever flattened.
 
+## 12. Final acceptance on `main` (2026-10-05)
+
+The complete automated gate was rerun from commit `4f084d6` on `main`, after the feature merge
+and the follow-up fixes. All commands completed successfully:
+
+| Check | Result |
+| --- | --- |
+| `npm test` | 129 files and 494 tests passed |
+| `npx tsc --noEmit` | passed with no diagnostics |
+| `npm run lint` | passed with zero warnings |
+| `npm run build` | Next.js 15.5.27 production build passed; 60 static pages generated |
+| `npm run build:pages` | OpenNext Cloudflare 1.16.6 worker build passed |
+
+The generated worker was then started with `opennextjs-cloudflare preview` and probed through
+`http://localhost:8787`:
+
+| Request | Observed |
+| --- | --- |
+| `GET /` | `200` HTML |
+| `GET /course/ACCT1000` | `200` HTML |
+| `GET /sign-in` | `200` HTML |
+| `GET /api/timetable/plans` | `401` JSON |
+| `GET /api/vote/me` | `401` JSON |
+| `GET /api/admin/me` | `401` JSON |
+
+This accepts the upgrade's automated scope: the application, type system, lint rules, Next
+production output, Cloudflare worker output, and anonymous API boundaries all pass from the
+merged branch. The real-session smoke items in section 10.2 remain operational checks because
+they require an authenticated Clerk user (and, for admin checks, an administrator account).
+They do not block accepting the code upgrade, but they must be completed before a production
+release that changes the live Clerk configuration.
