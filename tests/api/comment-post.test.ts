@@ -52,7 +52,7 @@ describe("POST /api/comment/[code]/[prof]", () => {
   it("returns 400 for an invalid course code", async () => {
     const response = await POST(
       new Request("http://localhost/api/comment/BAD/BAD", { method: "POST", body: validForm() }),
-      { params: { code: "BAD", prof: "BAD" } },
+      { params: Promise.resolve({ code: "BAD", prof: "BAD" }) },
     );
 
     expect(response.status).toBe(400);
@@ -65,7 +65,7 @@ describe("POST /api/comment/[code]/[prof]", () => {
         method: "POST",
         body: validForm(),
       }),
-      { params: { code: "ACCT1000", prof: "TEACHER" } },
+      { params: Promise.resolve({ code: "ACCT1000", prof: "TEACHER" }) },
     );
 
     expect(response.status).toBe(200);
@@ -89,7 +89,7 @@ describe("POST /api/comment/[code]/[prof]", () => {
         method: "POST",
         body: validForm(),
       }),
-      { params: { code: "ACCT1000", prof: "TEACHER" } },
+      { params: Promise.resolve({ code: "ACCT1000", prof: "TEACHER" }) },
     );
 
     expect(response.status).toBe(200);
@@ -113,7 +113,7 @@ describe("POST /api/comment/[code]/[prof]", () => {
         method: "POST",
         body: validForm(),
       }),
-      { params: { code: "ACCT1000", prof: "TEACHER" } },
+      { params: Promise.resolve({ code: "ACCT1000", prof: "TEACHER" }) },
     );
 
     expect(response.status).toBe(200);

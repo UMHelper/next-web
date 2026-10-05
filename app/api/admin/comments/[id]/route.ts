@@ -8,11 +8,12 @@ import { commentUpdateSchema } from "@/lib/validation/admin";
 
 export const dynamic = "force-dynamic";
 
-export async function PATCH(request: Request, { params }: { params: { id: string } }) {
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const admin = await requireAdmin();
   if (!admin.ok) return admin.response;
 
-  const commentId = Number(params.id);
+  const { id } = await params;
+  const commentId = Number(id);
   if (!Number.isInteger(commentId) || commentId <= 0) {
     return apiError("invalid_request", "Invalid comment id", 400);
   }

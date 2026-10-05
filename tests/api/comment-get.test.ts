@@ -56,7 +56,7 @@ describe("GET /api/comment/[code]/[prof]", () => {
   it("adds a pseudonymous verify_account field for legacy iOS decoding", async () => {
     const response = await GET(
       new Request("http://localhost/api/comment/ACCT1000/TEACHER?page=1"),
-      { params: { code: "ACCT1000", prof: "TEACHER" } },
+      { params: Promise.resolve({ code: "ACCT1000", prof: "TEACHER" }) },
     );
 
     expect(response.status).toBe(200);
@@ -75,7 +75,7 @@ describe("GET /api/comment/[code]/[prof]", () => {
 
     const response = await GET(
       new Request("http://localhost/api/comment/ACCT1000/TEACHER?page=1"),
-      { params: { code: "ACCT1000", prof: "TEACHER" } },
+      { params: Promise.resolve({ code: "ACCT1000", prof: "TEACHER" }) },
     );
 
     const body = await response.json();

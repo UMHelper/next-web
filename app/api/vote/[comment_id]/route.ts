@@ -11,11 +11,13 @@ export const dynamic = "force-dynamic";
 
 export async function POST(
   request: Request,
-  { params }: { params: { comment_id: string } },
+  { params }: { params: Promise<{ comment_id: string }> },
 ) {
   const identityResult = await requireWriteIdentity(request);
   if ("response" in identityResult) return identityResult.response;
   const { identity } = identityResult;
+
+  const { comment_id } = await params;
 
   const bodyResult = await readJsonBody(request, 4_096);
   if (!bodyResult.ok) return bodyResult.response;
@@ -30,7 +32,7 @@ export async function POST(
     });
   }
 
-  if (String(parsed.data.comment) !== params.comment_id) {
+  if (String(parsed.data.comment) !== comment_id) {
     return apiError("invalid_request", "comment must match the URL parameter", 400);
   }
 

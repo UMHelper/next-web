@@ -32,7 +32,7 @@ async function passthroughAdminError(response: Response) {
   return relayError(code, message, response.status);
 }
 
-async function handle(request: Request, context: { params: { path: string[] } }) {
+async function handle(request: Request, context: { params: Promise<{ path: string[] }> }) {
   try {
     const admin = await requireAdmin({ platformOnly: true });
     if (!admin.ok) return passthroughAdminError(admin.response);
@@ -40,7 +40,8 @@ async function handle(request: Request, context: { params: { path: string[] } })
     if (!ALLOWED_METHODS.has(request.method)) {
       return relayError("method_not_allowed", "Method not allowed", 405);
     }
-    if (!isAllowedRelayPath(context.params.path)) {
+    const { path } = await context.params;
+    if (!isAllowedRelayPath(path)) {
       return relayError("forbidden", "Relay path not allowed", 403);
     }
 
@@ -51,7 +52,7 @@ async function handle(request: Request, context: { params: { path: string[] } })
     }
 
     const search = new URL(request.url).search;
-    const upstream = `${base.replace(/\/$/, "")}/${context.params.path.join("/")}${search}`;
+    const upstream = `${base.replace(/\/$/, "")}/${path.join("/")}${search}`;
     const init: RequestInit = {
       method: request.method,
       headers: buildRelayHeaders(request.headers, secretKey),

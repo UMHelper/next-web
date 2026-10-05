@@ -8,11 +8,12 @@ import { courseUpdateSchema } from "@/lib/validation/admin";
 
 export const dynamic = "force-dynamic";
 
-export async function PATCH(request: Request, { params }: { params: { code: string } }) {
+export async function PATCH(request: Request, { params }: { params: Promise<{ code: string }> }) {
   const admin = await requireAdmin();
   if (!admin.ok) return admin.response;
 
-  const code = decodeURIComponent(params.code).toUpperCase();
+  const { code: rawCode } = await params;
+  const code = decodeURIComponent(rawCode).toUpperCase();
   if (!/^[A-Z]{4}\d{4}$/.test(code)) {
     return apiError("invalid_request", "Invalid course code", 400);
   }

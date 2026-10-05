@@ -50,7 +50,7 @@ describe("PATCH /api/admin/prof-with-course/[id]", () => {
       body: JSON.stringify({ admin_note: "中文", admin_note_en: "English" }),
     });
 
-    const response = await PATCH(request, { params: { id: "1" } });
+    const response = await PATCH(request, { params: Promise.resolve({ id: "1" }) });
 
     expect(response.status).toBe(200);
     expect(update).toHaveBeenCalledWith({ admin_note: "中文", admin_note_en: "English" });
