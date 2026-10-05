@@ -106,11 +106,11 @@ export async function getDirectoryUsers(
     const chunk = missing.slice(index, index + MAX_USERS_PER_CALL);
     try {
       const client = await clerkClient();
-      const users = await client.users.getUserList({
+      const { data } = await client.users.getUserList({
         userId: chunk,
         limit: chunk.length,
       });
-      for (const user of users) {
+      for (const user of data) {
         const mapped = toDirectoryUser(user as unknown as ClerkUserLike);
         writeCache(mapped);
         result.set(mapped.id, mapped);

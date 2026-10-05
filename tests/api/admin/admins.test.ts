@@ -63,7 +63,7 @@ describe("POST /api/admin/admins", () => {
   it("resolves an email grant through the awaited Clerk client", async () => {
     const client = {
       users: {
-        getUserList: vi.fn().mockResolvedValue([clerkUser()]),
+        getUserList: vi.fn().mockResolvedValue({ data: [clerkUser()] }),
         getUser: vi.fn(),
       },
     };

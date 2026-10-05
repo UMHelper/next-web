@@ -74,7 +74,7 @@ describe("user-directory", () => {
   });
 
   it("caches users within the TTL", async () => {
-    getUserList.mockResolvedValue([clerkUser()]);
+    getUserList.mockResolvedValue({ data: [clerkUser()] });
     const first = await getDirectoryUser("user_1");
     const second = await getDirectoryUser("user_1");
     expect(first?.id).toBe("user_1");
@@ -85,7 +85,7 @@ describe("user-directory", () => {
   });
 
   it("chunks large id lists into batches of at most 100", async () => {
-    getUserList.mockResolvedValue([]);
+    getUserList.mockResolvedValue({ data: [] });
     const ids = Array.from({ length: 150 }, (_, index) => `user_${index}`);
     await getDirectoryUsers(ids);
     expect(getUserList).toHaveBeenCalledTimes(2);

@@ -86,13 +86,13 @@ export async function POST(request: Request) {
   try {
     const client = await clerkClient();
     if (isEmail) {
-      const users = await client.users.getUserList({ emailAddress: [identifier], limit: 2 });
-      if (users.length === 0) return apiError("not_found", "Clerk user not found", 404);
-      if (users.length > 1) {
+      const { data: matched } = await client.users.getUserList({ emailAddress: [identifier], limit: 2 });
+      if (matched.length === 0) return apiError("not_found", "Clerk user not found", 404);
+      if (matched.length > 1) {
         return apiError("invalid_request", "Email matches multiple Clerk users", 400);
       }
-      userId = users[0].id;
-      userEmail = toDirectoryUser(users[0] as never).primaryEmail;
+      userId = matched[0].id;
+      userEmail = toDirectoryUser(matched[0] as never).primaryEmail;
     } else {
       const user = await client.users.getUser(identifier);
       userEmail = toDirectoryUser(user as never).primaryEmail;
