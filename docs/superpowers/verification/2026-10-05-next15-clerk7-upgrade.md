@@ -141,3 +141,37 @@ integration:
 No database migration is involved. Rollback is the pre-upgrade build artifact plus the
 previous lockfile; the old Clerk environment variables stay configured during the rollback
 window.
+
+## 10. Local preview boundary check (partial Task 8)
+
+`opennextjs-cloudflare preview` was run against the `.open-next` worker and the anonymous
+boundaries were probed with `curl`. (Sandbox note: miniflare writes its dev registry under
+`$HOME`, which is outside the writable workspace, so the preview was launched with `HOME`
+redirected into the worktree; no repository file changed. `populateCache` still ran through
+the local platform proxy.)
+
+| Request | Observed | Expected |
+| --- | --- | --- |
+| `GET /` | `200` HTML | public page |
+| `GET /course/ACCT1000` | `200` HTML | public page |
+| `GET /sign-in` | `200` HTML | public auth page |
+| `GET /api/timetable/plans` | `401` JSON `{"code":"unauthorized"}` | JSON 401, not HTML |
+| `GET /api/vote/me` | `401` JSON `{"code":"unauthorized"}` | JSON 401, not HTML |
+| `GET /api/admin/me` | `401` JSON `{"code":"unauthorized"}` | JSON 401, not HTML |
+| `GET /api/admin/admins` | `401` JSON `{"code":"unauthorized"}` | JSON 401, not HTML |
+| `GET /admin` | `200` HTML carrying `NEXT_REDIRECT;replace;/sign-in;307` | redirect to sign-in |
+| `GET /admin/admins` | `200` HTML carrying `NEXT_REDIRECT;replace;/sign-in;307` | redirect to sign-in |
+
+Notes:
+
+- Protected APIs return JSON `401`, confirming middleware no longer converts anonymous API
+  requests into an HTML redirect — the main risk listed in the spec.
+- Because authorization moved from middleware into `app/admin/layout.tsx`, the anonymous
+  `/admin` redirect is delivered by Next as a streamed RSC payload inside a `200`
+  (`NEXT_REDIRECT;replace;/sign-in;307`) instead of a top-level `307`. Browsers still navigate
+  to `/sign-in`; a raw HTTP client sees `200`. No admin navigation or admin data is present in
+  that HTML (only the layout title from `metadata`). Confirm the browser-visible redirect once
+  during the remaining manual smoke test.
+- Still to complete manually, because they need a real browser, real Clerk sessions, and the
+  configured preview environment: modal sign-in return, sign-up, sign-out, non-admin vs admin
+  `/admin`, comment/reply/vote/report and timetable CRUD, and one iOS HMAC request.
