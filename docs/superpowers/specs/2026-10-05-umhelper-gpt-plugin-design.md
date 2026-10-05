@@ -122,7 +122,9 @@ MCP 资源标识使用生产端点 `https://umeh.top/mcp`。生产构建里它�
 
 不能只解码 JWT 而不验证签名、issuer 和有效期。
 
-**audience/resource 的归属（实施修正，2026-10-05）**：`@clerk/nextjs` 的 `auth()` 只接受 `acceptsToken`，既不提供 `audience` 选项，也不暴露 JWT claims；Clerk 官方 helper `verifyClerkToken` 同样不校验 audience。因此资源服务器采用 Clerk 官方路径（`auth({ acceptsToken: "oauth_token" })` + `verifyClerkToken`）完成签名、issuer 与有效期校验，**audience/resource 由 Clerk 授权服务器在签发 token 时通过 OAuth application 的 resource 配置绑定**；工具边界再校验非空 `userId` 与 `umhelper:read`。该绑定必须在 Clerk Dashboard 配置，并在 Task 12 的部署检查中确认。
+**audience/resource 的归属（实施修正，2026-10-05）**：`@clerk/nextjs` 的 `auth()` 只接受 `acceptsToken`，既不提供 `audience` 选项，也不暴露 JWT claims；Clerk 官方 helper `verifyClerkToken` 同样不校验 audience。因此资源服务器采用 Clerk 官方路径（`auth({ acceptsToken: "oauth_token" })` + `verifyClerkToken`）完成签名、issuer 与有效期校验，工具边界再校验非空 `userId` 与 `umhelper:read`。
+
+**补充事实（2026-10-05 复核）**：Clerk Backend API 的 `oauth_application` 对象（`GET /v1/oauth_applications`）字段为 name / client_id / client_uri / public / dynamically_registered / consent_screen_enabled / pkce_required / device_authorization_grant_enabled / scopes / redirect_uris / 各 endpoint URL，**没有 audience 或 resource 字段**；Clerk 的 authorization server metadata 同样不广播 resource indicator 支持。因此不存在"在 Dashboard 绑定 audience/resource"的开关，**服务端也不校验 audience**；客户端按 RFC 8707 发送的 `resource` 参数不参与鉴权。实际生效的访问控制是：Clerk token 签名/issuer/有效期 + `umhelper:read` scope + 非空 `userId` + 五个只读工具 + 双档限流。
 
 ### 5.2 HTTP 行为
 
@@ -154,6 +156,28 @@ OpenAI submission portal 生成的精确 challenge token 存入 Cloudflare 生�
 - middleware 必须允许 OpenAI 未登录访问这个精确路径，因为域名验证发生在 Clerk OAuth 之前。
 
 challenge token 按协议就是可被公开读取的所有权证明，因此不能把它当作业务 API 密钥。业务数据仍只有 `/mcp` 能访问，并继续强制 Clerk Bearer Token、audience/resource 与 `umhelper:read` scope。验证完成后保留该路由；若 portal 轮换 token，只更新 Cloudflare secret 并重新部署，不改代码。
+
+### 5.6 OAuth 同意页（自建，2026-10-05 实施修正）
+
+Clerk 的默认同意页托管在 Account Portal。实测该流程在本实例上**无法完成**：
+
+```
+clerk.umeh.top/oauth/authorize → /oauth/authorize/continue
+  → accounts.<instance-domain>/sign-in?redirect_url=…/oauth-consent?…
+  → sign-in 页在用户已登录（自动跳转）时丢弃 redirect_url，改送实例 Home URL
+    （dev 是 /default-redirect，生产是 https://www.umeh.top/）
+```
+
+后果是授权永远到不了客户端的 `redirect_uri`，Clerk 只记录 `oauth_authorization.failed`（`oauth_client_id` 是真实 client，`reason` 为 Clerk 内部错误码 `oauth2idp_patch_fosite_state_non_invalid_state_error`）。**该失败与我们侧无关**：metadata、discovery、client_id、redirect_uri 注册、scopes、PKCE 已逐项验证，且用参数完全可控的自建 PKCE 客户端复现同样结果。
+
+因此改用 Clerk 文档「Set up a custom OAuth consent page」的推荐路径，把同意页建在本站：
+
+- 路由 `app/oauth-consent/[[...index]]/page.tsx`，渲染 `@clerk/nextjs` 的 `<OAuthConsent />`；
+- 只对已登录用户渲染（`auth()` + `redirectToSignIn()`）；
+- **必须**设置 `referrer: "strict-origin-when-cross-origin"`：同意表单 POST 到 Clerk 的 Frontend API，否则部分跨源提交会带 `Origin: null` 而被 Clerk 拒绝；
+- 页面刻意保持最小：不含导航、账号菜单或登出控件，避免把用户带离授权流程。
+
+人工配置（属 Task 12）：**Paths → Component paths → OAuth consent** 填 `https://umeh.top/oauth-consent`（生产必须是 HTTPS 且与实例同注册域；dev 实例填 `/oauth-consent`）。所有可授权应用的 consent screen 保持开启。
 
 ## 6. 工具契约
 

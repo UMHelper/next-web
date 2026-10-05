@@ -60,6 +60,12 @@ MCP 自有测试 11 个文件 / 207 测试；插件包 38 测试；法律披露 
 8. **支持页语言切换**沿用站内既有 `?lang=zh` 模式（无 `/support/zh` 路由）；`/support` 尚未加入 sitemap/footer。
 9. **对外品牌名与文案修正（2026-10-05，评审反馈）**：产品对外名是站点规范名 `What2Reg @ UM 澳大選咩課`（`lib/site.ts` 的 `SITE_NAME`），不是"澳大选课助手/课程助手"。`plugin.json` 的 `interface.displayName` 已改为该规范名，`shortDescription` 改为 `澳門大學課程與教師評價平台（澳大選咩課）`，顶层 `description`、`zh-TW` / `en-US` 的 `subtitle` 同步修正；spec §11 与 plan Task 11 Step 4 的措辞也已更正。`public/whole-icon.png` 已弃用，品牌参考只用 `public/icon/*`。
 10. **`WWW-Authenticate` 的 `resource_metadata` 被拼错（本地真实运行发现并修复）**：`mcp-handler` 把 `withMcpAuth` 的 `resourceUrl` 选项当作 **origin**，再拼上 `resourceMetadataPath`（源码为 `${origin}${path}`）。计划与初版实现都传了完整的 `MCP_RESOURCE_URL`，于是匿名 POST 返回的 challenge 指向 `https://umeh.top/mcp/.well-known/oauth-protected-resource/mcp`（多了一层 `/mcp`），MCP 客户端按此发现元数据会 404。现改为 `resourceUrl: new URL(MCP_RESOURCE_URL).origin`，challenge 正确指向 `https://umeh.top/.well-known/oauth-protected-resource/mcp`；`tests/mcp/http.test.ts` 增加了对该完整 URL 的精确断言以及"不得出现 `/mcp/.well-known/`"的反向断言，plan Task 4 Step 3 的示例也已更正。注意 metadata 路由里的 `generateClerkProtectedResourceMetadata({ resourceUrl: MCP_RESOURCE_URL })` 仍然要用完整 URL（那是 RFC 9728 的 `resource` 字段），两处语义不同。
+11. **Account Portal 同意页导致 OAuth 无法完成 → 改为自建同意页（2026-10-05，真实联调发现）**：用真实 Clerk 实例联调时，客户端始终停在实例的 Home URL（dev 是 `/default-redirect`，生产是 `https://www.umeh.top/`），从未签发过 token。定位过程与结论：
+    - 用 Backend API 读取实例配置与日志：`oauth_authorization.failed` 多次出现，`oauth_client_id` 为真实 client，`reason` 为 Clerk 内部错误码 `oauth2idp_patch_fosite_state_non_invalid_state_error`（`state` 相关，`fosite` 是 Clerk 的 OAuth2 底层库）；
+    - 用会话 JWT 构造 cookie 复现完整链路：`/oauth/authorize` → `/oauth/authorize/continue` → `accounts.<instance-domain>/sign-in?redirect_url=…/oauth-consent?…`，而 sign-in 页在**已登录自动跳转**时**丢弃 `redirect_url`** 并改送 Home URL —— 同意步骤永远执行不到；
+    - 排除我方因素：metadata / discovery / client_id / redirect_uri 注册（四个回调逐一确认）/ scopes / PKCE 全部正确，且用**参数完全可控的自建 PKCE 客户端**（自带回调监听）复现出同样失败，去掉 `resource`、去掉 `prompt` 亦然；
+    - 修复：按 Clerk 文档自建同意页 `app/oauth-consent/[[...index]]/page.tsx`（渲染 `<OAuthConsent />`，`auth()` 守卫，必须设 `referrer: "strict-origin-when-cross-origin"`）。本地已验证该路由可编译、`referrer` 策略生效、组件已渲染；`next build` 输出含 `ƒ /oauth-consent/[[...index]]`；
+    - 仍需人工：Dashboard → **Paths → Component paths → OAuth consent** 填 `https://umeh.top/oauth-consent`（生产）/ `/oauth-consent`（dev），再走一次真实授权确认闭环。详见 spec §5.6。
 
 ## 6. 仍需人工/控制台完成
 
