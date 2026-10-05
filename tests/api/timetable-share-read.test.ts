@@ -29,14 +29,14 @@ import { GET } from "@/app/api/timetable/shares/[token]/route";
 describe("shared timetable read API", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    authMock.mockReturnValue({ userId: "user_viewer" });
+    authMock.mockResolvedValue({ userId: "user_viewer" });
   });
 
   it("requires login", async () => {
-    authMock.mockReturnValue({ userId: null });
+    authMock.mockResolvedValue({ userId: null });
     const response = await GET(
       new Request("http://localhost/api/timetable/shares/x"),
-      { params: { token: "x".repeat(43) } },
+      { params: Promise.resolve({ token: "x".repeat(43) }) },
     );
     expect(response.status).toBe(401);
   });
@@ -57,7 +57,7 @@ describe("shared timetable read API", () => {
 
     const response = await GET(
       new Request(`http://localhost/api/timetable/shares/${token}`),
-      { params: { token } },
+      { params: Promise.resolve({ token }) },
     );
     const body = await response.json();
     expect(response.status).toBe(200);
@@ -82,7 +82,7 @@ describe("shared timetable read API", () => {
 
     const response = await GET(
       new Request(`http://localhost/api/timetable/shares/${token}?revision=4`),
-      { params: { token } },
+      { params: Promise.resolve({ token }) },
     );
     expect(response.status).toBe(304);
   });

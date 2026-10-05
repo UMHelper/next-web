@@ -19,12 +19,13 @@ const shareUrl = (request: Request, token: string) =>
 
 export async function GET(
   _request: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
-  const { userId } = auth();
+  const { userId } = await auth();
   if (!userId) return apiError("unauthorized", "Sign in required", 401);
 
-  const id = parseId(params.id);
+  const { id: rawId } = await params;
+  const id = parseId(rawId);
   if (!id) return apiError("invalid_request", "Invalid plan id", 400);
 
   const { data, error } = await supabaseAdmin
@@ -50,9 +51,9 @@ export async function GET(
 
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
-  const { userId } = auth();
+  const { userId } = await auth();
   if (!userId) return apiError("unauthorized", "Sign in required", 401);
   const rate = await consumeRateLimit({
     key: rateLimitKey({ platform: "web", id: userId }, "share_write"),
@@ -65,7 +66,8 @@ export async function POST(
     });
   }
 
-  const id = parseId(params.id);
+  const { id: rawId } = await params;
+  const id = parseId(rawId);
   if (!id) return apiError("invalid_request", "Invalid plan id", 400);
 
   const body = await readJsonBody(request, 4_096);
@@ -106,9 +108,9 @@ export async function POST(
 
 export async function DELETE(
   _request: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
-  const { userId } = auth();
+  const { userId } = await auth();
   if (!userId) return apiError("unauthorized", "Sign in required", 401);
   const rate = await consumeRateLimit({
     key: rateLimitKey({ platform: "web", id: userId }, "share_write"),
@@ -121,7 +123,8 @@ export async function DELETE(
     });
   }
 
-  const id = parseId(params.id);
+  const { id: rawId } = await params;
+  const id = parseId(rawId);
   if (!id) return apiError("invalid_request", "Invalid plan id", 400);
 
   const { error } = await supabaseAdmin

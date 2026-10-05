@@ -8,12 +8,13 @@ export const dynamic = "force-dynamic";
 
 export async function GET(
   _request: Request,
-  { params }: { params: { code: string } },
+  { params }: { params: Promise<{ code: string }> },
 ) {
-  const { userId } = auth();
+  const { userId } = await auth();
   if (!userId) return apiError("unauthorized", "Sign in required", 401);
 
-  const code = decodeURIComponent(params.code).trim().toUpperCase();
+  const { code: encodedCode } = await params;
+  const code = decodeURIComponent(encodedCode).trim().toUpperCase();
   if (!code) return apiError("invalid_request", "Invalid course code", 400);
 
   try {

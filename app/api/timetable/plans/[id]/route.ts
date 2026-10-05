@@ -14,12 +14,13 @@ const parseId = (value: string) => {
 
 export async function GET(
   _request: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
-  const { userId } = auth();
+  const { userId } = await auth();
   if (!userId) return apiError("unauthorized", "Sign in required", 401);
 
-  const id = parseId(params.id);
+  const { id: rawId } = await params;
+  const id = parseId(rawId);
   if (!id) return apiError("invalid_request", "Invalid plan id", 400);
 
   const { data, error } = await supabaseAdmin
@@ -40,12 +41,13 @@ export async function GET(
 
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
-  const { userId } = auth();
+  const { userId } = await auth();
   if (!userId) return apiError("unauthorized", "Sign in required", 401);
 
-  const id = parseId(params.id);
+  const { id: rawId } = await params;
+  const id = parseId(rawId);
   if (!id) return apiError("invalid_request", "Invalid plan id", 400);
 
   const body = await readJsonBody(request, 96 * 1024);
@@ -111,12 +113,13 @@ export async function PATCH(
 
 export async function DELETE(
   _request: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
-  const { userId } = auth();
+  const { userId } = await auth();
   if (!userId) return apiError("unauthorized", "Sign in required", 401);
 
-  const id = parseId(params.id);
+  const { id: rawId } = await params;
+  const id = parseId(rawId);
   if (!id) return apiError("invalid_request", "Invalid plan id", 400);
 
   const { data, error } = await supabaseAdmin

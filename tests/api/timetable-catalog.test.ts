@@ -31,7 +31,7 @@ describe("timetable catalog API", () => {
   });
 
   it("requires login for all catalog routes", async () => {
-    authMock.mockReturnValue({ userId: null });
+    authMock.mockResolvedValue({ userId: null });
     expect(
       (await GET_FILTERS()).status,
     ).toBe(401);
@@ -39,15 +39,15 @@ describe("timetable catalog API", () => {
       (await GET_SEARCH(new Request("http://localhost/api/timetable/catalog/search?q=A"))).status,
     ).toBe(401);
     expect(
-      (await GET_COURSE(new Request("http://localhost/api/timetable/catalog/courses/A"), { params: { code: "A" } })).status,
+      (await GET_COURSE(new Request("http://localhost/api/timetable/catalog/courses/A"), { params: Promise.resolve({ code: "A" }) })).status,
     ).toBe(401);
     expect(
-      (await GET_SECTIONS(new Request("http://localhost/api/timetable/catalog/courses/A/P/sections"), { params: { code: "A", prof: "P" } })).status,
+      (await GET_SECTIONS(new Request("http://localhost/api/timetable/catalog/courses/A/P/sections"), { params: Promise.resolve({ code: "A", prof: "P" }) })).status,
     ).toBe(401);
   });
 
   it("returns paginated course search results", async () => {
-    authMock.mockReturnValue({ userId: "user_1" });
+    authMock.mockResolvedValue({ userId: "user_1" });
     rpcMock.mockResolvedValue({
       data: [{ course_code: "ACCT1000", total_count: 1 }],
       error: null,
@@ -60,5 +60,16 @@ describe("timetable catalog API", () => {
     expect(response.status).toBe(200);
     expect(body.items).toHaveLength(1);
     expect(body.total).toBe(1);
+  });
+
+  it("returns course detail for signed-in users through awaited params", async () => {
+    authMock.mockResolvedValue({ userId: "user_1" });
+
+    const response = await GET_COURSE(
+      new Request("http://localhost/api/timetable/catalog/courses/ACCT1000"),
+      { params: Promise.resolve({ code: "ACCT1000" }) },
+    );
+
+    expect(response.status).toBe(200);
   });
 });

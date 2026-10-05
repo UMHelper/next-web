@@ -7,7 +7,7 @@ import supabaseAdmin from "@/lib/supabase/admin";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const { userId } = auth();
+  const { userId } = await auth();
   if (!userId) return apiError("unauthorized", "Sign in required", 401);
 
   const { data, error } = await supabaseAdmin
