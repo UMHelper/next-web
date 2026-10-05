@@ -5,6 +5,8 @@ const { authMock, verifyClerkTokenMock } = vi.hoisted(() => ({
   verifyClerkTokenMock: vi.fn(),
 }));
 
+vi.mock("server-only", () => ({}));
+vi.mock("@/lib/supabase/server", () => ({ default: { rpc: vi.fn() } }));
 vi.mock("@clerk/nextjs/server", () => ({ auth: authMock }));
 vi.mock("@clerk/mcp-tools/next", () => ({ verifyClerkToken: verifyClerkTokenMock }));
 

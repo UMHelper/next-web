@@ -7,17 +7,23 @@ import {
   MCP_RESOURCE_URL,
 } from "@/lib/mcp/constants";
 import { enforceBodyLimit } from "@/lib/mcp/http";
-import { MCP_SERVER_NAME, MCP_SERVER_VERSION, registerTemporaryHealthTool } from "@/lib/mcp/server";
+import {
+  MCP_SERVER_INSTRUCTIONS,
+  MCP_SERVER_NAME,
+  MCP_SERVER_VERSION,
+  registerMcpTools,
+} from "@/lib/mcp/server";
 
 export const dynamic = "force-dynamic";
 
 const mcpHandler = createMcpHandler(
   (server) => {
-    registerTemporaryHealthTool(server);
+    registerMcpTools(server);
   },
   {
     serverInfo: { name: MCP_SERVER_NAME, version: MCP_SERVER_VERSION },
     capabilities: { tools: {} },
+    instructions: MCP_SERVER_INSTRUCTIONS,
   },
 );
 
