@@ -11,11 +11,7 @@ vi.mock("@clerk/nextjs/server", () => ({ auth: authMock }));
 vi.mock("@clerk/mcp-tools/next", () => ({ verifyClerkToken: verifyClerkTokenMock }));
 
 import { DELETE, GET, POST } from "@/app/mcp/route";
-import {
-  MCP_MAX_BODY_BYTES,
-  MCP_REQUIRED_SCOPE,
-  MCP_RESOURCE_METADATA_PATH,
-} from "@/lib/mcp/constants";
+import { MCP_MAX_BODY_BYTES, MCP_REQUIRED_SCOPE } from "@/lib/mcp/constants";
 
 export const INITIALIZE_BODY = JSON.stringify({
   jsonrpc: "2.0",
@@ -73,7 +69,13 @@ describe("POST /mcp HTTP boundaries", () => {
     const response = await POST(mcpRequest(INITIALIZE_BODY));
 
     expect(response.status).toBe(401);
-    expect(response.headers.get("www-authenticate") ?? "").toContain(MCP_RESOURCE_METADATA_PATH);
+    const challenge = response.headers.get("www-authenticate") ?? "";
+    expect(challenge).toContain(
+      'resource_metadata="https://umeh.top/.well-known/oauth-protected-resource/mcp"',
+    );
+    // `mcp-handler` treats `resourceUrl` as the origin; guard against the
+    // doubly-nested `https://umeh.top/mcp/.well-known/...` URL that 404s.
+    expect(challenge).not.toContain("https://umeh.top/mcp/.well-known/");
   });
 
   it("returns 401 for an invalid bearer token", async () => {

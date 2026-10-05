@@ -30,7 +30,11 @@ const mcpHandler = createMcpHandler(
 const authorizedHandler = withMcpAuth(mcpHandler, verifyMcpAccessToken, {
   required: true,
   requiredScopes: [MCP_REQUIRED_SCOPE],
-  resourceUrl: MCP_RESOURCE_URL,
+  // `mcp-handler` treats this option as the ORIGIN and appends
+  // `resourceMetadataPath` to build the `resource_metadata` challenge URL
+  // (`${origin}${path}`). Passing the full resource URL would emit
+  // `https://umeh.top/mcp/.well-known/oauth-protected-resource/mcp`, which 404s.
+  resourceUrl: new URL(MCP_RESOURCE_URL).origin,
   resourceMetadataPath: MCP_RESOURCE_METADATA_PATH,
 });
 

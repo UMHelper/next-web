@@ -59,6 +59,7 @@ MCP 自有测试 11 个文件 / 207 测试；插件包 38 测试；法律披露 
 7. **插件图标复用 iOS 品牌标记**：`assets/logo.png` 与 `composer-icon.png` 由共享品牌图形生成 —— 即 iOS 端 `CatLogo` 使用的 lucide "cat" 矢量标记（`cat-blue.svg`，描边 `#003DB8`，ISC 许可）。受许可的源文件保存在 `design/cat-logo.svg`，`scripts/build-plugin-assets.mjs`（`npm run plugin:assets`）用 `sharp` 以矢量无损方式渲染为 512×512 透明 PNG，因此不存在放大低清位图的问题。`public/whole-icon.png` 已弃用、未参与生成。计划要求的小尺寸可读性与透明边缘人工评审仍需在提交前完成。
 8. **支持页语言切换**沿用站内既有 `?lang=zh` 模式（无 `/support/zh` 路由）；`/support` 尚未加入 sitemap/footer。
 9. **对外品牌名与文案修正（2026-10-05，评审反馈）**：产品对外名是站点规范名 `What2Reg @ UM 澳大選咩課`（`lib/site.ts` 的 `SITE_NAME`），不是"澳大选课助手/课程助手"。`plugin.json` 的 `interface.displayName` 已改为该规范名，`shortDescription` 改为 `澳門大學課程與教師評價平台（澳大選咩課）`，顶层 `description`、`zh-TW` / `en-US` 的 `subtitle` 同步修正；spec §11 与 plan Task 11 Step 4 的措辞也已更正。`public/whole-icon.png` 已弃用，品牌参考只用 `public/icon/*`。
+10. **`WWW-Authenticate` 的 `resource_metadata` 被拼错（本地真实运行发现并修复）**：`mcp-handler` 把 `withMcpAuth` 的 `resourceUrl` 选项当作 **origin**，再拼上 `resourceMetadataPath`（源码为 `${origin}${path}`）。计划与初版实现都传了完整的 `MCP_RESOURCE_URL`，于是匿名 POST 返回的 challenge 指向 `https://umeh.top/mcp/.well-known/oauth-protected-resource/mcp`（多了一层 `/mcp`），MCP 客户端按此发现元数据会 404。现改为 `resourceUrl: new URL(MCP_RESOURCE_URL).origin`，challenge 正确指向 `https://umeh.top/.well-known/oauth-protected-resource/mcp`；`tests/mcp/http.test.ts` 增加了对该完整 URL 的精确断言以及"不得出现 `/mcp/.well-known/`"的反向断言，plan Task 4 Step 3 的示例也已更正。注意 metadata 路由里的 `generateClerkProtectedResourceMetadata({ resourceUrl: MCP_RESOURCE_URL })` 仍然要用完整 URL（那是 RFC 9728 的 `resource` 字段），两处语义不同。
 
 ## 6. 仍需人工/控制台完成
 

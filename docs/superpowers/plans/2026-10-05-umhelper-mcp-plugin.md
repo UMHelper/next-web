@@ -243,7 +243,10 @@ Run: `npx vitest run tests/mcp/http.test.ts tests/mcp/protocol.test.ts`
 withMcpAuth(handler, verifyToken, {
   required: true,
   requiredScopes: [MCP_REQUIRED_SCOPE],
-  resourceUrl: MCP_RESOURCE_URL,
+  // 注意：`mcp-handler` 把这个选项当作 **origin**，再拼上 resourceMetadataPath
+  // （`${origin}${path}`）。传完整的 MCP_RESOURCE_URL 会得到
+  // `https://umeh.top/mcp/.well-known/...`，客户端跟随会 404。
+  resourceUrl: new URL(MCP_RESOURCE_URL).origin,
   resourceMetadataPath: MCP_RESOURCE_METADATA_PATH,
 });
 ```
