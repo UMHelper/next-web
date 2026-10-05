@@ -1,6 +1,6 @@
 # UMHelper Next Web
 
-UMHelper Next Web 是一个 `Next.js 14 + Supabase` 项目。
+UMHelper Next Web 是一个 `Next.js 15 + Supabase` 项目。
 
 仓库里已经包含本地开发所需的核心资产：
 

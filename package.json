@@ -16,7 +16,7 @@
     "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
     "upload": "opennextjs-cloudflare build && opennextjs-cloudflare upload",
     "telegram:get-chat-id": "node scripts/get-telegram-chat-id.mjs",
-    "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
+    "cf-typegen": "wrangler types --env-interface CloudflareEnv --include-runtime false cloudflare-env.d.ts",
     "test": "vitest run",
     "sync:um": "node scripts/sync-um.mjs --missing",
     "analytics:manifest": "node scripts/print-analytics-manifest.mjs"
@@ -82,7 +82,7 @@
     "zod": "^3.22.2"
   },
   "devDependencies": {
-    "@opennextjs/cloudflare": "^1.16.6",
+    "@opennextjs/cloudflare": "1.16.6",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/react": "^16.3.3",
     "@types/node": "20.6.0",

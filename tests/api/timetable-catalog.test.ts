@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { authMock, rpcMock } = vi.hoisted(() => ({
+const { authMock, rpcMock, fetchCourseInfoMock } = vi.hoisted(() => ({
   authMock: vi.fn(),
   rpcMock: vi.fn(),
+  fetchCourseInfoMock: vi.fn(),
 }));
 
 vi.mock("@clerk/nextjs/server", () => ({ auth: authMock }));
@@ -10,11 +11,7 @@ vi.mock("@/lib/supabase/admin", () => ({
   default: { rpc: rpcMock, from: vi.fn() },
 }));
 vi.mock("@/lib/database/get-course-info", () => ({
-  fetchCourseInfo: vi.fn().mockResolvedValue({
-    course: { courseCode: "ACCT1000" },
-    profList: [],
-    isOffer: true,
-  }),
+  fetchCourseInfo: fetchCourseInfoMock,
 }));
 vi.mock("@/lib/database/get-schedule-list", () => ({
   default: vi.fn().mockResolvedValue([]),
@@ -28,6 +25,11 @@ import { GET as GET_SECTIONS } from "@/app/api/timetable/catalog/courses/[code]/
 describe("timetable catalog API", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    fetchCourseInfoMock.mockResolvedValue({
+      course: { courseCode: "ACCT1000" },
+      profList: [],
+      isOffer: true,
+    });
   });
 
   it("requires login for all catalog routes", async () => {
@@ -71,5 +73,8 @@ describe("timetable catalog API", () => {
     );
 
     expect(response.status).toBe(200);
+    // Proves the handler awaited `params`: the resolved route value reached the
+    // data layer, not the literal string "UNDEFINED".
+    expect(fetchCourseInfoMock).toHaveBeenCalledWith("ACCT1000");
   });
 });

@@ -2,59 +2,129 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
-const API_ROOT = path.join(process.cwd(), "app", "api");
+const APP_ROOT = path.join(process.cwd(), "app");
+const API_ROOT = path.join(APP_ROOT, "api");
 
-const KNOWN_GUARD_PATTERNS: Array<{ name: string; regex: RegExp; min: number }> = [
-  { name: "verifyIOSRequest", regex: /\bverifyIOSRequest\b/g, min: 2 },
-  { name: "requireWriteIdentity", regex: /\brequireWriteIdentity\b/g, min: 2 },
-  { name: "resolveCommentIdentity", regex: /\bresolveCommentIdentity\b/g, min: 2 },
-  { name: "resolveReportIdentity", regex: /\bresolveReportIdentity\b/g, min: 2 },
-  { name: "requireAdmin", regex: /\brequireAdmin\b/g, min: 2 },
-  { name: "getCurrentAdmin", regex: /\bgetCurrentAdmin\b/g, min: 2 },
-  // 直接调用 Clerk 的 auth() 并自行返回 JSON 401 也是合法的鉴权方式
-  { name: "auth()", regex: /\bauth\(\)/g, min: 1 },
+// Guards are matched as *invocations* (`name(` / `auth()`), so an unused import
+// or a mere mention in a comment cannot satisfy the contract.
+const GUARD_INVOCATIONS = [
+  "verifyIOSRequest(",
+  "requireWriteIdentity(",
+  "resolveCommentIdentity(",
+  "resolveReportIdentity(",
+  "requireAdmin(",
+  "getCurrentAdmin(",
+  "auth(",
 ];
 
 const PUBLIC_API_ROUTES = new Map<string, string>([]);
 
-function listRouteFiles(dir: string): string[] {
+// Pages that are intentionally reachable without a session. Every other page
+// under app/ must be guarded by its own file or by an ancestor layout.
+const PUBLIC_PAGE_PREFIXES = [
+  "/catalog",
+  "/course",
+  "/professor",
+  "/privacy-policy",
+  "/reviews",
+  "/search",
+  "/sign-in",
+  "/sign-up",
+  "/submit",
+  "/terms-of-service",
+  "/timetable",
+];
+
+function listFiles(dir: string, namePattern: RegExp): string[] {
   const entries = readdirSync(dir);
   const files: string[] = [];
   for (const entry of entries) {
     const full = path.join(dir, entry);
-    if (statSync(full).isDirectory()) files.push(...listRouteFiles(full));
-    else if (/^route\.tsx?$/.test(entry)) files.push(full);
+    if (statSync(full).isDirectory()) files.push(...listFiles(full, namePattern));
+    else if (namePattern.test(entry)) files.push(full);
   }
   return files;
 }
 
-function routePath(file: string): string {
-  const relative = path.relative(process.cwd(), file);
-  const withoutExt = relative.replace(/\/route\.tsx?$/, "");
-  return `/${withoutExt.replace(/^app\//, "")}`;
+function apiRoutePath(file: string): string {
+  const relative = path.relative(process.cwd(), file).replace(/\\/g, "/");
+  return `/${relative.replace(/\/route\.tsx?$/, "").replace(/^app\//, "")}`;
+}
+
+function pageRoutePath(file: string): string {
+  const relative = path.relative(APP_ROOT, file).replace(/\\/g, "/");
+  return `/${relative.replace(/\/?page\.tsx$/, "")}`;
+}
+
+function isPublicPage(route: string): boolean {
+  if (route === "/") return true;
+  return PUBLIC_PAGE_PREFIXES.some(
+    (prefix) => route === prefix || route.startsWith(`${prefix}/`),
+  );
+}
+
+function hasGuardInvocation(source: string): boolean {
+  return GUARD_INVOCATIONS.some((guard) => source.includes(guard));
+}
+
+function ancestorLayouts(file: string): string[] {
+  const layouts: string[] = [];
+  let current = path.dirname(file);
+  while (current.startsWith(APP_ROOT)) {
+    const candidate = path.join(current, "layout.tsx");
+    try {
+      if (statSync(candidate).isFile()) layouts.push(candidate);
+    } catch {
+      // no layout at this level
+    }
+    if (current === APP_ROOT) break;
+    current = path.dirname(current);
+  }
+  return layouts;
 }
 
 describe("api route guards", () => {
-  const files = listRouteFiles(API_ROOT);
+  const files = listFiles(API_ROOT, /^route\.tsx?$/);
 
   it("finds route files", () => {
     expect(files.length).toBeGreaterThan(0);
   });
 
-  it.each(files)("%s is guarded or explicitly public", (file) => {
+  it.each(files)("%s invokes an auth guard or is explicitly public", (file) => {
     const source = readFileSync(file, "utf8");
-    const route = routePath(file);
+    const route = apiRoutePath(file);
 
     if (PUBLIC_API_ROUTES.has(route)) return;
 
-    const matchedGuard = KNOWN_GUARD_PATTERNS.find(({ regex, min }) => {
-      const matches = source.match(regex);
-      return (matches?.length ?? 0) >= min;
-    });
+    expect(
+      hasGuardInvocation(source),
+      `${route} has no auth guard invocation (checked: ${GUARD_INVOCATIONS.join(", ")}). Add an auth check or add it to PUBLIC_API_ROUTES with a justification.`,
+    ).toBe(true);
+  });
+});
+
+describe("protected page guards", () => {
+  const pages = listFiles(APP_ROOT, /^page\.tsx$/);
+
+  it("finds page files", () => {
+    expect(pages.length).toBeGreaterThan(0);
+  });
+
+  it("every non-public page is guarded by itself or an ancestor layout", () => {
+    const unprotected = pages
+      .map((file) => ({ file, route: pageRoutePath(file) }))
+      .filter(({ route }) => !isPublicPage(route))
+      .filter(({ file }) => {
+        const sources = [file, ...ancestorLayouts(file)].map((candidate) =>
+          readFileSync(candidate, "utf8"),
+        );
+        return !sources.some(hasGuardInvocation);
+      })
+      .map(({ route }) => route);
 
     expect(
-      Boolean(matchedGuard),
-      `${route} has no known auth guard (checked: ${KNOWN_GUARD_PATTERNS.map((guard) => guard.name).join(", ")}). Add an auth check or add it to PUBLIC_API_ROUTES with a justification.`,
-    ).toBe(true);
+      unprotected,
+      `protected pages without a guard invocation: ${unprotected.join(", ")}`,
+    ).toEqual([]);
   });
 });

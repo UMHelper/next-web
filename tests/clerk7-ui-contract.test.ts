@@ -39,6 +39,11 @@ describe("Clerk 7 migration source contract", () => {
       expect(source, `${file} still passes the removed redirectUrl prop`).not.toMatch(
         /\bredirectUrl\b/,
       );
+      if (!source.includes("<SignInButton")) continue;
+      expect(
+        source,
+        `${file} renders SignInButton without the fallbackRedirectUrl replacement`,
+      ).toContain("fallbackRedirectUrl");
     }
   });
 

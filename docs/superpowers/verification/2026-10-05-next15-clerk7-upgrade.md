@@ -11,13 +11,14 @@ Tasks 1–7 of the plan are complete and the full automated gate passes:
 
 | # | Command | Exit | Result |
 | --- | --- | --- | --- |
-| 1 | `npm test` | 0 | 128 test files, 484 tests passed |
+| 1 | `npm test` | 0 | 128 test files, 486 tests passed |
 | 2 | `npx tsc --noEmit` | 0 | no errors |
 | 3 | `npm run lint` (`eslint . --max-warnings=0`) | 0 | no errors, no warnings |
 | 4 | `npm run build` (`next build`) | 0 | 60 static pages generated, catalog SSG produces 44 paths |
 | 5 | `npm run build:pages` (`opennextjs-cloudflare build`) | 0 | `.open-next/worker.js` emitted, "OpenNext build complete" |
 
-The five commands were run in this order on the final dependency state.
+The five commands were run in this order on the final dependency state, and again after the
+code-review fixes in §11 (486 tests).
 
 ## 2. Environment
 
@@ -117,24 +118,30 @@ cdee6d3 fix: read clerk 7 paginated user list
 851b14c refactor: await next route params
 4c72216 refactor: migrate app router props to next 15
 ```
-plus a final Task 7 commit for `.eslintrc.json`, `package.json`, `package-lock.json`,
-`cloudflare-env.d.ts` and this record.
+plus:
+```
+f62b2ce chore: make the next 15 gate pass (eslint root, opennext sharp patch, cf types)
+086c0a7 docs: record next 15 clerk 7 verification
+2b6e5ee docs: record local preview boundary check
+5691985 docs: record extended preview smoke results
+```
+followed by the code-review fix commit described in §11.
 
 The two unrelated untracked scripts `scripts/ga4-provision.mjs` and `scripts/gtm-provision.mjs`
 were never staged.
 
 ## 8. Remaining work — Task 8 (manual)
 
-The preview smoke matrix is not automatable in this session and remains to be done before
-integration:
+The local preview was run twice and every automatable boundary was verified (§10). What still
+needs a human with a browser and real Clerk sessions:
 
 - configure preview `NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL=/` and
   `NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL=/`; keep the old `NEXT_PUBLIC_CLERK_AFTER_*`
   variables for the rollback window;
-- run `npm run preview` and verify: anonymous public pages, modal sign-in return,
-  `/sign-in` / `/sign-up` / sign-out, `/admin` for anonymous / non-admin / admin, JSON `401/403`
-  for protected APIs, comment/reply/vote/report and timetable CRUD, and one iOS HMAC request;
-- then request code review and finish the branch.
+- modal sign-in return, `/sign-up`, sign-out;
+- non-admin denied vs admin loading under `/admin`;
+- comment/reply/vote/report and timetable CRUD against a database you are happy to write to;
+- confirm the browser follows the streamed `/admin` and `/compare/[token]` sign-in redirects.
 
 ## 9. Rollback
 
@@ -211,5 +218,27 @@ were not performed:
 - non-admin denied vs admin loading under `/admin` (only the anonymous redirect was observed);
 - comment / reply / vote / report and timetable CRUD (deliberately not exercised — the
   configured Supabase project holds real data);
-- confirming the browser follows the streamed `/admin` redirect.
+- confirming the browser follows the streamed `/admin` and `/compare/[token]` sign-in redirects.
+
+## 11. Code review and fixes
+
+A read-only reviewer subagent reviewed `1a851e5..2b6e5ee` and reproduced the whole gate
+independently (`tsc`, 128 files / 484 tests, `eslint .` over 404 files, `build:pages`, `npm ls`).
+Findings and dispositions:
+
+| Severity | Finding | Disposition |
+| --- | --- | --- |
+| Critical | `/compare/[token]` lost authentication: the old `authMiddleware` `publicRoutes` deliberately excluded `/compare`, so removing the middleware removed its only guard. Contradicted `2026-09-21-next-web-timetable-share-compare-design.md`. | Fixed — `app/compare/[token]/page.tsx` awaits `auth()` and returns `redirectToSignIn()`, restoring the guard and the return-to-page behaviour. |
+| Important | Admin deep links no longer returned after sign-in: `app/admin/layout.tsx` used `redirect("/sign-in")` with no return URL, which Clerk middleware used to append. | Fixed — the layout now uses `redirectToSignIn()`, which carries the current URL. |
+| Important | `npm run cf-typegen` could not reproduce the committed `cloudflare-env.d.ts` (script lacked `--include-runtime false`). | Fixed — the script now passes the flag the file header documents. The residual limitation (the file also reflects keys present in the local ignored env, e.g. `SUPABASE_DB_URL`) is inherent to `wrangler types` reading local env. |
+| Important | `tests/security/api-route-guards.test.ts` walked only `app/api`, so no test could catch the `/compare` regression, and it matched guard *names* (satisfiable by an unused import plus a comment). | Fixed — the test now requires guard *invocations* and adds a protected-page inventory that walks every `page.tsx` and requires a guard in the page or an ancestor layout. Confirmed to fail when the `/compare` guard is removed. |
+| Important | The new `timetable-catalog` test did not actually prove `params` is awaited (`decodeURIComponent(undefined)` is the truthy `"UNDEFINED"`). | Fixed — the `fetchCourseInfo` mock is hoisted and the test asserts it was called with `"ACCT1000"`. |
+| Minor | `@opennextjs/cloudflare` used a caret range on a branch whose rationale is exact pins. | Fixed — pinned to `1.16.6`. |
+| Minor | `README.md` still described the project as "Next.js 14". | Fixed — updated to Next.js 15. |
+| Minor | `clerk7-ui-contract.test.ts` did not require the `fallbackRedirectUrl` replacement. | Fixed — the test now requires it wherever `<SignInButton` is rendered. |
+
+Accepted without change: the `200` + `NEXT_REDIRECT` shape of the server-side sign-in redirect is
+documented browser-correct behaviour with no data leak; and `eslint . --max-warnings=0` relies on
+eslint-config-next's `overrides[].files` to include TypeScript, noted as a latent risk if the
+config is ever flattened.
 
