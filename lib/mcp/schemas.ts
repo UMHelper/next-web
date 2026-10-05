@@ -309,3 +309,135 @@ export const mcpGetCourseInputSchema = toMcpSchema(getCourseInputSchema);
 export const mcpGetCourseOutputSchema = toMcpSchema(getCourseOutputSchema);
 export const mcpGetInstructorInputSchema = toMcpSchema(getInstructorInputSchema);
 export const mcpGetInstructorOutputSchema = toMcpSchema(getInstructorOutputSchema);
+
+// ---------------------------------------------------------------------------
+// get_course_reviews
+// ---------------------------------------------------------------------------
+
+/**
+ * `page` stays 1-based in the public contract: the adapter converts it to the
+ * zero-based `target_page` the controlled RPC expects. `limit` is the caller's
+ * page size and is pushed into `target_page_size` instead of using the site's
+ * fixed-20 helper.
+ */
+export const getCourseReviewsInputSchema = z.object({
+  code: z
+    .string()
+    .trim()
+    .min(1)
+    .max(20)
+    .describe("Course code whose public reviews should be read, for example ACCT1000.")
+    .transform((value) => value.toUpperCase()),
+  instructor: z
+    .string()
+    .trim()
+    .min(1)
+    .max(80)
+    .describe("Instructor display name recorded for that course, for example CHAN TAI MAN.")
+    .transform((value) => value.replace(/\s+/g, " ").toUpperCase()),
+  page: z
+    .number()
+    .int()
+    .min(1)
+    .max(50)
+    .default(1)
+    .describe("1-based review page to read (1..50). Defaults to 1."),
+  limit: z
+    .number()
+    .int()
+    .min(1)
+    .max(10)
+    .default(5)
+    .describe("Maximum number of top-level reviews on the page (1..10). Defaults to 5."),
+});
+
+export type GetCourseReviewsInput = z.infer<typeof getCourseReviewsInputSchema>;
+
+/**
+ * One public top-level review. The adapter rebuilds this object field by field;
+ * comment ids, the internal mapping id, author identity, `verify_account`,
+ * `hidden`, image URLs, avatar seeds, vote history and emoji details are never
+ * projected.
+ */
+export const courseReviewSchema = z.object({
+  publishedAt: z.string().nullable(),
+  content: z.string().nullable(),
+  contentEn: z.string().nullable(),
+  result: z.number().nullable(),
+  upvotes: z.number().int().nonnegative(),
+  downvotes: z.number().int().nonnegative(),
+  verified: z.boolean(),
+  url: referenceUrlSchema,
+});
+
+export type CourseReview = z.infer<typeof courseReviewSchema>;
+
+export const getCourseReviewsOutputSchema = z.object({
+  courseCode: z.string().min(1),
+  instructor: z.string().min(1),
+  page: z.number().int().min(1).max(50),
+  url: referenceUrlSchema,
+  reviews: z.array(courseReviewSchema).max(10),
+});
+
+export type GetCourseReviewsOutput = z.infer<typeof getCourseReviewsOutputSchema>;
+
+export const mcpGetCourseReviewsInputSchema = toMcpSchema(getCourseReviewsInputSchema);
+export const mcpGetCourseReviewsOutputSchema = toMcpSchema(getCourseReviewsOutputSchema);
+
+// ---------------------------------------------------------------------------
+// get_course_sections
+// ---------------------------------------------------------------------------
+
+export const getCourseSectionsInputSchema = z.object({
+  code: z
+    .string()
+    .trim()
+    .min(1)
+    .max(20)
+    .describe("Course code whose sections should be read, for example ACCT1000.")
+    .transform((value) => value.toUpperCase()),
+  instructor: z
+    .string()
+    .trim()
+    .min(1)
+    .max(80)
+    .describe("Instructor display name recorded for that course, for example CHAN TAI MAN.")
+    .transform((value) => value.replace(/\s+/g, " ").toUpperCase()),
+});
+
+export type GetCourseSectionsInput = z.infer<typeof getCourseSectionsInputSchema>;
+
+/**
+ * One class meeting projected from the catalog schedule. `weekday` replaces the
+ * catalog's `date` column and the raw `time` range is split by the deterministic
+ * parser in `lib/mcp/data/get-course-sections.ts`.
+ */
+export const sectionScheduleSchema = z.object({
+  weekday: z.string().min(1),
+  startTime: z.string().min(1),
+  endTime: z.string().min(1),
+  location: z.string().nullable(),
+});
+
+export type SectionSchedule = z.infer<typeof sectionScheduleSchema>;
+
+export const courseSectionSchema = z.object({
+  section: z.string().min(1),
+  schedules: z.array(sectionScheduleSchema).max(20),
+  courseUrl: referenceUrlSchema,
+});
+
+export type CourseSection = z.infer<typeof courseSectionSchema>;
+
+export const getCourseSectionsOutputSchema = z.object({
+  courseCode: z.string().min(1),
+  instructor: z.string().min(1),
+  courseUrl: referenceUrlSchema,
+  sections: z.array(courseSectionSchema).max(20),
+});
+
+export type GetCourseSectionsOutput = z.infer<typeof getCourseSectionsOutputSchema>;
+
+export const mcpGetCourseSectionsInputSchema = toMcpSchema(getCourseSectionsInputSchema);
+export const mcpGetCourseSectionsOutputSchema = toMcpSchema(getCourseSectionsOutputSchema);
