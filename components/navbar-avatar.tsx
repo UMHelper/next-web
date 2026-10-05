@@ -2,8 +2,7 @@
 import { usePathname } from 'next/navigation'
 
 import {
-    SignedIn,
-    SignedOut,
+    Show,
     SignInButton,
     UserButton,
 } from "@clerk/nextjs";
@@ -14,16 +13,16 @@ export default function NavbarAvatar() {
     // console.log(pathname)
     return (
         <div className="flex md:justify-center items-center">
-            <SignedIn>
+            <Show when="signed-in">
                 {/* Mount the UserButton component */}
-                <UserButton afterSignOutUrl={pathname}/>
-            </SignedIn>
-            <SignedOut>
+                <UserButton />
+            </Show>
+            <Show when="signed-out">
                 {/* Signed out users get sign in button */}
                 <div className='py-1 px-2 ml-2 rounded bg-gradient-to-r from-brand-from to-brand-to text-white'>
-                <SignInButton mode="modal" redirectUrl={pathname}>Sign In</SignInButton>
+                <SignInButton mode="modal" fallbackRedirectUrl={pathname}>Sign In</SignInButton>
                 </div>
-            </SignedOut>
+            </Show>
         </div >
     )
 }
