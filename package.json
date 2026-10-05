@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "@aldabil/react-scheduler": "^2.7.26",
+    "@clerk/mcp-tools": "0.6.0",
     "@clerk/nextjs": "7.9.10",
     "@date-io/date-fns": "^3.2.1",
     "@emotion/react": "^11.11.1",
@@ -30,6 +31,7 @@
     "@fancyapps/ui": "github:fancyapps/ui",
     "@formkit/auto-animate": "^0.8.2",
     "@hookform/resolvers": "^3.3.1",
+    "@modelcontextprotocol/server": "2.3.1",
     "@mui/icons-material": "^5.18.0",
     "@mui/material": "^5.18.0",
     "@mui/system": "^5.18.0",
@@ -60,6 +62,7 @@
     "clsx": "^2.0.0",
     "date-fns": "^3.6.0",
     "lucide-react": "^0.276.0",
+    "mcp-handler": "2.2.0",
     "next": "15.5.27",
     "next-themes": "^0.2.1",
     "p-limit": "^3.1.0",
