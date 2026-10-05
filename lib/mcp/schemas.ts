@@ -188,3 +188,124 @@ export type SearchCatalogOutput = z.infer<typeof searchCatalogOutputSchema>;
  */
 export const mcpSearchCatalogInputSchema = toMcpSchema(searchCatalogInputSchema);
 export const mcpSearchCatalogOutputSchema = toMcpSchema(searchCatalogOutputSchema);
+
+// ---------------------------------------------------------------------------
+// get_course
+// ---------------------------------------------------------------------------
+
+/**
+ * Course codes are normalized before they reach the data layer: trimmed and
+ * upper-cased, per §6. `.min`/`.max` are native checks applied to the trimmed
+ * value, so the advertised JSON Schema carries `minLength`/`maxLength`.
+ */
+export const getCourseInputSchema = z.object({
+  code: z
+    .string()
+    .trim()
+    .min(1)
+    .max(20)
+    .describe("Course code to look up, for example ACCT1000.")
+    .transform((value) => value.toUpperCase()),
+});
+
+export type GetCourseInput = z.infer<typeof getCourseInputSchema>;
+
+export const courseDetailSchema = z.object({
+  courseCode: z.string().min(1),
+  titleEn: z.string().nullable(),
+  titleZh: z.string().nullable(),
+  credits: z.string().nullable(),
+  faculty: z.string().nullable(),
+  department: z.string().nullable(),
+  programLevel: z.string().nullable(),
+  suggestedYear: z.string().nullable(),
+  medium: z.string().nullable(),
+  gradingSystem: z.string().nullable(),
+  courseType: z.string().nullable(),
+  duration: z.string().nullable(),
+  description: z.string().nullable(),
+  isOffered: z.boolean(),
+  url: referenceUrlSchema,
+});
+
+export type CourseDetail = z.infer<typeof courseDetailSchema>;
+
+export const courseInstructorSummarySchema = z.object({
+  name: z.string().min(1),
+  commentCount: z.number().int().nonnegative(),
+  result: z.number().nullable(),
+  attendance: z.number().nullable(),
+  grade: z.number().nullable(),
+  difficulty: z.number().nullable(),
+  reward: z.number().nullable(),
+  isOffered: z.boolean(),
+  reviewUrl: referenceUrlSchema,
+});
+
+export type CourseInstructorSummary = z.infer<typeof courseInstructorSummarySchema>;
+
+export const getCourseOutputSchema = z.object({
+  course: courseDetailSchema,
+  instructors: z.array(courseInstructorSummarySchema).max(20),
+});
+
+export type GetCourseOutput = z.infer<typeof getCourseOutputSchema>;
+
+// ---------------------------------------------------------------------------
+// get_instructor
+// ---------------------------------------------------------------------------
+
+/**
+ * Instructor names are trimmed and internal whitespace runs are collapsed to a
+ * single space before the exact `prof_id` lookup, per §6.
+ */
+export const getInstructorInputSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1)
+    .max(80)
+    .describe("Instructor display name to look up, for example CHAN TAI MAN.")
+    .transform((value) => value.replace(/\s+/g, " ").toUpperCase()),
+  limit: z
+    .number()
+    .int()
+    .min(1)
+    .max(20)
+    .default(20)
+    .describe("Maximum number of courses to return (1..20). Defaults to 20."),
+});
+
+export type GetInstructorInput = z.infer<typeof getInstructorInputSchema>;
+
+export const instructorCourseSummarySchema = z.object({
+  courseCode: z.string().min(1),
+  commentCount: z.number().int().nonnegative(),
+  result: z.number().nullable(),
+  attendance: z.number().nullable(),
+  grade: z.number().nullable(),
+  difficulty: z.number().nullable(),
+  reward: z.number().nullable(),
+  isOffered: z.boolean(),
+  courseUrl: referenceUrlSchema,
+  reviewUrl: referenceUrlSchema,
+});
+
+export type InstructorCourseSummary = z.infer<typeof instructorCourseSummarySchema>;
+
+export const getInstructorOutputSchema = z.object({
+  name: z.string().min(1),
+  courses: z.array(instructorCourseSummarySchema).max(20),
+});
+
+export type GetInstructorOutput = z.infer<typeof getInstructorOutputSchema>;
+
+/**
+ * MCP-facing views of the course/instructor schemas (see {@link toMcpSchema}).
+ * Every tool schema must pass through this bridge: the bundled zod/v4 build has
+ * no `~standard.jsonSchema` that `registerTool` requires.
+ */
+export const mcpGetCourseInputSchema = toMcpSchema(getCourseInputSchema);
+export const mcpGetCourseOutputSchema = toMcpSchema(getCourseOutputSchema);
+export const mcpGetInstructorInputSchema = toMcpSchema(getInstructorInputSchema);
+export const mcpGetInstructorOutputSchema = toMcpSchema(getInstructorOutputSchema);
