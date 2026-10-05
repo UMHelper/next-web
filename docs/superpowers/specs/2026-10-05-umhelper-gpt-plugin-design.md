@@ -95,6 +95,7 @@ MCP structuredContent + 简短文本摘要
 | 单元 | 职责 |
 | --- | --- |
 | `app/mcp/route.ts` | Streamable HTTP、认证接入、请求上下文与协议响应 |
+| `app/.well-known/openai-apps-challenge/route.ts` | OpenAI 发布域名验证；仅返回 portal 生成的精确 challenge token |
 | `app/.well-known/oauth-protected-resource/mcp/route.ts` | MCP protected resource metadata 与 CORS preflight |
 | `app/.well-known/oauth-authorization-server/route.ts` | 兼容旧客户端的 Clerk authorization metadata 与 CORS preflight |
 | `lib/mcp/server.ts` | 注册服务器信息、instructions 和五个工具 |
@@ -138,6 +139,20 @@ MCP 资源标识使用生产端点 `https://umeh.top/mcp`。实现必须验证�
 ### 5.4 与现有 middleware 的关系
 
 当前 middleware 将 `/api/(.*)` 列为可抵达的 public route，具体 API 在各自 Route Handler 中执行管理员、iOS HMAC、Clerk 会话或写身份检查。新 `/mcp` 不加入通用 public API 规则来替代鉴权；OAuth metadata 路由公开，业务入口由 MCP 认证包装器保护。
+
+### 5.5 OpenAI 域名验证
+
+生产站点必须提供匿名 `GET https://umeh.top/.well-known/openai-apps-challenge`，供 OpenAI 在连接 MCP 服务时验证域名控制权。该端点只承担域名验证，不属于 MCP 业务 API，也不能读取任何课程、评价、用户或数据库数据。
+
+OpenAI submission portal 生成的精确 challenge token 存入 Cloudflare 生产 secret `OPENAI_APPS_CHALLENGE_TOKEN`。Token 不写入 Git、插件 ZIP、客户端 bundle、普通日志或错误详情。Route Handler 的行为固定为：
+
+- 配置存在时返回 HTTP `200`、`Content-Type: text/plain; charset=utf-8`，响应正文是环境变量中的精确 token；不包装为 JSON、不添加标签或说明文字；
+- 设置 `Cache-Control: no-store`，避免 token 轮换后继续命中旧值；
+- 配置缺失或为空时返回 `404`，不能以空正文 `200` 假装验证成功；
+- `POST`、`PUT`、`PATCH`、`DELETE` 等非 `GET` 方法返回 `405`；
+- middleware 必须允许 OpenAI 未登录访问这个精确路径，因为域名验证发生在 Clerk OAuth 之前。
+
+challenge token 按协议就是可被公开读取的所有权证明，因此不能把它当作业务 API 密钥。业务数据仍只有 `/mcp` 能访问，并继续强制 Clerk Bearer Token、audience/resource 与 `umhelper:read` scope。验证完成后保留该路由；若 portal 轮换 token，只更新 Cloudflare secret 并重新部署，不改代码。
 
 ## 6. 工具契约
 
@@ -365,6 +380,8 @@ plugins/what2reg-um/
 - 无 Token、伪造 Token、过期 Token、错误 issuer、错误 audience/resource、缺 scope；
 - 有效 Clerk OAuth Token 能初始化 MCP、列出工具并调用一个无害搜索；
 - `401` 响应带正确 `WWW-Authenticate`；
+- 域名验证配置存在时，challenge 路由匿名返回精确纯文本 token、`200`、正确 `Content-Type` 和 `Cache-Control: no-store`；
+- 域名验证配置缺失时返回 `404`，非 `GET` 方法返回 `405`，且整个请求不会初始化 Clerk、MCP 或 Supabase；
 - protected resource metadata、authorization metadata 和 CORS preflight 可被匿名发现；
 - 非协议方法、超大请求体和畸形 JSON 被拒绝；
 - 所有工具 annotations 与实际只读行为一致。
@@ -377,6 +394,7 @@ plugins/what2reg-um/
 - `npm run build`
 - `npm run build:pages`
 - 使用 MCP inspector 或等价客户端验证生产端点的初始化、OAuth 和五个工具；
+- 从公网请求 `https://umeh.top/.well-known/openai-apps-challenge`，核对响应字节与 portal token 完全一致，并在 OpenAI portal 中通过 **Verify Domain**；
 - 确认现有网站、iOS HMAC API、管理员 API 和课表页面仍工作；
 - 使用未登录客户端确认 `/mcp` 无法读取任何业务数据。
 
@@ -385,13 +403,14 @@ plugins/what2reg-um/
 发布前必须完成：
 
 1. 在 OpenAI Platform 完成个人或企业发布身份验证，并确保所属项目具备 Apps Management 权限。
-2. 部署公开可访问的生产 MCP 域名，并在要求的位置放置 OpenAI domain verification challenge。
-3. 在 Clerk 启用 OAuth application settings、PKCE 与 CIMD；只请求 `umhelper:read` 及完成登录所需的最小身份 scopes。
-4. 为审核准备一个无 MFA、无真实个人数据的测试账号，并仅通过 Dashboard 安全字段提交凭据。
-5. 准备恰好 5 个正向与 3 个负向审核用例；正向覆盖五个工具，负向覆盖匿名访问、无结果和越界/禁止请求。
-6. 提供 reviewer 可访问的演示视频、发布说明和四个 listing URL。
-7. 扫描生产 MCP 工具，核对名称、schema、annotations 和 server instructions，再提交审核；首版没有 MCP UI，因此不提交截图或 UI CSP。
-8. 审核通过后由发布者在 portal 中显式 Publish。
+2. 部署公开可访问的生产 MCP 域名，把 portal 生成的 token 写入 Cloudflare secret `OPENAI_APPS_CHALLENGE_TOKEN`，并确认精确 challenge URL 返回纯文本 token。
+3. 在 OpenAI portal 点击 **Verify Domain** 并确认成功；域名验证未通过时不得开始 MCP 连接、tool scan 或提交审核。
+4. 在 Clerk 启用 OAuth application settings、PKCE 与 CIMD；只请求 `umhelper:read` 及完成登录所需的最小身份 scopes。
+5. 为审核准备一个无 MFA、无真实个人数据的测试账号，并仅通过 Dashboard 安全字段提交凭据。
+6. 准备恰好 5 个正向与 3 个负向审核用例；正向覆盖五个工具，负向覆盖匿名访问、无结果和越界/禁止请求。
+7. 提供 reviewer 可访问的演示视频、发布说明和四个 listing URL。
+8. 扫描生产 MCP 工具，核对名称、schema、annotations 和 server instructions，再提交审核；首版没有 MCP UI，因此不提交截图或 UI CSP。
+9. 审核通过后由发布者在 portal 中显式 Publish。
 
 插件公开发布不意味着 API 匿名公开。安装者仍必须经过 Clerk 授权，OpenAI 审核团队使用专用测试账号完成相同登录流程。
 
@@ -417,6 +436,7 @@ plugins/what2reg-um/
 - 课程、教师、评价和课表事实带可打开的 `https://umeh.top` 引用。
 - 无任何写工具、SQL 工具、任意 URL 工具或批量导出入口。
 - MCP tool scan、OAuth 登录、生产 smoke test、Vitest、Next.js build 与 OpenNext build 全部通过。
+- `https://umeh.top/.well-known/openai-apps-challenge` 按 portal 要求返回精确 token，且 OpenAI **Verify Domain** 状态成功。
 - 插件包不含 secret、本地配置、`.app.json` 或未声明依赖。
 
 ## 16. 参考资料
