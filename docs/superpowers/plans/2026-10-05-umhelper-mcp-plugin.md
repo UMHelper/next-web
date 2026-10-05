@@ -168,8 +168,8 @@ git commit -m "feat: add OpenAI domain verification endpoint"
 
 使用 Clerk helper mock 覆盖：
 
-- `auth({ acceptsToken: "oauth_token", audience: MCP_RESOURCE_URL })` 被精确调用；
-- 无 token、签名无效、过期、audience 错误返回 unauthorized；
+- `auth({ acceptsToken: "oauth_token" })` 被精确调用（Clerk SDK 不提供 `audience` 选项，audience/resource 由 Clerk 授权服务器签发时绑定，见 spec §5.1 实施修正）；
+- 无 token、签名无效、过期返回 unauthorized；
 - 缺 `umhelper:read` 返回 forbidden；
 - 缺 `userId` 返回 unauthorized；
 - 合法 token 被规范化为 handler v2 所需的 `AuthInfo`，保留 token、scopes、clientId，并把 `userId` 放入受控 `extra`；
@@ -627,7 +627,7 @@ git commit -m "feat: package What2Reg public agent plugin"
 
 - 启用 Authorization Code + S256 PKCE 和 CIMD；
 - 添加 `umhelper:read`，并确认 `openid profile email umhelper:read` 可申请；
-- 资源/audience 使用 `https://umeh.top/mcp`；
+- 资源/audience 使用 `https://umeh.top/mcp`（这是 audience 的唯一绑定点：资源服务器不重复校验，见 spec §5.1 实施修正）；
 - 允许 ChatGPT/Codex 官方 CIMD client；DCR 保持关闭，除非实际客户端明确要求；
 - 确认授权页展示应用名称、scope 和撤销入口。
 

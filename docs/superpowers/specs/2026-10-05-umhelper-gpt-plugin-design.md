@@ -117,11 +117,12 @@ MCP 资源标识使用生产端点 `https://umeh.top/mcp`。实现必须验证�
 
 - 签名来自配置的 Clerk instance；
 - token 未过期且尚未生效时间有效；
-- token 的 audience/resource 指向 UMHelper MCP；
-- scope 包含 `umhelper:read`；
-- token 能解析出非空 Clerk `userId`。
+- token 能解析出非空 Clerk `userId`；
+- scope 包含 `umhelper:read`。
 
-不能只解码 JWT 而不验证签名、issuer、audience/resource 和有效期。
+不能只解码 JWT 而不验证签名、issuer 和有效期。
+
+**audience/resource 的归属（实施修正，2026-10-05）**：`@clerk/nextjs` 的 `auth()` 只接受 `acceptsToken`，既不提供 `audience` 选项，也不暴露 JWT claims；Clerk 官方 helper `verifyClerkToken` 同样不校验 audience。因此资源服务器采用 Clerk 官方路径（`auth({ acceptsToken: "oauth_token" })` + `verifyClerkToken`）完成签名、issuer 与有效期校验，**audience/resource 由 Clerk 授权服务器在签发 token 时通过 OAuth application 的 resource 配置绑定**；工具边界再校验非空 `userId` 与 `umhelper:read`。该绑定必须在 Clerk Dashboard 配置，并在 Task 12 的部署检查中确认。
 
 ### 5.2 HTTP 行为
 
@@ -429,7 +430,7 @@ plugins/what2reg-um/
 
 ## 15. 验收标准
 
-- 对 `/mcp` 的匿名、无效 Token、错误 audience/resource 和缺 scope 请求均不能触发业务查询。
+- 对 `/mcp` 的匿名、无效 Token 和缺 scope 请求均不能触发业务查询；audience/resource 由 Clerk 授权服务器绑定（见 §5.1 实施修正）。
 - 有效 Clerk 用户能在 ChatGPT 或 Codex 中发现并调用五个只读工具。
 - 每个工具输出只包含本设计白名单字段，且敏感字段守护测试通过。
 - 搜索最多 10 条、教师课程最多 20 条、评价最多 10 条、单次结构化输出不超过 64 KiB。
