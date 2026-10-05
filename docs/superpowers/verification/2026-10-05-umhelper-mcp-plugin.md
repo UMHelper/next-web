@@ -66,6 +66,13 @@ MCP 自有测试 11 个文件 / 207 测试；插件包 38 测试；法律披露 
     - 排除我方因素：metadata / discovery / client_id / redirect_uri 注册（四个回调逐一确认）/ scopes / PKCE 全部正确，且用**参数完全可控的自建 PKCE 客户端**（自带回调监听）复现出同样失败，去掉 `resource`、去掉 `prompt` 亦然；
     - 修复：按 Clerk 文档自建同意页 `app/oauth-consent/[[...index]]/page.tsx`（渲染 `<OAuthConsent />`，`auth()` 守卫，必须设 `referrer: "strict-origin-when-cross-origin"`）。本地已验证该路由可编译、`referrer` 策略生效、组件已渲染；`next build` 输出含 `ƒ /oauth-consent/[[...index]]`；
     - 仍需人工：Dashboard → **Paths → Component paths → OAuth consent** 填 `https://umeh.top/oauth-consent`（生产）/ `/oauth-consent`（dev），再走一次真实授权确认闭环。详见 spec §5.6。
+12. **端到端真实 OAuth 与五个工具验证通过（2026-10-05，生产）**：完成 Paths 配置（OAuth consent = `https://umeh.top/oauth-consent`）并先登出再登录后，生产 Clerk 首次记录 `oauth_authorization.granted`。随后用参数完全可控的自建 PKCE 客户端（带 `resource=https://umeh.top/mcp` 与 `prompt=consent`，即 ChatGPT/Inspector 的真实请求形态）跑通全链路，原始结果：
+    - `### got code (state match: true)` → `### TOKEN status=200`，`scope` 含 `umhelper:read`；
+    - `initialize` 200 → `serverInfo {name: "what2reg-um", version: "0.1.0"}`；
+    - `tools/list` 200 → 恰好五个：`search_catalog`、`get_course`、`get_instructor`、`get_course_reviews`、`get_course_sections`；
+    - 五个工具全部 `isError=false` 并返回真实数据：`search_catalog` 列出 ACCT 系列课程；`get_course ACCT1000` 返回 11 位教师与评价数；`get_course_sections` 返回 `Section 007: FRI 11:30-12:45 @ E22-2002`；`get_instructor "CHAI LAI PING"` 返回 8 门课；`get_course_reviews ACCT1000 + CHAI LAI PING` 返回 5 条公开评价（日期、评分、赞踩、正文）；
+    - 输出全部带 `https://umeh.top/...` 引用链接，且不含 email、内部 ID、评论者身份或 `admin_note` —— 敏感字段禁区在真实数据下同样成立。
+    - 遗留的客户端小问题（与服务器无关）：MCP Inspector 若在流程中途重复点击连接，回调会因 `state` 过期报 "OAuth callback could not be matched"；重新一次性连完即可。生产 OAuth app `What2Reg@UM MCP`（`kOJV0bh86NtGDVte`）已登记稳定回调 `https://chatgpt.com/connector_platform_oauth_redirect`，可直接进行 ChatGPT 侧联调。
 
 ## 6. 仍需人工/控制台完成
 
