@@ -19,7 +19,8 @@
     "cf-typegen": "wrangler types --env-interface CloudflareEnv --include-runtime false cloudflare-env.d.ts",
     "test": "vitest run",
     "sync:um": "node scripts/sync-um.mjs --missing",
-    "analytics:manifest": "node scripts/print-analytics-manifest.mjs"
+    "analytics:manifest": "node scripts/print-analytics-manifest.mjs",
+    "plugin:assets": "node scripts/build-plugin-assets.mjs"
   },
   "dependencies": {
     "@aldabil/react-scheduler": "^2.7.26",

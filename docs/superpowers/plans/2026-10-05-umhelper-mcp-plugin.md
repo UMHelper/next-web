@@ -593,7 +593,7 @@ git commit -m "docs: add plugin support and privacy disclosures"
 
 - [ ] **Step 4: 生成并检查品牌 assets**
 
-使用现有 `public/icon/512.jpg` 作为品牌参考（`public/whole-icon.png` 已弃用，不得使用），通过 image generation 生成 512×512 透明 PNG。不得直接放大低清 favicon。人工检查小尺寸可读性和透明边缘。展示名必须使用站点规范名 `What2Reg @ UM 澳大選咩課`（`lib/site.ts` 的 `SITE_NAME`），短描述为 `澳門大學課程與教師評價平台（澳大選咩課）`。
+插件图标来源为共享品牌标记：iOS 端 `CatLogo` 使用的 lucide "cat" 矢量图形（`cat-blue.svg`，描边 `#003DB8`，ISC 许可）。把受许可的源文件复制到 `design/cat-logo.svg`，用 `scripts/build-plugin-assets.mjs`（`npm run plugin:assets`）无损渲染为 512×512 透明 PNG。`public/whole-icon.png` 已弃用不得使用；不得直接放大低清 favicon。人工检查小尺寸可读性和透明边缘。展示名必须使用站点规范名 `What2Reg @ UM 澳大選咩課`（`lib/site.ts` 的 `SITE_NAME`），短描述为 `澳門大學課程與教師評價平台（澳大選咩課）`。
 
 - [ ] **Step 5: 验证并生成候选 ZIP**
 
