@@ -6,9 +6,14 @@ import { createAdConfig } from '@/lib/ads/ad-config-server';
 import { fetchCatalogList } from '@/lib/database/get-course-info';
 import { buildCatalogPath } from '@/lib/site';
 
-export function generateMetadata(
-    {params}:{params:any}) {
-    const normalized = params.departments.map((part: string) => part.toUpperCase())
+type CatalogPageProps = {
+    params: Promise<{ departments: string[] }>;
+};
+
+export async function generateMetadata(
+    { params }: CatalogPageProps) {
+    const { departments } = await params
+    const normalized = departments.map((part) => part.toUpperCase())
     const title = `Catalog of ${normalized.join(' ')}`
 
     return {
@@ -50,7 +55,8 @@ async function CatalogListSection({ departments }: { departments: string[] }) {
     )
 }
 
-const CatalogPage = ({ params: { departments } }: { params: { departments: string[] } }) => {
+const CatalogPage = async ({ params }: CatalogPageProps) => {
+    const { departments } = await params
     const normalizedDepartments = departments.map((value, index) => (
         index === 0 ? normalizeFacultySlug(value) : value.toUpperCase()
     ))

@@ -5,9 +5,14 @@ import { CatalogGridSkeleton } from "@/components/loading-skeletons";
 import { createAdConfig } from "@/lib/ads/ad-config-server";
 import { fetchCourseFuzzySearch } from "@/lib/database/get-fuzzy-search";
 
-export function generateMetadata(
-    {params}:{params:any}) {
-    const title = `Searching for ${params.code.toUpperCase()} | What2Reg @ UM 澳大選咩課`
+type CourseSearchPageProps = {
+    params: Promise<{ code: string }>;
+};
+
+export async function generateMetadata(
+    { params }: CourseSearchPageProps) {
+    const { code } = await params
+    const title = `Searching for ${code.toUpperCase()} | What2Reg @ UM 澳大選咩課`
 
     return {
         title: title,
@@ -31,8 +36,9 @@ async function CourseSearchResults({ code }: { code: string }) {
     )
 }
 
-function CourseSearchPage({params}:{params:{code:string}}){
-    const code = params.code.toUpperCase()
+async function CourseSearchPage({params}:CourseSearchPageProps){
+    const { code: rawCode } = await params
+    const code = rawCode.toUpperCase()
 
     return (
         <Suspense fallback={<CatalogGridSkeleton count={6} />}>

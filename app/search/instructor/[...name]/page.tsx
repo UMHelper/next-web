@@ -9,10 +9,15 @@ import { createAdConfig } from "@/lib/ads/ad-config-server"
 import { withAdSlots } from "@/lib/ads/ad-slots"
 import { fetchInstructorFuzzySearch } from "@/lib/database/get-fuzzy-search"
 
-export function generateMetadata(
-    {params}:{params:any}) {
-    const name=decodeURI(params.name.join('/')).toUpperCase()
-    const title = `Searching for ${name} | What2Reg @ UM 澳大選咩課`
+type InstructorSearchPageProps = {
+    params: Promise<{ name: string[] }>;
+};
+
+export async function generateMetadata(
+    { params }: InstructorSearchPageProps) {
+    const { name } = await params
+    const instructorName = decodeURI(name.join('/')).toUpperCase()
+    const title = `Searching for ${instructorName} | What2Reg @ UM 澳大選咩課`
 
     return {
         title: title,
@@ -69,12 +74,13 @@ async function InstructorSearchResults({ name }: { name: string }) {
     )
 }
 
-function InstructorSearchPage({ params }: { params: { name: string[] } }) {
-    const name = decodeURI(params.name.join('/')).toUpperCase()
+async function InstructorSearchPage({ params }: InstructorSearchPageProps) {
+    const { name } = await params
+    const instructorName = decodeURI(name.join('/')).toUpperCase()
 
     return (
         <Suspense fallback={<CourseGridSkeleton count={6} />}>
-            <InstructorSearchResults name={name} />
+            <InstructorSearchResults name={instructorName} />
         </Suspense>
     )
 }
