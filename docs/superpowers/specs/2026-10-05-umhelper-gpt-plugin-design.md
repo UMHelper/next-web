@@ -1,6 +1,6 @@
 # UMHelper GPT 插件设计
 
-> 状态：Design approved，等待书面规格 review
+> 状态：Design approved；实施计划见 `../plans/2026-10-05-umhelper-mcp-plugin.md`
 > 日期：2026-10-05
 > 产品名称：What2Reg @ UM
 > 目标载体：ChatGPT 与 Codex 公共插件目录
