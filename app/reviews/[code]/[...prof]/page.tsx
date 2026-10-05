@@ -12,22 +12,26 @@ import { buildReviewMetadata } from "@/lib/seo";
 
 export const revalidate = 300;
 
-export function generateMetadata(
-    { params, searchParams }: { params: any, searchParams?: any }) {
-    const route = parseReviewRoute(params.code, params.prof, searchParams?.page);
-    const prof = decodeURI(route.prof).replaceAll('$', '/');
-    return buildReviewMetadata({ code: route.code, prof });
+type ReviewPageProps = {
+    params: Promise<{ code: string, prof: string[] }>,
+    searchParams: Promise<{ page?: string | string[] }>,
+};
+
+export async function generateMetadata(
+    { params, searchParams }: ReviewPageProps) {
+    const [{ code, prof }, query] = await Promise.all([params, searchParams]);
+    const route = parseReviewRoute(code, prof, query?.page);
+    const profName = decodeURI(route.prof).replaceAll('$', '/');
+    return buildReviewMetadata({ code: route.code, prof: profName });
 }
 
 
 const ReviewPage = async ({
     params,
     searchParams,
-}: {
-    params: { code: string, prof: string[] },
-    searchParams?: { page?: string | string[] },
-}) => {
-    const route = parseReviewRoute(params.code, params.prof, searchParams?.page);
+}: ReviewPageProps) => {
+    const [{ code: rawCode, prof: rawProf }, query] = await Promise.all([params, searchParams]);
+    const route = parseReviewRoute(rawCode, rawProf, query?.page);
     const { code, prof, page: page_num } = route;
 
     const prof_info = await getReviewInfo(code, decodeURI(prof.replaceAll('$', '/')));

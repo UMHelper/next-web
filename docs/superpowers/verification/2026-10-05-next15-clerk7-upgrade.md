@@ -1,0 +1,244 @@
+# Next.js 15 + Clerk 7 upgrade verification
+
+> Plan: `docs/superpowers/plans/2026-10-05-next15-clerk7-upgrade.md`
+> Spec: `docs/superpowers/specs/2026-10-05-next15-clerk7-upgrade-design.md`
+> Date: 2026-10-05
+> Branch / worktree: `feat/next15-clerk7-upgrade` at `.worktrees/next15-clerk7-upgrade`
+
+## 1. Result
+
+Tasks 1–7 of the plan are complete and the full automated gate passes:
+
+| # | Command | Exit | Result |
+| --- | --- | --- | --- |
+| 1 | `npm test` | 0 | 128 test files, 486 tests passed |
+| 2 | `npx tsc --noEmit` | 0 | no errors |
+| 3 | `npm run lint` (`eslint . --max-warnings=0`) | 0 | no errors, no warnings |
+| 4 | `npm run build` (`next build`) | 0 | 60 static pages generated, catalog SSG produces 44 paths |
+| 5 | `npm run build:pages` (`opennextjs-cloudflare build`) | 0 | `.open-next/worker.js` emitted, "OpenNext build complete" |
+
+The five commands were run in this order on the final dependency state, and again after the
+code-review fixes in §11 (486 tests).
+
+## 2. Environment
+
+- Node.js `v25.8.1` (satisfies the new `engines.node >=20.9.0`)
+- npm `11.11.0`
+- Worktree installed with a workspace-local npm cache
+  (`npm_config_cache=/Users/box/UMHelper/.npm-cache`) because `~/.npm` is outside the
+  sandbox-writable workspace.
+
+## 3. Installed versions (`npm ls`)
+
+| Package | Version | Note |
+| --- | --- | --- |
+| `next` | `15.5.27` | exact pin |
+| `eslint-config-next` | `15.5.27` | exact pin |
+| `@clerk/nextjs` | `7.9.10` | exact pin |
+| `@clerk/backend` | `3.22.0` | transitive via `@clerk/nextjs`; direct dependency removed |
+| `react` / `react-dom` | `18.3.1` | unchanged major (React 18 retained) |
+| `eslint` | `8.57.1` | unchanged |
+| `typescript` | `5.2.2` | unchanged |
+| `vitest` | `2.1.9` | unchanged |
+| `@opennextjs/cloudflare` | `1.16.6` | raised from `1.14.10` — see Deviations #4 |
+| `@opennextjs/aws` | `3.9.16` | transitive |
+| `wrangler` | `4.62.0` | unchanged |
+| `sharp` | `0.35.5` | newly pulled in by Next 15 — see Deviations #4 |
+
+## 4. Warnings and classification
+
+| Warning | Class | Why it is safe |
+| --- | --- | --- |
+| "Next.js inferred your workspace root … multiple lockfiles" | Worktree artifact | A linked worktree nests one `package-lock.json` inside the main checkout's. Not present for a standalone checkout/CI run. Does not affect the build output. |
+| `webpack.cache.PackFileCacheStrategy` big-string serialization | Perf hint | Pre-existing webpack cache note, unrelated to the migration. |
+| Browserslist `caniuse-lite` is 9 months old | Informational | Data-freshness notice only. |
+| wrangler cannot write `~/Library/Preferences/.wrangler/logs/*.log` (EPERM) | Sandbox artifact | The OpenNext CLI still exits 0; only its debug log write is blocked because the path is outside the writable workspace. |
+
+No Next.js 15 or Clerk 7 deprecation required code changes beyond the ones implemented.
+
+## 5. Behaviour confirmations
+
+- React and React DOM remained on **18.3.1**; no React 19 changes were introduced.
+- No MCP tooling or `/mcp` / OAuth discovery route was added (`@clerk/mcp-tools` is not installed).
+- No iOS HMAC code changed. `lib/ios-auth.ts`, `lib/ios-version.ts`, `lib/ios-comment-compat.ts`
+  and the `x-um-viewer-id` handling are untouched; the iOS branches of `lib/api-auth.ts` are unchanged.
+- No database schema, Supabase RPC, admin model, or iOS HMAC protocol change.
+- `tests/security/api-route-guards.test.ts` still passes (36 assertions); every sensitive
+  Route Handler still references an approved guard. Middleware no longer performs resource
+  authorization.
+
+## 6. Deviations from the plan
+
+1. **`cloudflare-env.d.ts` regeneration flags.** The plan's bare `npm run cf-typegen` emits
+   ~10,900 lines of workerd runtime types and drops six production variable declarations that
+   are absent from the local `.env.local`. Per review decision, the file was regenerated with
+   the flag its own header documents (`--include-runtime false`) after adding empty placeholders
+   for the missing variables to the ignored local env. Net diff vs the pre-upgrade file: header
+   hash, the two renamed Clerk variables, the R2/D1 bindings that were previously missing, and
+   `SUPABASE_DB_URL`; all existing declarations are preserved.
+
+2. **`fix: read clerk 7 paginated user list` (extra commit).** Clerk 7's
+   `client.users.getUserList()` returns a `PaginatedResourceResponse<User[]>` (array under
+   `.data`) rather than a bare array. The plan described only awaiting `clerkClient()`. Fixed in
+   `lib/clerk/user-directory.ts` and `app/api/admin/admins/route.ts`, with test mocks updated to
+   the real shape. This surfaced only through `tsc`, because the first version of the mocks
+   returned arrays and the Vitest assertions still passed.
+
+3. **`.eslintrc.json` gains `root: true`.** `eslint .` walks up from the worktree and found the
+   main checkout's `.eslintrc.json` as well, producing "couldn't determine the plugin
+   '@next/next' uniquely". `root: true` stops the upward cascade. This is also correct for a
+   standalone checkout, where it is a no-op.
+
+4. **`@opennextjs/cloudflare` raised `1.14.10` → `1.16.6` (aws `3.9.16`).** Next 15.5.27
+   declares `sharp` as an optional dependency, so a root `sharp@0.35.5` is installed. OpenNext
+   1.14.10/aws 3.9.10 patches `NextServer#imageOptimizer` but **not** `handleNextImageRequest`,
+   so esbuild follows the `require('sharp')` in Next's image optimizer and fails with
+   `.node`/native-module resolve errors during "Bundling the OpenNext server". aws `3.9.16`
+   adds a `handleNextImageRequest` no-op patch explicitly "to avoid pulling `sharp`" for
+   Next 14/15/16. `1.16.6` still accepts `next@15.5.27` and the installed `wrangler@4.62.0`
+   (`wrangler: ^4.59.2`, `next: ~15.5.10`). This deviates from the spec row that said to keep
+   `@opennextjs/cloudflare` unchanged; without it `npm run build:pages` cannot pass.
+
+5. **Static enforcement of Next 15 async page props was not reproducible.** The plan's Task 6
+   Step 1 expected `npx tsc --noEmit` to fail on synchronous `params`/`searchParams`. In Next
+   15.5.27 the generated `.next/types/validator.ts` types the prop as
+   `{ params: Promise<ParamMap[Route]> } & any`; the `& any` collapses the check, so `tsc`
+   passes even with synchronous props. All nine dynamic pages/layouts were migrated anyway, and
+   correctness is evidenced by the successful prerender of dynamic and `generateStaticParams`
+   routes in `next build` plus the focused SEO/route tests.
+
+## 7. Commits on `feat/next15-clerk7-upgrade`
+
+```
+1524d0b chore: pin next 15 and clerk 7 baseline
+07c2a3a refactor: migrate clerk middleware and controls
+30ff287 refactor: await clerk server APIs
+cdee6d3 fix: read clerk 7 paginated user list
+296238b refactor: await clerk auth in timetable APIs
+851b14c refactor: await next route params
+4c72216 refactor: migrate app router props to next 15
+```
+plus:
+```
+f62b2ce chore: make the next 15 gate pass (eslint root, opennext sharp patch, cf types)
+086c0a7 docs: record next 15 clerk 7 verification
+2b6e5ee docs: record local preview boundary check
+5691985 docs: record extended preview smoke results
+```
+followed by the code-review fix commit described in §11.
+
+The two unrelated untracked scripts `scripts/ga4-provision.mjs` and `scripts/gtm-provision.mjs`
+were never staged.
+
+## 8. Remaining work — Task 8 (manual)
+
+The local preview was run twice and every automatable boundary was verified (§10). What still
+needs a human with a browser and real Clerk sessions:
+
+- configure preview `NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL=/` and
+  `NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL=/`; keep the old `NEXT_PUBLIC_CLERK_AFTER_*`
+  variables for the rollback window;
+- modal sign-in return, `/sign-up`, sign-out;
+- non-admin denied vs admin loading under `/admin`;
+- comment/reply/vote/report and timetable CRUD against a database you are happy to write to;
+- confirm the browser follows the streamed `/admin` and `/compare/[token]` sign-in redirects.
+
+## 9. Rollback
+
+No database migration is involved. Rollback is the pre-upgrade build artifact plus the
+previous lockfile; the old Clerk environment variables stay configured during the rollback
+window.
+
+## 10. Local preview boundary check (partial Task 8)
+
+`opennextjs-cloudflare preview` was run against the `.open-next` worker and the anonymous
+boundaries were probed with `curl`. (Sandbox note: miniflare writes its dev registry under
+`$HOME`, which is outside the writable workspace, so the preview was launched with `HOME`
+redirected into the worktree; no repository file changed. `populateCache` still ran through
+the local platform proxy.)
+
+| Request | Observed | Expected |
+| --- | --- | --- |
+| `GET /` | `200` HTML | public page |
+| `GET /course/ACCT1000` | `200` HTML | public page |
+| `GET /sign-in` | `200` HTML | public auth page |
+| `GET /api/timetable/plans` | `401` JSON `{"code":"unauthorized"}` | JSON 401, not HTML |
+| `GET /api/vote/me` | `401` JSON `{"code":"unauthorized"}` | JSON 401, not HTML |
+| `GET /api/admin/me` | `401` JSON `{"code":"unauthorized"}` | JSON 401, not HTML |
+| `GET /api/admin/admins` | `401` JSON `{"code":"unauthorized"}` | JSON 401, not HTML |
+| `GET /admin` | `200` HTML carrying `NEXT_REDIRECT;replace;/sign-in;307` | redirect to sign-in |
+| `GET /admin/admins` | `200` HTML carrying `NEXT_REDIRECT;replace;/sign-in;307` | redirect to sign-in |
+
+Notes:
+
+- Protected APIs return JSON `401`, confirming middleware no longer converts anonymous API
+  requests into an HTML redirect — the main risk listed in the spec.
+- Because authorization moved from middleware into `app/admin/layout.tsx`, the anonymous
+  `/admin` redirect is delivered by Next as a streamed RSC payload inside a `200`
+  (`NEXT_REDIRECT;replace;/sign-in;307`) instead of a top-level `307`. Browsers still navigate
+  to `/sign-in`; a raw HTTP client sees `200`. No admin navigation or admin data is present in
+  that HTML (only the layout title from `metadata`). Confirm the browser-visible redirect once
+  during the remaining manual smoke test.
+### 10.1 Second preview run with the local server-only environment
+
+The first run had no server-only bindings. The preview was repeated after deriving an
+uncommitted `.dev.vars` from the ignored `.env.local` (quotes stripped, values never printed),
+so the worker had `CLERK_SECRET_KEY`, `SUPABASE_SECRET_KEY` and `UM_IOS_API_SECRET`. The file was
+deleted immediately after the run and was never staged.
+
+Public pages, anonymous:
+
+| Request | Observed |
+| --- | --- |
+| `GET /`, `GET /catalog`, `GET /catalog/FBA` | `200` HTML |
+| `GET /course/ACCT1000`, `GET /professor/TEACHER` | `200` HTML |
+| `GET /reviews/ACCT1000/TEACHER` | `200` HTML |
+| `GET /search/course/ACCT`, `GET /search/instructor/TEACHER` | `200` HTML |
+| `GET /timetable` | `200` HTML |
+| `GET /api/timetable/plans`, `GET /api/vote/me`, `GET /api/admin/me` | `401` JSON |
+
+iOS HMAC path (signature = `HMAC-SHA256(UM_IOS_API_SECRET, "GET\n/api/comment/ACCT1000/TEACHER\n<ts>")`):
+
+| Request | Observed | Meaning |
+| --- | --- | --- |
+| valid signature, current timestamp | `404` `{"error":"not found"}` | HMAC accepted; request reached `getReviewInfo` and the data layer (no such course/prof mapping) |
+| wrong signature, current timestamp | `401` `{"error":"unauthorized"}` | signature rejected |
+| valid signature, timestamp 60 s old | `401` `{"error":"unauthorized"}` | 5-second window still enforced |
+
+This covers the plan's "one existing iOS HMAC request still succeeds": authentication passes and
+the request is not turned away by the migration. `404` rather than `200` only reflects that
+`ACCT1000`/`TEACHER` is not a real course/professor pairing in the configured database.
+
+### 10.2 Still manual
+
+These need a real browser with real Clerk sessions and the configured preview environment, and
+were not performed:
+
+- modal sign-in returning to the invoking page, `/sign-up`, and sign-out;
+- non-admin denied vs admin loading under `/admin` (only the anonymous redirect was observed);
+- comment / reply / vote / report and timetable CRUD (deliberately not exercised — the
+  configured Supabase project holds real data);
+- confirming the browser follows the streamed `/admin` and `/compare/[token]` sign-in redirects.
+
+## 11. Code review and fixes
+
+A read-only reviewer subagent reviewed `1a851e5..2b6e5ee` and reproduced the whole gate
+independently (`tsc`, 128 files / 484 tests, `eslint .` over 404 files, `build:pages`, `npm ls`).
+Findings and dispositions:
+
+| Severity | Finding | Disposition |
+| --- | --- | --- |
+| Critical | `/compare/[token]` lost authentication: the old `authMiddleware` `publicRoutes` deliberately excluded `/compare`, so removing the middleware removed its only guard. Contradicted `2026-09-21-next-web-timetable-share-compare-design.md`. | Fixed — `app/compare/[token]/page.tsx` awaits `auth()` and returns `redirectToSignIn()`, restoring the guard and the return-to-page behaviour. |
+| Important | Admin deep links no longer returned after sign-in: `app/admin/layout.tsx` used `redirect("/sign-in")` with no return URL, which Clerk middleware used to append. | Fixed — the layout now uses `redirectToSignIn()`, which carries the current URL. |
+| Important | `npm run cf-typegen` could not reproduce the committed `cloudflare-env.d.ts` (script lacked `--include-runtime false`). | Fixed — the script now passes the flag the file header documents. The residual limitation (the file also reflects keys present in the local ignored env, e.g. `SUPABASE_DB_URL`) is inherent to `wrangler types` reading local env. |
+| Important | `tests/security/api-route-guards.test.ts` walked only `app/api`, so no test could catch the `/compare` regression, and it matched guard *names* (satisfiable by an unused import plus a comment). | Fixed — the test now requires guard *invocations* and adds a protected-page inventory that walks every `page.tsx` and requires a guard in the page or an ancestor layout. Confirmed to fail when the `/compare` guard is removed. |
+| Important | The new `timetable-catalog` test did not actually prove `params` is awaited (`decodeURIComponent(undefined)` is the truthy `"UNDEFINED"`). | Fixed — the `fetchCourseInfo` mock is hoisted and the test asserts it was called with `"ACCT1000"`. |
+| Minor | `@opennextjs/cloudflare` used a caret range on a branch whose rationale is exact pins. | Fixed — pinned to `1.16.6`. |
+| Minor | `README.md` still described the project as "Next.js 14". | Fixed — updated to Next.js 15. |
+| Minor | `clerk7-ui-contract.test.ts` did not require the `fallbackRedirectUrl` replacement. | Fixed — the test now requires it wherever `<SignInButton` is rendered. |
+
+Accepted without change: the `200` + `NEXT_REDIRECT` shape of the server-side sign-in redirect is
+documented browser-correct behaviour with no data leak; and `eslint . --max-warnings=0` relies on
+eslint-config-next's `overrides[].files` to include TypeScript, noted as a latent risk if the
+config is ever flattened.
+

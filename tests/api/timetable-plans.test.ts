@@ -14,13 +14,13 @@ describe("timetable plan API", () => {
   });
 
   it("rejects anonymous list requests", async () => {
-    authMock.mockReturnValue({ userId: null });
+    authMock.mockResolvedValue({ userId: null });
     const response = await GET(new Request("http://localhost/api/timetable/plans"));
     expect(response.status).toBe(401);
   });
 
   it("rejects invalid create payloads before database access", async () => {
-    authMock.mockReturnValue({ userId: "user_1" });
+    authMock.mockResolvedValue({ userId: "user_1" });
     const response = await POST(
       new Request("http://localhost/api/timetable/plans", {
         method: "POST",
@@ -32,10 +32,10 @@ describe("timetable plan API", () => {
   });
 
   it("rejects anonymous single-plan requests", async () => {
-    authMock.mockReturnValue({ userId: null });
+    authMock.mockResolvedValue({ userId: null });
     const response = await GET_BY_ID(
       new Request("http://localhost/api/timetable/plans/1"),
-      { params: { id: "1" } },
+      { params: Promise.resolve({ id: "1" }) },
     );
     expect(response.status).toBe(401);
   });

@@ -8,11 +8,12 @@ import { reportUpdateSchema } from "@/lib/validation/admin";
 
 export const dynamic = "force-dynamic";
 
-export async function PATCH(request: Request, { params }: { params: { id: string } }) {
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const admin = await requireAdmin();
   if (!admin.ok) return admin.response;
 
-  const reportId = Number(params.id);
+  const { id } = await params;
+  const reportId = Number(id);
   if (!Number.isInteger(reportId) || reportId <= 0) {
     return apiError("invalid_request", "Invalid report id", 400);
   }

@@ -8,7 +8,7 @@ import { createPlanSchema } from "@/lib/validation/timetable";
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
-  const { userId } = auth();
+  const { userId } = await auth();
   if (!userId) return apiError("unauthorized", "Sign in required", 401);
 
   const { searchParams } = new URL(request.url);
@@ -34,7 +34,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const { userId } = auth();
+  const { userId } = await auth();
   if (!userId) return apiError("unauthorized", "Sign in required", 401);
 
   const body = await readJsonBody(request, 96 * 1024);

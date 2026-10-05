@@ -8,9 +8,13 @@ import { buildCourseMetadata } from "@/lib/seo";
 
 export const revalidate = 3600;
 
-export async function generateMetadata(
-    { params }: { params: { code: string } }) {
-    const code = params.code.toUpperCase()
+type CoursePageProps = {
+    params: Promise<{ code: string }>;
+};
+
+export async function generateMetadata({ params }: CoursePageProps) {
+    const { code: rawCode } = await params;
+    const code = rawCode.toUpperCase()
     const course = normalizeLocalCourseInfo(await getCourseInfo(code), code)
     return buildCourseMetadata({
         code,
@@ -21,8 +25,9 @@ export async function generateMetadata(
     })
 }
 
-export default function CoursePage({ params }: { params: { code: string } }) {
-    const code = params.code.toUpperCase()
+export default async function CoursePage({ params }: CoursePageProps) {
+    const { code: rawCode } = await params;
+    const code = rawCode.toUpperCase()
 
     return (
         <>

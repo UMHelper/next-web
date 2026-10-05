@@ -9,7 +9,7 @@ import { menuList as menu, type MenuItem } from "@/lib/consant";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import NavbarAvatar from "@/components/navbar-avatar";
-import { SignInButton, SignedOut } from "@clerk/nextjs";
+import { SignInButton, Show } from "@clerk/nextjs";
 import { useState } from "react";
 import SearchButton from "@/components/search-button";
 import { ThemeOptions } from "@/components/theme-toggle";
@@ -53,9 +53,9 @@ const MobileSidebar = () => {
                         {/* <SearchButton /> */}
                         
                         </div>
-                        <SignedOut>
-                            <SignInButton mode="modal" redirectUrl={pathname}/>
-                        </SignedOut>
+                        <Show when="signed-out">
+                            <SignInButton mode="modal" fallbackRedirectUrl={pathname}/>
+                        </Show>
                         </div>
                     </div>
 

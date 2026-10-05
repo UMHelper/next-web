@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 const MAX_COMMENT_IDS = 50;
 
 export async function GET(request: Request) {
-  const { userId } = auth();
+  const { userId } = await auth();
   if (!userId) {
     return apiError("unauthorized", "Sign in required", 401);
   }

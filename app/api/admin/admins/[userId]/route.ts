@@ -7,11 +7,12 @@ import supabaseAdmin from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
 
-export async function DELETE(request: Request, { params }: { params: { userId: string } }) {
+export async function DELETE(request: Request, { params }: { params: Promise<{ userId: string }> }) {
   const admin = await requireAdmin({ platformOnly: true });
   if (!admin.ok) return admin.response;
 
-  const userId = decodeURIComponent(params.userId);
+  const { userId: rawUserId } = await params;
+  const userId = decodeURIComponent(rawUserId);
   if (!/^user_[A-Za-z0-9_-]+$/.test(userId)) {
     return apiError("invalid_request", "Invalid user id", 400);
   }

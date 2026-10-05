@@ -43,7 +43,7 @@ export async function getClerkUserEmails(userIds: string[]): Promise<Map<string,
 export async function getCurrentAdmin(): Promise<
   { ok: true; session: AdminSession } | { ok: false; response: ReturnType<typeof apiError> }
 > {
-  const { userId } = auth();
+  const { userId } = await auth();
   if (!userId) {
     return { ok: false, response: apiError("unauthorized", "Sign in required", 401) };
   }

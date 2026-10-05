@@ -34,7 +34,7 @@ describe("POST /api/vote/[comment_id]", () => {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ comment: 8, offset: 1 }),
       }),
-      { params: { comment_id: "7" } },
+      { params: Promise.resolve({ comment_id: "7" }) },
     );
 
     expect(response.status).toBe(400);
@@ -50,7 +50,7 @@ describe("POST /api/vote/[comment_id]", () => {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ comment: 7, offset: 1, created_by: "spoofed" }),
       }),
-      { params: { comment_id: "7" } },
+      { params: Promise.resolve({ comment_id: "7" }) },
     );
 
     expect(response.status).toBe(200);

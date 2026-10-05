@@ -34,7 +34,7 @@ export const dynamic = "force-dynamic";
  * prof 编码规则与 Web 一致：空格用 %20，/ 用 $ 转义。
  * iOS 客户端（next-ios）使用。
  */
-export async function GET(request: Request, { params }: { params: { code: string; prof: string } }) {
+export async function GET(request: Request, { params }: { params: Promise<{ code: string; prof: string }> }) {
   // iOS 专用接口认证(2FA 时间戳签名)
   if (!verifyIOSRequest(request)) return iosUnauthorized();
 
@@ -46,8 +46,9 @@ export async function GET(request: Request, { params }: { params: { code: string
   const pageParam = parseInt(searchParams.get("page") ?? "1", 10);
   const page = Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1;
 
-  const code = decodeURIComponent(params.code).toUpperCase();
-  const prof = decodeURIComponent(params.prof)
+  const { code: encodedCode, prof: encodedProf } = await params;
+  const code = decodeURIComponent(encodedCode).toUpperCase();
+  const prof = decodeURIComponent(encodedProf)
     .replaceAll("%20", " ")
     .replaceAll("$", "/")
     .toUpperCase();
@@ -88,7 +89,7 @@ function formNumber(form: FormData, key: string) {
 
 export async function POST(
   request: Request,
-  { params }: { params: { code: string; prof: string } },
+  { params }: { params: Promise<{ code: string; prof: string }> },
 ) {
   const identityResult = await resolveCommentIdentity(request);
   if ("response" in identityResult) return identityResult.response;
@@ -97,8 +98,9 @@ export async function POST(
   // verify 徽章只授予真实 Clerk 账号(user_...);iOS 本机 UUID 仍是匿名设备标识。
   const isVerified = isVerifiedIdentityId(identity.id);
 
-  const code = decodeURIComponent(params.code).toUpperCase();
-  const prof = decodeURIComponent(params.prof).replaceAll("$", "/").toUpperCase();
+  const { code: encodedCode, prof: encodedProf } = await params;
+  const code = decodeURIComponent(encodedCode).toUpperCase();
+  const prof = decodeURIComponent(encodedProf).replaceAll("$", "/").toUpperCase();
 
   const codeParsed = courseCodeSchema.safeParse(code);
   const profParsed = professorNameSchema.safeParse(prof);

@@ -19,11 +19,11 @@ describe("timetable share owner API", () => {
   });
 
   it("rejects anonymous access", async () => {
-    authMock.mockReturnValue({ userId: null });
+    authMock.mockResolvedValue({ userId: null });
     const request = new Request("http://localhost/api/timetable/plans/1/share");
 
-    expect((await GET(request, { params: { id: "1" } })).status).toBe(401);
-    expect((await POST(request, { params: { id: "1" } })).status).toBe(401);
-    expect((await DELETE(request, { params: { id: "1" } })).status).toBe(401);
+    expect((await GET(request, { params: Promise.resolve({ id: "1" }) })).status).toBe(401);
+    expect((await POST(request, { params: Promise.resolve({ id: "1" }) })).status).toBe(401);
+    expect((await DELETE(request, { params: Promise.resolve({ id: "1" }) })).status).toBe(401);
   });
 });

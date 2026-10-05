@@ -11,9 +11,9 @@ export const dynamic = "force-dynamic";
 
 export async function GET(
   request: Request,
-  { params }: { params: { token: string } },
+  { params }: { params: Promise<{ token: string }> },
 ) {
-  const { userId } = auth();
+  const { userId } = await auth();
   if (!userId) return apiError("unauthorized", "Sign in required", 401);
   const rate = await consumeRateLimit({
     key: rateLimitKey({ platform: "web", id: userId }, "share_read"),
@@ -26,14 +26,15 @@ export async function GET(
       retryAfter: rate.retryAfter,
     });
   }
-  if (!isValidShareToken(params.token)) {
+  const { token } = await params;
+  if (!isValidShareToken(token)) {
     return apiError("not_found", "Shared timetable not found", 404);
   }
 
   const { data, error } = await supabaseAdmin
     .from("timetable_plan")
     .select("name, year, sem, payload, revision, updated_at")
-    .eq("share_token", params.token)
+    .eq("share_token", token)
     .maybeSingle();
 
   if (error) {

@@ -47,7 +47,7 @@ export async function resolveReportIdentity(
     };
   }
 
-  const { userId } = auth();
+  const { userId } = await auth();
   if (!userId) {
     return { response: apiError("unauthorized", "Sign in required", 401) };
   }
@@ -81,7 +81,7 @@ export async function resolveCommentIdentity(
     return { identity: { platform: "ios", id: parsed.data } };
   }
 
-  const { userId } = auth();
+  const { userId } = await auth();
   if (userId) {
     return { identity: { platform: "web", id: userId } };
   }
@@ -105,7 +105,7 @@ export async function requireWriteIdentity(
     return { identity: { platform: "ios", id: parsed.data } };
   }
 
-  const { userId } = auth();
+  const { userId } = await auth();
   if (!userId) {
     return { response: apiError("unauthorized", "Sign in required", 401) };
   }

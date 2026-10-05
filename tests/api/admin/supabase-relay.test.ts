@@ -12,7 +12,7 @@ import {
 import { GET, POST } from "@/app/api/admin/supabase/[...path]/route";
 
 function ctx(...path: string[]) {
-  return { params: { path } };
+  return { params: Promise.resolve({ path }) };
 }
 
 describe("isAllowedRelayPath", () => {

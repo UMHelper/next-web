@@ -8,12 +8,13 @@ export const dynamic = "force-dynamic";
 
 export async function GET(
   _request: Request,
-  { params }: { params: { prof: string } },
+  { params }: { params: Promise<{ prof: string }> },
 ) {
-  const { userId } = auth();
+  const { userId } = await auth();
   if (!userId) return apiError("unauthorized", "Sign in required", 401);
 
-  const prof = decodeURIComponent(params.prof).replaceAll("$", "/").toUpperCase();
+  const { prof: encodedProf } = await params;
+  const prof = decodeURIComponent(encodedProf).replaceAll("$", "/").toUpperCase();
   if (!prof) return apiError("invalid_request", "Invalid professor", 400);
 
   const { data, error } = await fetchCourseListByProf({ name: prof });

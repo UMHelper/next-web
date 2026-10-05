@@ -10,8 +10,13 @@ import { buildProfessorMetadata } from '@/lib/seo';
 
 export const revalidate = 3600;
 
-export function generateMetadata({ params }: { params: { name: string[] } }) {
-    const prof_name = params.name.join("/").replaceAll("%20", " ").replaceAll('%24', '/').toUpperCase()
+type ProfessorPageProps = {
+    params: Promise<{ name: string[] }>;
+};
+
+export async function generateMetadata({ params }: ProfessorPageProps) {
+    const { name } = await params
+    const prof_name = name.join("/").replaceAll("%20", " ").replaceAll('%24', '/').toUpperCase()
     return buildProfessorMetadata(prof_name)
 }
 
@@ -45,7 +50,8 @@ async function ProfessorCourses({ name }: { name: string }) {
     )
 }
 
-const ProfessorPage = ({ params: { name } }: { params: { name: string[] } }) => {
+const ProfessorPage = async ({ params }: ProfessorPageProps) => {
+    const { name } = await params
     const prof_name = name.join("/").replaceAll("%20", " ").replaceAll('%24', '/').toUpperCase()
 
     return (

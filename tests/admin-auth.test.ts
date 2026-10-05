@@ -45,7 +45,7 @@ describe("admin auth", () => {
 
   it("allows platform admin from env id", async () => {
     process.env.PLATFORM_ADMIN_USER_IDS = "user_platform";
-    auth.mockReturnValue({ userId: "user_platform" });
+    auth.mockResolvedValue({ userId: "user_platform" });
 
     const result = await getCurrentAdmin();
     expect(result).toEqual({
@@ -56,7 +56,7 @@ describe("admin auth", () => {
 
   it("allows platform admin by a verified primary Clerk email", async () => {
     process.env.PLATFORM_ADMIN_EMAILS = "admin@example.com";
-    auth.mockReturnValue({ userId: "user_email" });
+    auth.mockResolvedValue({ userId: "user_email" });
     getDirectoryUsers.mockResolvedValue(
       new Map([["user_email", { id: "user_email", primaryEmail: "admin@example.com" }]]),
     );
@@ -71,7 +71,7 @@ describe("admin auth", () => {
 
   it("does not allow an unverified email", async () => {
     process.env.PLATFORM_ADMIN_EMAILS = "admin@example.com";
-    auth.mockReturnValue({ userId: "user_unverified" });
+    auth.mockResolvedValue({ userId: "user_unverified" });
     getDirectoryUsers.mockResolvedValue(
       new Map([["user_unverified", { id: "user_unverified", primaryEmail: null }]]),
     );
@@ -83,7 +83,7 @@ describe("admin auth", () => {
   });
 
   it("allows an active db admin", async () => {
-    auth.mockReturnValue({ userId: "user_db" });
+    auth.mockResolvedValue({ userId: "user_db" });
     maybeSingle.mockResolvedValue({ data: { clerk_user_id: "user_db", active: true }, error: null });
 
     const result = await getCurrentAdmin();
@@ -94,7 +94,7 @@ describe("admin auth", () => {
   });
 
   it("rejects non-admin users", async () => {
-    auth.mockReturnValue({ userId: "user_plain" });
+    auth.mockResolvedValue({ userId: "user_plain" });
     maybeSingle.mockResolvedValue({ data: null, error: null });
 
     const result = await getCurrentAdmin();
@@ -103,7 +103,7 @@ describe("admin auth", () => {
   });
 
   it("rejects anonymous users", async () => {
-    auth.mockReturnValue({ userId: null });
+    auth.mockResolvedValue({ userId: null });
     const result = await requireAdmin();
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.response.status).toBe(401);

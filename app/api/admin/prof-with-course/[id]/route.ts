@@ -8,11 +8,12 @@ import { profWithCourseUpdateSchema } from "@/lib/validation/admin";
 
 export const dynamic = "force-dynamic";
 
-export async function PATCH(request: Request, { params }: { params: { id: string } }) {
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const admin = await requireAdmin();
   if (!admin.ok) return admin.response;
 
-  const rowId = Number(params.id);
+  const { id } = await params;
+  const rowId = Number(id);
   if (!Number.isInteger(rowId) || rowId <= 0) {
     return apiError("invalid_request", "Invalid mapping id", 400);
   }

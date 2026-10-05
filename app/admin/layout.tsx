@@ -1,4 +1,5 @@
-import { notFound, redirect } from "next/navigation";
+import { auth } from "@clerk/nextjs/server";
+import { notFound } from "next/navigation";
 
 import AdminNav from "@/components/admin/admin-nav";
 import { getCurrentAdmin } from "@/lib/admin-auth";
@@ -14,7 +15,11 @@ export const metadata = {
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const admin = await getCurrentAdmin();
   if (!admin.ok) {
-    if (admin.response.status === 401) redirect("/sign-in");
+    if (admin.response.status === 401) {
+      // redirectToSignIn keeps the current URL, so a deep link returns here after sign-in.
+      const { redirectToSignIn } = await auth();
+      return redirectToSignIn();
+    }
     notFound();
   }
 
