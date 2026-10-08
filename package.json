@@ -20,7 +20,8 @@
     "test": "vitest run",
     "sync:um": "node scripts/sync-um.mjs --missing",
     "analytics:manifest": "node scripts/print-analytics-manifest.mjs",
-    "plugin:assets": "node scripts/build-plugin-assets.mjs"
+    "plugin:assets": "node scripts/build-plugin-assets.mjs",
+    "icons:build": "node scripts/build-brand-icons.mjs"
   },
   "dependencies": {
     "@aldabil/react-scheduler": "^2.7.26",
