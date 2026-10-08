@@ -26,8 +26,23 @@ describe("robots", () => {
     expect(rule()).toMatchObject({
       userAgent: "*",
       allow: "/",
-      disallow: ["/admin/", "/api/"],
+      disallow: ["/admin/", "/api/", "/cdn-cgi/"],
     });
+  });
+
+  /**
+   * `/cdn-cgi/` 是 Cloudflare 托管的保留前缀（RUM 上报 `/cdn-cgi/rum`、排障
+   * `/cdn-cgi/trace`、Bot 挑战 `/cdn-cgi/challenge-platform/` 等），由边缘直接
+   * 处理，不是站内内容。爬虫会把它当站点内容去抓，失败不影响排名但会污染
+   * Search Console 的抓取报告，所以官方建议整个前缀 disallow。
+   *
+   * 前提：目前没有使用 Cloudflare 图片转换。若将来启用（URL 形如
+   * `/cdn-cgi/image/…`），必须补一条更具体的 `Allow: /cdn-cgi/image/`，否则
+   * 转换后的图片会被这条 Disallow 一起挡掉。
+   */
+  it("disallows the Cloudflare-managed /cdn-cgi/ prefix", () => {
+    expect(rule().disallow).toContain("/cdn-cgi/");
+    expect(NOINDEX_SERVED_PATHS).not.toContain("/cdn-cgi/");
   });
 
   it("never disallows a path that relies on a noindex meta tag", () => {
