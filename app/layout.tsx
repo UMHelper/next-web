@@ -51,11 +51,27 @@ export default function RootLayout({
 
                     <meta name='theme-color' content='#FFFFFF' />
                     <meta name='apple-mobile-web-app-status-bar-style' content='default' />
-                    <link rel="manifest" href="/manifest.webmanifest" />
-                    <link rel="icon" href="/favicon.png" sizes="any" />
+                    {/* Next injects the web app manifest link from app/manifest.ts. */}
+                    {/*
+                      Icons come from `npm run icons:build` (scripts/build-brand-icons.mjs),
+                      which renders the shared lucide "cat" vector mark (design/cat-logo.svg,
+                      the same glyph as the iOS app's CatLogo). `favicon.ico` and the two
+                      `apple-touch-icon*` files also live at the site root because iOS Safari
+                      and legacy crawlers request those paths directly, with no link tag.
+                    */}
+                    <link rel="icon" href="/favicon.ico" sizes="48x48" />
+                    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
                     <link
-                        rel="apple-touch-icon"
-                        href="/icon/72.jpg"
+                        rel="icon"
+                        href="/favicon-dark.svg"
+                        type="image/svg+xml"
+                        media="(prefers-color-scheme: dark)"
+                    />
+                    <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" />
+                    <link
+                        rel="apple-touch-icon-precomposed"
+                        href="/apple-touch-icon-precomposed.png"
+                        sizes="180x180"
                     />
                 </head>
                 <body className={cn(inter.className, dancingScript.variable)}>

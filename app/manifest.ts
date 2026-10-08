@@ -10,45 +10,28 @@ export default function manifest(): MetadataRoute.Manifest {
     background_color: '#fff',
     theme_color: '#fff',
     icons: [
+      // Rendered from the shared iOS cat mark by `npm run icons:build`
+      // (scripts/build-brand-icons.mjs). The retired 72…512 JPEG rasters under
+      // /icon are no longer referenced anywhere.
       {
-        src: '/icon/72.jpg',
-        sizes: '72x72',
-        type: 'image/jpg',
-      },
-      {
-        src: '/icon/96.jpg',
-        sizes: '96x96',
-        type: 'image/jpg',
-      },
-      {
-        src: '/icon/128.jpg',
-        sizes: '128x128',
-        type: 'image/jpg',
-      },
-      {
-        src: '/icon/144.jpg',
-        sizes: '144x144',
-        type: 'image/jpg',
-      },
-      {
-        src: '/icon/152.jpg',
-        sizes: '152x152',
-        type: 'image/jpg',
-      },
-      {
-        src: '/icon/192.jpg',
+        src: '/icon/192.png',
         sizes: '192x192',
-        type: 'image/jpg',
+        type: 'image/png',
+        purpose: 'any',
       },
       {
-        src: '/icon/384.jpg',
-        sizes: '384x384',
-        type: 'image/jpg',
-      },
-      {
-        src: '/icon/512.jpg',
+        src: '/icon/512.png',
         sizes: '512x512',
-        type: 'image/jpg',
+        type: 'image/png',
+        purpose: 'any',
+      },
+      {
+        // Full-bleed tile with extra padding: Android crops this to its own
+        // shape, so the glyph stays inside the 80%-diameter safe circle.
+        src: '/icon/maskable-512.png',
+        sizes: '512x512',
+        type: 'image/png',
+        purpose: 'maskable',
       },
     ],
   }
