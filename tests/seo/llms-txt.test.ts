@@ -1,7 +1,8 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
-import { buildLlmsTxt, GET } from "@/app/llms.txt/route";
+import * as llmsRoute from "@/app/llms.txt/route";
+import { buildLlmsTxt } from "@/lib/llms-txt";
 import {
   SITE_NAME,
   absoluteUrl,
@@ -19,7 +20,10 @@ import {
  *  - 顺手列出 `/search/`、`/submit/` 等自带 `noindex` 的操作页 → agent 把
  *    无法引用的结果页当成事实来源。
  *
- * 所以断言分三类：spec 结构、链接卫生、内容锚点。
+ * 另外 `route.ts` 的导出面也在这里守住：多导出一个数据函数会让 `next build`
+ * 直接失败，而 `tsc` 与 `next dev` 都不会报（生产构建踩过一次）。
+ *
+ * 所以断言分四类：spec 结构、链接卫生、内容锚点、route 导出面。
  */
 const LLMS_TXT = buildLlmsTxt();
 const LINES = LLMS_TXT.split("\n");
@@ -129,8 +133,8 @@ describe("llms.txt content anchors", () => {
     expect(LLMS_TXT).toContain(absoluteUrl(buildReviewPath("ACCT1000", "CHAN TAI MAN")));
 
     // 用的是构造器，而不是「字面量恰好相等」：写死路径后，lib/site.ts 改结构
-    // 就会让这个文件指向 404，而下面的生成结果断言仍会通过。
-    const source = readFileSync("app/llms.txt/route.ts", "utf8");
+    // 就会让这个文件指向 404，而上面的生成结果断言仍会通过。
+    const source = readFileSync("lib/llms-txt.ts", "utf8");
     for (const builder of [
       "buildCoursePath(",
       "buildCatalogPath(",
@@ -167,9 +171,42 @@ describe("llms.txt content anchors", () => {
   });
 });
 
-describe("llms.txt response", () => {
+describe("llms.txt route export surface", () => {
+  /**
+   * Next 对 `route.ts` 做导出面校验，只接受 HTTP 方法与段配置。把
+   * `buildLlmsTxt` 放在这里时，`npm run build` 会报
+   * `"buildLlmsTxt" is not a valid Route export field`——而 `tsc --noEmit`
+   * 与 `next dev` 都发现不了（生成的路由类型要等构建才刷新）。
+   */
+  const ALLOWED_ROUTE_EXPORTS = new Set([
+    "GET",
+    "HEAD",
+    "OPTIONS",
+    "POST",
+    "PUT",
+    "DELETE",
+    "PATCH",
+    "dynamic",
+    "dynamicParams",
+    "revalidate",
+    "fetchCache",
+    "runtime",
+    "preferredRegion",
+    "maxDuration",
+  ]);
+
+  it("exports only HTTP methods and segment config", () => {
+    for (const name of Object.keys(llmsRoute)) {
+      expect(
+        ALLOWED_ROUTE_EXPORTS.has(name),
+        `app/llms.txt/route.ts 导出了 "${name}"：只有 HTTP 方法与段配置合法，否则 next build 失败`,
+      ).toBe(true);
+    }
+    expect(typeof llmsRoute.GET).toBe("function");
+  });
+
   it("is served as UTF-8 text with a 200", async () => {
-    const response = GET();
+    const response = llmsRoute.GET();
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toBe("text/plain; charset=utf-8");
     expect(await response.text()).toBe(LLMS_TXT);
