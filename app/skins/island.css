@@ -104,3 +104,42 @@ html[data-skin="island"].dark {
 
   --button-depth: 174.1 64.4% 34.1%;
 }
+
+/* ---- rules (everything below is scoped to the island skin) ---- */
+
+html[data-skin="island"] body {
+  font-family: var(--font-nunito), "PingFang TC", "Noto Sans TC", "Microsoft JhengHei",
+    system-ui, sans-serif;
+}
+
+html[data-skin="island"] .btn-depth {
+  transition:
+    transform 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+    background-color 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+html[data-skin="island"] .btn-depth:active:not(:disabled) {
+  transform: translateY(3px);
+  --shadow-button: 0 1px 0 0 hsl(var(--button-depth));
+}
+
+html[data-skin="island"] .skin-modal {
+  clip-path: url(#island-modal-clip);
+  padding: 40px 35px 32px;
+  border: 0;
+  border-radius: 24px;
+  background-color: hsl(var(--card));
+  box-shadow: none;
+}
+
+html[data-skin="island"] .skin-close {
+  right: 28px;
+  top: 24px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-skin="island"] .btn-depth {
+    transition: none;
+  }
+}
