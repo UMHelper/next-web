@@ -4,12 +4,16 @@ export const SKIN_STORAGE_KEY = "umeh-skin";
 
 const listeners = new Set<() => void>();
 
+// 存储不可用（如隐私模式）时，本次会话内的选择只保存在内存里
+let sessionSkin: Skin | null = null;
+
 function isSkin(value: unknown): value is Skin {
   return value === "default" || value === "island";
 }
 
 export function getSkin(): Skin {
   if (typeof window === "undefined") return "default";
+  if (sessionSkin !== null) return sessionSkin;
   try {
     const stored = window.localStorage.getItem(SKIN_STORAGE_KEY);
     return isSkin(stored) ? stored : "default";
@@ -21,8 +25,9 @@ export function getSkin(): Skin {
 export function setSkin(skin: Skin): void {
   try {
     window.localStorage.setItem(SKIN_STORAGE_KEY, skin);
+    sessionSkin = null;
   } catch {
-    // 存储不可用时只丢持久化，不影响本次会话内的通知
+    sessionSkin = skin;
   }
   listeners.forEach((listener) => listener());
 }

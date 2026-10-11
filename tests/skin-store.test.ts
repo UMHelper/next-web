@@ -51,6 +51,23 @@ describe("skin store", () => {
     expect(() => setSkin("island")).not.toThrow();
   });
 
+  it("keeps the chosen skin for the session when storage is unavailable", () => {
+    vi.spyOn(storage, "getItem").mockImplementation(() => {
+      throw new Error("denied");
+    });
+    vi.spyOn(storage, "setItem").mockImplementation(() => {
+      throw new Error("denied");
+    });
+    const cb = vi.fn();
+    const off = subscribe(cb);
+    setSkin("island");
+    expect(getSkin()).toBe("island");
+    expect(cb).toHaveBeenCalledTimes(1);
+    setSkin("default");
+    expect(getSkin()).toBe("default");
+    off();
+  });
+
   it("notifies subscribers on setSkin and stops after unsubscribe", () => {
     const cb = vi.fn();
     const off = subscribe(cb);
