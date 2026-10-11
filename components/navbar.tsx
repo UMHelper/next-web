@@ -5,6 +5,7 @@ import AdminEntry from "@/components/admin-entry";
 import { UserButton } from "@clerk/nextjs";
 import SearchButton from "@/components/search-button";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { SkinSwitcher } from "@/components/skin-switcher";
 
 
 const Navbar = () => {
@@ -19,6 +20,7 @@ const Navbar = () => {
                     <div className=" space-x-2 flex flex-row justify-end items-center">
                         <div className="flex flex-row space-x-3 items-center">
                             <ThemeToggle />
+                            <SkinSwitcher />
                             <SearchButton />
                             <AdminEntry />
                             <NavbarAvatar />

@@ -2,11 +2,15 @@ import React from "react";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { cleanup, render } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const { useThemeMock } = vi.hoisted(() => ({ useThemeMock: vi.fn() }));
+const { useThemeMock, useEffectiveSkinMock } = vi.hoisted(() => ({
+  useThemeMock: vi.fn(),
+  useEffectiveSkinMock: vi.fn(),
+}));
 
 vi.mock("next-themes", () => ({ useTheme: useThemeMock }));
+vi.mock("@/lib/use-skin", () => ({ useEffectiveSkin: useEffectiveSkinMock }));
 
 import { ThemeColorMeta } from "@/components/theme-color-meta";
 
@@ -18,6 +22,8 @@ function ensureMeta(): HTMLMetaElement {
   document.head.appendChild(created);
   return created;
 }
+
+beforeEach(() => useEffectiveSkinMock.mockReturnValue("default"));
 
 afterEach(() => {
   cleanup();
@@ -97,5 +103,20 @@ describe("ThemeColorMeta", () => {
     expect(themeClose).toBeGreaterThanOrEqual(0);
     expect(themeOpen).toBeLessThan(meta);
     expect(meta).toBeLessThan(themeClose);
+  });
+
+  it.each([
+    ["default", "light", "#FFFFFF"],
+    ["default", "dark", "#020817"],
+    ["island", "light", "#F8F8F0"],
+    ["island", "dark", "#2B2118"],
+  ])("uses the %s skin %s surface color %s", (skin, mode, expected) => {
+    const meta = ensureMeta();
+    useEffectiveSkinMock.mockReturnValue(skin);
+    useThemeMock.mockReturnValue({ theme: mode, resolvedTheme: mode });
+
+    render(React.createElement(ThemeColorMeta));
+
+    expect(meta.getAttribute("content")).toBe(expected);
   });
 });

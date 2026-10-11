@@ -1,9 +1,11 @@
 "use client";
 
 import { Moon, Sun, type LucideIcon } from "lucide-react";
+import { MoonIcon, SunIcon } from "naive-icons";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 
+import { useEffectiveSkin } from "@/lib/use-skin";
 import { cn } from "@/lib/utils";
 
 export type ThemeValue = "light" | "dark";
@@ -28,9 +30,11 @@ export const THEME_OPTIONS: { value: ThemeValue; label: string; Icon: LucideIcon
 export function ThemeOptions({ className }: { className?: string }) {
   const { theme, resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const skin = useEffectiveSkin();
 
   useEffect(() => setMounted(true), []);
 
+  const island = mounted && skin === "island";
   const effective = mounted ? (theme === "system" ? resolvedTheme : theme) : undefined;
 
   return (
@@ -53,7 +57,15 @@ export function ThemeOptions({ className }: { className?: string }) {
               active && "bg-accent font-medium text-brand-strong",
             )}
           >
-            <Icon size={18} strokeWidth={2} />
+            {island ? (
+              value === "light" ? (
+                <SunIcon size={20} color="currentColor" />
+              ) : (
+                <MoonIcon size={20} color="currentColor" />
+              )
+            ) : (
+              <Icon size={18} strokeWidth={2} />
+            )}
             {label}
           </button>
         );
@@ -71,6 +83,7 @@ export function ThemeOptions({ className }: { className?: string }) {
 export function ThemeToggle() {
   const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const skin = useEffectiveSkin();
 
   useEffect(() => setMounted(true), []);
 
@@ -95,7 +108,15 @@ export function ThemeToggle() {
       className="flex items-center outline-none"
       aria-label={label}
     >
-      <Icon size={20} strokeWidth={2} />
+      {skin === "island" ? (
+        isDark ? (
+          <MoonIcon size={24} color="currentColor" />
+        ) : (
+          <SunIcon size={24} color="currentColor" />
+        )
+      ) : (
+        <Icon size={20} strokeWidth={2} />
+      )}
     </button>
   );
 }

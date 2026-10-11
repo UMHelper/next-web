@@ -3,8 +3,12 @@
 import { useTheme } from "next-themes";
 import { useEffect } from "react";
 
-const LIGHT = "#FFFFFF";
-const DARK = "#020817";
+import { useEffectiveSkin } from "@/lib/use-skin";
+
+const COLORS = {
+  default: { light: "#FFFFFF", dark: "#020817" },
+  island: { light: "#F8F8F0", dark: "#2B2118" },
+} as const;
 
 /**
  * 直接改写 head 里那枚静态 meta，而不是用 React 渲染 meta：
@@ -14,12 +18,13 @@ const DARK = "#020817";
  */
 export function ThemeColorMeta() {
   const { resolvedTheme } = useTheme();
+  const skin = useEffectiveSkin();
 
   useEffect(() => {
     const meta = document.querySelector("meta[name='theme-color']");
     if (!meta) return;
-    meta.setAttribute("content", resolvedTheme === "dark" ? DARK : LIGHT);
-  }, [resolvedTheme]);
+    meta.setAttribute("content", COLORS[skin][resolvedTheme === "dark" ? "dark" : "light"]);
+  }, [resolvedTheme, skin]);
 
   return null;
 }

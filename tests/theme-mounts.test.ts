@@ -27,4 +27,18 @@ describe("theme entry mounts", () => {
     expect(sonner).toContain("useTheme()");
     expect(sonner).toMatch(/theme=\{resolvedTheme as ToasterProps\["theme"\]\}/);
   });
+
+  it("mounts the skin switcher next to the theme toggle in the navbar", () => {
+    const navbar = read("components/navbar.tsx");
+    expect(navbar).toContain('from "@/components/skin-switcher"');
+    expect(navbar).toContain("<SkinSwitcher />");
+    expect(navbar.indexOf("<ThemeToggle />")).toBeLessThan(navbar.indexOf("<SkinSwitcher />"));
+  });
+
+  it("mounts the skin options below the theme options in the mobile sidebar", () => {
+    const sidebar = read("components/mobile-sidebar.tsx");
+    expect(sidebar).toContain('from "@/components/skin-switcher"');
+    expect(sidebar).toContain("<SkinOptions />");
+    expect(sidebar.indexOf("<ThemeOptions />")).toBeLessThan(sidebar.indexOf("<SkinOptions />"));
+  });
 });
