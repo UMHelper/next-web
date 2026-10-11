@@ -11,7 +11,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { UploadCloud } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
-import { toast } from "sonner"
+import { toast } from "@/lib/notify"
 import { useRouter } from 'next/navigation';
 import { SignInButton, useUser } from "@clerk/nextjs";
 import { Rating, ThinStar } from '@smastrom/react-rating';

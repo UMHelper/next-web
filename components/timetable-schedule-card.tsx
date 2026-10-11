@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { CalendarPlus, ShoppingCart } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/notify";
 
 import { Button } from "@/components/ui/button";
 import { useTimetablePlanner } from "@/components/timetable/planner-provider";

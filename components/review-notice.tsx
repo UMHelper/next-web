@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useEffect, useRef } from "react"
-import { toast } from "sonner"
+import { toast } from "@/lib/notify"
 
 const TITLE = "Message From UMHelper: / 來自UMHelper的消息："
 

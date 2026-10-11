@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { Copy, Share2 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/notify";
 
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";

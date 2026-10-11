@@ -3,7 +3,7 @@
 import { Flag } from "lucide-react";
 import React, { useState } from "react";
 import { useUser } from "@clerk/nextjs";
-import { toast } from "sonner";
+import { toast } from "@/lib/notify";
 
 import { Button } from "@/components/ui/button";
 import {
