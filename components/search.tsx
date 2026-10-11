@@ -8,6 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import HeroBackground from "@/components/hero-background";
 import SearchForm from "@/components/search/search-form";
 import { formatAcademicYear } from "@/lib/config/term-format";
 
@@ -26,29 +27,30 @@ export default function SearchComp({ currentYear, currentSem, databaseLastUpdate
         fill
         priority
         sizes="100vw"
-        className="object-cover object-center"
+        className="hero-photo object-cover object-center"
       />
+      <HeroBackground />
       <div className="relative z-10 max-w-screen-xl mx-auto p-2">
         <div className="flex justify-between mx-2 py-10 md:py-8">
-          <div className="md:flex flex-col justify-center text-white hidden space-y-2 p-6">
+          <div className="md:flex flex-col justify-center hero-ink text-white hidden space-y-2 p-6">
             <h1 className="text-5xl font-medium">What2Reg @UM</h1>
             <h1 className="text-4xl font-medium">澳大選咩課</h1>
             <br />
             <h2 className="text-base">Course review platform for University of Macau</h2>
             <h2 className="text-base">專為澳大學生而設的課程評價網站</h2>
           </div>
-          <Card className="md:mx-8 md:w-96 w-full mx-0 backdrop-blur bg-transparent border-none">
+          <Card className="md:mx-8 md:w-96 w-full mx-0 backdrop-blur bg-transparent border-none hero-card">
             <CardHeader />
             <CardContent className="space-y-2">
-              <div className="text-white">
+              <div className="hero-ink text-white">
                 <CardTitle>Search Courses or Instructors</CardTitle>
-                <CardDescription className="text-white/80">
+                <CardDescription className="hero-ink-soft text-white/80">
                   搜尋課程或講師
                 </CardDescription>
               </div>
               <SearchForm variant="hero" />
             </CardContent>
-            <CardFooter className="text-xs text-white/80 flex flex-col items-start space-y-1">
+            <CardFooter className="hero-ink-soft text-xs text-white/80 flex flex-col items-start space-y-1">
               <div className="max-w-sm">
                 Search by course codes/titles, or name of instructors (partial search supported)
               </div>

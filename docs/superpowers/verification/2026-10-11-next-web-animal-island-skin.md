@@ -41,3 +41,11 @@
 - 移动端侧栏 Sheet 缺少 `DialogTitle`，Radix 在控制台报错，属既有问题
 - 未登录时 `/timetable` 点击「Create timetable」，`/api/timetable/catalog/filters` 返回 401，随后客户端抛 `Cannot read properties of undefined (reading 'map')`。默认皮肤下同样复现，与皮肤无关
 - 未做的验收：AC4 的 toast 浏览器端路由（需登录）、AC6 的 admin 外观（需登录）；两项均以单元测试覆盖，见上表
+
+## Follow-up: search, switch, card corners, stars
+
+- Home hero: photo hidden under island, library `Background type="sprinkles"` behind it (dimmed with a CSS filter in dark), hero card has no backdrop blur, a solid card background and a visible border; hero text uses foreground tokens.
+- `Switch`: `.skin-switch` / `.skin-switch-thumb` follow the library look (52x28, 2.5px borders, green when on, light and dark variants).
+- `CardFooter` gets `.skin-card-footer` so its bottom radii follow `--radius-card`; the square footer background no longer overpaints the card border corners.
+- Stars: `SkinRating` renders the library `Rate` under island (after the lazy load) and the original `@smastrom/react-rating` otherwise; used in `comment-card.tsx` and the five ratings in `submit-comment-form.tsx`. The red-to-green colour scale is not carried over to the island skin.
+- Gate: tsc, lint, vitest (160 files / 884 tests) and build green. Checked in browser on light and dark home, search results, and the reviews page.

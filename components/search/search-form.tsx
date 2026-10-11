@@ -88,10 +88,10 @@ export default function SearchForm({
                 <Switch checked={field.value} onCheckedChange={field.onChange} />
               </FormControl>
               <div>
-                <div className={cn("text-sm font-medium", isHero && "text-white")}>
+                <div className={cn("text-sm font-medium", isHero && "hero-ink text-white")}>
                   Search Instructors
                 </div>
-                <FormDescription className={cn(isHero && "text-white/80")}>
+                <FormDescription className={cn(isHero && "hero-ink-soft text-white/80")}>
                   搜索講師
                 </FormDescription>
               </div>

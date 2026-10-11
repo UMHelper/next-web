@@ -15,6 +15,7 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Rating, ThinStar } from "@smastrom/react-rating";
+import { SkinRating } from "@/components/skin-rating";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { AVATAR_EMOJI_LIST } from "@/lib/consant";
@@ -537,20 +538,22 @@ export const CommentCard = (
                 <div className='flex justify-between'>
                     <Popover>
                         <PopoverTrigger >
-                            <Rating
-                                style={{ width: 100 }}
-                                value={comment.recommend}
-                                itemStyles={{
-                                    itemShapes: ThinStar,
-                                    activeBoxColor: ['#e7040f', '#ff6300', '#ffde37', '#61bb00', '#19a974'],
-                                    inactiveBoxColor: '#C7C7C7',
-                                    inactiveFillColor: 'white',
-                                    activeFillColor: 'white',
-                                }}
-                                spaceBetween="small"
-                                halfFillMode="box"
-                                readOnly
-                            />
+                            <SkinRating value={comment.recommend} readOnly>
+                                <Rating
+                                    style={{ width: 100 }}
+                                    value={comment.recommend}
+                                    itemStyles={{
+                                        itemShapes: ThinStar,
+                                        activeBoxColor: ['#e7040f', '#ff6300', '#ffde37', '#61bb00', '#19a974'],
+                                        inactiveBoxColor: '#C7C7C7',
+                                        inactiveFillColor: 'white',
+                                        activeFillColor: 'white',
+                                    }}
+                                    spaceBetween="small"
+                                    halfFillMode="box"
+                                    readOnly
+                                />
+                            </SkinRating>
                         </PopoverTrigger>
                         <PopoverContent className="w-48">
                             <div className='grid grid-cols-3 gap-4 text-xs '>

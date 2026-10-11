@@ -15,6 +15,7 @@ import { toast } from "@/lib/notify"
 import { useRouter } from 'next/navigation';
 import { SignInButton, useUser } from "@clerk/nextjs";
 import { Rating, ThinStar } from '@smastrom/react-rating';
+import { SkinRating } from '@/components/skin-rating';
 import { submitComment } from '@/lib/submit-comment';
 import { submitCommentSchema, type SubmitCommentValues } from '@/lib/validation/submit-comment';
 
@@ -208,21 +209,23 @@ export default function SubmitCommentForm({ code, prof }: { code: string; prof: 
                                         <div className="inline-flex items-center">
                                             <FormControl>
                                                 
-                                                <Rating
-                                                    style={{ width: 180 }}
-                                                    value={field.value}
-                                                    onChange={field.onChange}
-                                                    itemStyles={{
-                                                        itemShapes: ThinStar,
-                                                        activeBoxColor: ['#e7040f', '#ff6300', '#ffde37', '#61bb00', '#19a974'],
-                                                        inactiveBoxColor: '#C7C7C7',
-                                                        inactiveFillColor: 'white',
-                                                        activeFillColor: 'white',
-                                                      }}
-                                                    spaceBetween="small"
-                                                    halfFillMode="box"
-                                                    isRequired
-                                                />
+                                                <SkinRating value={field.value} onChange={field.onChange} size="middle">
+                                                    <Rating
+                                                        style={{ width: 180 }}
+                                                        value={field.value}
+                                                        onChange={field.onChange}
+                                                        itemStyles={{
+                                                            itemShapes: ThinStar,
+                                                            activeBoxColor: ['#e7040f', '#ff6300', '#ffde37', '#61bb00', '#19a974'],
+                                                            inactiveBoxColor: '#C7C7C7',
+                                                            inactiveFillColor: 'white',
+                                                            activeFillColor: 'white',
+                                                          }}
+                                                        spaceBetween="small"
+                                                        halfFillMode="box"
+                                                        isRequired
+                                                    />
+                                                </SkinRating>
                                             </FormControl>
                                             <FormMessage />
                                             <div className='px-3'>
@@ -248,12 +251,14 @@ export default function SubmitCommentForm({ code, prof }: { code: string; prof: 
 
                                             <div className="inline-flex items-center">
                                                 <FormControl>
-                                                    <Rating
-                                                        style={{ width: 180 }}
-                                                        value={field.value}
-                                                        onChange={field.onChange}
-                                                        isRequired
-                                                    />
+                                                    <SkinRating value={field.value} onChange={field.onChange} size="middle">
+                                                        <Rating
+                                                            style={{ width: 180 }}
+                                                            value={field.value}
+                                                            onChange={field.onChange}
+                                                            isRequired
+                                                        />
+                                                    </SkinRating>
                                                 </FormControl>
                                                 <FormMessage />
                                                 <div className='px-3'>
@@ -278,12 +283,14 @@ export default function SubmitCommentForm({ code, prof }: { code: string; prof: 
 
                                             <div className="inline-flex items-center">
                                                 <FormControl>
-                                                    <Rating
-                                                        style={{ width: 180 }}
-                                                        value={field.value}
-                                                        onChange={field.onChange}
-                                                        isRequired
-                                                    />
+                                                    <SkinRating value={field.value} onChange={field.onChange} size="middle">
+                                                        <Rating
+                                                            style={{ width: 180 }}
+                                                            value={field.value}
+                                                            onChange={field.onChange}
+                                                            isRequired
+                                                        />
+                                                    </SkinRating>
                                                 </FormControl>
                                                 <FormMessage />
                                                 <div className='px-3'>
@@ -308,12 +315,14 @@ export default function SubmitCommentForm({ code, prof }: { code: string; prof: 
 
                                             <div className="inline-flex items-center">
                                                 <FormControl>
-                                                    <Rating
-                                                        style={{ width: 180 }}
-                                                        value={field.value}
-                                                        onChange={field.onChange}
-                                                        isRequired
-                                                    />
+                                                    <SkinRating value={field.value} onChange={field.onChange} size="middle">
+                                                        <Rating
+                                                            style={{ width: 180 }}
+                                                            value={field.value}
+                                                            onChange={field.onChange}
+                                                            isRequired
+                                                        />
+                                                    </SkinRating>
                                                 </FormControl>
                                                 <FormMessage />
                                                 <div className='px-3'>
@@ -337,12 +346,14 @@ export default function SubmitCommentForm({ code, prof }: { code: string; prof: 
 
                                             <div className="inline-flex items-center">
                                                 <FormControl>
-                                                    <Rating
-                                                        style={{ width: 180 }}
-                                                        value={field.value}
-                                                        onChange={field.onChange}
-                                                        isRequired
-                                                    />
+                                                    <SkinRating value={field.value} onChange={field.onChange} size="middle">
+                                                        <Rating
+                                                            style={{ width: 180 }}
+                                                            value={field.value}
+                                                            onChange={field.onChange}
+                                                            isRequired
+                                                        />
+                                                    </SkinRating>
                                                 </FormControl>
                                                 <FormMessage />
                                                 <div className='px-3'>

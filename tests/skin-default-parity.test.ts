@@ -43,4 +43,13 @@ describe("default skin parity", () => {
     expect(count(read("components/ui/button.tsx"), /shadow-button btn-depth/g)).toBe(2);
     expect(count(read("components/ui/dialog.tsx"), /\bskin-modal\b/g)).toBe(2);
   });
+
+  it("hero, switch and card footer expose skin hooks", () => {
+    expect(read("components/ui/switch.tsx")).toContain("skin-switch ");
+    expect(read("components/ui/switch.tsx")).toContain("skin-switch-thumb");
+    expect(read("components/ui/card.tsx")).toContain("skin-card-footer");
+    expect(read("components/search.tsx")).toContain("hero-photo");
+    expect(read("components/search.tsx")).toContain("hero-card");
+    expect(read("components/search.tsx")).toContain("<HeroBackground");
+  });
 });
