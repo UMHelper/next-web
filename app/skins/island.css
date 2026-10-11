@@ -1,0 +1,106 @@
+/* animal-island skin — tokens. Light: html[data-skin="island"]; dark adds .dark. */
+html[data-skin="island"] {
+  --background: 60 36.4% 95.7%;
+  --foreground: 29.3 51.2% 31.4%;
+  --card: 45 100% 98.4%;
+  --card-foreground: 29.3 51.2% 31.4%;
+  --popover: 45 100% 98.4%;
+  --popover-foreground: 29.3 51.2% 31.4%;
+  --primary: 174.9 77.8% 44.1%;
+  --primary-foreground: 30.9 42.2% 16.3%;
+  --secondary: 40 44.4% 89.4%;
+  --secondary-foreground: 29.3 51.2% 31.4%;
+  --muted: 40 44.4% 89.4%;
+  --muted-foreground: 33.2 21.6% 34.5%;
+  --accent: 40 28.1% 87.5%;
+  --accent-foreground: 29.3 51.2% 31.4%;
+  --destructive: 0 55.2% 52.7%;
+  --destructive-foreground: 45 100% 98.4%;
+  --destructive-strong: 3.2 71.3% 41%;
+  --border: 38.2 13.6% 84.1%;
+  --input: 38.2 13.6% 84.1%;
+  --ring: 174.5 81.8% 23.7%;
+  --surface-subtle: 45 42.1% 92.5%;
+  --surface-strong: 42.9 34.1% 83.9%;
+  --subtle-foreground: 36.6 16.7% 48%;
+  --border-subtle: 40 28.1% 87.5%;
+  --border-strong: 29 18% 68.4%;
+  --brand: 174.5 81.8% 23.7%;
+  --brand-strong: 175.3 82.6% 18%;
+  --brand-foreground: 45 100% 98.4%;
+  --brand-from: 174.7 81.8% 21.6%;
+  --brand-to: 174.2 79.2% 28.2%;
+  --brand-logo: 174.5 81.8% 23.7%;
+  --wordmark-from: 174.5 81.8% 23.7%;
+  --wordmark-to: 29.3 51.2% 31.4%;
+  --success: 88.1 78.3% 23.5%;
+  --success-foreground: 45 100% 98.4%;
+  --warning: 39.1 100% 27.1%;
+  --grade-none-from: 36.6 16.7% 48%;
+  --grade-none-to: 33.2 21.6% 34.5%;
+  --grade-low-from: 3.2 71.3% 41%;
+  --grade-low-to: 320.4 49.2% 36.3%;
+  --grade-mid-from: 39.7 100% 29%;
+  --grade-mid-to: 21.3 81.4% 38%;
+  --grade-high-from: 88.1 78.3% 23.5%;
+  --grade-high-to: 174.5 81.8% 23.7%;
+
+  --radius-control: 50px;
+  --radius-float: 16px;
+  --radius-card: 18px;
+  --radius-item: 12px;
+  --button-depth: 172 42.9% 52%;
+  --shadow-button: 0 4px 0 0 hsl(var(--button-depth));
+
+  --animal-font-family: var(--font-nunito), "PingFang TC", "Noto Sans TC",
+    "Microsoft JhengHei", system-ui, sans-serif !important;
+}
+
+html[data-skin="island"].dark {
+  --background: 28.4 28.4% 13.1%;
+  --foreground: 41.8 57.9% 88.8%;
+  --card: 30 26.2% 16.5%;
+  --card-foreground: 41.8 57.9% 88.8%;
+  --popover: 30 26.2% 16.5%;
+  --popover-foreground: 41.8 57.9% 88.8%;
+  --primary: 174.4 63.7% 53.5%;
+  --primary-foreground: 28.4 28.4% 13.1%;
+  --secondary: 31.2 22.9% 21.4%;
+  --secondary-foreground: 41.8 57.9% 88.8%;
+  --muted: 31.2 22.9% 21.4%;
+  --muted-foreground: 38.2 23.7% 63.5%;
+  --accent: 32.1 23.3% 23.5%;
+  --accent-foreground: 41.8 57.9% 88.8%;
+  --destructive: 0 55.2% 52.7%;
+  --destructive-foreground: 45 100% 98.4%;
+  --destructive-strong: 4.8 81.2% 72.9%;
+  --border: 34 23.4% 25.1%;
+  --input: 34 23.4% 25.1%;
+  --ring: 174.4 63.7% 53.5%;
+  --surface-subtle: 28.6 27.3% 15.1%;
+  --surface-strong: 32.1 23.3% 23.5%;
+  --subtle-foreground: 37.1 17.2% 52.2%;
+  --border-subtle: 31.3 24.7% 18.2%;
+  --border-strong: 36.9 23.6% 32.4%;
+  --brand: 174.4 63.7% 53.5%;
+  --brand-strong: 173.6 67.3% 70%;
+  --brand-foreground: 28.4 28.4% 13.1%;
+  --brand-from: 174 80% 19.6%;
+  --brand-to: 175.3 77.4% 26.1%;
+  --brand-logo: 174.4 63.7% 53.5%;
+  --wordmark-from: 174.4 63.7% 53.5%;
+  --wordmark-to: 39.2 83.4% 71.6%;
+  --success: 93.9 58.7% 59.2%;
+  --success-foreground: 28.4 28.4% 13.1%;
+  --warning: 46.2 91.6% 53.5%;
+  --grade-none-from: 38.2 23.7% 63.5%;
+  --grade-none-to: 37.1 17.2% 52.2%;
+  --grade-low-from: 4.8 81.2% 72.9%;
+  --grade-low-to: 322.3 58.1% 71%;
+  --grade-mid-from: 46.2 91.6% 53.5%;
+  --grade-mid-to: 31.8 90.2% 59.8%;
+  --grade-high-from: 93.9 58.7% 59.2%;
+  --grade-high-to: 174.4 63.7% 53.5%;
+
+  --button-depth: 174.1 64.4% 34.1%;
+}
