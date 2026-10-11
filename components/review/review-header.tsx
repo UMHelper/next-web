@@ -1,7 +1,8 @@
 import React from "react";
 import Link from "next/link";
-import { CalendarRange, ChevronRightCircle, ClipboardEdit } from "lucide-react";
+import { ChevronRightCircle } from "lucide-react";
 
+import { SkinIcon } from "@/components/skin-icon";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -67,8 +68,8 @@ export async function ReviewHeader({
             </div>
             <div className='flex-row flex space-x-2'>
               <Link href={buildSubmitPath(code, decodedProf)}>
-                <Button className='text-sm px-2 hover:shadow-lg bg-background text-brand-strong hover:bg-surface-strong'>
-                  <ClipboardEdit size={16} /><span> Submit Review</span>
+                <Button className='text-sm px-2 hover:shadow-lg hero-action bg-background text-brand-strong hover:bg-surface-strong'>
+                  <SkinIcon name="submit" size={16} /><span> Submit Review</span>
                 </Button>
               </Link>
 
@@ -76,8 +77,8 @@ export async function ReviewHeader({
                 is_offered ?
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button className='text-sm px-2 hover:shadow-lg  bg-background text-brand-strong hover:bg-surface-strong'>
-                        <CalendarRange size={16} /> <span>Timetable</span>
+                      <Button className='text-sm px-2 hover:shadow-lg  hero-action bg-background text-brand-strong hover:bg-surface-strong'>
+                        <SkinIcon name="timetable" size={16} /> <span>Timetable</span>
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-80">

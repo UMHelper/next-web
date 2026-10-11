@@ -49,3 +49,11 @@
 - `CardFooter` gets `.skin-card-footer` so its bottom radii follow `--radius-card`; the square footer background no longer overpaints the card border corners.
 - Stars: `SkinRating` renders the library `Rate` under island (after the lazy load) and the original `@smastrom/react-rating` otherwise; used in `comment-card.tsx` and the five ratings in `submit-comment-form.tsx`. The red-to-green colour scale is not carried over to the island skin.
 - Gate: tsc, lint, vitest (160 files / 884 tests) and build green. Checked in browser on light and dark home, search results, and the reviews page.
+
+## Follow-up: icons, hero buttons, skin names
+
+- New client `components/skin-icon.tsx`: a name-keyed registry (server components cannot pass component refs) mapping each home-page icon to a lucide icon (default skin) and a naive-icons icon (island skin). Unknown names fall back to the generic faculty icon. Used by the home feedback/community cards, faculty statistics, trending courses, and the review header.
+- naive-icons hardcode `#2A2A2A` strokes on some icons (e.g. the globe stand); `html[data-skin="island"].dark svg [stroke="#2A2A2A"]` maps them to `currentColor` so they stay visible on the dark palette. The chevron icon is kept as lucide because its ink stroke is baked in and disappears on the teal header.
+- Review header Submit/Timetable buttons get `.hero-action` (cream pill, 2.5px border, sand depth shadow, pressed state).
+- Switcher labels renamed: 預設 Default -> 紙本 Paper, 動物島 Island -> 卡通 Cartoon (internal values `default` / `island` unchanged).
+- Gate: tsc, lint, vitest (161 files / 887 tests) and build green. Checked in browser (light and dark): home cards, faculty grid, trending list, review header buttons.

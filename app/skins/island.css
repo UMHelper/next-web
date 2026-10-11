@@ -221,3 +221,25 @@ html[data-skin="island"] .skin-card-footer {
   border-bottom-left-radius: calc(var(--radius-card) - 1px);
   border-bottom-right-radius: calc(var(--radius-card) - 1px);
 }
+
+/* ---- action buttons on the brand header ---- */
+
+html[data-skin="island"] .hero-action {
+  --shadow-button: 0 4px 0 0 hsl(var(--border-strong));
+  border: 2.5px solid hsl(var(--border-strong));
+  background-color: hsl(var(--card));
+  box-shadow: var(--shadow-button);
+}
+
+html[data-skin="island"] .hero-action:hover {
+  background-color: hsl(var(--surface-strong));
+  box-shadow: var(--shadow-button);
+}
+
+html[data-skin="island"] .hero-action:active {
+  --shadow-button: 0 1px 0 0 hsl(var(--border-strong));
+}
+
+html[data-skin="island"].dark svg [stroke="#2A2A2A"] {
+  stroke: currentColor;
+}

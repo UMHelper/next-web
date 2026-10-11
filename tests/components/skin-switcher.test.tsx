@@ -66,7 +66,7 @@ describe("SkinSwitcher", () => {
       fireEvent.keyDown(trigger, { key: "Enter" });
     });
     const items = screen.getAllByRole("menuitemradio");
-    expect(items.map((i) => i.textContent)).toEqual(["預設 Default", "動物島 Island"]);
+    expect(items.map((i) => i.textContent)).toEqual(["紙本 Paper", "卡通 Cartoon"]);
     fireEvent.click(items[1]);
     expect(getSkin()).toBe("island");
   });

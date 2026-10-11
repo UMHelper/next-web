@@ -1,27 +1,9 @@
 import React from "react";
-import {
-  BookMarked,
-  Bot,
-  CircleDollarSign,
-  Microscope,
-  Newspaper,
-  School,
-  Scale,
-} from "lucide-react";
 import Link from "next/link";
 
+import { SkinIcon } from "@/components/skin-icon";
 import { Card } from "@/components/ui/card";
 import type { FacultyStatisticRow } from "@/lib/database/types";
-
-const FACULTY_ICONS = {
-  FAH: Newspaper,
-  FBA: CircleDollarSign,
-  FED: School,
-  FHS: Microscope,
-  FLL: Scale,
-  FSS: BookMarked,
-  FST: Bot,
-} as const;
 
 type FacultyStatisticsProps = {
   statistics: FacultyStatisticRow[];
@@ -39,14 +21,12 @@ export function FacultyStatistics({ statistics }: FacultyStatisticsProps) {
   return (
     <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-4">
       {statistics.map((row) => {
-        const Icon = FACULTY_ICONS[row.name as keyof typeof FACULTY_ICONS] ?? School;
-
         return (
           <Card
             key={row.id}
             className="flex flex-col items-center p-4 text-center"
           >
-            <Icon size={56} strokeWidth={1.25} className="pb-3" />
+            <SkinIcon name={row.name} size={56} strokeWidth={1.25} className="pb-3" />
             <Link
               href={`/catalog/${encodeURIComponent(row.name)}`}
               className="text-lg font-medium hover:underline"

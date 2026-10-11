@@ -1,6 +1,6 @@
 import { Suspense } from "react";
-import { Radar, Github, Quote, UserPlus } from "lucide-react";
 import Link from "next/link";
+import { SkinIcon } from "@/components/skin-icon";
 import Image from "next/image";
 import HomeStatistics from "@/components/home-statistics";
 import HomeSearchSection from "@/components/home-search-section";
@@ -23,7 +23,7 @@ function HomePage() {
                         </div>
                         <Card className="flex items-center space-x-4 p-6 bg-card rounded-lg shadow-md w-full justify-between ">
                             <div className="flex items-center space-x-4 " >
-                                <Quote size={40} strokeWidth={1.75} />
+                                <SkinIcon name="feedback" size={40} strokeWidth={1.75} />
                                 <div >
                                     <h2 className="text-base font-bold text-foreground">Report and Feedback</h2>
                                     <p className="text-sm text-muted-foreground">
@@ -39,7 +39,7 @@ function HomePage() {
                         </Card>
                         <Card className="flex items-center space-x-4 p-6 bg-card rounded-lg shadow-md w-full justify-between ">
                             <div className="flex items-center space-x-4 " >
-                                <Radar size={40} strokeWidth={1.75} />
+                                <SkinIcon name="community" size={40} strokeWidth={1.75} />
                                 <div >
                                     <h2 className="text-base font-bold text-foreground">Our Community</h2>
                                     <p className="text-sm text-muted-foreground">
@@ -74,7 +74,7 @@ function HomePage() {
 
                         <Card className="flex items-center space-x-4 p-6 bg-card rounded-lg shadow-md w-full justify-between ">
                             <div className="flex items-center space-x-4 " >
-                                <UserPlus size={40} strokeWidth={1.75} />
+                                <SkinIcon name="join" size={40} strokeWidth={1.75} />
                                 <div >
                                     <h2 className="text-base font-bold text-foreground">UMHelper Dev Group</h2>
                                     <p className="text-sm text-muted-foreground">
@@ -91,7 +91,7 @@ function HomePage() {
 
                         <Card className="flex items-center space-x-4 p-6 bg-card rounded-lg shadow-md w-full justify-between ">
                             <div className="flex items-center space-x-4 " >
-                                <Github size={40} strokeWidth={1.75} />
+                                <SkinIcon name="github" size={40} strokeWidth={1.75} />
                                 <div >
                                     <h2 className="text-base font-bold text-foreground">What2Reg Ver. &quot;Next&quot;</h2>
                                     <p className="text-sm text-muted-foreground">

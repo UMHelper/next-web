@@ -1122,7 +1122,7 @@ describe("SkinSwitcher", () => {
       fireEvent.keyDown(trigger, { key: "Enter" });
     });
     const items = screen.getAllByRole("menuitemradio");
-    expect(items.map((i) => i.textContent)).toEqual(["預設 Default", "動物島 Island"]);
+    expect(items.map((i) => i.textContent)).toEqual(["紙本 Paper", "卡通 Cartoon"]);
     fireEvent.click(items[1]);
     expect(getSkin()).toBe("island");
   });
@@ -1251,8 +1251,8 @@ import { useSkin } from "@/lib/use-skin";
 import { cn } from "@/lib/utils";
 
 export const SKIN_OPTIONS: { value: Skin; label: string }[] = [
-  { value: "default", label: "預設 Default" },
-  { value: "island", label: "動物島 Island" },
+  { value: "default", label: "紙本 Paper" },
+  { value: "island", label: "卡通 Cartoon" },
 ];
 
 // 与 ThemeOptions 一致：挂载前一律按「未选中」渲染，避免 hydration 期间高亮错误的项

@@ -280,7 +280,7 @@ useEffect(() => {
 ### 7.1 切换入口
 
 - `components/skin-switcher.tsx`（`'use client'`）：
-  - `SkinSwitcher`：桌面端放在导航栏 `ThemeToggle` 旁边，复用现有 `DropdownMenu`；触发器图标是 `naive-icons` 的 `TreeIcon`（24px，`color="currentColor"`），`aria-label="Skin"`；菜单是 `DropdownMenuRadioGroup`，两项：「預設 Default」「動物島 Island」。
+  - `SkinSwitcher`：桌面端放在导航栏 `ThemeToggle` 旁边，复用现有 `DropdownMenu`；触发器图标是 `naive-icons` 的 `TreeIcon`（24px，`color="currentColor"`），`aria-label="Skin"`；菜单是 `DropdownMenuRadioGroup`，两项：「紙本 Paper」「卡通 Cartoon」。
   - `SkinOptions`：移动端侧边栏 `components/mobile-sidebar.tsx` 里，放在 `<ThemeOptions />` 旁边，结构与 `ThemeOptions` 一致（`role="radiogroup"`、挂载守卫）。
 - 两者都做**挂载守卫**：挂载前一律渲染成"未选中"，与 `ThemeOptions` 的做法一致，避免 hydration mismatch。
 

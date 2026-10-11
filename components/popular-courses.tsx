@@ -1,7 +1,7 @@
 import React from "react";
-import { MessageSquare, Star } from "lucide-react";
 import Link from "next/link";
 
+import { SkinIcon } from "@/components/skin-icon";
 import { Card } from "@/components/ui/card";
 import type { PopularCourseRow } from "@/lib/database/types";
 
@@ -37,11 +37,11 @@ export function PopularCourses({ courses }: PopularCoursesProps) {
                 <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
                   <span>{course.offeringUnit}</span>
                   <span className="inline-flex items-center gap-1">
-                    <MessageSquare className="h-3.5 w-3.5" />
+                    <SkinIcon name="comments" size={14} />
                     {course.commentCount} comments in 30 days
                   </span>
                   <span className="inline-flex items-center gap-1">
-                    <Star className="h-3.5 w-3.5" />
+                    <SkinIcon name="rating" size={14} />
                     {course.avgResult > 0 ? course.avgResult.toFixed(1) : "N/A"}
                   </span>
                 </div>
