@@ -107,11 +107,9 @@ app/layout.tsx 的 <head> 内联阻塞脚本（在首次绘制前执行）：
           document.documentElement.setAttribute('data-skin', 'island') } catch (e) {}
 
 <SkinController />（'use client'，挂在 ThemeProvider 内）：
-  const chosen   = useSkin()
-  const pathname = usePathname()
-  effective      = pathname.startsWith('/admin') ? 'default' : chosen
+  const effective = useEffectiveSkin()   // = effectiveSkin(usePathname(), useSkin())
   useEffect → <html data-skin> 设为 effective（'default' 时移除属性）
-  同一规则以 useEffectiveSkin() 导出，ThemeColorMeta 与 IslandLayer 复用
+  同一个 hook 由 ThemeColorMeta 与 IslandLayer 复用
   → 客户端软导航进出 /admin 时同步切换；首次加载由内联脚本负责
 
 主题（next-themes）不变：仍然只管 <html class="dark">。
@@ -239,7 +237,7 @@ useEffect(() => {
 | `--radius-float` | `calc(var(--radius) - 2px)` | 原 `rounded-md` = 6px | `16px` |
 | `--radius-card` | `var(--radius)` | 原 `rounded-lg` = 8px | `18px` |
 | `--radius-item` | `calc(var(--radius) - 4px)` | 原 `rounded-sm` = 4px | `12px` |
-| `--shadow-button` | `none` | — | `0 4px 0 0 hsl(var(--button-depth))` |
+| `--shadow-button` | `0 0 #0000` | 无阴影（不能写 `none`：Tailwind 的 `shadow-*` 把 `ringOffset, ring, var(--tw-shadow)` 合成一条 `box-shadow`，`none` 会让整条声明失效，焦点环随之消失） | `0 4px 0 0 hsl(var(--button-depth))` |
 | `--button-depth` | 不定义（仅 `island.css`） | — | §5.3 |
 
 `tailwind.config.js`：
@@ -266,8 +264,8 @@ useEffect(() => {
 
 - `components/skin-defs.tsx`：服务端组件，渲染一个 `width=0 height=0 aria-hidden` 的 `<svg>`，内含 `<clipPath id="island-modal-clip" clipPathUnits="objectBoundingBox">`，path 与库 `Modal` 的 `animal-modal-clip` 完全相同（0.501,0.005 起笔的那条）。放在 `app/layout.tsx` 的 `<body>` 里。默认皮肤下它只是一个不可见的 SVG（约 1.5 KB），属于已接受的开销。
 - `html[data-skin="island"] .skin-modal`：`clip-path: url(#island-modal-clip)`；`padding: 40px 35px 32px`；`border: 0`；`border-radius: 24px`（兜底——clip-path 引用失效时仍是圆角矩形）；背景用 `--card`。
-- `clip-path` 会连带裁掉 `box-shadow`，所以水滴弹窗不使用 `shadow-lg`；层次由遮罩 `--animal-mask-bg` 承担。
-- 关闭按钮在动物岛下移到 `right: 28px; top: 24px`，避开水滴的右上角收窄区。
+- `clip-path` 会连带裁掉 `box-shadow`，所以水滴弹窗 `box-shadow: none`；层次由现有遮罩 `bg-background/80 backdrop-blur-sm` 承担（它随 token 自动变暖，不引入依赖库 CSS 的 `--animal-mask-bg`）。
+- 关闭按钮在动物岛下移到 `right: 28px; top: 24px`，避开水滴的右上角收窄区；钩子类名为 `skin-close`（不叫 `skin-modal-close`，以免与 `skin-modal` 的计数断言冲突）。
 
 ### 6.4 其他外观覆盖（全部限定在 `html[data-skin="island"]` 下）
 
@@ -297,8 +295,10 @@ export const toast: {
 }
 ```
 
-- 这个签名恰好是仓库里实际用到的子集（`success / error / info / promise`），不是 sonner 的完整 API。
-- 路由规则：`getSkin()` 为 `'island'` 且库已加载 → `Notification.success / error / info`；否则 → `sonner` 的 `toast`。
+- 这个签名恰好是仓库里实际用到的子集（`success / error / info / promise` 加裸调用 `toast(node, opts)`），不是 sonner 的完整 API。第二参数为 `{ description?, duration?(毫秒), toasterId? }`。
+- 默认路径用 rest 参数把入参**原样**透传给 sonner，这样 `share-dialog` / `review-notice` / `add-to-timetable` 里既有的 sonner mock 断言不用改。
+- 路由规则：有效皮肤（`effectiveSkin(location.pathname, getSkin())`）为 `'island'` 且库已加载 → `Notification.success / error / info`（只转发 `description` 与换算成秒的 `duration`，不传值为 `undefined` 的键，避免覆盖库的 4.5s 默认）；否则 → `sonner` 的 `toast`。
+- **永远走 sonner 的两种调用**：带 `toasterId` 的（`review-notice` 的 `admin_notice` 专用 Toaster）；裸调用 `toast(node, opts)`（`comment-card` 里带 Clerk `SignInButton` 的「请先登录」提示——库的 Notification 挂在独立的 React root，拿不到 Clerk context）。
 - `promise`：以固定 `key` 先 `Notification.info({ message: loading, key, duration: 0 })`；完成后用同一个 `key` 原地更新为 `success` / `error`（带 `duration`）。
 - 库尚未加载完成时（切换后的短暂间隙），落回 sonner，保证不丢提示。
 - **只替换 7 个公开页文件**的 import：`components/report-dialog.tsx`、`components/review-notice.tsx`、`components/timetable-schedule-card.tsx`、`components/submit/submit-comment-form.tsx`、`components/review/comment-card.tsx`、`components/timetable/share-dialog.tsx`、`components/timetable/planner-sidebar.tsx`。
@@ -329,7 +329,7 @@ export const toast: {
 
 ### 7.6 `theme-color`
 
-`components/theme-color-meta.tsx` 扩展为同时订阅 `useEffectiveSkin()`（`lib/skin.ts` 导出，带 `'use client'`）：
+`components/theme-color-meta.tsx` 扩展为同时订阅 `useEffectiveSkin()`（`lib/use-skin.ts` 导出，带 `'use client'`）：
 
 | | 浅色 | 深色 |
 |---|---|---|
@@ -338,7 +338,7 @@ export const toast: {
 
 ## 8. 字体策略
 
-- 在 `app/layout.tsx` 用 `next/font/google` 引入 `Nunito`：`subsets: ['latin']`、`display: 'swap'`、`preload: false`、`variable: '--font-nunito'`。`preload: false` 的含义：不会给每个页面注入 `<link rel=preload>`，字体文件只在 `font-family` 实际引用它时才被浏览器取用，即**只有动物岛用户会下载**（约十几 KB）。
+- 在 `app/layout.tsx` 用 `next/font/google` 引入 `Nunito`：`subsets: ['latin']`、`display: 'swap'`、`preload: false`、`variable: '--font-nunito'`；`nunito.variable` 挂在 `<html className>` 上（挂在 `<body>` 会让 `html[data-skin] { --animal-font-family: var(--font-nunito) }` 解析为空）。`preload: false` 的含义：不会给每个页面注入 `<link rel=preload>`，字体文件只在 `font-family` 实际引用它时才被浏览器取用，即**只有动物岛用户会下载**（约十几 KB）。
 - 中文走系统繁体字体栈（见 §6.4），不使用库的 Noto Sans SC。
 - 在 `html[data-skin="island"]` 上声明 `--animal-font-family: var(--font-nunito), "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", system-ui, sans-serif !important`（库自己的声明带 `!important`，所以我们也必须带；同为 important 时特异性决定胜负，`html[data-skin]` 大于 `:root`）。
 - 验收：在 Network 面板里，选择动物岛并浏览若干页面，**不得**出现 `noto-sans-sc-chinese-simplified-*.woff2`。
@@ -350,7 +350,11 @@ export const toast: {
 | 文件 | 作用 |
 |---|---|
 | `app/skins/island.css` | §5 的 token、§6.2 的 `.btn-depth`/`.skin-modal`、§6.4 的覆盖 |
-| `lib/skin.ts` | `Skin` 类型、`getSkin/setSkin/subscribe`、`useSkin()`、`useEffectiveSkin()`、`effectiveSkin(pathname, chosen)`、内联脚本字符串 `SKIN_INIT_SCRIPT` |
+| `lib/skin.ts` | 纯逻辑（服务端布局会 import，**不得**引入 react / next 客户端 hook）：`Skin` 类型、`getSkin/setSkin/subscribe`、`effectiveSkin(pathname, chosen)`、`SKIN_INIT_SCRIPT` |
+| `lib/use-skin.ts` | `'use client'`：`useSkin()`、`useEffectiveSkin()` |
+| `lib/island-loader.ts` | 记忆化的 `loadIsland()`（库 CSS + 库本体的动态 import，失败时清缓存） |
+| `types/animal-island-ui-style.d.ts` | `declare module "animal-island-ui/style"` |
+| `tests/helpers/fake-storage.ts` | Node 25 下 jsdom 的 localStorage 不可用，测试用 `vi.stubGlobal` 注入的假存储 |
 | `lib/notify.ts` | §7.2 门面 |
 | `components/skin-switcher.tsx` | `SkinSwitcher`、`SkinOptions` |
 | `components/skin-controller.tsx` | 把 effective skin 写到 `<html data-skin>` |
@@ -371,22 +375,23 @@ export const toast: {
 | `components/theme-toggle.tsx` | 动物岛下换 naive 图标 |
 | `components/theme-color-meta.tsx` | §7.6 |
 | 7 个公开页文件 | `toast` 的 import 改为 `@/lib/notify`（§7.2） |
-| `package.json` | 依赖 `animal-island-ui`、`naive-icons` |
+| `components/ui/dialog.tsx` | 关闭按钮追加 `skin-close` 钩子类（§6.3） |
+| `package.json` | 依赖 `animal-island-ui@2.2.1`、`naive-icons`、`classnames`（库的 peer dependency） |
 
 ## 10. 测试策略（TDD，先红后绿）
 
 | # | 测试 | 断言 |
 |---|---|---|
 | T1 | `tests/skin-tokens.test.ts` | 解析 `island.css`：浅色块与深色块的变量集合 ⊇ `globals.css` `:root` 的 44 个颜色变量；§5.3 里列出的每一对前景/背景对比度达标；记录 `--button-depth` 的两个值 |
-| T2 | `tests/skin-store.test.ts` | `lib/skin.ts`：默认 `'default'`；写入后读取一致；`localStorage` 抛异常 / 非法值 → `'default'`；订阅者收到通知；`storage` 事件触发更新；`effectiveSkin('/admin/x','island') === 'default'`，`'/adminfoo'` 也不被误判（只判 `/admin` 或 `/admin/`） |
+| T2 | `tests/skin-store.test.ts` | `lib/skin.ts`（纯逻辑）：默认 `'default'`；写入后读取一致；`localStorage` 抛异常 / 非法值 → `'default'`；订阅者收到通知；`storage` 事件触发更新；`effectiveSkin('/admin/x','island') === 'default'`，`'/adminfoo'` 也不被误判（只判 `/admin` 或 `/admin/`） |
 | T3 | `tests/skin-init-script.test.ts` | 在 jsdom 里 `eval` 内联脚本：`island` → 写属性；`default` / 空 / 非法 → 不写；`/admin` 路径 → 不写；`localStorage` 抛异常 → 不抛、不写 |
 | T4 | `tests/components/skin-switcher.test.tsx` | 挂载前无选中项；点选后 `setSkin` 被调用且持久化；`role="radiogroup"` 结构；`TreeIcon` 以 `currentColor` 渲染 |
 | T5 | `tests/components/island-layer.test.tsx` | 默认皮肤下不发起任何 import；选动物岛后加载并给 `<body>` 加 cursor class；切回默认后移除 class、调用 `Notification.destroy`；浅色且 ≥768px 才渲染 Background；深色不渲染 |
-| T6 | `tests/skin-default-parity.test.ts` | `globals.css` 里 §6.1 五个默认值逐项等于改动前的数值（6/6/8/4px，`none`）；`components/ui/*` 里被替换的类名集合与 §6.2 表一致，且不再残留未经审批的 `rounded-md/lg/sm` |
+| T6 | `tests/skin-default-parity.test.ts` | `globals.css` 里 §6.1 五个默认值逐项等于改动前的数值（6/6/8/4px，`0 0 #0000`）；`components/ui/*` 里被替换的类名集合与 §6.2 表一致，且不再残留未经审批的 `rounded-md/lg/sm` |
 | T7 | `tests/notify.test.ts` | 默认皮肤 → 调 sonner；动物岛且库已加载 → 调 `Notification`；库未加载 → 回落 sonner；`promise` 用同一 `key` 更新为成功 / 失败；`success` 回调为函数时取返回值 |
 | T8 | `tests/no-sonner-in-public.test.ts` | 7 个公开页文件不再 import `"sonner"`；admin 的 6 个文件仍 import `"sonner"`（防止回归） |
 | T9 | `tests/components/theme-color-meta.test.tsx`（扩展） | 四种组合对应 §7.6 的 meta 值 |
-| T10 | `tests/components/theme-toggle.test.tsx`（扩展） | 动物岛下渲染 naive 图标；默认皮肤下仍是 lucide；两种下都带 `aria-label` |
+| T10 | `tests/components/theme-toggle-skin.test.tsx`（新增，与既有 `theme-toggle.test.tsx` 分开，避免改动其 mock） | 动物岛下渲染 naive 图标；默认皮肤下仍是 lucide；两种下都带 `aria-label` |
 
 现有的 `theme-tokens` / `no-light-only-colors` / `theme-css-generation` / `theme-mounts` 测试必须保持全绿（G3 的另一层保证）。
 
