@@ -106,6 +106,13 @@ module.exports = {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+        control: "var(--radius-control)",
+        float: "var(--radius-float)",
+        card: "var(--radius-card)",
+        item: "var(--radius-item)",
+      },
+      boxShadow: {
+        button: "var(--shadow-button)",
       },
       keyframes: {
         "accordion-down": {

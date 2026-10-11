@@ -33,7 +33,14 @@ const NEW_TOKENS = [
 ];
 
 // 只在 :root 定义的非颜色 token：纳入比较会误报
-const NON_COLOR_EXCEPTIONS = ["--radius"];
+const NON_COLOR_EXCEPTIONS = [
+  "--radius",
+  "--radius-control",
+  "--radius-float",
+  "--radius-card",
+  "--radius-item",
+  "--shadow-button",
+];
 
 const IOS_IMAGESET_RELATIVE = join(
   "next-ios",
