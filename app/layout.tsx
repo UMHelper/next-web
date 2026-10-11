@@ -1,7 +1,8 @@
 import './globals.css'
+import './skins/island.css'
 import '@smastrom/react-rating/style.css'
 
-import { Inter, Dancing_Script } from 'next/font/google'
+import { Inter, Dancing_Script, Nunito } from 'next/font/google'
 import React from "react";
 
 import Navbar from "@/components/navbar";
@@ -18,6 +19,9 @@ import { TimetablePlannerProvider } from '@/components/timetable/planner-provide
 import { ThemeProvider } from '@/components/providers/theme-provider';
 import { ThemeColorMeta } from '@/components/theme-color-meta';
 import FloatingPlanner from '@/components/timetable/floating-planner';
+import { SKIN_INIT_SCRIPT } from '@/lib/skin';
+import { SkinController } from '@/components/skin-controller';
+import { SkinDefs } from '@/components/skin-defs';
 
 
 const inter = Inter({ subsets: ['latin'] })
@@ -29,6 +33,14 @@ const dancingScript = Dancing_Script({
     variable: '--font-dancing-script',
 })
 
+// 动物岛皮肤的字体：preload:false 使其不进入每个页面的 <link rel=preload>，只有动物岛用户会下载
+const nunito = Nunito({
+    subsets: ['latin'],
+    display: 'swap',
+    preload: false,
+    variable: '--font-nunito',
+})
+
 export const metadata = rootMetadata;
 
 export default function RootLayout({
@@ -37,8 +49,9 @@ export default function RootLayout({
     children: React.ReactNode
 }) {
     return (
-        <html lang="zh-Hant" suppressHydrationWarning>
+        <html lang="zh-Hant" className={nunito.variable} suppressHydrationWarning>
                 <head>
+                    <script dangerouslySetInnerHTML={{ __html: SKIN_INIT_SCRIPT }} />
                     {process.env.GTM_ID ? (
                         <Script id='gtm'>{`(function(w,d,s,l,i){w[l] = w[l] || [];w[l].push({'gtm.start':
                             new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -75,8 +88,10 @@ export default function RootLayout({
                     />
                 </head>
                 <body className={cn(inter.className, dancingScript.variable)}>
+                    <SkinDefs />
                     <ThemeProvider>
                     <ThemeColorMeta />
+                    <SkinController />
                     <ClerkProviderClient>
                     <JsonLd
                         data={{
