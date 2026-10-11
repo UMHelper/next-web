@@ -7,7 +7,7 @@ import { useEffectiveSkin } from "@/lib/use-skin";
 
 const COLORS = {
   default: { light: "#FFFFFF", dark: "#020817" },
-  island: { light: "#F8F8F0", dark: "#2B2118" },
+  island: { light: "#F8F8F0", dark: "#171F1E" },
 } as const;
 
 /**

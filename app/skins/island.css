@@ -57,44 +57,44 @@ html[data-skin="island"] {
 }
 
 html[data-skin="island"].dark {
-  --background: 28.4 28.4% 13.1%;
-  --foreground: 41.8 57.9% 88.8%;
-  --card: 30 26.2% 16.5%;
-  --card-foreground: 41.8 57.9% 88.8%;
-  --popover: 30 26.2% 16.5%;
-  --popover-foreground: 41.8 57.9% 88.8%;
+  --background: 176 14% 10.5%;
+  --foreground: 45 33% 90%;
+  --card: 176 12% 14%;
+  --card-foreground: 45 33% 90%;
+  --popover: 176 12% 14%;
+  --popover-foreground: 45 33% 90%;
   --primary: 174.4 63.7% 53.5%;
-  --primary-foreground: 28.4 28.4% 13.1%;
-  --secondary: 31.2 22.9% 21.4%;
-  --secondary-foreground: 41.8 57.9% 88.8%;
-  --muted: 31.2 22.9% 21.4%;
-  --muted-foreground: 38.2 23.7% 63.5%;
-  --accent: 32.1 23.3% 23.5%;
-  --accent-foreground: 41.8 57.9% 88.8%;
+  --primary-foreground: 176 14% 10.5%;
+  --secondary: 176 10% 19%;
+  --secondary-foreground: 45 33% 90%;
+  --muted: 176 10% 19%;
+  --muted-foreground: 170 10% 66%;
+  --accent: 176 10% 22%;
+  --accent-foreground: 45 33% 90%;
   --destructive: 0 55.2% 52.7%;
   --destructive-foreground: 45 100% 98.4%;
   --destructive-strong: 4.8 81.2% 72.9%;
-  --border: 34 23.4% 25.1%;
-  --input: 34 23.4% 25.1%;
+  --border: 176 9% 23%;
+  --input: 176 9% 23%;
   --ring: 174.4 63.7% 53.5%;
-  --surface-subtle: 28.6 27.3% 15.1%;
-  --surface-strong: 32.1 23.3% 23.5%;
-  --subtle-foreground: 37.1 17.2% 52.2%;
-  --border-subtle: 31.3 24.7% 18.2%;
-  --border-strong: 36.9 23.6% 32.4%;
+  --surface-subtle: 176 13% 12%;
+  --surface-strong: 176 10% 22%;
+  --subtle-foreground: 170 8% 56%;
+  --border-subtle: 176 11% 17.5%;
+  --border-strong: 176 9% 32%;
   --brand: 174.4 63.7% 53.5%;
   --brand-strong: 173.6 67.3% 70%;
-  --brand-foreground: 28.4 28.4% 13.1%;
+  --brand-foreground: 176 14% 10.5%;
   --brand-from: 174 80% 19.6%;
   --brand-to: 175.3 77.4% 26.1%;
   --brand-logo: 174.4 63.7% 53.5%;
   --wordmark-from: 174.4 63.7% 53.5%;
   --wordmark-to: 39.2 83.4% 71.6%;
   --success: 93.9 58.7% 59.2%;
-  --success-foreground: 28.4 28.4% 13.1%;
+  --success-foreground: 176 14% 10.5%;
   --warning: 46.2 91.6% 53.5%;
-  --grade-none-from: 38.2 23.7% 63.5%;
-  --grade-none-to: 37.1 17.2% 52.2%;
+  --grade-none-from: 170 10% 66%;
+  --grade-none-to: 170 8% 56%;
   --grade-low-from: 4.8 81.2% 72.9%;
   --grade-low-to: 322.3 58.1% 71%;
   --grade-mid-from: 46.2 91.6% 53.5%;
@@ -167,7 +167,7 @@ html[data-skin="island"] .hero-ink-soft {
 }
 
 html[data-skin="island"].dark .hero-sprinkles {
-  filter: brightness(0.3) saturate(0.8);
+  filter: hue-rotate(140deg) brightness(0.22) saturate(0.7);
 }
 
 /* ---- switch ---- */
@@ -206,8 +206,8 @@ html[data-skin="island"] .skin-switch[data-state="checked"] .skin-switch-thumb {
 }
 
 html[data-skin="island"].dark .skin-switch {
-  border-color: #5a4d3a;
-  background-color: #4a4032;
+  border-color: #4f5d5a;
+  background-color: #3a4543;
 }
 
 html[data-skin="island"].dark .skin-switch[data-state="checked"] {

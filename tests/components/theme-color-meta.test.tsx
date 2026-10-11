@@ -109,7 +109,7 @@ describe("ThemeColorMeta", () => {
     ["default", "light", "#FFFFFF"],
     ["default", "dark", "#020817"],
     ["island", "light", "#F8F8F0"],
-    ["island", "dark", "#2B2118"],
+    ["island", "dark", "#171F1E"],
   ])("uses the %s skin %s surface color %s", (skin, mode, expected) => {
     const meta = ensureMeta();
     useEffectiveSkinMock.mockReturnValue(skin);
