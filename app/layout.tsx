@@ -21,6 +21,7 @@ import { ThemeColorMeta } from '@/components/theme-color-meta';
 import FloatingPlanner from '@/components/timetable/floating-planner';
 import { SKIN_INIT_SCRIPT } from '@/lib/skin';
 import { SkinController } from '@/components/skin-controller';
+import { IslandLayer } from '@/components/island-layer';
 import { SkinDefs } from '@/components/skin-defs';
 
 
@@ -92,6 +93,7 @@ export default function RootLayout({
                     <ThemeProvider>
                     <ThemeColorMeta />
                     <SkinController />
+                    <IslandLayer />
                     <ClerkProviderClient>
                     <JsonLd
                         data={{

@@ -36,6 +36,9 @@ describe("root layout skin wiring", () => {
     expect(layout).toContain("<SkinDefs />");
     expect(controller).toBeGreaterThan(open);
     expect(controller).toBeLessThan(close);
+    const island = layout.indexOf("<IslandLayer />");
+    expect(island).toBeGreaterThan(controller);
+    expect(island).toBeLessThan(close);
   });
 
   it("keeps lib/skin.ts importable from server components", () => {
