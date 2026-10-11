@@ -98,7 +98,7 @@
 ```text
 lib/skin.ts（外部 store）
   ├─ 读：localStorage['umeh-skin'] ∈ {'default','island'}，非法值/异常 → 'default'
-  ├─ 写：setSkin(s) → 写 localStorage + 通知订阅者
+  ├─ 写：setSkin(s) → 写 localStorage + 通知订阅者；写失败（存储不可用）时把选择留在内存，本次会话内仍生效，刷新后回到 'default'
   ├─ 同步：监听 window 'storage' 事件（跨标签页）
   └─ 服务端快照恒为 'default'
 
