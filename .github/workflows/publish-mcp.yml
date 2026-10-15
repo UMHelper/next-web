@@ -1,0 +1,75 @@
+name: Publish MCP server
+
+# 把 mcp/server.json 發佈到官方 MCP Registry。
+#
+# 觸發方式（三者並存，日常完全不用手動點）：
+#   1. push 到 main 且動到 mcp/server.json → 先比對版本號，只有**版本真的變了**才發佈；
+#   2. 打 `mcp-v*` tag；
+#   3. workflow_dispatch（重試用）。
+#
+# 為什麼要有「版本真的變了」這道閘：registry 上的版本**不能覆蓋**，同一個 version
+# 重複發佈會被拒。path filter 讓我們只在這份檔案被動到時才進 job，版本比對則擋掉
+# 「改了描述但沒升版」的情況 —— 那種情況該由 test（description ≤100 等）擋在前面。
+#
+# 為什麼用 github-oidc 而不是本機的 `mcp-publisher login github`：
+#   - OIDC token 由 GitHub 執行時簽發，倉庫裡**不需要存任何密鑰**，也沒有會過期的
+#     本機 token 要輪換；
+#   - 命名空間 `io.github.UMHelper/*` 由 OIDC token 的倉庫歸屬證明。
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "mcp/server.json"
+    tags:
+      - "mcp-v*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  # github-oidc 需要它才能取得 OIDC token。
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # 版本比對需要前一個 commit。
+          fetch-depth: 2
+
+      - name: Did the version change?
+        id: version
+        run: |
+          set -euo pipefail
+          before=$(git show HEAD^:mcp/server.json 2>/dev/null | grep -o '"version": *"[^"]*"' || true)
+          after=$(grep -o '"version": *"[^"]*"' mcp/server.json)
+          echo "before=$before after=$after"
+          if [ -n "$before" ] && [ "$before" = "$after" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install mcp-publisher
+        if: steps.version.outputs.changed == 'true'
+        # registry 仍是 preview，之後若要固定版本，把 latest 換成具體 tag。
+        run: |
+          curl -sL "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_linux_amd64.tar.gz" | tar xz mcp-publisher
+          sudo mv mcp-publisher /usr/local/bin/
+          mcp-publisher --help >/dev/null
+
+      - name: Validate manifest
+        if: steps.version.outputs.changed == 'true'
+        working-directory: mcp
+        run: mcp-publisher validate
+
+      - name: Publish to the MCP Registry
+        if: steps.version.outputs.changed == 'true'
+        working-directory: mcp
+        run: |
+          mcp-publisher login github-oidc
+          mcp-publisher publish

@@ -42,7 +42,7 @@
 
 | 步骤 | 内容 |
 | --- | --- |
-| Step 4 | `mcp-publisher login github` + `mcp-publisher publish`；成功后把 `MCP_REGISTRY_PUBLISHED` 置 `true` |
+| Step 4 | **改为由 CI 发布**（见第 6 节）：合并时会自动发布；成功后把 `MCP_REGISTRY_PUBLISHED` 置 `true` |
 | Step 5 | 决定 `.agents/plugins/marketplace.json` 是否纳入版本控制（现被 `.gitignore` 忽略）；否则改由页面给出创建该文件的命令 |
 | Step 6 | （可选）用 `mcp-submit` 投递第三方目录 |
 | Step 7 | 在 `/support`、页脚、iOS App「关于」加入 `/ai` 入口 |
@@ -53,3 +53,42 @@
 - **U3**：**发布前**必须用一台免费/学生 GitHub 账号实测 "Copilot Free 能用 MCP" 这一结论（依据是官方策略的排除性表述，尚未实测）；
 - **U5**：站点 `SITE_NAME` 现为 `What2Reg@UM`（commit `9053532`），而插件 `displayName` 为 `What2REG@UM` —— **大小写不一致**，需择一。接入页已改为引用 `SITE_NAME` 常量，故该项决定后无需再改页面；
 - **U6**：`/ai` 路由名（备选 `/connect`、`/use-in-ai`）。
+
+## 6. 接入页改造与 CI 发布（2026-10-15 后续）
+
+第一版页面按评审意见重做，同时把 registry 发布从「本机手动」改成「CI 自动」。
+
+### 6.1 接入页改造要点
+
+| 主题 | 结论 |
+| --- | --- |
+| 交互 | 初始只有一排 App 图标；点选后**同一组 DOM** 用 CSS 过渡缩小，面板在下方展开；再点一次收回 |
+| 动画 | 高度用 `grid-template-rows: 0fr↔1fr` + opacity 过渡（实测采样 0→101→189→243→278→297→306px 缓出收敛）；文字分三段进场（延迟 0 / 80 / 160ms，全部 `fill-mode-both`，否则延迟期间会先闪出） |
+| 收回闪烁 | 根因是收回时立刻 `hidden` → 内容瞬间消失而高度仍在过渡。加 `retainedId` 让面板留到动画结束；实测 21–320ms 期间 `display: block`，387ms 才卸載 |
+| 移动端 | 实测查出两个真 bug：① `min-h-11` **不是 Tailwind 3 的有效类**，标签高度只有 38px → 改 `min-h-[44px]`；② grid 子项默认 `min-width: auto`，长命令把 `<pre>` 撑到 616px 并被外层裁掉 → 两栏加 `min-w-0`，现在 358px 且可横向滚动 |
+| 品牌渐变 | 站上惯例：**文字**用 `wordmark` 渐变且只包品牌名/极短强调词（`navbar-list.tsx`、`banner.tsx`），**色块**用 `brand` 渐变（`course-header.tsx`）。第一版把整句话都套了渐变，已改为只包产品名 |
+| 文案 | 删掉中文版、说明句、`Good to know` 披露块、底部 Support 按钮；改掉「sign in with UMHelper」（团队名不是账号）与所有方位词（「below」在桌面两栏布局下是错的） |
+| Ask AI | 不是页尾独立区块，而是图标行里的**第 6 项**，面板结构与其余客户端完全一致，snippet 即那段可粘贴的 prompt |
+| 徽章对齐 | 24px 圆形编号对 20px 行高，需 `-mt-0.5`；实测 delta 由 4px 改为 0 |
+
+### 6.2 CI 发布（`.github/workflows/publish-mcp.yml`）
+
+- 认证用 **`mcp-publisher login github-oidc`**：OIDC token 由 GitHub 运行时签发，**仓库内不需要存任何密钥**，命名空间 `io.github.UMHelper/*` 由 token 的仓库归属证明；
+- 触发：push 到 main 且动到 `mcp/server.json` / 打 `mcp-v*` tag / 手动 dispatch；
+- 因 registry **不允许覆盖同一版本**，加了「版本真的变了」闸：比对 `git show HEAD^:mcp/server.json` 与当前版本，未升版则跳过（本地彩排验证：未升版跳过、升版发布）；
+- 发布前先跑 `mcp-publisher validate`。
+
+### 6.3 `mcp-publisher validate` 抓到的真问题
+
+JSON Schema 里**没有** `description` 长度限制，但 registry 服务端限制 **100 字符**，原描述 200 字符被 422 拒绝：
+
+```
+422 body.description  expected length <= 100
+```
+
+已改短为 65 字符，并加测试钉住 ≤100。
+
+### 6.4 验证
+
+- `tests`：938 项全过；`tsc` / `lint` / `next build` 均为 0；
+- 以上所有几何/动画/颜色结论均来自 Chrome DevTools Protocol 实测（`/tmp/measure-*.mjs`），非目测。
