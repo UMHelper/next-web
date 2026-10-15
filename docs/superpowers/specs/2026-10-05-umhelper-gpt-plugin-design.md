@@ -381,6 +381,20 @@ Cloudflare 观测日志记录：request ID、Clerk userId 的不可逆散列、�
 
 ## 11. 插件包
 
+### 11.1 命名规范（2026-10-15 澄清）
+
+**产品名与团队名必须分开，不得互相替代：**
+
+| 角色 | 规范写法 | 用在哪里 |
+| --- | --- | --- |
+| 产品（网站 / 插件） | `What2REG@UM 澳大選咩課`（短形式 `What2REG@UM`；中文简称「選咩課」） | `displayName`、工具 title/description、MCP server instructions、skill 文案、引用来源说明 |
+| 开发团队 | `UMHelper` | `author.name`、`developerName`、归属句（如「由 UMHelper 開發團隊開發與維護」）、仓库与 issue 链接 |
+
+- 禁止出现 `What2Reg @ UM (UMHelper)` 这类把团队当作产品别名的写法，也禁止写「the UMHelper catalog」——目录属于产品，应写 `the What2REG@UM catalog`。
+- 描述数据来源时两者都要出现：产品名说明数据来自哪里，团队名说明由谁维护（例如 `Data comes from What2REG@UM, an unofficial student project by the UMHelper developer team, and is not an official University of Macau statement.`）。
+- 拼写固定为 `What2REG@UM`：`REG` 全大写、`@` 与 `UM` 之间无空格（与 iOS 仓库目录名 `next-ios/What2REG@UM` 一致）。
+- **遗留待统一**：站点自身的 `lib/site.ts` 仍写作 `What2Reg @ UM 澳大選咩課`（影响 `SITE_NAME`、SEO title 模板、manifest）；这是一次独立的全站改名，需单独决策后再动。
+
 插件源固定放在仓库的 `plugins/what2reg-um/`，结构如下：
 
 ```text

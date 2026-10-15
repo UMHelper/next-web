@@ -121,9 +121,9 @@ export function toMcpSchema<TSchema extends z.ZodType>(
 /**
  * Shared MCP tool annotations.
  *
- * Every tool in the public plugin is a read-only projection of public UMHelper
+ * Every tool in the public plugin is a read-only projection of public What2REG@UM
  * data: it never mutates state, never issues side effects outside the service,
- * and only reaches the fixed UMHelper/Supabase backend (closed world).
+ * and only reaches the fixed What2REG@UM/Supabase backend (closed world).
  */
 export const mcpReadOnlyAnnotations = {
   readOnlyHint: true,

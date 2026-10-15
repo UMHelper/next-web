@@ -1007,6 +1007,7 @@ describe("reviews/sections tool metadata", () => {
 
   for (const description of [GET_COURSE_REVIEWS_DESCRIPTION, GET_COURSE_SECTIONS_DESCRIPTION]) {
     it(`describes provenance and reference retention: ${description.slice(0, 24)}...`, () => {
+      expect(description).toContain("What2REG@UM");
       expect(description).toContain("UMHelper");
       expect(description).toContain("https://umeh.top");
       expect(description.toLowerCase()).toContain("read-only");

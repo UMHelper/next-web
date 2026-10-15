@@ -14,18 +14,23 @@ export const MCP_SERVER_VERSION = "0.1.0";
  *
  * They tell the model where the data comes from, that every tool is read-only,
  * that the returned `https://umeh.top` reference URLs must be preserved, that
- * results can be paginated or truncated, and that UMHelper data is not the
+ * results can be paginated or truncated, and that What2REG@UM data is not the
  * University of Macau's official opinion.
+ *
+ * Naming: What2REG@UM (澳大選咩課) is the product; UMHelper is the independent
+ * student developer team behind it. Keep the two roles distinct in every string
+ * the model or a reviewer can read.
  */
 export const MCP_SERVER_INSTRUCTIONS =
-  "What2Reg @ UM (UMHelper) is a read-only course and instructor catalog for the University of " +
-  "Macau. All five tools only read public UMHelper data: catalog entries, instructor review " +
-  "summaries, public top-level reviews and class sections. Never present UMHelper results as " +
-  "the official opinion or official statement of the University of Macau; they are community " +
-  "data. Keep and cite the absolute https://umeh.top reference URLs returned with every result " +
-  "in factual answers. Results may be paginated or truncated by the list, page and text limits, " +
-  "so use the documented page/limit arguments or narrow the query when more detail is needed, " +
-  "and call search_catalog first when an exact course code or instructor name is unknown.";
+  "What2REG@UM 澳大選咩課 is a read-only course and instructor catalog for the University of " +
+  "Macau, built and maintained by the UMHelper student developer team. All five tools only read " +
+  "public What2REG@UM data: catalog entries, instructor review summaries, public top-level " +
+  "reviews and class sections. Never present What2REG@UM results as the official opinion or " +
+  "official statement of the University of Macau; they are community data. Keep and cite the " +
+  "absolute https://umeh.top reference URLs returned with every result in factual answers. " +
+  "Results may be paginated or truncated by the list, page and text limits, so use the " +
+  "documented page/limit arguments or narrow the query when more detail is needed, and call " +
+  "search_catalog first when an exact course code or instructor name is unknown.";
 
 /**
  * Register exactly the five approved public tools.

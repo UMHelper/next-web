@@ -21,20 +21,20 @@ export const GET_COURSE_REVIEWS_TOOL_NAME = "get_course_reviews";
 
 export const GET_COURSE_REVIEWS_ANNOTATIONS = {
   ...mcpReadOnlyAnnotations,
-  title: "Get UMHelper course reviews (read-only)",
+  title: "Get What2REG@UM course reviews (read-only)",
 } as const;
 
 export const GET_COURSE_REVIEWS_DESCRIPTION =
-  "Read-only page of public top-level What2Reg @ UM (UMHelper) reviews for one course and " +
+  "Read-only page of public top-level What2REG@UM 澳大選咩課 reviews for one course and " +
   "instructor. Each review carries its publication time, the original and English body (each " +
   "truncated to 600 characters), the average result, upvote/downvote counts and the public " +
-  "verification badge; hidden entries and replies are never returned. Data is provided by " +
-  "UMHelper and is not an official University of Macau statement. Keep and cite the returned " +
+  "verification badge; hidden entries and replies are never returned. Data comes from " +
+  "What2REG@UM, an unofficial student project by the UMHelper developer team, and is not an official University of Macau statement. Keep and cite the returned " +
   "https://umeh.top review page URLs in factual answers. Use page/limit to walk older reviews, " +
   "and keep going while `hasMore` is true instead of assuming the first page is everything.";
 
 export const GET_COURSE_REVIEWS_TOOL_CONFIG = {
-  title: "Get UMHelper course reviews",
+  title: "Get What2REG@UM course reviews",
   description: GET_COURSE_REVIEWS_DESCRIPTION,
   inputSchema: mcpGetCourseReviewsInputSchema,
   outputSchema: mcpGetCourseReviewsOutputSchema,

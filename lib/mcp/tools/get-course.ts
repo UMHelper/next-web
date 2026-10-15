@@ -20,22 +20,22 @@ export const GET_COURSE_TOOL_NAME = "get_course";
 
 export const GET_COURSE_ANNOTATIONS = {
   ...mcpReadOnlyAnnotations,
-  title: "Get UMHelper course details (read-only)",
+  title: "Get What2REG@UM course details (read-only)",
 } as const;
 
 export const GET_COURSE_DESCRIPTION =
-  "Read-only lookup of one What2Reg @ UM (UMHelper) course by code. Returns the public catalog " +
+  "Read-only lookup of one What2REG@UM 澳大選咩課 course by code. Returns the public catalog " +
   "fields (English and Chinese titles, credits, faculty, department, programme level, suggested " +
   "year, medium of instruction, grading system, course type, duration, a truncated description " +
   "and the offering flag) plus one page of instructor review summaries (name, comment count, and " +
   "the average result, attendance, grade, difficulty and reward scores) reported with `page`, " +
-  "`totalCount` and `hasMore` — page through them when a course lists many instructors. Data is provided by " +
-  "UMHelper and is not an official University of Macau statement. Keep and cite the returned " +
+  "`totalCount` and `hasMore` — page through them when a course lists many instructors. Data comes from " +
+  "What2REG@UM, an unofficial student project by the UMHelper developer team, and is not an official University of Macau statement. Keep and cite the returned " +
   "https://umeh.top course and review URLs in factual answers, and call search_catalog first " +
   "when the exact course code is unknown.";
 
 export const GET_COURSE_TOOL_CONFIG = {
-  title: "Get UMHelper course details",
+  title: "Get What2REG@UM course details",
   description: GET_COURSE_DESCRIPTION,
   inputSchema: mcpGetCourseInputSchema,
   outputSchema: mcpGetCourseOutputSchema,

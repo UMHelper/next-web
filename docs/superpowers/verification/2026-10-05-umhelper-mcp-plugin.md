@@ -81,6 +81,13 @@ MCP 自有测试 11 个文件 / 207 测试；插件包 38 测试；法律披露 
     - 模型侧引导：工具描述、`content` 文本摘要（如「Page 1 of 25 match(es); more results exist — request page 2」）与插件 `SKILL.md` 新增的「分页」小节都明确要求 `hasMore` 为真时继续翻页；
     - 验证：`tests/mcp` 221 项通过（含新增的分页边界用例：`page` 上下界、offset 计算、`hasMore` 真/假、翻过尾页返回空页而非 `not_found`、页间不重叠），仓库全量 162 文件 / 898 测试通过，`tsc`/`lint`/`next build`/`build:pages` 全部为 0；插件 ZIP 已重建。
     - 注意：这改变了已批准的五个工具**输入/输出字段**（工具名与数量不变），插件包与验证记录已同步；将来若已在 portal 提交过草稿，需重新上传 ZIP 并重跑工具扫描。
+14. **产品名与团队名分离（2026-10-15，命名澄清）**：此前插件与 MCP 文案把团队名当成产品别名使用（`What2Reg @ UM (UMHelper)`、`the UMHelper catalog`、`Get UMHelper course details`），与站点自身的用法矛盾 —— 网站横幅写的是「**選咩課** 開發團隊 **UMHelper**」，即产品是 `What2REG@UM`，UMHelper 只是开发团队。现按 spec §11.1 统一：
+    - 产品名（用户拍板）为 `What2REG@UM 澳大選咩課`（`REG` 全大写、`@` 与 `UM` 无空格，与 iOS 仓库目录 `next-ios/What2REG@UM` 一致），中文用繁体；
+    - 改动范围：`plugin.json`（`displayName`、顶层 `description`、`longDescription`、`defaultPrompt`、review 用例、release notes、zh-TW/en-US 翻译）、`skills/um-course-advisor/SKILL.md`、`skills/.../agents/openai.yaml`、`lib/mcp/server.ts` 的 instructions、五个工具的 title/description/文本摘要、`lib/mcp/schemas.ts` 注释；
+    - 归属句改写为 `Data comes from What2REG@UM, an unofficial student project by the UMHelper developer team, and is not an official University of Macau statement.`，产品与团队各司其职；
+    - 测试同步：`displayName` 断言、instructions 断言更新为新拼写，「names the data source」类断言升级为**同时**校验产品名与团队名（原有意图不变、覆盖更严）；
+    - 验证：`tests/mcp` + `tests/plugin` 259 项通过，仓库全量 162 文件 / 898 测试、`tsc`/`lint`/`next build`/`build:pages` 全 0；插件 ZIP 已重建。
+    - **遗留**：站点自身的 `SITE_NAME` 仍为 `What2Reg @ UM 澳大選咩課`（全站约 80 处，牵涉 SEO title 模板、manifest、隐私/条款/支持页），属独立的全站改名，需单独决策；插件包内中文文案亦有简繁混用（`displayName` 繁体、`longDescription` 简体）待统一。
 
 ## 6. 仍需人工/控制台完成
 

@@ -346,7 +346,7 @@ describe("MCP protocol over the protected transport", () => {
   });
 
   it("states the reviewed data-source, read-only and citation boundaries in the instructions", () => {
-    expect(MCP_SERVER_INSTRUCTIONS).toContain("What2Reg @ UM");
+    expect(MCP_SERVER_INSTRUCTIONS).toContain("What2REG@UM");
     expect(MCP_SERVER_INSTRUCTIONS.toLowerCase()).toContain("read-only");
     expect(MCP_SERVER_INSTRUCTIONS).toContain("https://umeh.top");
     expect(MCP_SERVER_INSTRUCTIONS.toLowerCase()).toMatch(/paginat|truncat/);
@@ -369,6 +369,7 @@ describe("MCP protocol over the protected transport", () => {
 
       const description = tool.description ?? "";
       expect(description.length, `${tool.name} description`).toBeGreaterThan(80);
+      expect(description, `${tool.name} names the data source`).toContain("What2REG@UM");
       expect(description, `${tool.name} names the data source`).toContain("UMHelper");
       expect(description.toLowerCase(), `${tool.name} read-only`).toContain("read-only");
       expect(description, `${tool.name} citation URL`).toContain("https://umeh.top");

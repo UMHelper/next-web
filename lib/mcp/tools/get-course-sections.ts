@@ -20,19 +20,19 @@ export const GET_COURSE_SECTIONS_TOOL_NAME = "get_course_sections";
 
 export const GET_COURSE_SECTIONS_ANNOTATIONS = {
   ...mcpReadOnlyAnnotations,
-  title: "Get UMHelper course sections (read-only)",
+  title: "Get What2REG@UM course sections (read-only)",
 } as const;
 
 export const GET_COURSE_SECTIONS_DESCRIPTION =
-  "Read-only lookup of the current-term class sections for one What2Reg @ UM (UMHelper) course " +
+  "Read-only lookup of the current-term class sections for one What2REG@UM 澳大選咩課 course " +
   "and instructor. Returns up to 20 sections with up to 20 meeting times each (weekday, start " +
-  "and end time, classroom location) plus the UMHelper course link. Only the public course " +
-  "catalog is read; no personal or saved timetable is ever accessed. Data is provided by " +
-  "UMHelper and is not an official University of Macau statement. Keep and cite the returned " +
+  "and end time, classroom location) plus the What2REG@UM course link. Only the public course " +
+  "catalog is read; no personal or saved timetable is ever accessed. Data comes from " +
+  "What2REG@UM, an unofficial student project by the UMHelper developer team, and is not an official University of Macau statement. Keep and cite the returned " +
   "https://umeh.top course URL in factual answers.";
 
 export const GET_COURSE_SECTIONS_TOOL_CONFIG = {
-  title: "Get UMHelper course sections",
+  title: "Get What2REG@UM course sections",
   description: GET_COURSE_SECTIONS_DESCRIPTION,
   inputSchema: mcpGetCourseSectionsInputSchema,
   outputSchema: mcpGetCourseSectionsOutputSchema,
@@ -43,7 +43,7 @@ function summarizeGetCourseSections(output: GetCourseSectionsOutput): string {
   if (output.sections.length === 0) {
     return (
       `No class sections are recorded for ${output.courseCode} by ${output.instructor} in the ` +
-      `current UMHelper catalog. Course page (keep this reference link): ${output.courseUrl}`
+      `current What2REG@UM catalog. Course page (keep this reference link): ${output.courseUrl}`
     );
   }
 

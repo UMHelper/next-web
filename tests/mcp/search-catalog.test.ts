@@ -573,6 +573,7 @@ describe("search_catalog tool boundary", () => {
       openWorldHint: false,
     });
     expect(SEARCH_CATALOG_TOOL_CONFIG.title.length).toBeGreaterThan(0);
+    expect(SEARCH_CATALOG_DESCRIPTION).toContain("What2REG@UM");
     expect(SEARCH_CATALOG_DESCRIPTION).toContain("UMHelper");
     expect(SEARCH_CATALOG_DESCRIPTION.toLowerCase()).toMatch(/keep|retain|cite/);
     expect(SEARCH_CATALOG_DESCRIPTION).toContain("https://umeh.top");

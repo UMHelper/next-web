@@ -190,7 +190,7 @@ describe("plugin.json (Agent Plugins 1.0.0)", () => {
 
   it("provides the OpenAI interface listing with the required display name", () => {
     const ui = openaiExtension.interface;
-    expect(ui.displayName).toBe("What2Reg @ UM 澳大選咩課");
+    expect(ui.displayName).toBe("What2REG@UM 澳大選咩課");
     expect(ui.displayName.length).toBeLessThanOrEqual(30);
     expect(ui.shortDescription).toBe("澳門大學課程與教師評價平台（澳大選咩課）");
     expect(ui.shortDescription.length).toBeLessThanOrEqual(30);

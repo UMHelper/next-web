@@ -20,20 +20,20 @@ export const GET_INSTRUCTOR_TOOL_NAME = "get_instructor";
 
 export const GET_INSTRUCTOR_ANNOTATIONS = {
   ...mcpReadOnlyAnnotations,
-  title: "Get UMHelper instructor courses (read-only)",
+  title: "Get What2REG@UM instructor courses (read-only)",
 } as const;
 
 export const GET_INSTRUCTOR_DESCRIPTION =
-  "Read-only lookup of one What2Reg @ UM (UMHelper) instructor by name. Returns the instructor " +
+  "Read-only lookup of one What2REG@UM 澳大選咩課 instructor by name. Returns the instructor " +
   "name and one page of the courses that instructor teaches (course code, comment count, and the " +
-  "average result, attendance, grade, difficulty and reward scores), each with its UMHelper " +
+  "average result, attendance, grade, difficulty and reward scores), each with its What2REG@UM " +
   "course and review links, plus `page`, `totalCount` and `hasMore` so a long teaching history " +
-  "can be paged through. Data is provided by UMHelper and is not an official University of " +
-  "Macau statement. Keep and cite the returned https://umeh.top reference URLs in factual " +
+  "can be paged through. Data comes from What2REG@UM, an unofficial student project by the " +
+  "UMHelper developer team, and is not an official University of Macau statement. Keep and cite the returned https://umeh.top reference URLs in factual " +
   "answers, and call search_catalog first when the exact instructor name is unknown.";
 
 export const GET_INSTRUCTOR_TOOL_CONFIG = {
-  title: "Get UMHelper instructor courses",
+  title: "Get What2REG@UM instructor courses",
   description: GET_INSTRUCTOR_DESCRIPTION,
   inputSchema: mcpGetInstructorInputSchema,
   outputSchema: mcpGetInstructorOutputSchema,
@@ -50,7 +50,7 @@ function summarizeGetInstructor(output: GetInstructorOutput): string {
   }
 
   return [
-    `${output.name} — ${output.courses.length} course(s) on this page from the UMHelper catalog ` +
+    `${output.name} — ${output.courses.length} course(s) on this page from the What2REG@UM catalog ` +
       "(keep these reference links):",
     ...output.courses.map(
       (course) => `- ${course.courseCode} — ${course.commentCount} reviews — ${course.courseUrl}`,
