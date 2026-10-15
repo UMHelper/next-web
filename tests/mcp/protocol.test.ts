@@ -103,6 +103,9 @@ const APPROVED_TOOL_NAMES = [
 
 const SEARCH_CATALOG_OUTPUT = {
   type: "course",
+  page: 1,
+  totalCount: 1,
+  hasMore: false,
   results: [
     {
       courseCode: "ACCT1000",
@@ -135,6 +138,9 @@ const GET_COURSE_OUTPUT = {
     isOffered: true,
     url: "https://umeh.top/course/ACCT1000",
   },
+  page: 1,
+  totalCount: 1,
+  hasMore: false,
   instructors: [
     {
       name: "CHAN TAI MAN",
@@ -152,6 +158,9 @@ const GET_COURSE_OUTPUT = {
 
 const GET_INSTRUCTOR_OUTPUT = {
   name: "CHAN TAI MAN",
+  page: 1,
+  totalCount: 1,
+  hasMore: false,
   courses: [
     {
       courseCode: "ACCT1000",
@@ -172,6 +181,7 @@ const GET_COURSE_REVIEWS_OUTPUT = {
   courseCode: "ACCT1000",
   instructor: "CHAN TAI MAN",
   page: 1,
+  hasMore: false,
   url: "https://umeh.top/reviews/ACCT1000/CHAN%20TAI%20MAN",
   reviews: [
     {

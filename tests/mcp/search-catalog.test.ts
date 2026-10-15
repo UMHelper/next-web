@@ -249,8 +249,31 @@ describe("search_catalog input schema", () => {
     });
     expect(parsed.success).toBe(true);
     if (!parsed.success) return;
-    expect(parsed.data).not.toHaveProperty("page");
+    // `page` is part of the pagination contract now; unknown columns stay stripped.
+    expect(parsed.data).toMatchObject({ type: "course", page: 3 });
     expect(parsed.data).not.toHaveProperty("total_count");
+  });
+
+  it("bounds the page input and defaults it to the first page", () => {
+    expect(searchCatalogInputSchema.safeParse({ type: "course", query: "A" })).toMatchObject({
+      success: true,
+      data: { page: 1 },
+    });
+    expect(
+      searchCatalogInputSchema.safeParse({ type: "course", query: "A", page: 1 }).success,
+    ).toBe(true);
+    expect(
+      searchCatalogInputSchema.safeParse({ type: "course", query: "A", page: 50 }).success,
+    ).toBe(true);
+    expect(
+      searchCatalogInputSchema.safeParse({ type: "course", query: "A", page: 51 }).success,
+    ).toBe(false);
+    expect(
+      searchCatalogInputSchema.safeParse({ type: "course", query: "A", page: 0 }).success,
+    ).toBe(false);
+    expect(
+      searchCatalogInputSchema.safeParse({ type: "course", query: "A", page: 1.5 }).success,
+    ).toBe(false);
   });
 });
 
@@ -385,6 +408,9 @@ describe("search_catalog data adapter", () => {
 
     expect(result.structuredContent).toEqual({
       type: "course",
+      page: 1,
+      totalCount: 42,
+      hasMore: true,
       results: [
         {
           courseCode: "ACCT1000",
@@ -408,6 +434,9 @@ describe("search_catalog data adapter", () => {
 
     expect(result.structuredContent).toEqual({
       type: "instructor",
+      page: 1,
+      totalCount: 3,
+      hasMore: false,
       results: [
         {
           name: "Chan Tai Man",
@@ -461,9 +490,47 @@ describe("search_catalog data adapter", () => {
 
     const result = await handleSearchCatalog({ type: "course", query: "ZZZZ" }, ctx);
 
-    expect(result.structuredContent).toEqual({ type: "course", results: [] });
+    expect(result.structuredContent).toEqual({
+      type: "course",
+      page: 1,
+      totalCount: 0,
+      hasMore: false,
+      results: [],
+    });
     expect(result.content[0].text.toLowerCase()).toContain("no matching");
     expect(searchCatalogOutputSchema.safeParse(result.structuredContent).success).toBe(true);
+  });
+
+  it("walks pages through the RPC offset and reports the remaining pages", async () => {
+    const { abortSignal } = queueRpc({ data: [{ ...courseRow, total_count: 25 }] });
+
+    const result = await handleSearchCatalog(
+      { type: "course", query: "ACCT", limit: 10, page: 3 },
+      ctx,
+    );
+
+    expect(rpcMock).toHaveBeenCalledWith("search_planner_courses", {
+      keyword: "ACCT",
+      faculty: null,
+      department: null,
+      page_limit: 10,
+      page_offset: 20,
+    });
+    expect(abortSignal).toHaveBeenCalledWith(expect.any(AbortSignal));
+    expect(result.structuredContent).toMatchObject({ page: 3, totalCount: 25, hasMore: false });
+    expect(result.content[0].text).toContain("this is the last page");
+  });
+
+  it("marks hasMore when the page does not reach the total", async () => {
+    queueRpc({ data: [{ ...courseRow, total_count: 25 }] });
+
+    const result = await handleSearchCatalog(
+      { type: "course", query: "ACCT", limit: 10, page: 1 },
+      ctx,
+    );
+
+    expect(result.structuredContent).toMatchObject({ page: 1, totalCount: 25, hasMore: true });
+    expect(result.content[0].text).toContain("request page 2");
   });
 });
 

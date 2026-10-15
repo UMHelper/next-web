@@ -113,13 +113,19 @@ export async function getCourse(input: GetCourseInput): Promise<GetCourseOutput>
     throw new McpToolError("not_found");
   }
 
-  const instructors = profList
+  // The cached course helper already returns every instructor row for the course,
+  // so the page is sliced from that list — exact totalCount with no extra query.
+  const allInstructors = profList
     .map((row) => projectInstructor(row, input.code))
-    .filter((row): row is CourseInstructorSummary => row !== null)
-    .slice(0, MAX_INSTRUCTORS);
+    .filter((row): row is CourseInstructorSummary => row !== null);
+
+  const offset = (input.page - 1) * MAX_INSTRUCTORS;
 
   return {
     course: projectCourse(course, input.code, isOffer),
-    instructors,
+    page: input.page,
+    totalCount: allInstructors.length,
+    hasMore: input.page * MAX_INSTRUCTORS < allInstructors.length,
+    instructors: allInstructors.slice(offset, offset + MAX_INSTRUCTORS),
   };
 }

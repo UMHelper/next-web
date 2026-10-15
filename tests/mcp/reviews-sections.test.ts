@@ -406,7 +406,7 @@ describe("get_course_reviews data adapter", () => {
     expect(getReviewInfoMock).toHaveBeenCalledWith("ACCT1000", "CHAN TAI MAN");
   });
 
-  it("calls the controlled RPC with the zero-based page and the caller page size", async () => {
+  it("calls the controlled RPC with the zero-based page and one extra row for hasMore", async () => {
     const { abortSignal } = queueRpc({ data: PUBLIC_ROWS });
 
     await handleGetCourseReviews(
@@ -418,7 +418,9 @@ describe("get_course_reviews data adapter", () => {
     expect(rpcMock).toHaveBeenCalledWith("get_comment_page_v2", {
       target_course_id: 42,
       target_page: 2,
-      target_page_size: 4,
+      // limit + 1: the RPC returns no total, so the extra row is what makes
+      // `hasMore` exact without a second count query.
+      target_page_size: 5,
       target_viewer_id: null,
     });
     // The caller/timeout signal is forwarded so a cancelled call stops the RPC.
@@ -430,8 +432,35 @@ describe("get_course_reviews data adapter", () => {
 
     expect(rpcMock).toHaveBeenCalledWith(
       "get_comment_page_v2",
-      expect.objectContaining({ target_page: 0, target_page_size: 5 }),
+      expect.objectContaining({ target_page: 0, target_page_size: 6 }),
     );
+  });
+
+  it("reports hasMore when the extra row proves a further page exists", async () => {
+    queueReviews(PUBLIC_ROWS);
+
+    const result = await handleGetCourseReviews(
+      { code: "ACCT1000", instructor: "CHAN TAI MAN", limit: 1 },
+      ctx,
+    );
+
+    // Two public rows came back for a page of one: hasMore is exact and the
+    // second (probe) row is never projected to the model.
+    expect(result.structuredContent).toMatchObject({ page: 1, hasMore: true });
+    expect((result.structuredContent as { reviews: unknown[] }).reviews).toHaveLength(1);
+    expect(result.content[0].text).toContain("request page 2");
+  });
+
+  it("reports the last page when the page is not full", async () => {
+    queueReviews([PUBLIC_ROWS[0]]);
+
+    const result = await handleGetCourseReviews(
+      { code: "ACCT1000", instructor: "CHAN TAI MAN", limit: 5 },
+      ctx,
+    );
+
+    expect(result.structuredContent).toMatchObject({ page: 1, hasMore: false });
+    expect(result.content[0].text).toContain("last page of reviews");
   });
 
   it("returns only top-level, non-hidden public reviews", async () => {

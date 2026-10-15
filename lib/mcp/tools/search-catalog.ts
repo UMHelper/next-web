@@ -25,9 +25,11 @@ export const SEARCH_CATALOG_ANNOTATIONS = {
 
 export const SEARCH_CATALOG_DESCRIPTION =
   "Read-only search of the What2Reg @ UM (UMHelper) catalog by course code, course title or " +
-  "instructor name, optionally filtered by faculty or department. Returns up to 10 matching " +
+  "instructor name, optionally filtered by faculty or department. Returns one page of matching " +
   "courses (courseCode, titles, faculty, department, credits, offering flag) or instructors " +
-  "(name, course count). Data is provided by UMHelper and is not an official University of " +
+  "(name, course count) together with `page`, `totalCount` and `hasMore`. When `hasMore` is " +
+  "true, call the tool again with `page` + 1 to read the next page rather than reporting that " +
+  "only the first page exists. Data is provided by UMHelper and is not an official University of " +
   "Macau statement. Keep and cite the returned https://umeh.top reference URLs in factual " +
   "answers, and call get_course / get_instructor before answering detailed questions.";
 
@@ -40,18 +42,23 @@ export const SEARCH_CATALOG_TOOL_CONFIG = {
 };
 
 function summarizeSearchCatalog(output: SearchCatalogOutput): string {
+  const footer = output.hasMore
+    ? `Page ${output.page} of ${output.totalCount} match(es); more results exist — request page ${output.page + 1} to continue.`
+    : `Page ${output.page} of ${output.totalCount} match(es); this is the last page.`;
+
   if (output.type === "instructor") {
     if (output.results.length === 0) {
-      return "No matching instructors. Try a different instructor name, faculty or department.";
+      return `No matching instructors on page ${output.page}. ${footer} Try a different instructor name, faculty or department, or request an earlier page.`;
     }
     return [
       "Instructors from the UMHelper catalog (keep these reference links):",
       ...output.results.map((item) => `- ${item.name} (${item.courseCount} courses) — ${item.url}`),
+      footer,
     ].join("\n");
   }
 
   if (output.results.length === 0) {
-    return "No matching courses. Try a different course code, title, faculty or department.";
+    return `No matching courses on page ${output.page}. ${footer} Try a different course code, title, faculty or department, or request an earlier page.`;
   }
 
   return [
@@ -60,6 +67,7 @@ function summarizeSearchCatalog(output: SearchCatalogOutput): string {
       const title = item.titleEn ?? item.titleZh ?? "Untitled";
       return `- ${item.courseCode} — ${title} — ${item.url}`;
     }),
+    footer,
   ].join("\n");
 }
 

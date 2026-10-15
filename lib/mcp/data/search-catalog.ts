@@ -17,10 +17,15 @@ const COURSE_RPC = "search_planner_courses";
 const INSTRUCTOR_RPC = "search_planner_instructors";
 
 /**
- * Page offset is fixed at 0: `search_catalog` exposes a single capped result set
- * (maximum 10 rows) and never browses the whole table.
+ * The RPCs return `total_count` (a window count over the whole filtered set) on
+ * every row, which is what makes real pagination possible: the tool reports the
+ * total and whether another page exists so the model can page deliberately.
  */
-const FIXED_PAGE_OFFSET = 0;
+function readTotalCount(rows: Record<string, unknown>[], fallback: number): number {
+  const raw = rows[0]?.total_count;
+  const total = Number(raw);
+  return Number.isFinite(total) && total >= 0 ? Math.trunc(total) : fallback;
+}
 
 function readText(value: unknown): string | null {
   if (value === null || value === undefined) return null;
@@ -58,8 +63,8 @@ function projectCourse(row: Record<string, unknown>): CatalogCourse | null {
 
 /**
  * Instructor projection. `prof_id` is the public display name used by the site's
- * professor pages — not an internal mapping id — and the RPC's `total_count` is
- * deliberately dropped.
+ * professor pages — not an internal mapping id. The row-level `total_count` is
+ * read separately (see `readTotalCount`) and never spread onto the DTO.
  */
 function projectInstructor(row: Record<string, unknown>): CatalogInstructor | null {
   const name = readText(row.prof_id);
@@ -93,7 +98,7 @@ export async function searchCatalog(
       faculty: query.faculty ?? null,
       department: query.department ?? null,
       page_limit: query.limit,
-      page_offset: FIXED_PAGE_OFFSET,
+      page_offset: (query.page - 1) * query.limit,
     })
     .abortSignal(signal);
 
@@ -105,9 +110,23 @@ export async function searchCatalog(
     const results = rows
       .map(projectInstructor)
       .filter((row): row is CatalogInstructor => row !== null);
-    return { type: "instructor", results };
+    const totalCount = readTotalCount(rows, results.length);
+    return {
+      type: "instructor",
+      page: query.page,
+      totalCount,
+      hasMore: query.page * query.limit < totalCount,
+      results,
+    };
   }
 
   const results = rows.map(projectCourse).filter((row): row is CatalogCourse => row !== null);
-  return { type: "course", results };
+  const totalCount = readTotalCount(rows, results.length);
+  return {
+    type: "course",
+    page: query.page,
+    totalCount,
+    hasMore: query.page * query.limit < totalCount,
+    results,
+  };
 }

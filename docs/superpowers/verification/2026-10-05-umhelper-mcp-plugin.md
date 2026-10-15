@@ -73,6 +73,14 @@ MCP 自有测试 11 个文件 / 207 测试；插件包 38 测试；法律披露 
     - 五个工具全部 `isError=false` 并返回真实数据：`search_catalog` 列出 ACCT 系列课程；`get_course ACCT1000` 返回 11 位教师与评价数；`get_course_sections` 返回 `Section 007: FRI 11:30-12:45 @ E22-2002`；`get_instructor "CHAI LAI PING"` 返回 8 门课；`get_course_reviews ACCT1000 + CHAI LAI PING` 返回 5 条公开评价（日期、评分、赞踩、正文）；
     - 输出全部带 `https://umeh.top/...` 引用链接，且不含 email、内部 ID、评论者身份或 `admin_note` —— 敏感字段禁区在真实数据下同样成立。
     - 遗留的客户端小问题（与服务器无关）：MCP Inspector 若在流程中途重复点击连接，回调会因 `state` 过期报 "OAuth callback could not be matched"；重新一次性连完即可。生产 OAuth app `What2Reg@UM MCP`（`kOJV0bh86NtGDVte`）已登记稳定回调 `https://chatgpt.com/connector_platform_oauth_redirect`，可直接进行 ChatGPT 侧联调。
+13. **列表型工具补齐分页（2026-10-15，产品需求：让 AI 能分页查）**：此前 `search_catalog` 把 `page_offset` 写死为 0 并丢弃 RPC 的 `total_count`，模型最多只能看到前 10 条，无法得知还有更多；`get_instructor` / `get_course` 的教师列表同样只能取第一段。现在四个列表型工具统一分页契约（详见 spec §6.7）：
+    - `search_catalog`：新增 `page`(1..50)，`page_offset = (page-1) * limit`，并把 `search_planner_*` 的窗口 `total_count` 投影为 `totalCount`；输出 `page`/`totalCount`/`hasMore`；
+    - `get_instructor`：`.limit()` 改为 `.range(offset, offset + limit - 1)`，并用 `select(columns, { count: "exact" })` 取得 `totalCount`；`not_found` 语义修正为「该教师没有任何课程」，翻过尾页只返回空数组；
+    - `get_course`：教师列表按 `page` 从缓存列表中切片，`totalCount` 为该课教师总数；
+    - `get_course_reviews`：RPC 改请求 `limit + 1` 行，用多出的那一行精确判定 `hasMore`（无需第二次 count 查询），多余行不下发给模型；
+    - 模型侧引导：工具描述、`content` 文本摘要（如「Page 1 of 25 match(es); more results exist — request page 2」）与插件 `SKILL.md` 新增的「分页」小节都明确要求 `hasMore` 为真时继续翻页；
+    - 验证：`tests/mcp` 221 项通过（含新增的分页边界用例：`page` 上下界、offset 计算、`hasMore` 真/假、翻过尾页返回空页而非 `not_found`、页间不重叠），仓库全量 162 文件 / 898 测试通过，`tsc`/`lint`/`next build`/`build:pages` 全部为 0；插件 ZIP 已重建。
+    - 注意：这改变了已批准的五个工具**输入/输出字段**（工具名与数量不变），插件包与验证记录已同步；将来若已在 portal 提交过草稿，需重新上传 ZIP 并重跑工具扫描。
 
 ## 6. 仍需人工/控制台完成
 

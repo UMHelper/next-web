@@ -25,9 +25,10 @@ export const GET_INSTRUCTOR_ANNOTATIONS = {
 
 export const GET_INSTRUCTOR_DESCRIPTION =
   "Read-only lookup of one What2Reg @ UM (UMHelper) instructor by name. Returns the instructor " +
-  "name and up to 20 courses that instructor teaches (course code, comment count, and the " +
+  "name and one page of the courses that instructor teaches (course code, comment count, and the " +
   "average result, attendance, grade, difficulty and reward scores), each with its UMHelper " +
-  "course and review links. Data is provided by UMHelper and is not an official University of " +
+  "course and review links, plus `page`, `totalCount` and `hasMore` so a long teaching history " +
+  "can be paged through. Data is provided by UMHelper and is not an official University of " +
   "Macau statement. Keep and cite the returned https://umeh.top reference URLs in factual " +
   "answers, and call search_catalog first when the exact instructor name is unknown.";
 
@@ -40,16 +41,21 @@ export const GET_INSTRUCTOR_TOOL_CONFIG = {
 };
 
 function summarizeGetInstructor(output: GetInstructorOutput): string {
+  const footer = output.hasMore
+    ? `Page ${output.page} of ${output.totalCount} course(s); more exist — request page ${output.page + 1} to continue.`
+    : `Page ${output.page} of ${output.totalCount} course(s); this is the last page.`;
+
   if (output.courses.length === 0) {
-    return `No courses are recorded for ${output.name} in the UMHelper catalog.`;
+    return `No courses are recorded for ${output.name} on page ${output.page}. ${footer}`;
   }
 
   return [
-    `${output.name} — ${output.courses.length} course(s) from the UMHelper catalog ` +
+    `${output.name} — ${output.courses.length} course(s) on this page from the UMHelper catalog ` +
       "(keep these reference links):",
     ...output.courses.map(
       (course) => `- ${course.courseCode} — ${course.commentCount} reviews — ${course.courseUrl}`,
     ),
+    footer,
   ].join("\n");
 }
 

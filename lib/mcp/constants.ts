@@ -7,6 +7,13 @@ export const MCP_MAX_RESULT_BYTES = 64 * 1024;
 export const MCP_TOOL_TIMEOUT_MS = 10_000;
 
 /**
+ * Highest page number any list-shaped tool accepts. Bounded so an agent can page
+ * through a large catalog while a single call cannot request an unbounded offset
+ * (deep OFFSETs are expensive server-side).
+ */
+export const MCP_MAX_PAGE = 50;
+
+/**
  * True when the bundle was built for production.
  *
  * Next inlines `process.env.NODE_ENV` at build time, so in the production bundle

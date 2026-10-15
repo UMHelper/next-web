@@ -1,6 +1,41 @@
 import { z } from "zod/v4";
 
+import { MCP_MAX_PAGE } from "@/lib/mcp/constants";
 import { SITE_URL } from "@/lib/site";
+
+/**
+ * Uniform pagination contract for every list-shaped tool: a bounded 1-based
+ * `page` on input, and `page` + `hasMore` on output (plus `totalCount` wherever
+ * the data layer gets it for free). This lets the model page through large
+ * catalogs deliberately instead of silently receiving only the first slice.
+ */
+const pageInputField = z
+  .number()
+  .int()
+  .min(1)
+  .max(MCP_MAX_PAGE)
+  .default(1)
+  .describe(
+    `1-based page to read (1..${MCP_MAX_PAGE}). Defaults to 1. Read the previous response's hasMore/totalCount before requesting page + 1.`,
+  );
+
+const pageOutputFields = {
+  page: z
+    .number()
+    .int()
+    .min(1)
+    .max(MCP_MAX_PAGE)
+    .describe("Page number these results were read from."),
+  hasMore: z
+    .boolean()
+    .describe("True when a further page exists; request page + 1 to read it."),
+};
+
+const totalCountField = z
+  .number()
+  .int()
+  .nonnegative()
+  .describe("Total matching rows across every page.");
 
 /** JSON Schema dialects the MCP SDK may request for a tool schema. */
 export type McpJsonSchemaTarget = "draft-2020-12" | "draft-07" | "openapi-3.0" | (object & string);
@@ -145,7 +180,8 @@ export const searchCatalogInputSchema = z
       .min(1)
       .max(10)
       .default(10)
-      .describe("Maximum number of results to return (1..10). Defaults to 10."),
+      .describe("Maximum number of results per page (1..10). Defaults to 10."),
+    page: pageInputField,
   })
   .refine(
     (input) =>
@@ -176,8 +212,18 @@ export type CatalogCourse = z.infer<typeof catalogCourseSchema>;
 export type CatalogInstructor = z.infer<typeof catalogInstructorSchema>;
 
 export const searchCatalogOutputSchema = z.discriminatedUnion("type", [
-  z.object({ type: z.literal("course"), results: z.array(catalogCourseSchema) }),
-  z.object({ type: z.literal("instructor"), results: z.array(catalogInstructorSchema) }),
+  z.object({
+    type: z.literal("course"),
+    ...pageOutputFields,
+    totalCount: totalCountField,
+    results: z.array(catalogCourseSchema),
+  }),
+  z.object({
+    type: z.literal("instructor"),
+    ...pageOutputFields,
+    totalCount: totalCountField,
+    results: z.array(catalogInstructorSchema),
+  }),
 ]);
 
 export type SearchCatalogOutput = z.infer<typeof searchCatalogOutputSchema>;
@@ -206,6 +252,7 @@ export const getCourseInputSchema = z.object({
     .max(20)
     .describe("Course code to look up, for example ACCT1000.")
     .transform((value) => value.toUpperCase()),
+  page: pageInputField,
 });
 
 export type GetCourseInput = z.infer<typeof getCourseInputSchema>;
@@ -246,6 +293,8 @@ export type CourseInstructorSummary = z.infer<typeof courseInstructorSummarySche
 
 export const getCourseOutputSchema = z.object({
   course: courseDetailSchema,
+  ...pageOutputFields,
+  totalCount: totalCountField,
   instructors: z.array(courseInstructorSummarySchema).max(20),
 });
 
@@ -273,7 +322,8 @@ export const getInstructorInputSchema = z.object({
     .min(1)
     .max(20)
     .default(20)
-    .describe("Maximum number of courses to return (1..20). Defaults to 20."),
+    .describe("Maximum number of courses per page (1..20). Defaults to 20."),
+  page: pageInputField,
 });
 
 export type GetInstructorInput = z.infer<typeof getInstructorInputSchema>;
@@ -295,6 +345,8 @@ export type InstructorCourseSummary = z.infer<typeof instructorCourseSummarySche
 
 export const getInstructorOutputSchema = z.object({
   name: z.string().min(1),
+  ...pageOutputFields,
+  totalCount: totalCountField,
   courses: z.array(instructorCourseSummarySchema).max(20),
 });
 
@@ -335,20 +387,14 @@ export const getCourseReviewsInputSchema = z.object({
     .max(80)
     .describe("Instructor display name recorded for that course, for example CHAN TAI MAN.")
     .transform((value) => value.replace(/\s+/g, " ").toUpperCase()),
-  page: z
-    .number()
-    .int()
-    .min(1)
-    .max(50)
-    .default(1)
-    .describe("1-based review page to read (1..50). Defaults to 1."),
+  page: pageInputField,
   limit: z
     .number()
     .int()
     .min(1)
     .max(10)
     .default(5)
-    .describe("Maximum number of top-level reviews on the page (1..10). Defaults to 5."),
+    .describe("Maximum number of top-level reviews per page (1..10). Defaults to 5."),
 });
 
 export type GetCourseReviewsInput = z.infer<typeof getCourseReviewsInputSchema>;
@@ -375,7 +421,10 @@ export type CourseReview = z.infer<typeof courseReviewSchema>;
 export const getCourseReviewsOutputSchema = z.object({
   courseCode: z.string().min(1),
   instructor: z.string().min(1),
-  page: z.number().int().min(1).max(50),
+  page: z.number().int().min(1).max(MCP_MAX_PAGE),
+  hasMore: z
+    .boolean()
+    .describe("True when a further review page exists; request page + 1 to read it."),
   url: referenceUrlSchema,
   reviews: z.array(courseReviewSchema).max(10),
 });

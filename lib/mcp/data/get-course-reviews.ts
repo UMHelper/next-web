@@ -88,10 +88,12 @@ function projectReview(row: Record<string, unknown>, url: string): CourseReview 
  *
  * The internal `prof_with_course` mapping is resolved first (the RPC keys off
  * that relation id), then the controlled RPC is called with the caller's page
- * size and a zero-based page. `target_viewer_id` is always null, so no
- * viewer-specific vote history can be produced. The output is projected onto the
- * public DTO, which is why no internal id or author field can reach
- * `structuredContent`.
+ * size and a zero-based page. One extra row is requested so `hasMore` is exact
+ * without a second count query: the RPC returns no total, and asking for
+ * `limit + 1` tells us whether a further page exists. `target_viewer_id` is
+ * always null, so no viewer-specific vote history can be produced. The output is
+ * projected onto the public DTO, which is why no internal id or author field can
+ * reach `structuredContent`.
  */
 export async function getCourseReviews(
   input: GetCourseReviewsInput,
@@ -104,7 +106,7 @@ export async function getCourseReviews(
     .rpc(COMMENT_PAGE_RPC, {
       target_course_id: Number(mapping.id),
       target_page: input.page - 1,
-      target_page_size: input.limit,
+      target_page_size: input.limit + 1,
       target_viewer_id: null,
     })
     .abortSignal(signal);
@@ -112,14 +114,18 @@ export async function getCourseReviews(
   if (error) throw new McpToolError("temporarily_unavailable");
 
   const url = absoluteUrl(buildReviewPath(input.code, input.instructor, input.page));
-  const reviews = toRowList(data)
+  const projected = toRowList(data)
     .filter(isPublicTopLevelReview)
     .map((row) => projectReview(row, url));
+
+  const hasMore = projected.length > input.limit;
+  const reviews = projected.slice(0, input.limit);
 
   return {
     courseCode: input.code,
     instructor: input.instructor,
     page: input.page,
+    hasMore,
     url,
     reviews,
   };

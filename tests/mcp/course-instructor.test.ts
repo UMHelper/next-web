@@ -71,7 +71,7 @@ import {
 // Test doubles
 // ---------------------------------------------------------------------------
 
-type SupabaseResult = { data: unknown; error: unknown };
+type SupabaseResult = { data: unknown; error: unknown; count?: number | null };
 type QueryCall = { method: string; args: unknown[] };
 
 type QueryBuilder = {
@@ -90,7 +90,7 @@ function createQueryBuilder(result: SupabaseResult): QueryBuilder {
     calls,
     then: (onFulfilled, onRejected) => Promise.resolve(result).then(onFulfilled, onRejected),
   };
-  for (const method of ["select", "eq", "order", "limit", "maybeSingle", "abortSignal"]) {
+  for (const method of ["select", "eq", "order", "limit", "range", "maybeSingle", "abortSignal"]) {
     builder[method] = (...args: unknown[]) => {
       calls.push({ method, args });
       return builder;
@@ -99,8 +99,14 @@ function createQueryBuilder(result: SupabaseResult): QueryBuilder {
   return builder;
 }
 
-function queueProfCourses(rows: unknown[], error: unknown = null): QueryBuilder {
-  const builder = createQueryBuilder({ data: rows, error });
+function queueProfCourses(rows: unknown[], error: unknown = null, count?: number): QueryBuilder {
+  // PostgREST reports the exact total alongside the page; the adapter relies on
+  // it for totalCount/hasMore, so the double defaults it to the fixture size.
+  const builder = createQueryBuilder({
+    data: rows,
+    error,
+    count: count ?? (Array.isArray(rows) ? rows.length : 0),
+  });
   fromMock.mockImplementation((table: string) => {
     expect(table).toBe("prof_with_course");
     return builder;
@@ -437,7 +443,7 @@ describe("course/instructor MCP-facing schemas", () => {
     const course = mcpGetCourseInputSchema["~standard"].validate({ code: "  acct1000 " });
     expect("value" in course).toBe(true);
     if (!("value" in course)) return;
-    expect(course.value).toEqual({ code: "ACCT1000" });
+    expect(course.value).toMatchObject({ code: "ACCT1000", page: 1 });
 
     const instructor = mcpGetInstructorInputSchema["~standard"].validate({
       name: "  Chan   Tai Man ",
@@ -460,7 +466,7 @@ describe("course/instructor MCP-facing schemas", () => {
     const instructorJson = mcpGetInstructorOutputSchema["~standard"].jsonSchema.output({
       target: "draft-2020-12",
     });
-    expect(instructorJson.required).toEqual(["name", "courses"]);
+    expect(instructorJson.required).toEqual(["name", "page", "hasMore", "totalCount", "courses"]);
   });
 
   it("exposes read-only, non-destructive, closed-world annotations", () => {
@@ -501,6 +507,31 @@ describe("get_course data adapter", () => {
 
     expect(fetchCourseInfoMock).toHaveBeenCalledTimes(1);
     expect(fetchCourseInfoMock).toHaveBeenCalledWith("ACCT1000");
+  });
+
+  it("pages the instructor list and reports the exact total", async () => {
+    const many = Array.from({ length: 25 }, (_, i) => ({
+      ...profRow,
+      id: 100 + i,
+      prof_id: `PROF ${i}`,
+    }));
+    queueCourse({ profList: many });
+
+    const first = readCourseOutput(await handleGetCourse({ code: "ACCT1000" }, ctx));
+    expect(first.instructors).toHaveLength(20);
+    expect(first).toMatchObject({ page: 1, totalCount: 25, hasMore: true });
+
+    const second = readCourseOutput(
+      await handleGetCourse({ code: "ACCT1000", page: 2 }, ctx),
+    );
+    expect(second.instructors).toHaveLength(5);
+    expect(second).toMatchObject({ page: 2, totalCount: 25, hasMore: false });
+
+    // Pages must not overlap.
+    const firstNames = new Set(first.instructors.map((i) => i.name));
+    for (const instructor of second.instructors) {
+      expect(firstNames.has(instructor.name)).toBe(false);
+    }
   });
 
   it("projects course and instructor summaries onto the contract whitelist only", async () => {
@@ -676,22 +707,52 @@ describe("get_instructor data adapter", () => {
     consumeMock.mockResolvedValue({ allowed: true, retryAfter: 0 });
   });
 
-  it("applies limit at the database layer, defaulting to 20", async () => {
-    const builder = queueProfCourses(instructorRows);
+  it("applies the page window at the database layer, defaulting to the first 20", async () => {
+    const builder = queueProfCourses(instructorRows, null, 137);
 
     await handleGetInstructor({ name: "CHAN TAI MAN" }, ctx);
 
-    const limitCall = builder.calls.find((call) => call.method === "limit");
-    expect(limitCall?.args).toEqual([20]);
+    const rangeCall = builder.calls.find((call) => call.method === "range");
+    expect(rangeCall?.args).toEqual([0, 19]);
   });
 
-  it("passes the caller limit down to the database query instead of slicing in memory", async () => {
-    const builder = queueProfCourses(instructorRows.slice(0, 2));
+  it("pushes the caller limit and page into the database window instead of slicing in memory", async () => {
+    const builder = queueProfCourses(instructorRows.slice(0, 2), null, 10);
 
-    await handleGetInstructor({ name: "CHAN TAI MAN", limit: 2 }, ctx);
+    const result = await handleGetInstructor({ name: "CHAN TAI MAN", limit: 2, page: 3 }, ctx);
 
-    const limitCall = builder.calls.find((call) => call.method === "limit");
-    expect(limitCall?.args).toEqual([2]);
+    const rangeCall = builder.calls.find((call) => call.method === "range");
+    expect(rangeCall?.args).toEqual([4, 5]);
+    expect(result.structuredContent).toMatchObject({
+      page: 3,
+      totalCount: 10,
+      hasMore: true,
+    });
+  });
+
+  it("reports the last page when the window reaches the total", async () => {
+    queueProfCourses(instructorRows, null, 2);
+
+    const result = await handleGetInstructor({ name: "CHAN TAI MAN", limit: 20 }, ctx);
+
+    expect(result.structuredContent).toMatchObject({
+      page: 1,
+      totalCount: 2,
+      hasMore: false,
+    });
+  });
+
+  it("returns an empty page instead of not_found when the page is past the end", async () => {
+    queueProfCourses([], null, 5);
+
+    const result = await handleGetInstructor({ name: "CHAN TAI MAN", page: 3 }, ctx);
+
+    expect(result.structuredContent).toMatchObject({
+      page: 3,
+      totalCount: 5,
+      hasMore: false,
+      courses: [],
+    });
   });
 
   it("queries the controlled table with explicit columns, the normalized name and the abort signal", async () => {
@@ -700,8 +761,10 @@ describe("get_instructor data adapter", () => {
     await handleGetInstructor({ name: "  Chan   Tai Man  " }, ctx);
 
     const selectCall = builder.calls.find((call) => call.method === "select");
-    expect(selectCall?.args).toHaveLength(1);
+    // Column list plus `{ count: "exact" }`, which supplies totalCount.
+    expect(selectCall?.args).toHaveLength(2);
     expect(String(selectCall?.args[0])).not.toContain("*");
+    expect(selectCall?.args[1]).toMatchObject({ count: "exact" });
     expect(String(selectCall?.args[0])).toContain("course_id");
 
     const eqCall = builder.calls.find((call) => call.method === "eq");
@@ -719,6 +782,9 @@ describe("get_instructor data adapter", () => {
 
     expect(output).toEqual({
       name: "CHAN TAI MAN",
+      page: 1,
+      totalCount: 2,
+      hasMore: false,
       courses: [
         {
           courseCode: "ACCT1000",
@@ -747,7 +813,13 @@ describe("get_instructor data adapter", () => {
       ],
     });
 
-    expect(Object.keys(output).sort()).toEqual(["courses", "name"]);
+    expect(Object.keys(output).sort()).toEqual([
+      "courses",
+      "hasMore",
+      "name",
+      "page",
+      "totalCount",
+    ]);
     expect(Object.keys(output.courses[0]).sort()).toEqual(INSTRUCTOR_COURSE_KEYS);
   });
 

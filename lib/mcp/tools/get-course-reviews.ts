@@ -30,8 +30,8 @@ export const GET_COURSE_REVIEWS_DESCRIPTION =
   "truncated to 600 characters), the average result, upvote/downvote counts and the public " +
   "verification badge; hidden entries and replies are never returned. Data is provided by " +
   "UMHelper and is not an official University of Macau statement. Keep and cite the returned " +
-  "https://umeh.top review page URLs in factual answers, and use page/limit to walk older " +
-  "reviews when more detail is needed.";
+  "https://umeh.top review page URLs in factual answers. Use page/limit to walk older reviews, " +
+  "and keep going while `hasMore` is true instead of assuming the first page is everything.";
 
 export const GET_COURSE_REVIEWS_TOOL_CONFIG = {
   title: "Get UMHelper course reviews",
@@ -53,10 +53,14 @@ function previewBody(review: CourseReview): string {
 }
 
 function summarizeGetCourseReviews(output: GetCourseReviewsOutput): string {
+  const footer = output.hasMore
+    ? `More reviews exist — request page ${output.page + 1} to continue.`
+    : "This is the last page of reviews.";
+
   if (output.reviews.length === 0) {
     return (
       `No public top-level reviews are recorded for ${output.courseCode} by ${output.instructor} ` +
-      `on page ${output.page}. Review page (keep this reference link): ${output.url}`
+      `on page ${output.page}. ${footer} Review page (keep this reference link): ${output.url}`
     );
   }
 
@@ -68,6 +72,7 @@ function summarizeGetCourseReviews(output: GetCourseReviewsOutput): string {
         `- ${review.publishedAt ?? "unknown date"} — result ${review.result ?? "n/a"} — ` +
         `${review.upvotes} up / ${review.downvotes} down — ${previewBody(review)} — ${review.url}`,
     ),
+    footer,
   ].join("\n");
 }
 

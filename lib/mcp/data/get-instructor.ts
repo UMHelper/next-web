@@ -72,31 +72,45 @@ function projectCourse(
 /**
  * Public instructor profile for the MCP tool boundary.
  *
- * The `limit` is pushed all the way into SQL (`.limit(...)`) instead of slicing
- * a full result set in memory, per §8. Rows are then projected onto the public
- * DTO, so mapping ids and admin notes cannot reach `structuredContent`.
+ * `limit` and the page offset are pushed all the way into SQL (`.range(...)`)
+ * instead of slicing a full result set in memory, per §8, and `count: "exact"`
+ * supplies the total so the tool can tell the model whether another page exists.
+ * Rows are then projected onto the public DTO, so mapping ids and admin notes
+ * cannot reach `structuredContent`.
+ *
+ * `not_found` is reserved for an instructor with no courses at all — an empty
+ * page beyond the end of a real list is a valid, empty answer, not an error.
  */
 export async function getInstructor(
   input: GetInstructorInput,
   signal: AbortSignal,
 ): Promise<GetInstructorOutput> {
-  const { data, error } = await supabaseServer
+  const offset = (input.page - 1) * input.limit;
+  const { data, error, count } = await supabaseServer
     .from(PROF_COURSE_TABLE)
-    .select(PROF_COURSE_COLUMNS)
+    .select(PROF_COURSE_COLUMNS, { count: "exact" })
     .eq("prof_id", input.name)
     .order("is_offered", { ascending: false })
     .order("course_id", { ascending: true })
-    .limit(input.limit)
+    .range(offset, offset + input.limit - 1)
     .abortSignal(signal);
 
   if (error) throw new McpToolError("temporarily_unavailable");
 
+  const totalCount = typeof count === "number" && count >= 0 ? count : 0;
+  if (totalCount === 0) throw new McpToolError("not_found");
+
   const rows = toRows(data);
-  if (rows.length === 0) throw new McpToolError("not_found");
 
   const courses = rows
     .map((row) => projectCourse(row, input.name))
     .filter((course): course is InstructorCourseSummary => course !== null);
 
-  return { name: input.name, courses };
+  return {
+    name: input.name,
+    page: input.page,
+    totalCount,
+    hasMore: input.page * input.limit < totalCount,
+    courses,
+  };
 }

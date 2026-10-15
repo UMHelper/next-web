@@ -288,6 +288,22 @@ clerk.umeh.top/oauth/authorize → /oauth/authorize/continue
 
 单次序列化后的 `structuredContent` 上限为 64 KiB。若按条目截断仍会超过上限，则返回稳定的 `result_too_large` 错误，不发送部分 JSON。正常的列表分页或限制应在达到该上限前生效。
 
+### 6.7 分页契约（2026-10-15 增补）
+
+所有列表型工具统一采用同一分页契约，目的是让模型**主动翻页**，而不是把第一页当作全部：
+
+| 工具 | 单页上限 | 输入 | 输出分页字段 |
+| --- | --- | --- | --- |
+| `search_catalog` | 10 | `page`（1..50，默认 1）、`limit` | `page`、`totalCount`、`hasMore` |
+| `get_course`（教师列表） | 20 | `page`（1..50，默认 1） | `page`、`totalCount`、`hasMore` |
+| `get_instructor` | 20 | `page`（1..50，默认 1）、`limit` | `page`、`totalCount`、`hasMore` |
+| `get_course_reviews` | 10 | `page`（1..50，默认 1）、`limit` | `page`、`hasMore` |
+
+- `page` 上界由 `MCP_MAX_PAGE = 50` 统一约束，避免单次调用请求无界 offset（深 OFFSET 代价高）。
+- `totalCount` 只在数据层免费可得时提供：`search_planner_*` 的窗口 `total_count`、`get_instructor` 的 `count: "exact"`、`get_course` 的内存列表长度。`get_comment_page_v2` 不返回总数，因此 `get_course_reviews` 用「请求 `limit + 1` 行」判定 `hasMore`（精确且无需第二次 count 查询），不提供 `totalCount`。
+- `hasMore` 为真时表示还有下一页；模型的正确行为是继续以 `page + 1` 调用，而不是断言结果已穷尽。工具描述、`content` 文本摘要与插件 `SKILL.md` 都必须写明这一点。
+- 翻页语义为「每页独立计算 offset」（`offset = (page - 1) * limit`），不依赖游标；翻页期间数据变化允许出现条目抖动，这符合只读目录的预期。
+
 ## 7. 数据边界
 
 ### 7.1 显式投影

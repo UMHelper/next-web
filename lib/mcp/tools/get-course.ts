@@ -27,8 +27,9 @@ export const GET_COURSE_DESCRIPTION =
   "Read-only lookup of one What2Reg @ UM (UMHelper) course by code. Returns the public catalog " +
   "fields (English and Chinese titles, credits, faculty, department, programme level, suggested " +
   "year, medium of instruction, grading system, course type, duration, a truncated description " +
-  "and the offering flag) plus up to 20 instructor review summaries (name, comment count, and " +
-  "the average result, attendance, grade, difficulty and reward scores). Data is provided by " +
+  "and the offering flag) plus one page of instructor review summaries (name, comment count, and " +
+  "the average result, attendance, grade, difficulty and reward scores) reported with `page`, " +
+  "`totalCount` and `hasMore` — page through them when a course lists many instructors. Data is provided by " +
   "UMHelper and is not an official University of Macau statement. Keep and cite the returned " +
   "https://umeh.top course and review URLs in factual answers, and call search_catalog first " +
   "when the exact course code is unknown.";
@@ -46,7 +47,10 @@ function summarizeGetCourse(output: GetCourseOutput): string {
   const lines = [`${output.course.courseCode} — ${title} — ${output.course.url}`];
 
   if (output.instructors.length === 0) {
-    lines.push("No instructor review summaries are recorded for this course.");
+    lines.push(
+      `No instructor review summaries are recorded for this course on page ${output.page} ` +
+        `(of ${output.totalCount}).`,
+    );
   } else {
     lines.push("Instructors (keep these reference links):");
     for (const instructor of output.instructors) {
@@ -54,6 +58,11 @@ function summarizeGetCourse(output: GetCourseOutput): string {
         `- ${instructor.name} — ${instructor.commentCount} reviews — ${instructor.reviewUrl}`,
       );
     }
+    lines.push(
+      output.hasMore
+        ? `Page ${output.page} of ${output.totalCount} instructor(s); more exist — request page ${output.page + 1} to continue.`
+        : `Page ${output.page} of ${output.totalCount} instructor(s); this is the last page.`,
+    );
   }
 
   return lines.join("\n");
