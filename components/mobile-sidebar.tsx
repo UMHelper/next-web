@@ -25,7 +25,7 @@ const MobileSidebar = () => {
             <Sheet open={open} onOpenChange={setOpen}>
                 <SheetTrigger>
                     <div>
-                        <AlignJustify />
+                        <AlignJustify size={16}/>
                     </div>
                 </SheetTrigger>
                 <SheetContent>

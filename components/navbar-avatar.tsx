@@ -19,7 +19,7 @@ export default function NavbarAvatar() {
             </Show>
             <Show when="signed-out">
                 {/* Signed out users get sign in button */}
-                <div className='py-1 px-2 ml-2 rounded bg-gradient-to-r from-brand-from to-brand-to text-white'>
+                <div className='py-1 px-2 ml-2 rounded bg-gradient-to-r from-brand-from to-brand-to text-white hidden md:block'>
                 <SignInButton mode="modal" fallbackRedirectUrl={pathname}>Sign In</SignInButton>
                 </div>
             </Show>

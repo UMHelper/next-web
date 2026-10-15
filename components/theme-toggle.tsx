@@ -110,9 +110,15 @@ export function ThemeToggle() {
     >
       {skin === "island" ? (
         isDark ? (
-          <MoonIcon size={24} color="currentColor" />
+          <>
+            <MoonIcon size={24} color="currentColor" className="hidden md:block"/>
+            <MoonIcon size={16} color="currentColor" className="block md:hidden"/>
+          </>
         ) : (
-          <SunIcon size={24} color="currentColor" />
+          <>
+            <SunIcon size={24} color="currentColor" className="hidden md:block"/>
+            <SunIcon size={16} color="currentColor" className="block md:hidden"/>
+          </>
         )
       ) : (
         <Icon size={20} strokeWidth={2} />

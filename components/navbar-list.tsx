@@ -16,19 +16,19 @@ export default function NavbarList() {
     return (
         <div className="flex flex-wrap items-center justify-start">
             <Link href="/" className="flex items-center mr-10">
-                <Cat size={24} strokeWidth={2} className="me-2 text-brand-logo" />
-
+                <Cat size={24} strokeWidth={2} className="me-2 text-brand-logo hidden md:block" />
+                <Cat size={16} strokeWidth={2} className="me-2 text-brand-logo block md:hidden" />
                 {/* 品牌文字：两行 lockup，整体套用 wordmark 渐变 */}
                 <div className="self-center font-semibold whitespace-nowrap bg-gradient-to-r from-wordmark-from to-wordmark-to bg-clip-text text-transparent">
                     {/* 第一行：英文名 + 中文名，按文字基线对齐底部 */}
-                    <div className="flex items-baseline space-x-1">
-                        <span className="text-base">What2Reg @UM</span>
+                    <div className="flex items-baseline md:space-x-1 flex-col md:flex-row">
+                        <span className="text-xs">What2Reg @UM </span>
                         <span className="text-xs">澳大選咩課</span>
                     </div>
 
                     {/* 第二行：花体 by + 团队名 */}
-                    <div className="text-[12px]">
-                        <span className="font-script italic text-[12px]">by</span> UMHelper
+                    <div className="text-[10px]">
+                        <span className="font-script italic text-[10px]">by</span> UMHelper
                     </div>
                 </div>
             </Link>
