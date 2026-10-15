@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { rootMetadata } from "@/lib/seo";
+import { IOS_APP_ID, IOS_APP_STORE_URL } from "@/lib/site";
 
 describe("root SEO metadata", () => {
   it("uses metadataBase and title template", () => {
@@ -8,6 +9,13 @@ describe("root SEO metadata", () => {
       default: "What2Reg @ UM 澳大選咩課",
       template: "%s | What2Reg @ UM",
     });
+  });
+
+  // iOS Safari 只有拿到這個 meta 才會顯示頂部的系統 App 橫幅
+  it("advertises the iOS app with the Smart App Banner", () => {
+    expect(rootMetadata.itunes).toEqual({ appId: IOS_APP_ID });
+    expect(IOS_APP_ID).toBe("6804686377");
+    expect(IOS_APP_STORE_URL).toBe("https://apps.apple.com/app/id6804686377");
   });
 });
 

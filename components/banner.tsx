@@ -1,4 +1,6 @@
 // import RotatingText from "@/components/RotatingText/RotatingText"
+import { AppleGlyph } from "@/components/apple-glyph"
+import { IOS_APP_STORE_URL } from "@/lib/site"
 import CsBanner from "@/components/cs-banner"
 
 export const Banner = () => {
@@ -14,17 +16,23 @@ export const Banner = () => {
                 transition={{ type: "spring", damping: 30, stiffness: 400 }}
                 rotationInterval={6000}
                 /> */}
-            <div>
+            {/* <div>
                 <span className="whitespace-nowrap bg-gradient-to-r from-wordmark-from to-wordmark-to bg-clip-text text-transparent">選咩課</span> 開發團隊 UMHelper 現有成員已於2026年全部畢業。我們無法保證後續的網站維護與更新。
             </div>
             <div className="text-center whitespace-pre-line break-words">
                 我們歡迎任何背景的在校學生接手後續的維護，請聯繫 <a href="mailto:umacauhelper@gmail.com" className="whitespace-nowrap bg-gradient-to-r from-wordmark-from to-wordmark-to bg-clip-text text-transparent underline">
                     我們的郵箱
                 </a>
-            </div>
+            </div> */}
             {/* <div>
                 This website is not affiliated, associated, authorized, endorsed by, or in any way officially connected with the University of Macau.
             </div> */}
+            <div className="text-center">
+                <AppleGlyph className="mr-1 inline-block h-3.5 w-3.5 align-[-0.15em] text-foreground" />
+                <span className="font-semibold">What2REG@UM iOS App</span> 現已在 App Store 上架。<a href={IOS_APP_STORE_URL} className="whitespace-nowrap bg-gradient-to-r from-wordmark-from to-wordmark-to bg-clip-text font-semibold text-transparent">
+                    立即下載
+                </a>
+            </div>
         </div>
         <CsBanner />
         </>

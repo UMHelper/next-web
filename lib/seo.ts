@@ -4,6 +4,7 @@ import {
   SITE_NAME,
   SITE_SHORT_NAME,
   SITE_URL,
+  IOS_APP_ID,
   buildCoursePath,
   buildProfessorPath,
   buildReviewPath,
@@ -34,6 +35,17 @@ export const rootMetadata: Metadata = {
   },
   alternates: {
     canonical: "/",
+  },
+  /**
+   * iOS Safari 頂部的系統橫幅（Smart App Banner）：渲染成
+   * `<meta name="apple-itunes-app" content="app-id=6804686377">`。
+   *
+   * 這是先前「App 未上架」時刪掉的那個佔位 meta 的正身 —— App 已上架，因此重新
+   * 掛上。橫幅只在 iOS Safari 出現，且需要 `content` 裡只有 app-id（`appArgument`
+   * 是 universal link 用的當前頁 URL，靜態 rootMetadata 給不出來，留空）。
+   */
+  itunes: {
+    appId: IOS_APP_ID,
   },
 };
 
