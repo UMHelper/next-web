@@ -75,7 +75,24 @@ export function buildCursorWebDeeplink(): string {
   return `https://cursor.com/en/install-mcp?name=${MCP_SERVER_ID}&config=${encodeURIComponent(cursorConfig())}`;
 }
 
-export function buildVscodeDeeplink(insiders = false): string {
+/**
+ * VS Code install link.
+ *
+ * Uses the `vscode:` scheme directly. The `https://vscode.dev/redirect/mcp/install`
+ * form looks equivalent and is what several generators emit, but measured on
+ * 2026-10-15 with VS Code stable: the redirect arrives at the desktop app with only
+ * `name`, so the install dialog opens with an empty URL field. The direct scheme
+ * prefills Name/Type/URL correctly.
+ */
+export function buildVscodeDeeplink(): string {
+  return `vscode:mcp/install?name=${MCP_SERVER_ID}&config=${vscodeConfig()}`;
+}
+
+/**
+ * The web-redirect form, kept only as a fallback for contexts that refuse custom
+ * schemes. Known to lose `config` on the way to the desktop app.
+ */
+export function buildVscodeWebDeeplink(insiders = false): string {
   const host = insiders ? "insiders.vscode.dev" : "vscode.dev";
   const quality = insiders ? "&quality=insiders" : "";
   return `https://${host}/redirect/mcp/install?name=${MCP_SERVER_ID}&config=${vscodeConfig()}${quality}`;

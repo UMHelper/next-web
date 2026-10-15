@@ -165,8 +165,8 @@ https://install.apicommons.org/?name=io.github.UMHelper/what2reg-um
 | --- | --- | --- | --- |
 | Cursor（官方 scheme） | `cursor://anysphere.cursor-deeplink/mcp/install?name=$NAME&config=$CFG` | **base64** | `{"url": …}` |
 | Cursor（HTTPS 形式） | `https://cursor.com/en/install-mcp?name=$NAME&config=$CFG` | **base64（再 URL-encode）** | `{"url": …}` |
-| VS Code | `https://vscode.dev/redirect/mcp/install?name=$NAME&config=$CFG` | **URL-encoded JSON** | `{"type":"http","url":…}` |
-| VS Code Insiders | 同上域名换 `insiders.vscode.dev` 并追加 `&quality=insiders` | 同上 | 同上 |
+| VS Code | **`vscode:mcp/install?name=$NAME&config=$CFG`**（直连协议） | **URL-encoded JSON** | `{"type":"http","url":…}` |
+| VS Code（web 重定向，仅作后备） | `https://vscode.dev/redirect/mcp/install?…` | 同上 | 同上 —— **实测会丢 `config`**：对话框只收到 name，URL 栏为空（2026-10-15 于 VS Code stable 验证），因此不作为主按钮 |
 | LM Studio | `lmstudio://add_mcp?name=$NAME&config=$CFG` | **base64** | `{"url": …}` |
 | Goose | `goose://extension?url=…&type=streamable_http&id=…&name=…` | 摊平查询参数 | — |
 

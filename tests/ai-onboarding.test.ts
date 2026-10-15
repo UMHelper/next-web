@@ -20,6 +20,7 @@ import {
   buildLmStudioDeeplink,
   buildVscodeCliCommand,
   buildVscodeDeeplink,
+  buildVscodeWebDeeplink,
 } from "@/lib/ai-onboarding";
 
 const root = process.cwd();
@@ -50,6 +51,20 @@ describe("mcp/server.json (MCP Registry entry)", () => {
     expect(serverJson.version).toBe(pluginJson.version);
   });
 
+  it("ships an icon so clients can show a logo", () => {
+    // Without icons, registry-driven UIs (VS Code's MCP view among them) render the
+    // server as a bare name. The schema requires HTTPS sources.
+    expect(Array.isArray(serverJson.icons)).toBe(true);
+    expect(serverJson.icons.length).toBeGreaterThan(0);
+    for (const icon of serverJson.icons) {
+      expect(icon.src).toMatch(/^https:\/\//);
+      expect(icon.mimeType).toBe("image/png");
+      expect(icon.sizes?.[0]).toMatch(/^\d+x\d+$/);
+    }
+    // The file we point at has to exist in this repo, or clients get a 404.
+    expect(serverJson.icons.some((i: { src: string }) => i.src.includes("umeh.top/icon/"))).toBe(true);
+  });
+
   it("keeps the description within the registry's 100-character limit", () => {
     // The JSON Schema has no maxLength here, but registry.modelcontextprotocol.io
     // rejects anything longer with a 422 — caught by `mcp-publisher validate`.
@@ -78,14 +93,17 @@ describe("install links (generated, never hand-written)", () => {
 
   it("VS Code carries URL-encoded JSON and requires a type field", () => {
     const link = buildVscodeDeeplink();
-    expect(link.startsWith("https://vscode.dev/redirect/mcp/install?")).toBe(true);
+    // The direct scheme, not the vscode.dev redirect: the redirect drops `config`
+    // and the install dialog opens with an empty URL (verified 2026-10-15).
+    expect(link.startsWith("vscode:mcp/install?")).toBe(true);
+    expect(link).not.toContain("vscode.dev/redirect");
 
     const config = new URLSearchParams(link.split("?")[1]).get("config") ?? "";
     expect(JSON.parse(config)).toEqual({ type: "http", url: MCP_PUBLIC_URL });
   });
 
-  it("VS Code Insiders uses the Insiders host and quality flag", () => {
-    const link = buildVscodeDeeplink(true);
+  it("keeps the web-redirect form only as a labelled fallback", () => {
+    const link = buildVscodeWebDeeplink(true);
     expect(link).toContain("https://insiders.vscode.dev/redirect/mcp/install?");
     expect(link).toContain("&quality=insiders");
   });
@@ -113,7 +131,7 @@ describe("install links (generated, never hand-written)", () => {
     const links = [
       buildCursorDeeplink(),
       buildVscodeDeeplink(),
-      buildVscodeDeeplink(true),
+      buildVscodeWebDeeplink(true),
       buildLmStudioDeeplink(),
       buildGooseDeeplink(),
       MCP_REGISTRY_BUTTON_URL,

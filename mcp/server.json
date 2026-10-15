@@ -3,7 +3,23 @@
   "name": "io.github.UMHelper/what2reg-um",
   "title": "What2REG@UM 澳大選咩課",
   "description": "Read-only University of Macau course, instructor and review data.",
-  "version": "0.1.0",
+  "version": "0.1.1",
+  "icons": [
+    {
+      "src": "https://umeh.top/icon/512.png",
+      "mimeType": "image/png",
+      "sizes": [
+        "512x512"
+      ]
+    },
+    {
+      "src": "https://umeh.top/icon/192.png",
+      "mimeType": "image/png",
+      "sizes": [
+        "192x192"
+      ]
+    }
+  ],
   "websiteUrl": "https://umeh.top",
   "repository": {
     "url": "https://github.com/UMHelper/next-web",

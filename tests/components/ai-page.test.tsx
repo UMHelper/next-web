@@ -185,7 +185,7 @@ describe("/ai onboarding page", () => {
     expect(requirement?.className).not.toContain("from-wordmark-from");
 
     // The deep-link CTA is a brand surface: brand gradient + white text.
-    const cta = view.container.querySelector('#ai-panel-vscode a[href^="https://vscode.dev"]');
+    const cta = view.container.querySelector('#ai-panel-vscode a[href^="vscode:mcp/install"]');
     expect(cta?.className).toContain("from-brand-from");
     expect(cta?.className).toContain("to-brand-to");
     expect(cta?.className).toContain("text-white");
