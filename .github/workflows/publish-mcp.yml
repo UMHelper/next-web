@@ -2,28 +2,30 @@ name: Publish MCP server
 
 # 把 mcp/server.json 發佈到官方 MCP Registry。
 #
-# 觸發方式（三者並存，日常完全不用手動點）：
-#   1. push 到 main（**不過濾路徑**：每個 push 都確認一次「這版發佈了沒」）；
-#   2. 打 `mcp-v*` tag；
-#   3. workflow_dispatch（可勾 force 強制重發）。
+# 這是**獨立於 CI 的另一個 workflow**，由 CI 的結果驅動，而不是在自己的 job 裡再跑
+# 一次品質檢查：
+#   - `workflow_run`（CI 在 main 上完成）→ 只有結論是 success 才會進來；
+#   - `workflow_dispatch` → 手動重試（可勾 force）。
+# 這樣每個 push 只會有一次 quality（在 CI 裡），publish 只負責發佈。
 #
-# 這個 job 的**成功條件只有一條：registry 上確實存在這個 name+version**。所以：
+# 刻意**不用 tag 觸發**：打 tag 不會跑 CI，會繞過測試門禁。要標記發版就打 tag 當標籤，
+# 發佈本身一律由 main 的 CI 成功來驅動。
+#
+# 這個 job 的成功條件只有一條：**registry 上確實存在這個 name+version**。所以：
 #   - 先查 registry，已存在就整段跳過（幾秒結束）；
 #   - 查不到、或查詢本身失敗（限流／抖動等「查不明」）→ 照樣去發；
 #   - 發佈步驟允許失敗（重複發佈會被 registry 拒絕，那是預期情況），
 #     最後再用一次查詢確認結果：查得到才算成功。
-# 這樣「重複發佈」與「查詢暫時失敗」都不會讓 CI 無謂變紅，而真正的失敗
-# （驗證不過、OIDC 被拒、根本沒發出去）仍會在最後的確認步驟暴露。
 #
 # 為什麼用 github-oidc 而不是本機的 `mcp-publisher login github`：
 #   - OIDC token 由 GitHub 執行時簽發，倉庫裡**不需要存任何密鑰**；
 #   - 命名空間 `io.github.UMHelper/*` 由 OIDC token 的倉庫歸屬證明。
 
 on:
-  push:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
     branches: [main]
-    tags:
-      - "mcp-v*"
   workflow_dispatch:
     inputs:
       force:
@@ -35,16 +37,9 @@ permissions:
   contents: read
 
 jobs:
-  # 發布前必須先過倉庫的品質門檻（lint / tsc / test）。直接複用 ci.yml，避免兩份
-  # 會各自漂移的檢查清單。registry 的 manifest 有幾條約束是靠測試守的
-  # （版本必須等於插件清單、描述 ≤100 字元），所以不能只跑 mcp-publisher validate。
-  quality:
-    uses: ./.github/workflows/ci.yml
-    permissions:
-      contents: read
-
   publish:
-    needs: [quality]
+    # CI 失敗時整個 job 直接跳過；手動觸發不套用這個條件。
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -54,6 +49,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # workflow_run 觸發時要明確 checkout 那次 CI 對應的 commit，
+          # 否則會拿到 default branch 的最新狀態。
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - name: Read the manifest
         id: manifest
