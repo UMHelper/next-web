@@ -5,9 +5,11 @@ import { IOS_APP_ID, IOS_APP_STORE_URL } from "@/lib/site";
 describe("root SEO metadata", () => {
   it("uses metadataBase and title template", () => {
     expect(rootMetadata.metadataBase?.toString()).toBe("https://umeh.top/");
+    // Pinned on purpose: a brand change should fail here so it is a deliberate
+    // decision (commit 9053532 removed the spaces and this assertion drifted).
     expect(rootMetadata.title).toMatchObject({
-      default: "What2Reg @ UM 澳大選咩課",
-      template: "%s | What2Reg @ UM",
+      default: "What2Reg@UM 澳大選咩課",
+      template: "%s | What2Reg@UM",
     });
   });
 

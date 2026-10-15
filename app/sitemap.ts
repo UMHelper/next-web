@@ -74,6 +74,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "yearly",
       priority: 0.3,
     },
+    {
+      // Distribution/onboarding page for the MCP server — intentionally indexable
+      // (see docs/superpowers/specs/2026-10-15-umhelper-mcp-distribution-design.md §3.5).
+      url: absoluteUrl("/ai"),
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.6,
+    },
   ];
 
   const [courseSitemap, reviewSitemap] = await Promise.all([

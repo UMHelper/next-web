@@ -22,6 +22,8 @@ const PUBLIC_API_ROUTES = new Map<string, string>([]);
 // Pages that are intentionally reachable without a session. Every other page
 // under app/ must be guarded by its own file or by an ancestor layout.
 const PUBLIC_PAGE_PREFIXES = [
+  // 分發／接入頁：必須匿名可達，同學未登入時就要能看到怎麼裝（spec §7）。
+  "/ai",
   "/catalog",
   "/course",
   "/professor",
