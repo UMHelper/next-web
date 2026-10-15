@@ -1,6 +1,6 @@
 export const SITE_URL = "https://umeh.top";
-export const SITE_NAME = "What2Reg @ UM 澳大選咩課";
-export const SITE_SHORT_NAME = "What2Reg @ UM";
+export const SITE_NAME = "What2Reg@UM 澳大選咩課";
+export const SITE_SHORT_NAME = "What2Reg@UM";
 
 /**
  * 已上架 iOS App 的 App Store 商品 ID。
