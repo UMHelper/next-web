@@ -71,10 +71,13 @@ jobs:
           SERVER_VERSION: ${{ steps.manifest.outputs.version }}
         run: |
           # 刻意不用 `set -e`：查詢失敗代表「查不明」，不等於「要跳過」。
+          # 超時給到 60s：實測這個 API 的**首次**查詢（冷啟動）要 30–35 秒，之後同詞
+          # 約 1 秒（有快取）。原本用 20s —— 首次查詢必然超時，配上 pipefail 就讓整步
+          # 失敗，反而擋住了它本該守護的發布（2026-10-15 的兩次失敗即此）。
           set -uo pipefail
           already=unknown
           for attempt in 1 2 3; do
-            body=$(curl -sS --max-time 20 -G "https://registry.modelcontextprotocol.io/v0.1/servers" \
+            body=$(curl -sS --max-time 60 -G "https://registry.modelcontextprotocol.io/v0.1/servers" \
               --data-urlencode "search=${SERVER_NAME}" 2>/dev/null || true)
             if [ -n "$body" ] && printf '%s' "$body" | jq -e '.servers' >/dev/null 2>&1; then
               hit=$(printf '%s' "$body" | jq -r --arg n "$SERVER_NAME" --arg v "$SERVER_VERSION" \
@@ -133,7 +136,7 @@ jobs:
         run: |
           set -euo pipefail
           for attempt in 1 2 3 4 5; do
-            body=$(curl -sS --max-time 20 -G "https://registry.modelcontextprotocol.io/v0.1/servers" \
+            body=$(curl -sS --max-time 60 -G "https://registry.modelcontextprotocol.io/v0.1/servers" \
               --data-urlencode "search=${SERVER_NAME}" 2>/dev/null || true)
             if [ -n "$body" ] && printf '%s' "$body" | jq -e '.servers' >/dev/null 2>&1; then
               hit=$(printf '%s' "$body" | jq -r --arg n "$SERVER_NAME" --arg v "$SERVER_VERSION" \
