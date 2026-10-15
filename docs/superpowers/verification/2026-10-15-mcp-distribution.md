@@ -94,6 +94,31 @@ JSON Schema 里**没有** `description` 长度限制，但 registry 服务端限
 - `tests`：938 项全过；`tsc` / `lint` / `next build` 均为 0；
 - 以上所有几何/动画/颜色结论均来自 Chrome DevTools Protocol 实测（`/tmp/measure-*.mjs`），非目测。
 
+### 6.5b 兩次失敗與修正（同日）
+
+第一次發布（`0.1.0`）成功後，接下來兩次 push 的 Publish 運行都**失敗**，且 registry 上沒有新版本。排查與修正：
+
+| 觀察 | 結論 |
+| --- | --- |
+| 最新提交的 Publish 運行確實觸發了（Run 5），只是 `failed` —— 我第一次抓頁面時只看到 success 標籤，誤判成「沒觸發」 | 先確認事實，再談原因 |
+| 本機逐字複現那幾個 `run:` 區塊 → 全部通過（`already=false`，該發布） | 失敗不在 shell 邏輯本身 |
+| 兩個圖示 URL 實測 200 + `image/png` + 尺寸正確 | 不是圖示導致的 422 |
+| 前後兩次相同的查詢，一次成功一次失敗 | **脆弱點是「單次查 registry」**：`set -euo pipefail` 之下，只要回應非 JSON（限流／抖動），`jq` 非零退出就讓整步失敗 —— 而這一步失敗會**擋掉它本該守護的發布** |
+
+修正後的工作流，**成功條件只有一條：registry 上確實存在這個 name+version**：
+
+- 查詢加重試，且把「查不明」視為 unknown（不是「要跳過」）；
+- 只有明確「已存在」才跳過；
+- 發佈步驟 `continue-on-error`（重複發佈本來就會被拒），最後用**再一次查詢**決定這次運行的成敗。
+
+結果：`0.1.1` 於 push 後約 175 秒自動發布成功（含 `icons`）。
+
+### 6.6 VS Code 安裝連結：實測糾正
+
+- `https://vscode.dev/redirect/mcp/install?...`：桌面 VS Code **只收到 `name`**，安裝對話框的 URL 欄是空的（2026-10-15 於 stable 實測）；
+- `vscode:mcp/install?name=…&config=…`（直連協議）：Name / Type / URL 全部正確填入 ✓；
+- 頁面已改用直連協議，web 重定向形式只作後備並在程式碼註解標明「已知會丟 config」。
+
 ### 6.5 Registry 發布結果（2026-10-15）
 
 ```
