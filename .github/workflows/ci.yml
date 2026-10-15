@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
   pull_request:
+  # 讓 publish-mcp 可以把這個 job 當門檻複用（見 .github/workflows/publish-mcp.yml）。
+  workflow_call:
 
 jobs:
   quality:

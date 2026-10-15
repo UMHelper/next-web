@@ -34,13 +34,24 @@ on:
 
 permissions:
   contents: read
-  # github-oidc 需要它才能取得 OIDC token。
-  id-token: write
 
 jobs:
+  # 發布前必須先過倉庫的品質門檻（lint / tsc / test）。直接複用 ci.yml，避免兩份
+  # 會各自漂移的檢查清單。registry 的 manifest 有幾條約束是靠測試守的
+  # （版本必須等於插件清單、描述 ≤100 字元），所以不能只跑 mcp-publisher validate。
+  quality:
+    uses: ./.github/workflows/ci.yml
+    permissions:
+      contents: read
+
   publish:
+    needs: [quality]
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: read
+      # github-oidc 需要它才能取得 OIDC token。
+      id-token: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
