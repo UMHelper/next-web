@@ -42,8 +42,9 @@
 
 | 步骤 | 内容 |
 | --- | --- |
-| Step 4 | **改为由 CI 发布**（见第 6 节）：合并时会自动发布；成功后把 `MCP_REGISTRY_PUBLISHED` 置 `true` |
+| ~~Step 4~~ | ✅ **已完成**：见第 6.5 节 |
 | Step 5 | 决定 `.agents/plugins/marketplace.json` 是否纳入版本控制（现被 `.gitignore` 忽略）；否则改由页面给出创建该文件的命令 |
+| U3 | 仍需实测：用免費/學生 GitHub 帳號確認「Copilot Free 能用 MCP」，否則要調整頁面推薦順序 |
 | Step 6 | （可选）用 `mcp-submit` 投递第三方目录 |
 | Step 7 | 在 `/support`、页脚、iOS App「关于」加入 `/ai` 入口 |
 
@@ -92,3 +93,21 @@ JSON Schema 里**没有** `description` 长度限制，但 registry 服务端限
 
 - `tests`：938 项全过；`tsc` / `lint` / `next build` 均为 0；
 - 以上所有几何/动画/颜色结论均来自 Chrome DevTools Protocol 实测（`/tmp/measure-*.mjs`），非目测。
+
+### 6.5 Registry 發布結果（2026-10-15）
+
+```
+name        : io.github.UMHelper/what2reg-um
+title       : What2REG@UM 澳大選咩課
+version     : 0.1.0
+description : Read-only University of Macau course, instructor and review data.
+remotes     : [{"type":"streamable-http","url":"https://umeh.top/mcp"}]
+repository  : https://github.com/UMHelper/next-web (github)
+websiteUrl  : https://umeh.top
+status      : active
+publishedAt : 2026-10-15T13:13:40Z
+```
+
+- 全程**零手動**：push 到 main 後約 60 秒完成（`mcp-publisher login github-oidc` → `validate` → `publish`），倉庫內**沒有存任何密鑰**；
+- 發布判定改為查 registry 是否存在該 `name+version`。原本用「比對 git 版本號有沒有變」是錯的：**0.1.0 從未發布過，卻因為版本號沒變而被跳過**（此錯誤已在 `1a9c578` 修正）；
+- `MCP_REGISTRY_PUBLISHED` 隨之置 `true`，頁面的 registry 按鈕才顯示。

@@ -1,6 +1,6 @@
 # What2Reg @ UM MCP 分发与接入设计
 
-> 状态：Steps 1–3 implemented（Step 4/5 待人工；U1/U3/U5/U6 仍待决策）
+> 状态：Steps 1–4 完成（registry 已发布，由 CI 自动发布）；Step 5 待決；U3/U5/U6 仍待決策
 > 日期：2026-10-15
 > 产品名称：`What2REG@UM 澳大選咩課`（开发团队：`UMHelper`，命名规范见 `2026-10-05-umhelper-gpt-plugin-design.md` §11.1）
 > 前置：`2026-10-05-umhelper-gpt-plugin-design.md` —— MCP 服务与插件包已完成，生产端到端验证通过（见 `../verification/2026-10-05-umhelper-mcp-plugin.md` 第 12 条）
@@ -222,7 +222,7 @@ https://install.apicommons.org/?name=io.github.UMHelper/what2reg-um
 1. ~~**Step 1**：`lib/ai-onboarding.ts` 常量 + `scripts/build-mcp-links.mjs` + 测试（§6.2）。~~ **已完成**
 2. ~~**Step 2**：`app/ai/page.tsx` 页面 + SEO/sitemap + 测试（§6.3）。~~ **已完成**
 3. ~~**Step 3**：`mcp/server.json` + 测试（§6.1）**并提交**（不含发布动作）。~~ **已完成**
-4. **Step 4（人工）**：`mcp-publisher login github` → `publish` → 验证 Registry 上可查到；把 `MCP_REGISTRY_PUBLISHED` 置为 `true`，页面主按钮随之出现。
+4. ~~**Step 4**：发布到 Registry。~~ **已完成**：改用 `.github/workflows/publish-mcp.yml` 由 CI 以 `github-oidc` 自动发布（无需密钥），`io.github.UMHelper/what2reg-um@0.1.0` 已 `active`，`MCP_REGISTRY_PUBLISHED` 已置 `true`。
 5. **Step 5**：`.agents/plugins/marketplace.json` 纳入版本控制（或改为在页面里给出创建该文件的命令），使 Codex 路径对同学可用。
 6. **Step 6（人工，可选）**：投递第三方目录（Smithery / mcp.so / Glama / PulseMCP，可用 `mcp-submit`）。
 7. **Step 7**：在 `/support`、页脚、iOS App「关于」里加入 `/ai` 的入口链接。

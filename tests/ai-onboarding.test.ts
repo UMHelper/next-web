@@ -126,9 +126,10 @@ describe("install links (generated, never hand-written)", () => {
     }
   });
 
-  it("keeps the registry pointer behind a published flag", () => {
-    // The page must not advertise a registry entry before it exists (spec §9 U1).
-    expect(MCP_REGISTRY_PUBLISHED).toBe(false);
+  it("advertises the registry pointer only because the entry is live", () => {
+    // Published 2026-10-15 (io.github.UMHelper/what2reg-um@0.1.0, status active).
+    // The flag stays in the code so a future unpublished name cannot leak a 404 link.
+    expect(MCP_REGISTRY_PUBLISHED).toBe(true);
     expect(read(AI_PAGE)).toContain("MCP_REGISTRY_PUBLISHED &&");
     expect(MCP_REGISTRY_BUTTON_URL).toContain(encodeURIComponent(MCP_REGISTRY_NAME));
   });

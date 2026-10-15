@@ -26,11 +26,14 @@ export const MCP_SERVER_ID = "what2reg-um";
 export const MCP_REGISTRY_NAME = "io.github.UMHelper/what2reg-um";
 
 /**
- * Flipped to `true` only after `mcp-publisher publish` succeeded. The page hides
- * the registry pointer button while this is false, so we never ship a link to a
- * registry entry that does not exist yet.
+ * Flipped to `true` after the entry went live. The page hides the registry pointer
+ * button while this is false, so we never ship a link to a registry entry that does
+ * not exist yet.
+ *
+ * Published 2026-10-15 by `.github/workflows/publish-mcp.yml`:
+ *   io.github.UMHelper/what2reg-um@0.1.0 (status: active)
  */
-export const MCP_REGISTRY_PUBLISHED = false;
+export const MCP_REGISTRY_PUBLISHED = true;
 
 /** Repository that hosts the Codex marketplace (`.agents/plugins/marketplace.json`). */
 export const MCP_REPOSITORY = "UMHelper/next-web";

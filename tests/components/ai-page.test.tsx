@@ -191,25 +191,28 @@ describe("/ai onboarding page", () => {
     expect(cta?.className).toContain("text-white");
   });
 
-  it("hides the registry pointer until the entry is published", async () => {
+  it("shows the registry pointer now that the entry is live", async () => {
     const view = await renderPage();
-
-    expect(view.container.querySelector('a[href*="install.apicommons.org"]')).toBeNull();
-  });
-
-  it("shows the registry pointer once MCP_REGISTRY_PUBLISHED flips", async () => {
-    vi.resetModules();
-    vi.doMock("@/lib/ai-onboarding", async (importOriginal) => ({
-      ...(await importOriginal<typeof import("@/lib/ai-onboarding")>()),
-      MCP_REGISTRY_PUBLISHED: true,
-    }));
-
-    const { default: PublishedPage } = await import("@/app/ai/page");
-    const element = await PublishedPage({ searchParams: Promise.resolve({}) });
-    const view = render(element);
 
     const pointer = view.container.querySelector('a[href*="install.apicommons.org"]');
     expect(pointer).not.toBeNull();
     expect(pointer?.getAttribute("href")).toContain("io.github.UMHelper");
   });
+
+  it("would hide the registry pointer again if the flag went back to false", async () => {
+    // The flag is not decoration: it is what keeps an unpublished name from leaking
+    // a 404 link. Prove the gate still works in the other direction.
+    vi.resetModules();
+    vi.doMock("@/lib/ai-onboarding", async (importOriginal) => ({
+      ...(await importOriginal<typeof import("@/lib/ai-onboarding")>()),
+      MCP_REGISTRY_PUBLISHED: false,
+    }));
+
+    const { default: UnpublishedPage } = await import("@/app/ai/page");
+    const element = await UnpublishedPage({ searchParams: Promise.resolve({}) });
+    const view = render(element);
+
+    expect(view.container.querySelector('a[href*="install.apicommons.org"]')).toBeNull();
+  });
+
 });
