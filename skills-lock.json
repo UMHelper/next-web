@@ -1,6 +1,12 @@
 {
   "version": 1,
   "skills": {
+    "animal-island-ui-style": {
+      "source": "guokaigdg/animal-island-ui",
+      "sourceType": "github",
+      "skillPath": "skills/animal-island-ui-style/SKILL.md",
+      "computedHash": "9c0ac270a9fb6ac737ada747869daa5393cb819ae363c766536af79d0cc769b9"
+    },
     "brainstorming": {
       "source": "obra/superpowers",
       "sourceType": "github",
@@ -24,6 +30,12 @@
       "sourceType": "github",
       "skillPath": "skills/finishing-a-development-branch/SKILL.md",
       "computedHash": "4f571e7befb8b0946d9d7770232c818812412e9ab1dfb811f847edfba1fc6275"
+    },
+    "naive-icons": {
+      "source": "guokaigdg/naive-icons",
+      "sourceType": "github",
+      "skillPath": "skills/naive-icons/SKILL.md",
+      "computedHash": "db19f032c8347a94c75e02593d69ea2f51affd1d5d6cbce520aa0cb78f306737"
     },
     "receiving-code-review": {
       "source": "obra/superpowers",

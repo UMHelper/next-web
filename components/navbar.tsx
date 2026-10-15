@@ -20,7 +20,7 @@ const Navbar = () => {
                     <div className=" space-x-2 flex flex-row justify-end items-center">
                         <div className="flex flex-row space-x-3 items-center">
                             <ThemeToggle />
-                            <SkinSwitcher />
+                            {/* <SkinSwitcher /> */}
                             <SearchButton />
                             <AdminEntry />
                             <NavbarAvatar />

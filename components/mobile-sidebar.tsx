@@ -30,14 +30,14 @@ const MobileSidebar = () => {
                 </SheetTrigger>
                 <SheetContent>
                     <div className="px-4 pt-6">
-                        <div className="px-1 pb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        {/* <div className="px-1 pb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                             Theme
                         </div>
-                        <ThemeOptions />
-                        <div className="px-1 pb-2 pt-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        <ThemeOptions /> */}
+                        {/* <div className="px-1 pb-2 pt-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                             Skin
                         </div>
-                        <SkinOptions />
+                        <SkinOptions /> */}
                     </div>
                     <div className="font-bold flex flex-col p-4 mt-4 space-y-4" onClick={()=>{
                         wait().then(() => setOpen(false));
