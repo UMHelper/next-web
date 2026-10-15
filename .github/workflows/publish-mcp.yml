@@ -3,21 +3,20 @@ name: Publish MCP server
 # 把 mcp/server.json 發佈到官方 MCP Registry。
 #
 # 觸發方式（三者並存，日常完全不用手動點）：
-#   1. push 到 main（**不過濾路徑**：每個 push 都確認一次「這版發佈了沒」，反正已發佈時
-#      整個 job 只花幾秒查一下就結束）；
+#   1. push 到 main（**不過濾路徑**：每個 push 都確認一次「這版發佈了沒」）；
 #   2. 打 `mcp-v*` tag；
 #   3. workflow_dispatch（可勾 force 強制重發）。
 #
-# 發不發的判斷只有一條：**registry 上是否已存在這個 name+version**。
-#   （曾經用「比對 git 中版本號有沒有變」，那是錯的：版本沒變也可能是從未發佈過。）
-#   - 已存在 → 跳過（registry 不允許覆蓋同一版本，重發會 422）；
-#   - 不存在 → 發佈（同時涵蓋「首次發佈」與「升版發佈」兩種情況）。
-# 這比「比對 git 中版本號有沒有變」更正確：版本號沒變也可能是**從未發佈過**，
-# 那種情況本來就該發。
+# 這個 job 的**成功條件只有一條：registry 上確實存在這個 name+version**。所以：
+#   - 先查 registry，已存在就整段跳過（幾秒結束）；
+#   - 查不到、或查詢本身失敗（限流／抖動等「查不明」）→ 照樣去發；
+#   - 發佈步驟允許失敗（重複發佈會被 registry 拒絕，那是預期情況），
+#     最後再用一次查詢確認結果：查得到才算成功。
+# 這樣「重複發佈」與「查詢暫時失敗」都不會讓 CI 無謂變紅，而真正的失敗
+# （驗證不過、OIDC 被拒、根本沒發出去）仍會在最後的確認步驟暴露。
 #
 # 為什麼用 github-oidc 而不是本機的 `mcp-publisher login github`：
-#   - OIDC token 由 GitHub 執行時簽發，倉庫裡**不需要存任何密鑰**，也沒有會過期的
-#     本機 token 要輪換；
+#   - OIDC token 由 GitHub 執行時簽發，倉庫裡**不需要存任何密鑰**；
 #   - 命名空間 `io.github.UMHelper/*` 由 OIDC token 的倉庫歸屬證明。
 
 on:
@@ -60,43 +59,54 @@ jobs:
         id: manifest
         run: |
           set -euo pipefail
-          echo "name=$(jq -r .name mcp/server.json)" >> "$GITHUB_OUTPUT"
-          echo "version=$(jq -r .version mcp/server.json)" >> "$GITHUB_OUTPUT"
+          name=$(jq -r .name mcp/server.json)
+          version=$(jq -r .version mcp/server.json)
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Publishing target: ${name}@${version}"
 
       - name: Is this version already published?
         id: registry
+        env:
+          SERVER_NAME: ${{ steps.manifest.outputs.name }}
+          SERVER_VERSION: ${{ steps.manifest.outputs.version }}
         run: |
-          set -euo pipefail
-          name='${{ steps.manifest.outputs.name }}'
-          version='${{ steps.manifest.outputs.version }}'
-          existing=$(curl -sG "https://registry.modelcontextprotocol.io/v0.1/servers" \
-            --data-urlencode "search=${name}" \
-            | jq -r --arg n "$name" --arg v "$version" \
+          # 刻意不用 `set -e`：查詢失敗代表「查不明」，不等於「要跳過」。
+          set -uo pipefail
+          already=unknown
+          for attempt in 1 2 3; do
+            body=$(curl -sS --max-time 20 -G "https://registry.modelcontextprotocol.io/v0.1/servers" \
+              --data-urlencode "search=${SERVER_NAME}" 2>/dev/null || true)
+            if [ -n "$body" ] && printf '%s' "$body" | jq -e '.servers' >/dev/null 2>&1; then
+              hit=$(printf '%s' "$body" | jq -r --arg n "$SERVER_NAME" --arg v "$SERVER_VERSION" \
                 '.servers[]? | select(.server.name == $n and .server.version == $v) | .server.version' \
-            | head -1)
-          if [ -n "$existing" ]; then
-            echo "already=true" >> "$GITHUB_OUTPUT"
-            echo "::notice::${name}@${version} is already in the registry — nothing to publish."
-          else
-            echo "already=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::${name}@${version} is not published yet."
-          fi
+                2>/dev/null | head -1 || true)
+              if [ -n "$hit" ]; then already=true; else already=false; fi
+              break
+            fi
+            echo "::warning::registry query attempt ${attempt} failed; retrying"
+            sleep 5
+          done
+          echo "already=${already}" >> "$GITHUB_OUTPUT"
+          echo "already=${already}"
 
       - name: Decide whether to publish
         id: decide
         run: |
-          set -euo pipefail
-          if [ '${{ steps.registry.outputs.already }}' = 'false' ] || [ '${{ inputs.force }}' = 'true' ]; then
-            echo "publish=true" >> "$GITHUB_OUTPUT"
-          else
+          # already=true 且沒勾 force → 跳過；其餘（false 或 unknown）都去發。
+          if [ "${{ steps.registry.outputs.already }}" = "true" ] && [ "${{ inputs.force }}" != "true" ]; then
             echo "publish=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Already published — nothing to do."
+          else
+            echo "publish=true" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Install mcp-publisher
         if: steps.decide.outputs.publish == 'true'
         # registry 仍是 preview，之後若要固定版本，把 latest 換成具體 tag。
         run: |
-          curl -sL "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_linux_amd64.tar.gz" | tar xz mcp-publisher
+          set -euo pipefail
+          curl -sL --fail "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_linux_amd64.tar.gz" | tar xz mcp-publisher
           sudo mv mcp-publisher /usr/local/bin/
           mcp-publisher --help >/dev/null
 
@@ -106,8 +116,36 @@ jobs:
         run: mcp-publisher validate
 
       - name: Publish to the MCP Registry
+        id: publish
         if: steps.decide.outputs.publish == 'true'
+        # 重複發佈會被 registry 拒絕（版本不可覆蓋），那是預期內的情況，
+        # 交給下面的確認步驟判斷成敗。
+        continue-on-error: true
         working-directory: mcp
         run: |
+          set -euo pipefail
           mcp-publisher login github-oidc
           mcp-publisher publish
+
+      - name: Confirm the version is in the registry
+        env:
+          SERVER_NAME: ${{ steps.manifest.outputs.name }}
+          SERVER_VERSION: ${{ steps.manifest.outputs.version }}
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3 4 5; do
+            body=$(curl -sS --max-time 20 -G "https://registry.modelcontextprotocol.io/v0.1/servers" \
+              --data-urlencode "search=${SERVER_NAME}" 2>/dev/null || true)
+            if [ -n "$body" ] && printf '%s' "$body" | jq -e '.servers' >/dev/null 2>&1; then
+              hit=$(printf '%s' "$body" | jq -r --arg n "$SERVER_NAME" --arg v "$SERVER_VERSION" \
+                '.servers[]? | select(.server.name == $n and .server.version == $v) | .server.version' \
+                2>/dev/null | head -1 || true)
+              if [ -n "$hit" ]; then
+                echo "::notice::${SERVER_NAME}@${SERVER_VERSION} is live in the registry."
+                exit 0
+              fi
+            fi
+            sleep 6
+          done
+          echo "::error::${SERVER_NAME}@${SERVER_VERSION} is not in the registry after publishing."
+          exit 1
