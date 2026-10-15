@@ -1,26 +1,17 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
+import { AiClientPicker } from '@/components/ai-client-picker'
 import {
-    MCP_PUBLIC_URL,
     MCP_REGISTRY_BUTTON_URL,
     MCP_REGISTRY_PUBLISHED,
-    aiOnboardingEn,
-    aiOnboardingZh,
-    type AiOnboardingContent,
+    aiOnboarding,
 } from '@/lib/ai-onboarding'
-import { SITE_NAME } from '@/lib/site'
+import { SITE_SHORT_NAME } from '@/lib/site'
 
 export const metadata: Metadata = {
-    title: `Use ${SITE_NAME} in your AI tools`,
+    title: `Use ${SITE_SHORT_NAME} in AI`,
     description:
-        'Add the What2REG@UM (UMHelper) MCP server to VS Code, Cursor, Claude Code, ChatGPT or Codex: setup steps, the read-only permission requested, and what data is sent and returned.',
-    alternates: {
-        canonical: '/ai',
-        languages: {
-            en: '/ai',
-            'zh-Hant': '/ai?lang=zh',
-        },
-    },
+        'Add the What2REG@UM MCP server to VS Code, Cursor, Claude Code, ChatGPT or Codex: setup steps, the read-only permission requested, and what data is sent and returned.',
+    alternates: { canonical: '/ai' },
 }
 
 /**
@@ -30,132 +21,48 @@ export const metadata: Metadata = {
  * §3.2）：README、第三方目錄與社群公告都會指向它，所以文案與連結一律來自
  * `lib/ai-onboarding.ts`，頁面本身只負責渲染。
  *
- * 兩個刻意的設計：
- * - 每個客戶端區塊都必須顯示「前置條件」。ChatGPT 與 Codex 需要付費方案，不能讓同學
- *   照著做完才發現要付錢（spec §3.4）。
- * - 只有 `MCP_REGISTRY_PUBLISHED` 為 true 時才顯示 registry 指標按鈕，避免指向還不存在的
- *   目錄條目（spec §9 U1）。
+ * 版面沿用站上其他區塊的節奏（`max-w-screen-xl` + 居中標題），而不是文章式的窄欄；
+ * 只有標題一行、一句說明與一排 App 圖示，其餘點開才出現。**所有步驟仍在 HTML 裡**
+ * （`AiClientPicker` 以 `hidden` 切換），所以搜尋引擎與「複製整頁」都拿得到完整內容。
+ * 本頁刻意只做英文版：它是安裝時讀一次的頁面，再來一份翻譯只會更吵。
  */
-const AiOnboardingPage = ({ content }: { content: AiOnboardingContent }) => {
-    return (
-        <div className='max-w-screen-xl mx-auto px-4 py-10'>
-            <div className='max-w-3xl mx-auto space-y-8'>
-                <div>
-                    <h1 className='text-3xl font-bold tracking-tight'>{content.title}</h1>
-                    <p className='mt-2 text-sm text-muted-foreground'>
-                        {content.updatedLabel}
-                        {content.updatedDate}
-                    </p>
-                </div>
-
-                <p>{content.intro}</p>
-
-                {MCP_REGISTRY_PUBLISHED && (
-                    <a
-                        href={MCP_REGISTRY_BUTTON_URL}
-                        className='inline-flex rounded-full bg-brand px-4 py-2 text-sm font-medium text-brand-foreground transition-colors hover:bg-brand-strong'
-                    >
-                        {content.clientsHeading === 'Choose your tool'
-                            ? 'Find it in the MCP registry'
-                            : '在 MCP registry 中尋找'}
-                    </a>
-                )}
-
-                <section className='space-y-2'>
-                    <h2 className='text-xl font-semibold'>{content.clientsHeading}</h2>
-                </section>
-
-                {content.clients.map((client) => (
-                    <section key={client.id} className='rounded-lg border border-border-strong p-4 space-y-3'>
-                        <h3 className='text-lg font-semibold'>{client.heading}</h3>
-                        <p className='rounded-md bg-muted px-3 py-2 text-sm'>{client.requirement}</p>
-                        <ol className='list-decimal pl-6 space-y-1'>
-                            {client.steps.map((step) => (
-                                <li key={step}>{step}</li>
-                            ))}
-                        </ol>
-                        {client.snippet && (
-                            <div className='space-y-1'>
-                                <p className='text-sm text-muted-foreground'>{client.snippetLabel}</p>
-                                <pre className='overflow-x-auto rounded-md bg-muted px-3 py-2 text-xs'>
-                                    <code>{client.snippet}</code>
-                                </pre>
-                            </div>
-                        )}
-                        {client.href && (
-                            <a
-                                href={client.href}
-                                className='inline-flex rounded-full border border-border-strong px-4 py-1.5 text-sm font-medium transition-colors hover:bg-muted'
-                            >
-                                {client.hrefLabel}
-                            </a>
-                        )}
-                    </section>
-                ))}
-
-                <section className='space-y-2'>
-                    <h2 className='text-xl font-semibold'>{content.authHeading}</h2>
-                    {content.authParagraphs.map((paragraph) => (
-                        <p key={paragraph}>{paragraph}</p>
-                    ))}
-                </section>
-
-                <section className='space-y-2'>
-                    <h2 className='text-xl font-semibold'>{content.dataHeading}</h2>
-                    <ul className='list-disc pl-6 space-y-1'>
-                        {content.dataBullets.map((bullet) => (
-                            <li key={bullet}>{bullet}</li>
-                        ))}
-                    </ul>
-                </section>
-
-                <section className='space-y-2'>
-                    <h2 className='text-xl font-semibold'>{content.troubleshootHeading}</h2>
-                    <ul className='list-disc pl-6 space-y-1'>
-                        {content.troubleshootBullets.map((bullet) => (
-                            <li key={bullet}>{bullet}</li>
-                        ))}
-                    </ul>
-                    <p>
-                        <Link
-                            href={content.supportHref}
-                            className='text-brand underline underline-offset-2 hover:text-brand-strong'
-                        >
-                            {content.supportLabel}
-                        </Link>
-                    </p>
-                </section>
-
-                <p className='text-sm text-muted-foreground'>
-                    <code>{MCP_PUBLIC_URL}</code>
-                </p>
-            </div>
-        </div>
-    )
-}
-
 type AiPageProps = {
-    searchParams: Promise<{ lang?: string | string[] }>
+    searchParams: Promise<{ app?: string | string[] }>
 }
 
 const Page = async ({ searchParams }: AiPageProps) => {
-    const { lang } = await searchParams
-    const isTraditionalChinese = (Array.isArray(lang) ? lang[0] : lang) === 'zh'
+    const { app } = await searchParams
+    const initialClientId = Array.isArray(app) ? app[0] : app
 
     return (
-        <>
-            <div className='max-w-screen-xl mx-auto px-4 pt-6'>
-                <div className='max-w-3xl mx-auto flex justify-end'>
-                    <Link
-                        href={isTraditionalChinese ? '/ai' : '/ai?lang=zh'}
-                        className='rounded-full border border-border-strong px-4 py-1.5 text-sm font-medium transition-colors hover:bg-muted'
-                    >
-                        {isTraditionalChinese ? 'Read in English' : '閱讀中文版本'}
-                    </Link>
-                </div>
+        <div className='mx-auto max-w-screen-xl p-4 py-10'>
+            <div className='text-center'>
+                {/* 漸層只包產品名 —— 站上就是這樣用的（navbar-list 的品牌 lockup、
+                    banner 的「選咩課」），整句套漸層會喧賓奪主又難讀。 */}
+                <h1 className='text-3xl font-bold tracking-tight'>
+                    {aiOnboarding.titleBefore}{' '}
+                    <span className='bg-gradient-to-r from-wordmark-from to-wordmark-to bg-clip-text text-transparent'>
+                        {SITE_SHORT_NAME}
+                    </span>{' '}
+                    {aiOnboarding.titleAfter}
+                </h1>
+                {MCP_REGISTRY_PUBLISHED && (
+                    <div className='mt-4'>
+                        <a
+                            href={MCP_REGISTRY_BUTTON_URL}
+                            className='inline-flex bg-brand px-5 py-2 text-sm font-medium text-brand-foreground transition-colors hover:bg-brand-strong'
+                        >
+                            Find it in the MCP registry
+                        </a>
+                    </div>
+                )}
             </div>
-            <AiOnboardingPage content={isTraditionalChinese ? aiOnboardingZh : aiOnboardingEn} />
-        </>
+
+            <div className='mt-10'>
+                <AiClientPicker content={aiOnboarding} initialClientId={initialClientId} />
+            </div>
+
+        </div>
     )
 }
 
