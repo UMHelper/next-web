@@ -3,13 +3,17 @@ name: Publish MCP server
 # 把 mcp/server.json 發佈到官方 MCP Registry。
 #
 # 觸發方式（三者並存，日常完全不用手動點）：
-#   1. push 到 main 且動到 mcp/server.json → 先比對版本號，只有**版本真的變了**才發佈；
+#   1. push 到 main（**不過濾路徑**：每個 push 都確認一次「這版發佈了沒」，反正已發佈時
+#      整個 job 只花幾秒查一下就結束）；
 #   2. 打 `mcp-v*` tag；
-#   3. workflow_dispatch（重試用）。
+#   3. workflow_dispatch（可勾 force 強制重發）。
 #
-# 為什麼要有「版本真的變了」這道閘：registry 上的版本**不能覆蓋**，同一個 version
-# 重複發佈會被拒。path filter 讓我們只在這份檔案被動到時才進 job，版本比對則擋掉
-# 「改了描述但沒升版」的情況 —— 那種情況該由 test（description ≤100 等）擋在前面。
+# 發不發的判斷只有一條：**registry 上是否已存在這個 name+version**。
+#   （曾經用「比對 git 中版本號有沒有變」，那是錯的：版本沒變也可能是從未發佈過。）
+#   - 已存在 → 跳過（registry 不允許覆蓋同一版本，重發會 422）；
+#   - 不存在 → 發佈（同時涵蓋「首次發佈」與「升版發佈」兩種情況）。
+# 這比「比對 git 中版本號有沒有變」更正確：版本號沒變也可能是**從未發佈過**，
+# 那種情況本來就該發。
 #
 # 為什麼用 github-oidc 而不是本機的 `mcp-publisher login github`：
 #   - OIDC token 由 GitHub 執行時簽發，倉庫裡**不需要存任何密鑰**，也沒有會過期的
@@ -19,11 +23,14 @@ name: Publish MCP server
 on:
   push:
     branches: [main]
-    paths:
-      - "mcp/server.json"
     tags:
       - "mcp-v*"
   workflow_dispatch:
+    inputs:
+      force:
+        description: Publish even if this name+version is already in the registry
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -37,25 +44,45 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          # 版本比對需要前一個 commit。
-          fetch-depth: 2
 
-      - name: Did the version change?
-        id: version
+      - name: Read the manifest
+        id: manifest
         run: |
           set -euo pipefail
-          before=$(git show HEAD^:mcp/server.json 2>/dev/null | grep -o '"version": *"[^"]*"' || true)
-          after=$(grep -o '"version": *"[^"]*"' mcp/server.json)
-          echo "before=$before after=$after"
-          if [ -n "$before" ] && [ "$before" = "$after" ]; then
-            echo "changed=false" >> "$GITHUB_OUTPUT"
+          echo "name=$(jq -r .name mcp/server.json)" >> "$GITHUB_OUTPUT"
+          echo "version=$(jq -r .version mcp/server.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Is this version already published?
+        id: registry
+        run: |
+          set -euo pipefail
+          name='${{ steps.manifest.outputs.name }}'
+          version='${{ steps.manifest.outputs.version }}'
+          existing=$(curl -sG "https://registry.modelcontextprotocol.io/v0.1/servers" \
+            --data-urlencode "search=${name}" \
+            | jq -r --arg n "$name" --arg v "$version" \
+                '.servers[]? | select(.server.name == $n and .server.version == $v) | .server.version' \
+            | head -1)
+          if [ -n "$existing" ]; then
+            echo "already=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::${name}@${version} is already in the registry — nothing to publish."
           else
-            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "already=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::${name}@${version} is not published yet."
+          fi
+
+      - name: Decide whether to publish
+        id: decide
+        run: |
+          set -euo pipefail
+          if [ '${{ steps.registry.outputs.already }}' = 'false' ] || [ '${{ inputs.force }}' = 'true' ]; then
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Install mcp-publisher
-        if: steps.version.outputs.changed == 'true'
+        if: steps.decide.outputs.publish == 'true'
         # registry 仍是 preview，之後若要固定版本，把 latest 換成具體 tag。
         run: |
           curl -sL "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_linux_amd64.tar.gz" | tar xz mcp-publisher
@@ -63,12 +90,12 @@ jobs:
           mcp-publisher --help >/dev/null
 
       - name: Validate manifest
-        if: steps.version.outputs.changed == 'true'
+        if: steps.decide.outputs.publish == 'true'
         working-directory: mcp
         run: mcp-publisher validate
 
       - name: Publish to the MCP Registry
-        if: steps.version.outputs.changed == 'true'
+        if: steps.decide.outputs.publish == 'true'
         working-directory: mcp
         run: |
           mcp-publisher login github-oidc
