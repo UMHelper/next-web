@@ -45,16 +45,21 @@ function getHandler(): Handler {
 
 function classify(request: Request): RouteKind | null {
   const { pathname } = new URL(request.url);
-  if (!pathname.startsWith(`${BASE_PATH}/`)) return null;
-  const segments = pathname.slice(BASE_PATH.length + 1).split("/").filter(Boolean);
 
   if (request.method === "GET") {
-    return segments.length === 1 && segments[0] === "info" ? "info" : null;
+    return pathname === `${BASE_PATH}/info` ? "info" : null;
   }
-  if (request.method !== "POST" || segments[0] !== "agent" || segments[1] !== AGENT_ID) return null;
-  if (segments.length === 3 && segments[2] === "run") return "run";
-  if (segments.length === 3 && segments[2] === "connect") return "connect";
-  if (segments.length === 4 && segments[2] === "stop") return "stop";
+  if (request.method !== "POST") return null;
+
+  if (pathname === `${BASE_PATH}/agent/${AGENT_ID}/run`) return "run";
+  if (pathname === `${BASE_PATH}/agent/${AGENT_ID}/connect`) return "connect";
+
+  const stopPrefix = `${BASE_PATH}/agent/${AGENT_ID}/stop/`;
+  if (pathname.startsWith(stopPrefix)) {
+    const threadId = pathname.slice(stopPrefix.length);
+    if (threadId.length > 0 && !threadId.includes("/")) return "stop";
+  }
+
   return null;
 }
 

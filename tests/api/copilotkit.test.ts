@@ -94,6 +94,12 @@ describe("/api/copilotkit", () => {
     ["POST", "/agent/other/run"],
     ["GET", "/agent/default/run"],
     ["GET", ""],
+    ["POST", "/agent//default/run"],
+    ["POST", "/agent/default/run/"],
+    ["GET", "/info/"],
+    ["POST", "/agent/default/connect/"],
+    ["POST", "/agent/default/stop/"],
+    ["POST", "/agent/default/stop/thread-1/extra"],
   ])("returns 404 for %s %s", async (method, path) => {
     const route = await loadRoute();
     const response =
