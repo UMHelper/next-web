@@ -53,3 +53,6 @@ export const getInstructorCourses = (prof: string) =>
   json<{ courses: any[] }>(
     `/api/timetable/catalog/instructors/${encodeURIComponent(prof).replaceAll("%2F", "$")}/courses`,
   );
+
+export const getFilters = () =>
+  json<{ faculties: string[]; departments: string[] }>("/api/timetable/catalog/filters");

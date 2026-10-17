@@ -2,43 +2,84 @@ import React from "react";
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const { plannerMock } = vi.hoisted(() => ({ plannerMock: vi.fn() }));
+const { useUserMock, usePathnameMock, plannerMock } = vi.hoisted(() => ({
+  useUserMock: vi.fn(),
+  usePathnameMock: vi.fn(() => "/timetable"),
+  plannerMock: vi.fn(),
+}));
+
+vi.mock("@clerk/nextjs", () => ({
+  useUser: useUserMock,
+  SignInButton: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
+
+vi.mock("next/navigation", () => ({
+  usePathname: usePathnameMock,
+  useRouter: () => ({ push: vi.fn() }),
+}));
 
 vi.mock("@/components/timetable/planner-provider", () => ({
   useTimetablePlanner: plannerMock,
 }));
 
-vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: vi.fn() }),
-}));
-
 import TimetablePage from "@/app/timetable/page";
+
+const emptyStore = {
+  plans: {},
+};
 
 afterEach(() => {
   cleanup();
 });
 
-const baseContext = {
-  store: { plans: {}, activePlanByTerm: {}, outbox: [] },
-  activePlan: undefined,
-  createPlan: vi.fn(),
-  renamePlan: vi.fn(),
-  deletePlan: vi.fn(),
-  setActivePlan: vi.fn(),
-  removeSection: vi.fn(),
-  syncState: "idle",
-};
-
 describe("TimetablePage", () => {
-  it("shows the empty planner state", () => {
-    plannerMock.mockReturnValue(baseContext);
-    render(<TimetablePage />);
-    expect(screen.getByText("Create timetable")).toBeTruthy();
+  it("renders nothing while Clerk is loading", () => {
+    useUserMock.mockReturnValue({ isLoaded: false, isSignedIn: false });
+    plannerMock.mockReturnValue({
+      store: emptyStore,
+      activePlan: undefined,
+      createPlan: vi.fn(),
+      renamePlan: vi.fn(),
+      deletePlan: vi.fn(),
+      setActivePlan: vi.fn(),
+      removeSection: vi.fn(),
+      syncState: "idle",
+    });
+
+    const { container } = render(<TimetablePage />);
+    expect(container.firstChild).toBeNull();
   });
 
-  it("renders an active plan section and conflict count", () => {
+  it("shows a sign-in prompt when signed out", () => {
+    useUserMock.mockReturnValue({ isLoaded: true, isSignedIn: false });
     plannerMock.mockReturnValue({
-      ...baseContext,
+      store: emptyStore,
+      activePlan: undefined,
+      createPlan: vi.fn(),
+      renamePlan: vi.fn(),
+      deletePlan: vi.fn(),
+      setActivePlan: vi.fn(),
+      removeSection: vi.fn(),
+      syncState: "idle",
+    });
+
+    render(<TimetablePage />);
+    expect(screen.getByText(/sign in to build and save/i)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Create timetable" })).toBeNull();
+    expect(screen.queryByLabelText("Faculty")).toBeNull();
+  });
+
+  it("renders an active plan section and conflict count when signed in", () => {
+    useUserMock.mockReturnValue({ isLoaded: true, isSignedIn: true });
+    plannerMock.mockReturnValue({
+      store: {
+        plans: {
+          "plan-1": {
+            clientRef: "plan-1",
+            name: "我的课表",
+          },
+        },
+      },
       activePlan: {
         clientRef: "plan-1",
         name: "我的课表",
@@ -54,19 +95,41 @@ describe("TimetablePage", () => {
               section: "A01",
               color: "#2563eb",
               credits: 3,
-              schedules: [
-                { date: "MON", time: "09:00-10:00", location: "E4" },
-              ],
+              schedules: [{ date: "MON", time: "09:00-10:00", location: "E4" }],
             },
           ],
         },
         revision: 1,
         syncState: "idle",
       },
+      createPlan: vi.fn(),
+      renamePlan: vi.fn(),
+      deletePlan: vi.fn(),
+      setActivePlan: vi.fn(),
+      removeSection: vi.fn(),
+      syncState: "idle",
     });
 
     render(<TimetablePage />);
     expect(screen.getByText("3 credits")).toBeTruthy();
     expect(screen.getAllByText("ACCT1000-A01").length).toBeGreaterThan(0);
+  });
+
+  it("shows the empty workbench when signed in", () => {
+    useUserMock.mockReturnValue({ isLoaded: true, isSignedIn: true });
+    plannerMock.mockReturnValue({
+      store: emptyStore,
+      activePlan: undefined,
+      createPlan: vi.fn(),
+      renamePlan: vi.fn(),
+      deletePlan: vi.fn(),
+      setActivePlan: vi.fn(),
+      removeSection: vi.fn(),
+      syncState: "idle",
+    });
+
+    render(<TimetablePage />);
+    expect(screen.getByRole("button", { name: "Create timetable" })).toBeTruthy();
+    expect(screen.queryByText(/sign in to build and save/i)).toBeNull();
   });
 });

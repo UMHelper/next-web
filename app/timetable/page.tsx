@@ -2,6 +2,8 @@
 
 import React from "react";
 import Link from "next/link";
+import { SignInButton, useUser } from "@clerk/nextjs";
+import { usePathname } from "next/navigation";
 
 import PlanHeader from "@/components/timetable/plan-header";
 import PlannerSidebar from "@/components/timetable/planner-sidebar";
@@ -16,6 +18,8 @@ const currentTerm = () => ({
 });
 
 const TimetablePage = () => {
+  const pathname = usePathname();
+  const { isLoaded, isSignedIn } = useUser();
   const {
     store,
     activePlan,
@@ -28,6 +32,29 @@ const TimetablePage = () => {
   } = useTimetablePlanner();
 
   const plans = Object.values(store.plans);
+
+  if (!isLoaded) {
+    return null;
+  }
+
+  if (!isSignedIn) {
+    return (
+      <div className="mx-auto max-w-3xl px-4 py-16 text-center">
+        <h1 className="text-2xl font-bold">My Timetable</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Sign in to build and save your timetable plans, then add courses from any review page.
+        </p>
+        <SignInButton mode="modal" fallbackRedirectUrl={pathname}>
+          <span className="mt-6 inline-block cursor-pointer rounded-md bg-brand px-4 py-2 text-sm font-semibold text-brand-foreground">
+            Sign in
+          </span>
+        </SignInButton>
+        <div className="mt-4 text-xs text-foreground-subtle">
+          or <Link className="underline" href="/">browse courses</Link>
+        </div>
+      </div>
+    );
+  }
 
   if (!activePlan) {
     return (
