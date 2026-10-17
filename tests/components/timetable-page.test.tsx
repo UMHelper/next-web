@@ -12,6 +12,10 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
 }));
 
+vi.mock("@/components/assistant/assistant-launcher", () => ({
+  default: () => <div data-testid="assistant-launcher" />,
+}));
+
 import TimetablePage from "@/app/timetable/page";
 
 afterEach(() => {
@@ -34,6 +38,7 @@ describe("TimetablePage", () => {
     plannerMock.mockReturnValue(baseContext);
     render(<TimetablePage />);
     expect(screen.getByText("Create timetable")).toBeTruthy();
+    expect(screen.getByTestId("assistant-launcher")).toBeTruthy();
   });
 
   it("renders an active plan section and conflict count", () => {
@@ -68,5 +73,6 @@ describe("TimetablePage", () => {
     render(<TimetablePage />);
     expect(screen.getByText("3 credits")).toBeTruthy();
     expect(screen.getAllByText("ACCT1000-A01").length).toBeGreaterThan(0);
+    expect(screen.getByTestId("assistant-launcher")).toBeTruthy();
   });
 });

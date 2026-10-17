@@ -10,11 +10,11 @@
 
 | 路由 | 基线 First Load | V1 First Load | 差值 |
 |---|---|---|---|
-| `/` | 175 kB | — | — |
-| `/course/[code]` | 132 kB | — | — |
-| `/timetable` | 203 kB | — | — |
-| First Load JS shared by all | 103 kB | — | — |
-| other shared chunks | 2.56 kB | — | — |
+| `/` | 175 kB | 176 kB | +1 kB |
+| `/course/[code]` | 132 kB | 133 kB | +1 kB |
+| `/timetable` | 203 kB | 205 kB | +2 kB |
+| First Load JS shared by all | 103 kB | 103 kB | 0 |
+| other shared chunks | 2.56 kB | 3.01 kB | +0.45 kB |
 
 ## 2. 手动验证（Task 10）
 
