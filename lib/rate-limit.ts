@@ -2,7 +2,7 @@ import supabaseServer from "@/lib/supabase/server";
 
 type ConsumeRateLimitInput = {
   key: string;
-  action: "comment" | "reply" | "vote" | "report" | "share_read" | "share_write" | "mcp";
+  action: "comment" | "reply" | "vote" | "report" | "share_read" | "share_write" | "mcp" | "agent";
   limit: number;
   windowSeconds?: number;
 };
