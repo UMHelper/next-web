@@ -105,6 +105,8 @@ API:
 UI:
 
 - New platform-admin-only page `/admin/assistant` (`app/admin/assistant/page.tsx` plus a client component), with a nav item `{ href: "/admin/assistant", label: "AI Assistant", platformOnly: true }`.
+- Placement: it is the last tab in the admin nav, after "Admins" (nav order: Dashboard, Reports, Comments, Courses, Update, Course Notes, Admins, AI Assistant). The page has a short note linking to the Admins page, since in `Admins only` mode that list decides who can test. Non-platform admins do not see the tab, and a direct visit returns 404 (same guard as `/admin/update`).
+- Why its own tab: no existing admin page edits `app_config`, the Update page is the schedule-upload pipeline, and a dedicated page leaves room for future AI settings.
 - The page shows the current mode and a three-way selector (Off / Admins only / Everyone) with a short description of each. Selecting "Everyone" asks for confirmation ("All signed-in users will be able to use the assistant and incur DeepSeek cost").
 - It follows the page guard pattern of `app/admin/update/page.tsx`.
 
