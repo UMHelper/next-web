@@ -1,9 +1,9 @@
 # next-web AI 选课助手 V1（只读最小版）设计
 
-> 状态：**§13 spike 已完成，待决定是否升级 Workers Paid 后写实施计划**
+> 状态：**实施计划已写，待执行**，见 [2026-10-18-ai-assistant-v1.md](../plans/2026-10-18-ai-assistant-v1.md)；Workers Paid 是否升级在上线前（计划 Task 11）决定
 > 日期：2026-10-17（2026-10-18 按 spike 结果回写）
 > 取代：[2026-09-24-next-web-ai-timetable-assistant-design.md](2026-09-24-next-web-ai-timetable-assistant-design.md) 的 V1 范围。旧文档保留作决策记录和 V2 待办来源，不再修改。
-> 后续：先做 §13 的可行性验证，再用 `writing-plans` 生成实施计划
+> 后续：§13 可行性验证已完成；按实施计划执行
 
 ---
 
@@ -39,7 +39,7 @@
 - **G2**：能回答「某课某 section 和我现在的课表冲突吗」，结果来自 `detectScheduleConflicts`，不是模型推断。
 - **G3**：只依据工具返回作答；工具为空就说「站内没有相关数据」；不编造课号、教授、评分、时间。
 - **G4**：接口只对「已登录 + 白名单」开放，有每用户限流。
-- **G5**：非白名单用户任何页面 JS 零增量。（spike 实测：引入 CopilotKit 后各页 First Load +~7 kB，来自 webpack runtime 的 streamdown 懒加载 chunk 映射；见 §12）
+- **G5**：非白名单用户的页面 JS 几乎不增加：非 `/timetable` 页 First Load ≤ 基线 + 1 kB，`First Load JS shared by all` 不变，`/timetable` ≤ 基线 + 2 kB。（严格零增量做不到：webpack runtime 每页都带懒加载 chunk 的映射。spike 实测各页 +~7 kB，替换 shiki / mermaid 后回到 +≤1 kB；见 §12。2026-10-18 与 Lua 确认此阈值）
 - **G6**：遵循现有约定：zod 校验、`apiError()` 错误体、vitest 镜像目录、不引入 `any`。
 
 ### 3.2 非目标（V1 不做，见 §18）
@@ -168,7 +168,7 @@ COPILOTKIT_TELEMETRY_DISABLED=true
 
 - `<AssistantLauncher/>` 只挂在 `/timetable`，非白名单返回 `null`；CopilotKit 与面板 `dynamic(..., { ssr: false })`，点开才加载。
 - §13 先量一次当前 `/timetable` First Load 作新基线（旧的 149 kB 早于 Next 15 与课表重写），验收时非白名单用户各页不增加。
-- spike 基线：`/` 175 kB、`/timetable` 203 kB、`/course/[code]` 132 kB。spike 分支各页 +~7 kB（webpack runtime 里约 390 个 streamdown 懒加载 chunk 的映射：shiki / mermaid / katex），spike 面板未用 `dynamic()`。V1 第一步验证 `dynamic()` 能否消除；不能则裁掉这些 chunk，或与用户确认放宽 G5。
+- spike 基线：`/` 175 kB、`/timetable` 203 kB、`/course/[code]` 132 kB。spike 分支各页 +~7 kB（webpack runtime 里约 390 个 streamdown 懒加载 chunk 的映射：shiki / mermaid / katex），spike 面板未用 `dynamic()`。`dynamic()` 消除不了这些映射；V1 在 `next.config.js` 里把 `shiki`、`shiki/engine/javascript`、`mermaid` 换成替身（面板不渲染代码高亮和图表），实测回到 +≤1 kB，按 G5 阈值验收。
 - CopilotKit v2 的 `./index.css` 是 Tailwind v4，本仓库是 Tailwind 3：spike 用 `next.config.js` 的 webpack hook 换成空文件、样式从 `public/` 用 `<link>` 加载（只在 webpack 下有效，复制的 CSS 可能随版本漂移）。
 
 ## 13. 可行性验证（开工第一步）
@@ -242,7 +242,7 @@ COPILOTKIT_TELEMETRY_DISABLED=true
 | CPU 超 Free 档 10 ms（spike 实测 41–249 ms，目前未被拦截） | 决定是否升级 Workers Paid；生产 `/course/[code]` 已是 51–71 ms，收紧时同样受影响 |
 | 多 isolate 丢上文 | spike：客户端每次带完整历史，不依赖 isolate |
 | CopilotKit `/threads*` 端点跨用户可读、内存上限过大 | 路由拒绝这些路径 + 无状态 runner（§9） |
-| 非白名单用户 JS +~7 kB（违背 G5） | `dynamic()` 验证；不行裁 chunk 或放宽 G5（§12） |
+| 非白名单用户 JS +~7 kB（违背 G5） | 替换 shiki / mermaid，回到 +≤1 kB，在 G5 阈值内（§12） |
 | CopilotKit 默认遥测外发 | `COPILOTKIT_TELEMETRY_DISABLED=true`（§10） |
 | Worker 体积 15 MB → 38 MB（上限 64 MiB） | 余量够；新增依赖前复查 |
 | 模型编造课号 / 时间 | 只读 + 纪律 + 冲突结果来自纯函数 |
