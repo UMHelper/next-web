@@ -142,15 +142,19 @@ AGENT_HISTORY_TURNS=8
 AI_BASE_URL=https://api.deepseek.com
 AI_API_KEY=
 AI_MODEL=deepseek-flash
-AI_THINKING=low            # low | off，端到端对比后定默认
+AI_THINKING=off            # off | low；spike 实测 off 更快更省、答案不差
 AI_MAX_OUTPUT_TOKENS=400
 AI_TIMEOUT_MS=30000
+COPILOTKIT_TELEMETRY_DISABLED=true
 ```
 
 - 全部服务端变量，禁止 `NEXT_PUBLIC_`；本地 `.env.local`，线上 `wrangler secret put`。
 - 用官方 `@ai-sdk/deepseek` provider，不用 OpenAI 兼容层。
 - 不设备用模型；失败或超时显示「助手暂时不可用」，页面其它功能照常；客户端断开时 abort 模型请求。
-- 09-24 锁定的 CopilotKit 1.73.3、AI SDK v6、`deepseek-flash` 型号与价格已过三周，§13 开工前重新核对再装依赖，结果写进验证报告。
+- 核对后版本（2026-10-17）：`@copilotkit/react-core` / `@copilotkit/runtime` 1.79.1、`@ai-sdk/deepseek` 2.0.76（`ai-v6` tag；latest 3.x 要求 `ai` 7）、`ai` 6.0.309。实施时精确锁定。
+- 模型 `deepseek-flash`（当前由 DeepSeek-V4.1-Flash-1017 提供）。思考参数：`providerOptions.deepseek.thinking.type`（`enabled` / `disabled`，API 默认开启）与 `reasoningEffort`（`low` / `high` / `max`）。
+- 价格（USD / 1M tokens，2026-10-17）：输入命中缓存 $0.003 低谷 / $0.006 高峰，未命中 $0.15 / $0.30，输出 $0.60 / $1.20；高峰为工作日北京时间 09:00–12:00、14:00–18:00。
+- CopilotKit runtime 默认开启遥测，必须用 `COPILOTKIT_TELEMETRY_DISABLED=true` 关掉。
 
 ## 11. 隐私
 
@@ -176,6 +180,8 @@ AI_TIMEOUT_MS=30000
 6. `/timetable` 当前 First Load 基线。
 
 判定：全部通过 → 按本文实施；CPU 超限 → 讨论升级 Workers Paid；CopilotKit 跑不动 → 换 Vercel AI SDK + shadcn 聊天组件，其余章节不变。结果写入 `docs/superpowers/verification/`。
+
+结果：见 `docs/superpowers/verification/2026-10-18-assistant-v1-workers-spike.md`。打包、流式、多轮上文（客户端每次带完整历史，与 isolate 无关）、两种思考模式均通过；CPU 每次请求 41–249 ms，超过 Free 档 10 ms 但未被拦截，是否升级 Workers Paid 待定。实施时另需处理：各页 First Load +~7 kB（违背 G5）、关闭 CopilotKit 遥测、单会话轮数不能用 `afterRequestMiddleware` 的 `messageCount` 计数。
 
 ## 14. 测试
 
