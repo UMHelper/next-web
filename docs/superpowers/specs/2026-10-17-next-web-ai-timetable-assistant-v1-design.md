@@ -1,7 +1,7 @@
 # next-web AI 选课助手 V1（只读最小版）设计
 
-> 状态：**已对齐，待实施**
-> 日期：2026-10-17
+> 状态：**§13 spike 已完成，待决定是否升级 Workers Paid 后写实施计划**
+> 日期：2026-10-17（2026-10-18 按 spike 结果回写）
 > 取代：[2026-09-24-next-web-ai-timetable-assistant-design.md](2026-09-24-next-web-ai-timetable-assistant-design.md) 的 V1 范围。旧文档保留作决策记录和 V2 待办来源，不再修改。
 > 后续：先做 §13 的可行性验证，再用 `writing-plans` 生成实施计划
 
@@ -39,7 +39,7 @@
 - **G2**：能回答「某课某 section 和我现在的课表冲突吗」，结果来自 `detectScheduleConflicts`，不是模型推断。
 - **G3**：只依据工具返回作答；工具为空就说「站内没有相关数据」；不编造课号、教授、评分、时间。
 - **G4**：接口只对「已登录 + 白名单」开放，有每用户限流。
-- **G5**：非白名单用户任何页面 JS 零增量。
+- **G5**：非白名单用户任何页面 JS 零增量。（spike 实测：引入 CopilotKit 后各页 First Load +~7 kB，来自 webpack runtime 的 streamdown 懒加载 chunk 映射；见 §12）
 - **G6**：遵循现有约定：zod 校验、`apiError()` 错误体、vitest 镜像目录、不引入 `any`。
 
 ### 3.2 非目标（V1 不做，见 §18）
@@ -62,6 +62,7 @@
   ▼
 app/api/copilotkit/[[...slug]]/route.ts
   ├─ auth() → 401；白名单 → 403；"agent" 限流 → 429
+  ├─ 只放行 agent run；/threads*、/agent/*/connect 等端点拒绝（§9）
   ├─ 上下文裁剪：system prompt + 最近 8 轮 + 当前消息
   └─ 按请求构造 BuiltInAgent（maxSteps 5）→ DeepSeek
         └─ 5 个服务端只读工具 → lib/mcp/data/* → Supabase
@@ -121,7 +122,7 @@ EDUC1001-002 (CHAN TAI MAN) MON 09:00-10:15, WED 09:00-10:15
 - **鉴权**：handler 内 `auth()`；无会话 401，非白名单 403，均用 `apiError()`。`middleware.ts` 不改。
 - **白名单**：Clerk Dashboard 给试点账号设 `publicMetadata.aiPilot = true`；session token 加自定义 claim `"metadata": "{{user.public_metadata}}"`，服务端读 `sessionClaims.metadata.aiPilot`，客户端用 `useUser().user.publicMetadata.aiPilot`。仓库目前没有任何自定义 claim，这是一次性 Dashboard 配置。判断逻辑集中在 `lib/assistant/pilot.ts`。
 - **限流**：`lib/rate-limit.ts` 的 action 联合类型加 `"agent"`。键 `agent:user:<hash>:hour`（30）、`agent:user:<hash>:day`（80），用户 id 哈希方式与 `lib/mcp/rate-limit.ts` 的 `hashUserId` 一致。超限 429 + `Retry-After`；限流存储失败一律拒绝（fail closed）。
-- **单会话**：最多 30 轮，到上限提示刷新开新会话；只发最近 8 轮给模型，旧工具结果压成一行。
+- **单会话**：最多 30 轮，到上限提示刷新开新会话；只发最近 8 轮给模型，旧工具结果压成一行。客户端每次请求带完整历史（§9），所以轮数按请求体里 `role: "user"` 的消息数算，不用 `afterRequestMiddleware` 的 `messageCount`（spike 实测不等于历史长度）；同时限制请求体大小与消息条数，并在构造 agent 前裁剪。历史由客户端提供，可被伪造，只影响该用户自己的会话与 token 消耗（受限流约束）。
 
 ```bash
 AGENT_RATE_LIMIT_PER_HOUR=30
@@ -134,7 +135,9 @@ AGENT_HISTORY_TURNS=8
 
 不落库，无新表、无迁移。对话只在浏览器内存，刷新即丢。
 
-已知风险：CopilotKit 默认 `InMemoryAgentRunner` 把 thread 状态放在单个 Workers isolate 内存里，后续请求落到别的 isolate 可能丢上文。§13 必须在已部署 Worker 上验证三轮对话；不通过时改为客户端每次带完整历史（自写无状态 runner）。
+spike 结果：AG-UI 客户端每次请求都带完整 `messages`，上文随请求走，不依赖服务端 thread 状态（已部署 Worker 上三轮对话正确；换 isolate 未强制测试）。
+
+新风险：不传 runner 时 CopilotKit 用默认 `InMemoryAgentRunner`，并开放 `GET /threads`、`GET /threads/:id/messages`、`POST /threads/clear`，列出同一 isolate 内所有用户的 thread、不分用户；默认上限 512 MiB，大于 Workers 128 MB 内存。V1 在路由内拒绝这些路径，并传无状态 runner（或把 `InMemoryAgentRunner` 的 `maxThreads` / `maxBytes` 调到很小）。
 
 ## 10. 模型
 
@@ -165,6 +168,8 @@ COPILOTKIT_TELEMETRY_DISABLED=true
 
 - `<AssistantLauncher/>` 只挂在 `/timetable`，非白名单返回 `null`；CopilotKit 与面板 `dynamic(..., { ssr: false })`，点开才加载。
 - §13 先量一次当前 `/timetable` First Load 作新基线（旧的 149 kB 早于 Next 15 与课表重写），验收时非白名单用户各页不增加。
+- spike 基线：`/` 175 kB、`/timetable` 203 kB、`/course/[code]` 132 kB。spike 分支各页 +~7 kB（webpack runtime 里约 390 个 streamdown 懒加载 chunk 的映射：shiki / mermaid / katex），spike 面板未用 `dynamic()`。V1 第一步验证 `dynamic()` 能否消除；不能则裁掉这些 chunk，或与用户确认放宽 G5。
+- CopilotKit v2 的 `./index.css` 是 Tailwind v4，本仓库是 Tailwind 3：spike 用 `next.config.js` 的 webpack hook 换成空文件、样式从 `public/` 用 `<link>` 加载（只在 webpack 下有效，复制的 CSS 可能随版本漂移）。
 
 ## 13. 可行性验证（开工第一步）
 
@@ -213,13 +218,15 @@ COPILOTKIT_TELEMETRY_DISABLED=true
   app/timetable/page.tsx 挂 <AssistantLauncher/>
   lib/privacy-policy.ts  加 DeepSeek 处理条款
   .env.example           §8、§10 的变量
-  package.json           CopilotKit、@ai-sdk/deepseek（版本以 §13 核对结果为准）
-  wrangler.jsonc         必要时 define import.meta.url
+  package.json           CopilotKit、@ai-sdk/deepseek（版本以 §10 核对结果为准，精确锁定）
+  next.config.js         CopilotKit v2 CSS 处理（§12）；Workers 侧无需 define import.meta.url
 ```
 
 ## 16. 发布顺序
 
-1. §13 可行性验证，出验证报告。
+1. §13 可行性验证，出验证报告。（已完成，2026-10-18）
+   1a. 决定是否升级 Workers Paid（先在 Cloudflare Dashboard 看账号档位与 CPU 超限指标）。
+   1b. 浏览器验证：真实客户端请求负载、`dynamic()` 后各页 First Load、`/threads*` 已拒绝。
 2. 鉴权 + 白名单 + 限流（路由此时返回「功能未开启」）。
 3. 5 个工具适配 + `check_plan_conflicts` + golden 检索层测试。
 4. `/timetable` 面板 + 边界横幅。
@@ -232,8 +239,12 @@ COPILOTKIT_TELEMETRY_DISABLED=true
 
 | 风险 | 缓解 |
 |---|---|
-| CopilotKit 在 Workers 上打包 / CPU 不过 | §13 先验证；退路升级 Paid 或换 Vercel AI SDK |
-| 多 isolate 丢上文 | §13 第 4 问；退路客户端带完整历史 |
+| CPU 超 Free 档 10 ms（spike 实测 41–249 ms，目前未被拦截） | 决定是否升级 Workers Paid；生产 `/course/[code]` 已是 51–71 ms，收紧时同样受影响 |
+| 多 isolate 丢上文 | spike：客户端每次带完整历史，不依赖 isolate |
+| CopilotKit `/threads*` 端点跨用户可读、内存上限过大 | 路由拒绝这些路径 + 无状态 runner（§9） |
+| 非白名单用户 JS +~7 kB（违背 G5） | `dynamic()` 验证；不行裁 chunk 或放宽 G5（§12） |
+| CopilotKit 默认遥测外发 | `COPILOTKIT_TELEMETRY_DISABLED=true`（§10） |
+| Worker 体积 15 MB → 38 MB（上限 64 MiB） | 余量够；新增依赖前复查 |
 | 模型编造课号 / 时间 | 只读 + 纪律 + 冲突结果来自纯函数 |
 | 评论提示注入 | 评论当数据；golden 含注入题 |
 | 敏感字段外泄 | 复用 MCP 数据层白名单与现有测试 |
