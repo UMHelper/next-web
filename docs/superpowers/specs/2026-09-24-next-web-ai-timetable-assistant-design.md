@@ -1,5 +1,7 @@
 # next-web AI 选课课表助手设计（合并定稿）
 
+> **V1 范围已被取代**：2026-10-17 缩成只读最小版，见 [2026-10-17-next-web-ai-timetable-assistant-v1-design.md](2026-10-17-next-web-ai-timetable-assistant-v1-design.md)。本文的「仓库现状」已过期，仅作决策记录与 V2 待办来源保留。
+>
 > 状态：**已对齐，待实施**
 > 日期：2026-09-24
 > 取代：[docs/ai-timetable-agent.md](../../ai-timetable-agent.md)（课表规划方案）与 [docs/superpowers/plans/2026-09-21-next-web-ai-assistant-design.md](../plans/2026-09-21-next-web-ai-assistant-design.md)（站内问答方案）。两份旧文档保留作决策记录，不再修改。
