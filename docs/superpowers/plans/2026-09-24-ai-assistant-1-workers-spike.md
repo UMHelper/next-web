@@ -1,5 +1,7 @@
 # AI 助手 · 计划 1：Cloudflare Workers 可行性验证（spike）Implementation Plan
 
+> **已被取代**：2026-10-17 按只读 V1 重写，见 [2026-10-17-ai-assistant-v1-workers-spike.md](2026-10-17-ai-assistant-v1-workers-spike.md)。本文针对 Next 14.2 / Clerk v4 与旧范围，不要执行。
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 用一个最小样例回答设计文档 §14 的 5 个问题：CopilotKit 1.73.3 + DeepSeek 能否在 Cloudflare Workers **Free 档**上打包、跑通流式对话和工具调用，CPU 用量是多少，思考模式怎么设，对话能否恢复。产出一份验证报告和一个明确结论（继续 / 升级 Paid / 换 Vercel AI SDK）。
