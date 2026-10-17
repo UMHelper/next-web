@@ -4,6 +4,10 @@
   "name": "next-web",
   "compatibility_date": "2024-12-30",
   "keep_vars": true, 
+  "vars": {
+    // CopilotKit runtime sends telemetry unless this is set.
+    "COPILOTKIT_TELEMETRY_DISABLED": "true",
+  },
   "upload_source_maps": true, 
   "observability": {
     "enabled": true,

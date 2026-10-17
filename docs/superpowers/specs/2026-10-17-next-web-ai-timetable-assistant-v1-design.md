@@ -1,6 +1,6 @@
 # next-web AI 选课助手 V1（只读最小版）设计
 
-> 状态：**实施计划已写，待执行**，见 [2026-10-18-ai-assistant-v1.md](../plans/2026-10-18-ai-assistant-v1.md)；Workers Paid 是否升级在上线前（计划 Task 11）决定
+> 状态：**实施中**，计划见 [2026-10-18-ai-assistant-v1.md](../plans/2026-10-18-ai-assistant-v1.md)；Workers Paid 是否升级在上线前（计划 Task 11）决定
 > 日期：2026-10-17（2026-10-18 按 spike 结果回写）
 > 取代：[2026-09-24-next-web-ai-timetable-assistant-design.md](2026-09-24-next-web-ai-timetable-assistant-design.md) 的 V1 范围。旧文档保留作决策记录和 V2 待办来源，不再修改。
 > 后续：§13 可行性验证已完成；按实施计划执行

@@ -17,4 +17,8 @@ describe("assistant dependency contract", () => {
       read("node_modules/@copilotkit/react-core/dist/v2/index.css"),
     );
   });
+
+  it("keeps CopilotKit telemetry off in the Worker config", () => {
+    expect(read("wrangler.jsonc")).toMatch(/"COPILOTKIT_TELEMETRY_DISABLED":\s*"true"/);
+  });
 });
