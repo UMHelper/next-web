@@ -6,6 +6,8 @@ import { useEffect, useState } from "react";
 
 import type { LocalPlan } from "@/lib/timetable/store";
 
+import { ASSISTANT_PILL_CLASS } from "./launcher-pill";
+
 const AssistantPanel = dynamic(() => import("./assistant-panel"), { ssr: false });
 
 export default function AssistantLauncher({ plan }: { plan: LocalPlan | undefined }) {
@@ -47,7 +49,7 @@ export default function AssistantLauncher({ plan }: { plan: LocalPlan | undefine
     <button
       type="button"
       onClick={() => setOpened(true)}
-      className="fixed bottom-6 right-6 z-40 rounded-full bg-brand px-4 py-2 text-sm font-semibold text-brand-foreground shadow-lg"
+      className={ASSISTANT_PILL_CLASS}
     >
       AI 选课助手
     </button>
