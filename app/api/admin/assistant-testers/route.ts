@@ -49,11 +49,11 @@ export async function POST(request: Request) {
     .from("assistant_testers")
     .select("email", { count: "exact", head: true });
 
-  if (countError) {
-    console.error("[admin/assistant-testers] count failed:", countError.message);
+  if (countError || typeof count !== "number") {
+    console.error("[admin/assistant-testers] count failed:", countError?.message ?? "no count returned");
     return apiError("internal_error", "Unable to add tester", 500);
   }
-  if ((count ?? 0) >= MAX_ASSISTANT_TESTERS) {
+  if (count >= MAX_ASSISTANT_TESTERS) {
     return apiError("tester_limit", `Tester list is full (${MAX_ASSISTANT_TESTERS})`, 409);
   }
 

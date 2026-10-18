@@ -149,6 +149,12 @@ describe("assistant testers API", () => {
       expect(mocks.insert).not.toHaveBeenCalled();
     });
 
+    it("returns 500 when the count is missing without an error", async () => {
+      mocks.db.count = { count: null, error: null };
+      expect((await post({ email: "new@um.edu.mo" })).status).toBe(500);
+      expect(mocks.insert).not.toHaveBeenCalled();
+    });
+
     it("returns 500 for other insert errors", async () => {
       mocks.db.insert = { error: { code: "XX000", message: "boom" } };
       expect((await post({ email: "new@um.edu.mo" })).status).toBe(500);
