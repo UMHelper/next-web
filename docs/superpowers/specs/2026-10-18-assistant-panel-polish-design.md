@@ -61,9 +61,9 @@ Rejected: building our own shell around the bare `CopilotChat` (re-implements ma
 - Pointer drag uses pointer capture. Width is in px: default 380, min 320, max 560. It is also capped at `window.innerWidth - 480` so the page keeps at least about 480px, and recomputed on window resize. When that cap is below 320 (windows roughly 768 to 800px wide), the 320 minimum wins.
 - Keyboard: `role="separator"`, `aria-orientation="vertical"`, `aria-valuemin` / `aria-valuemax` / `aria-valuenow`, and an `aria-label`. Left and right arrows change the width by 16px. Double-click resets it to 380.
 - Persistence: `localStorage["umeh-assistant-width"]`, read on mount and clamped. If storage is unavailable, it falls back to 380 and keeps the value in memory for the session.
-- CopilotKit applies a 300ms `margin-inline-end` transition to `document.body` on every width change, which makes dragging lag. While dragging, `AssistantPanel` sets `document.body.style.transition = "none"` in an effect. Parent effects run after the sidebar's own effect, so this override wins. It is restored on pointer up, pointer cancel, or close.
+- CopilotKit applies a 260ms `margin-inline-end` transition to `document.body`, which makes dragging lag. While dragging, the resize handle sets `document.body.style.transition = "none"` and restores it on pointer up, pointer cancel, or close.
 - Hidden below 768px, where CopilotKit forces the sidebar to full width.
-- The `width` prop passed to `CopilotSidebar` becomes the numeric state, replacing the `clamp(...)` string.
+- `CopilotSidebar` remounts its view when `width` changes and reads it only once on mount, so `width` is the constant `var(--assistant-width, 380px)`. The resize handle writes the current width to `--assistant-width` on `<html>`, and both the panel and the page margin follow it through CSS.
 
 ## 5. Visual layout
 
