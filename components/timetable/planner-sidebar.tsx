@@ -45,8 +45,14 @@ export default function PlannerSidebar() {
 
   useEffect(() => {
     void fetch("/api/timetable/catalog/filters")
-      .then((response) => response.json())
-      .then((body) => setFilters(body))
+      .then((response) => (response.ok ? response.json() : null))
+      .then((body) => {
+        if (!body) return;
+        setFilters({
+          faculties: Array.isArray(body.faculties) ? body.faculties : [],
+          departments: Array.isArray(body.departments) ? body.departments : [],
+        });
+      })
       .catch(() => undefined);
   }, []);
 
