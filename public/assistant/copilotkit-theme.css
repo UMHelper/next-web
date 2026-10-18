@@ -154,6 +154,15 @@
   color: hsl(var(--muted-foreground)) !important;
 }
 
+div[data-sidebar-chat] .cpk\:\[div\[data-sidebar-chat\]_\&\]\:px-8 {
+  padding-inline: 0.75rem !important;
+}
+
+div[data-sidebar-chat] [data-testid="copilot-suggestions"] {
+  margin-inline: 0 !important;
+  padding-inline: 0 !important;
+}
+
 [data-copilotkit] button[data-testid="copilot-send-button"] {
   background-color: hsl(var(--primary)) !important;
   color: hsl(var(--primary-foreground)) !important;

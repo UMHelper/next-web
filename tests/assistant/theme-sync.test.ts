@@ -58,4 +58,14 @@ describe("assistant theme sync", () => {
     expect(baseIdx).toBeGreaterThan(-1);
     expect(themeIdx).toBeGreaterThan(baseIdx);
   });
+
+  it("widens the sidebar input and keeps example chips flush with the intro", () => {
+    const css = readFileSync(themePath, "utf8");
+    expect(css).toMatch(
+      /div\[data-sidebar-chat\] \.cpk\\:\\\[div\\\[data-sidebar-chat\\\]_\\&\\\]\\:px-8 \{\s*padding-inline: 0\.75rem !important;/,
+    );
+    expect(css).toMatch(
+      /div\[data-sidebar-chat\] \[data-testid="copilot-suggestions"\] \{\s*margin-inline: 0 !important;\s*padding-inline: 0 !important;/,
+    );
+  });
 });
