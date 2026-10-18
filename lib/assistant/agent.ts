@@ -3,12 +3,13 @@ import { BuiltInAgent } from "@copilotkit/runtime/v2";
 import type { AssistantConfig } from "./config";
 import { createAssistantModel, thinkingProviderOptions } from "./model";
 import { ASSISTANT_PROMPT } from "./prompt";
+import { replyScriptContext } from "./reply-script";
 import { createAssistantTools } from "./tools";
 
 export const ASSISTANT_MAX_STEPS = 5;
 
 export function createAssistantAgent(config: AssistantConfig, signal?: AbortSignal) {
-  return new BuiltInAgent({
+  const agent = new BuiltInAgent({
     model: createAssistantModel(config, signal),
     prompt: ASSISTANT_PROMPT,
     tools: createAssistantTools(),
@@ -17,4 +18,9 @@ export function createAssistantAgent(config: AssistantConfig, signal?: AbortSign
     providerOptions: thinkingProviderOptions(config.thinking),
     overridableProperties: [],
   });
+  agent.use((input, next) => {
+    const script = replyScriptContext(input.messages);
+    return next.run(script ? { ...input, context: [...input.context, script] } : input);
+  });
+  return agent;
 }

@@ -1,9 +1,15 @@
 import { describe, expect, it, vi } from "vitest";
 
-const { BuiltInAgent, createAssistantModel } = vi.hoisted(() => ({
-  BuiltInAgent: vi.fn(),
-  createAssistantModel: vi.fn(() => ({ modelId: "deepseek-flash" })),
-}));
+const { BuiltInAgent, createAssistantModel, use } = vi.hoisted(() => {
+  const use = vi.fn();
+  return {
+    use,
+    BuiltInAgent: vi.fn(function (this: { use: typeof use }) {
+      this.use = use;
+    }),
+    createAssistantModel: vi.fn(() => ({ modelId: "deepseek-flash" })),
+  };
+});
 
 vi.mock("@copilotkit/runtime/v2", () => ({ BuiltInAgent }));
 vi.mock("@/lib/assistant/model", async (importOriginal) => ({
@@ -33,6 +39,29 @@ describe("createAssistantAgent", () => {
       providerOptions: { deepseek: { thinking: { type: "enabled" }, reasoningEffort: "low" } },
       overridableProperties: [],
     });
+  });
+
+  it("tells the model which Chinese script the student's latest message uses", () => {
+    createAssistantAgent(readAssistantConfig({ AI_API_KEY: "sk-test" }));
+    const middleware = use.mock.lastCall?.[0] as (
+      input: { context: Array<{ description: string; value: string }>; messages: Array<{ role: string; content: string }> },
+      next: { run: (input: unknown) => unknown },
+    ) => unknown;
+    const run = vi.fn((input: unknown) => input);
+    const plan = { description: "plan", value: "No timetable plan" };
+
+    const simplified = middleware(
+      { context: [plan], messages: [{ role: "user", content: "ACCT1000 难不难？" }] },
+      { run },
+    ) as { context: Array<{ value: string }> };
+    const bare = middleware(
+      { context: [plan], messages: [{ role: "user", content: "ACCT1000" }] },
+      { run },
+    ) as { context: unknown[] };
+
+    expect(simplified.context[0]).toBe(plan);
+    expect(simplified.context[1]?.value).toContain("Simplified Chinese");
+    expect(bare.context).toEqual([plan]);
   });
 });
 
