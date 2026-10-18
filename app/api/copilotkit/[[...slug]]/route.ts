@@ -14,7 +14,7 @@ import {
   runInputSchema,
   shapeConversation,
 } from "@/lib/assistant/conversation";
-import { isAssistantPilot } from "@/lib/assistant/pilot";
+import { canUseAssistant } from "@/lib/assistant/access";
 import { consumeAgentRateLimits, type AgentRateLimitOutcome } from "@/lib/assistant/rate-limit";
 
 export const dynamic = "force-dynamic";
@@ -113,10 +113,10 @@ async function handleRun(request: Request, userId: string, config: AssistantConf
 }
 
 async function handle(request: Request) {
-  const { userId, sessionClaims } = await auth();
+  const { userId } = await auth();
   if (!userId) return apiError("unauthorized", "Sign in required", 401);
-  if (!isAssistantPilot(sessionClaims)) {
-    return apiError("forbidden", "Assistant pilot access required", 403);
+  if (!(await canUseAssistant(userId))) {
+    return apiError("forbidden", "Assistant access required", 403);
   }
 
   const config = readAssistantConfig();

@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => {
     InMemoryAgentRunner: vi.fn(),
     createAssistantAgent: vi.fn(() => ({ agent: true })),
     consumeAgentRateLimits: vi.fn(),
+    canUseAssistant: vi.fn(),
   };
 });
 
@@ -21,10 +22,11 @@ vi.mock("@copilotkit/runtime/v2", () => ({
 }));
 vi.mock("@/lib/assistant/agent", () => ({ createAssistantAgent: mocks.createAssistantAgent }));
 vi.mock("@/lib/assistant/rate-limit", () => ({ consumeAgentRateLimits: mocks.consumeAgentRateLimits }));
+vi.mock("@/lib/assistant/access", () => ({ canUseAssistant: mocks.canUseAssistant }));
 
 const loadRoute = () => import("@/app/api/copilotkit/[[...slug]]/route");
 
-const PILOT = { userId: "user_1", sessionClaims: { metadata: { aiPilot: true } } };
+const SIGNED_IN = { userId: "user_1" };
 
 const get = (path: string) => new Request(`http://localhost/api/copilotkit${path}`);
 const post = (path: string, body: unknown) =>
@@ -55,7 +57,8 @@ describe("/api/copilotkit", () => {
     vi.resetModules();
     vi.clearAllMocks();
     vi.stubEnv("AI_API_KEY", "sk-test");
-    mocks.auth.mockResolvedValue(PILOT);
+    mocks.auth.mockResolvedValue(SIGNED_IN);
+    mocks.canUseAssistant.mockResolvedValue(true);
     mocks.consumeAgentRateLimits.mockResolvedValue({ allowed: true });
   });
 
@@ -63,20 +66,34 @@ describe("/api/copilotkit", () => {
     vi.unstubAllEnvs();
   });
 
-  it("returns 401 without a session", async () => {
-    mocks.auth.mockResolvedValue({ userId: null, sessionClaims: null });
+  it("returns 401 without a session, before checking access", async () => {
+    mocks.auth.mockResolvedValue({ userId: null });
     const { POST } = await loadRoute();
     const response = await POST(post("/agent/default/run", runBody([now])));
     expect(response.status).toBe(401);
+    expect(mocks.canUseAssistant).not.toHaveBeenCalled();
     expect(mocks.runtimeHandler).not.toHaveBeenCalled();
   });
 
-  it("returns 403 for signed-in users outside the pilot", async () => {
-    mocks.auth.mockResolvedValue({ userId: "user_2", sessionClaims: { metadata: {} } });
+  it("returns 403 for signed-in users without assistant access", async () => {
+    mocks.auth.mockResolvedValue({ userId: "user_2" });
+    mocks.canUseAssistant.mockResolvedValue(false);
     const { GET } = await loadRoute();
     const response = await GET(get("/info"));
     expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toEqual({
+      error: { code: "forbidden", message: "Assistant access required" },
+    });
+    expect(mocks.canUseAssistant).toHaveBeenCalledWith("user_2");
     expect(mocks.runtimeHandler).not.toHaveBeenCalled();
+  });
+
+  it("checks access before body parsing and rate limiting", async () => {
+    mocks.canUseAssistant.mockResolvedValue(false);
+    const { POST } = await loadRoute();
+    const response = await POST(post("/agent/default/run", "not json"));
+    expect(response.status).toBe(403);
+    expect(mocks.consumeAgentRateLimits).not.toHaveBeenCalled();
   });
 
   it("returns 503 when the model key is not configured", async () => {
