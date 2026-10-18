@@ -21,7 +21,7 @@ afterEach(() => {
 describe("ResizeHandle", () => {
   it("starts at 380 and exposes the width to assistive tech", () => {
     render(<ResizeHandle visible />);
-    const handle = screen.getByRole("separator", { name: "调整助手宽度" });
+    const handle = screen.getByRole("separator", { name: "調整助手寬度" });
     expect(handle.getAttribute("aria-valuenow")).toBe("380");
     expect(handle.getAttribute("aria-valuemin")).toBe("320");
     expect(handle.getAttribute("aria-valuemax")).toBe("560");

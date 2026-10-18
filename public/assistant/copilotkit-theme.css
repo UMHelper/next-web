@@ -74,6 +74,21 @@
   box-shadow: -8px 0 32px -4px rgba(0, 0, 0, 0.65);
 }
 
+/* The default header splits into three equal columns, which wraps the title. */
+[data-testid="copilot-modal-header"] > div > div:first-child {
+  flex: 0 0 auto;
+}
+
+[data-testid="copilot-modal-header"] > div > div:nth-child(2) {
+  flex: 1 1 auto;
+  justify-content: flex-start;
+  min-width: 0;
+}
+
+[data-testid="copilot-modal-header"] > div > div:last-child {
+  flex: 0 0 auto;
+}
+
 /* CopilotKit hardcodes the input and send button colors instead of using its tokens. */
 [data-copilotkit] .copilotKitInput {
   background-color: var(--card);

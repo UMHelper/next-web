@@ -62,23 +62,24 @@ describe("AssistantPanel", () => {
     render(<AssistantPanel plan={undefined} />);
     const sidebar = screen.getByTestId("copilot-sidebar");
     expect(sidebar.getAttribute("data-open")).toBe("true");
-    expect(screen.getByText("AI 选课助手")).toBeTruthy();
-    expect(screen.getByText("试点")).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "AI 选课助手" })).toBeNull();
+    expect(screen.getByText("AI 選課助手")).toBeTruthy();
+    expect(screen.getByText("Beta")).toBeTruthy();
+    expect(screen.getByText("AI Course Helper")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "AI 選課助手" })).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: "收起助手" }));
     expect(sidebar.getAttribute("data-open")).toBe("false");
 
-    fireEvent.click(screen.getByRole("button", { name: "AI 选课助手" }));
+    fireEvent.click(screen.getByRole("button", { name: "AI 選課助手" }));
     expect(sidebar.getAttribute("data-open")).toBe("true");
-    expect(screen.queryByRole("button", { name: "AI 选课助手" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "AI 選課助手" })).toBeNull();
   });
 
   it("uses CopilotKit's header and input with Chinese labels", () => {
     render(<AssistantPanel plan={undefined} />);
     expect(lastSidebarProps().labels).toMatchObject({
-      modalHeaderTitle: "AI 选课助手",
-      chatInputPlaceholder: "输入你的问题…",
+      modalHeaderTitle: "AI 選課助手",
+      chatInputPlaceholder: "輸入你的問題…",
     });
   });
 
@@ -94,9 +95,9 @@ describe("AssistantPanel", () => {
   it("offers the three example questions before the first message", () => {
     render(<AssistantPanel plan={undefined} />);
     const questions = [
-      "有哪些和 accounting 相关的课？",
-      "ACCT1000 是什么课？几个学分？",
-      "ACCT1000 有哪些 section？什么时间上课？",
+      "有哪些和 accounting 相關的課？",
+      "ACCT1000 是什麼課？幾個學分？",
+      "ACCT1000 有哪些 section？什麼時間上課？",
     ];
     expect(suggestionsSpy).toHaveBeenCalledWith({
       available: "before-first-message",
@@ -108,7 +109,7 @@ describe("AssistantPanel", () => {
     render(<AssistantPanel plan={undefined} />);
     expect(lastSidebarProps().width).toBe("var(--assistant-width, 380px)");
     expect(document.documentElement.style.getPropertyValue("--assistant-width")).toBe("380px");
-    expect(screen.getByRole("separator", { name: "调整助手宽度" })).toBeTruthy();
+    expect(screen.getByRole("separator", { name: "調整助手寬度" })).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "收起助手" }));
     expect(screen.queryByRole("separator")).toBeNull();
@@ -123,8 +124,8 @@ describe("AssistantPanel", () => {
         suggestionView={<div data-testid="chips" />}
       />,
     );
-    expect(screen.getByText(/可以问课程、教授、评价和 section 时间/)).toBeTruthy();
-    expect(screen.getByText("只读，不会改动课表 · 单次对话最多 30 轮")).toBeTruthy();
+    expect(screen.getByText(/可以問課程、教授、評價和 section 時間/)).toBeTruthy();
+    expect(screen.getByText("只讀，不會改動課表 · 單次對話最多 30 輪")).toBeTruthy();
     expect(screen.getByTestId("chips")).toBeTruthy();
     expect(screen.getByTestId("input")).toBeTruthy();
   });
@@ -133,7 +134,8 @@ describe("AssistantPanel", () => {
     render(<AssistantPanel plan={undefined} />);
     const Disclaimer = lastSidebarProps().input.disclaimer;
     const { container } = render(<Disclaimer />);
-    expect(container.textContent).toMatch(/^本站不是 myUM · Pre-Enrolment · Add\/Drop · 数据更新于 /);
+    expect(container.textContent).toMatch(/^本站不是 myUM · Pre-Enrolment · Add\/Drop · 數據更新於 /);
+    expect(container.textContent).toContain("Not myUM · Pre-Enrolment · Add/Drop · Updated ");
     expect(screen.getByRole("link", { name: "Pre-Enrolment" }).getAttribute("href")).toContain(
       "pre-enrolment",
     );

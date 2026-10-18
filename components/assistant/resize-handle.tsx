@@ -102,7 +102,7 @@ export default function ResizeHandle({ visible }: { visible: boolean }) {
     <div
       role="separator"
       aria-orientation="vertical"
-      aria-label="调整助手宽度"
+      aria-label="調整助手寬度"
       aria-valuemin={PANEL_WIDTH_MIN}
       aria-valuemax={maxPanelWidth(window.innerWidth)}
       aria-valuenow={width}

@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 
 import type { LocalPlan } from "@/lib/timetable/store";
 
-import { ASSISTANT_PILL_CLASS } from "./launcher-pill";
+import { AssistantBubble } from "./assistant-bubble";
 
 const AssistantPanel = dynamic(() => import("./assistant-panel"), { ssr: false });
 
@@ -45,13 +45,5 @@ export default function AssistantLauncher({ plan }: { plan: LocalPlan | undefine
   if (!enabled) return null;
   if (opened) return <AssistantPanel plan={plan} />;
 
-  return (
-    <button
-      type="button"
-      onClick={() => setOpened(true)}
-      className={ASSISTANT_PILL_CLASS}
-    >
-      AI 选课助手
-    </button>
-  );
+  return <AssistantBubble onClick={() => setOpened(true)} />;
 }

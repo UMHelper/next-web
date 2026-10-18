@@ -30,7 +30,7 @@ import { getSections } from "@/lib/timetable/catalog-client";
 import type { LocalPlan } from "@/lib/timetable/store";
 import { cn } from "@/lib/utils";
 
-import { ASSISTANT_PILL_CLASS } from "./launcher-pill";
+import { AssistantBubble } from "./assistant-bubble";
 import ResizeHandle, { PANEL_WIDTH_VAR } from "./resize-handle";
 
 // Unmodified copy of @copilotkit/react-core/dist/v2/index.css (Tailwind v4 output). next.config.js stubs the
@@ -41,23 +41,25 @@ const PRE_ENROLMENT_URL =
   "https://reg.um.edu.mo/current-students/enrolment-and-examinations/course-enrolment/pre-enrolment/";
 const ADD_DROP_URL =
   "https://reg.um.edu.mo/current-students/enrolment-and-examinations/course-enrolment/course-add-drop/";
-const DATA_UPDATED_AT = process.env.NEXT_PUBLIC_DATABASE_LAST_UPDATE ?? "未知";
+const DATA_UPDATED_AT = process.env.NEXT_PUBLIC_DATABASE_LAST_UPDATE;
+const DATA_UPDATED_ZH = DATA_UPDATED_AT ?? "未知";
+const DATA_UPDATED_EN = DATA_UPDATED_AT ?? "Unknown";
 
 // CopilotSidebar remounts its whole view whenever `width` changes, so the value stays constant
 // and ResizeHandle moves the CSS variable instead.
 const SIDEBAR_WIDTH = `var(${PANEL_WIDTH_VAR}, ${PANEL_WIDTH_DEFAULT}px)`;
 
 const EXAMPLE_QUESTIONS = [
-  "有哪些和 accounting 相关的课？",
-  "ACCT1000 是什么课？几个学分？",
-  "ACCT1000 有哪些 section？什么时间上课？",
+  "有哪些和 accounting 相關的課？",
+  "ACCT1000 是什麼課？幾個學分？",
+  "ACCT1000 有哪些 section？什麼時間上課？",
 ];
 const EXAMPLE_SUGGESTIONS = {
   available: "before-first-message" as const,
   suggestions: EXAMPLE_QUESTIONS.map((question) => ({ title: question, message: question })),
 };
 
-const LABELS = { modalHeaderTitle: "AI 选课助手", chatInputPlaceholder: "输入你的问题…" };
+const LABELS = { modalHeaderTitle: "AI 選課助手", chatInputPlaceholder: "輸入你的問題…" };
 
 const NoticeContext = createContext<string | null>(null);
 
@@ -74,11 +76,12 @@ const HiddenToggle = forwardRef<
 
 function HeaderTitle({ children }: { children?: ReactNode }) {
   return (
-    <h2 className="assistant-site-tokens flex items-center justify-center gap-2 whitespace-nowrap text-sm font-semibold text-foreground">
-      {children}
+    <h2 className="assistant-site-tokens flex items-center gap-2 whitespace-nowrap text-foreground">
+      <span className="text-sm font-semibold">{children}</span>
       <span className="shrink-0 rounded-full bg-brand/10 px-2 py-0.5 text-[11px] font-medium text-brand">
-        试点
+        Beta
       </span>
+      <span className="text-[11px] font-normal text-muted-foreground">AI Course Helper</span>
     </h2>
   );
 }
@@ -91,9 +94,9 @@ function WelcomeScreen({ input, suggestionView }: { input: ReactNode; suggestion
       <div className="flex-1 overflow-y-auto px-4 pt-6">
         <div className="assistant-site-tokens">
           <p className="text-sm leading-relaxed text-foreground">
-            可以问课程、教授、评价和 section 时间，也能检查某个 section 会不会和你的课表冲突。
+            可以問課程、教授、評價和 section 時間，也能檢查某個 section 會不會和你的課表衝突。
           </p>
-          <p className="mt-1 text-xs text-muted-foreground">只读，不会改动课表 · 单次对话最多 30 轮</p>
+          <p className="mt-1 text-xs text-muted-foreground">只讀，不會改動課表 · 單次對話最多 30 輪</p>
         </div>
         <div className="mt-4">{suggestionView}</div>
       </div>
@@ -126,7 +129,10 @@ function BoundaryNotice({ className, ...props }: HTMLAttributes<HTMLDivElement>)
         <a className="underline underline-offset-2 hover:text-foreground" href={ADD_DROP_URL} target="_blank" rel="noreferrer">
           Add/Drop
         </a>
-        {" · "}数据更新于 {DATA_UPDATED_AT}
+        {" · "}數據更新於 {DATA_UPDATED_ZH}
+      </p>
+      <p>
+        Not myUM · Pre-Enrolment · Add/Drop · Updated {DATA_UPDATED_EN}
       </p>
     </div>
   );
@@ -183,9 +189,7 @@ export default function AssistantPanel({ plan }: { plan: LocalPlan | undefined }
       </CopilotKitProvider>
       <ResizeHandle visible={open} />
       {open ? null : (
-        <button type="button" onClick={() => setOpen(true)} className={ASSISTANT_PILL_CLASS}>
-          AI 选课助手
-        </button>
+        <AssistantBubble onClick={() => setOpen(true)} />
       )}
     </>
   );

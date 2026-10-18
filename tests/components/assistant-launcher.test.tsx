@@ -55,7 +55,9 @@ describe("AssistantLauncher", () => {
     const fetchMock = stubFetch(respond(true, { enabled: true }));
     render(<AssistantLauncher plan={undefined} />);
 
-    expect(await screen.findByRole("button", { name: "AI 选课助手" })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: "AI 選課助手" })).toBeTruthy();
+    expect(screen.getByText("可以試試 AI 選課")).toBeTruthy();
+    expect(screen.getByText("Try the AI course helper")).toBeTruthy();
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock).toHaveBeenCalledWith("/api/assistant/access", expect.objectContaining({ cache: "no-store" }));
   });
@@ -95,7 +97,7 @@ describe("AssistantLauncher", () => {
     await act(async () => {
       resolveSignOut(respond(true, { enabled: true }));
     });
-    expect(screen.queryByRole("button", { name: "AI 选课助手" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "AI 選課助手" })).toBeNull();
 
     cleanup();
 
@@ -122,7 +124,7 @@ describe("AssistantLauncher", () => {
     stubFetch(respond(true, { enabled: true }));
     render(<AssistantLauncher plan={undefined} />);
 
-    const button = await screen.findByRole("button", { name: "AI 选课助手" });
+    const button = await screen.findByRole("button", { name: "AI 選課助手" });
     expect(screen.queryByTestId("assistant-panel")).toBeNull();
     fireEvent.click(button);
     expect(screen.getByTestId("assistant-panel")).toBeTruthy();
