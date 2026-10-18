@@ -1,0 +1,222 @@
+/**
+ * CopilotKit theme bridge — maps sidebar UI to site tokens from app/globals.css
+ * and app/skins/island.css. Load after copilotkit-v2.css (do not edit that file).
+ */
+
+[data-copilotkit] {
+  --background: hsl(var(--background));
+  --foreground: hsl(var(--foreground));
+  --card: hsl(var(--card));
+  --card-foreground: hsl(var(--card-foreground));
+  --popover: hsl(var(--popover));
+  --popover-foreground: hsl(var(--popover-foreground));
+  --primary: hsl(var(--primary));
+  --primary-foreground: hsl(var(--primary-foreground));
+  --secondary: hsl(var(--secondary));
+  --secondary-foreground: hsl(var(--secondary-foreground));
+  --muted: hsl(var(--muted));
+  --muted-foreground: hsl(var(--muted-foreground));
+  --accent: hsl(var(--accent));
+  --accent-foreground: hsl(var(--accent-foreground));
+  --destructive: hsl(var(--destructive));
+  --destructive-foreground: hsl(var(--destructive-foreground));
+  --border: hsl(var(--border));
+  --input: hsl(var(--input));
+  --ring: hsl(var(--ring));
+  --radius: var(--radius);
+  --cpk-font-sans: inherit;
+  --cpk-default-font-family: inherit;
+  font-family: inherit;
+  color: hsl(var(--foreground));
+  background-color: hsl(var(--background));
+}
+
+[data-copilot-sidebar] {
+  background-color: hsl(var(--surface-subtle)) !important;
+  color: hsl(var(--foreground)) !important;
+  border-left: 1px solid hsl(var(--border-strong)) !important;
+  box-shadow: -6px 0 24px -4px rgba(0, 0, 0, 0.08), -2px 0 6px -1px rgba(0, 0, 0, 0.04) !important;
+}
+
+.dark [data-copilot-sidebar] {
+  background-color: hsl(var(--surface-subtle)) !important;
+  border-left: 1px solid hsl(var(--border-strong)) !important;
+  box-shadow: -8px 0 32px -4px rgba(0, 0, 0, 0.65), -1px 0 0 0 hsl(var(--border-strong)) !important;
+}
+
+[data-copilotkit] .copilotKitHeader,
+[data-copilotkit] [data-slot="copilot-modal-header"] {
+  background-color: hsl(var(--surface-subtle) / 0.95) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border-bottom: 1px solid hsl(var(--border)) !important;
+}
+
+[data-copilotkit] [data-testid="copilot-header-title"] {
+  color: hsl(var(--foreground)) !important;
+  font-weight: 600 !important;
+}
+
+[data-copilotkit] [data-testid="copilot-close-button"],
+[data-copilotkit] [data-testid="copilot-threads-drawer-launcher"] {
+  color: hsl(var(--muted-foreground)) !important;
+}
+
+[data-copilotkit] [data-testid="copilot-close-button"]:hover,
+[data-copilotkit] [data-testid="copilot-threads-drawer-launcher"]:hover {
+  background-color: hsl(var(--accent)) !important;
+  color: hsl(var(--foreground)) !important;
+}
+
+[data-copilotkit] [data-testid="copilot-user-message"] .cpk\:bg-muted {
+  background-color: hsl(var(--primary)) !important;
+  color: hsl(var(--primary-foreground)) !important;
+  border-radius: 18px !important;
+}
+
+[data-copilotkit] [data-testid="copilot-user-message"] .cpk\:prose {
+  color: hsl(var(--primary-foreground)) !important;
+  --tw-prose-body: hsl(var(--primary-foreground));
+  --tw-prose-headings: hsl(var(--primary-foreground));
+  --tw-prose-bold: hsl(var(--primary-foreground));
+  --tw-prose-links: hsl(var(--primary-foreground));
+}
+
+[data-copilotkit] [data-testid="copilot-assistant-message"] .cpk\:prose {
+  color: hsl(var(--foreground)) !important;
+}
+
+[data-copilotkit] [data-streamdown="link"],
+[data-copilotkit] [data-testid="copilot-assistant-message"] a {
+  color: hsl(var(--brand)) !important;
+  text-underline-offset: 3px;
+  font-weight: 500;
+}
+
+[data-copilotkit] [data-streamdown="inline-code"] {
+  background-color: hsl(var(--muted)) !important;
+  color: hsl(var(--foreground)) !important;
+  border: 1px solid hsl(var(--border)) !important;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace !important;
+  border-radius: 4px;
+}
+
+[data-copilotkit] [data-streamdown="code-block"] {
+  background-color: hsl(var(--surface-subtle)) !important;
+  border: 1px solid hsl(var(--border)) !important;
+  border-radius: var(--radius);
+}
+
+[data-copilotkit] [data-streamdown="code-block-header"] {
+  background-color: hsl(var(--muted)) !important;
+  color: hsl(var(--muted-foreground)) !important;
+  border-bottom: 1px solid hsl(var(--border)) !important;
+}
+
+[data-copilotkit] [data-streamdown="table-header"] {
+  background-color: hsl(var(--muted)) !important;
+}
+
+[data-copilotkit] [data-streamdown="table"],
+[data-copilotkit] [data-streamdown="table-row"] {
+  border-color: hsl(var(--border)) !important;
+}
+
+[data-copilotkit] .copilotKitInput,
+[data-copilotkit] [data-testid="copilot-chat-input"] {
+  background-color: hsl(var(--card)) !important;
+  border: 1px solid hsl(var(--border-strong)) !important;
+  box-shadow: 0 2px 8px hsl(var(--foreground) / 0.05) !important;
+}
+
+.dark [data-copilotkit] .copilotKitInput,
+.dark [data-copilotkit] [data-testid="copilot-chat-input"] {
+  background-color: hsl(var(--card)) !important;
+  border: 1px solid hsl(var(--border-strong)) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
+}
+
+[data-copilotkit] .copilotKitInput:focus-within,
+[data-copilotkit] [data-testid="copilot-chat-input"]:focus-within {
+  border-color: hsl(var(--ring)) !important;
+  box-shadow: 0 0 0 2px hsl(var(--ring) / 0.25) !important;
+}
+
+[data-copilotkit] [data-testid="copilot-chat-input"] textarea,
+[data-copilotkit] .copilotKitInput textarea {
+  color: hsl(var(--foreground)) !important;
+  caret-color: hsl(var(--brand)) !important;
+}
+
+[data-copilotkit] [data-testid="copilot-chat-input"] textarea::placeholder,
+[data-copilotkit] .copilotKitInput textarea::placeholder {
+  color: hsl(var(--muted-foreground)) !important;
+}
+
+[data-copilotkit] button[data-testid="copilot-send-button"] {
+  background-color: hsl(var(--primary)) !important;
+  color: hsl(var(--primary-foreground)) !important;
+  border-radius: 9999px !important;
+}
+
+[data-copilotkit] button[data-testid="copilot-send-button"]:hover:not(:disabled) {
+  opacity: 0.9 !important;
+}
+
+[data-copilotkit] button[data-testid="copilot-send-button"]:disabled {
+  background-color: hsl(var(--muted)) !important;
+  color: hsl(var(--muted-foreground)) !important;
+  opacity: 0.5 !important;
+}
+
+[data-copilotkit] [data-slot="suggestion-pill"] {
+  border: 1px solid hsl(var(--border)) !important;
+  background-color: hsl(var(--background)) !important;
+  color: hsl(var(--foreground)) !important;
+}
+
+[data-copilotkit] [data-slot="suggestion-pill"]:hover:not(:disabled) {
+  background-color: hsl(var(--accent)) !important;
+  border-color: hsl(var(--ring)) !important;
+}
+
+[data-copilotkit] ::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.45) !important;
+}
+
+[data-copilotkit] ::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.65) !important;
+}
+
+[data-copilotkit] * {
+  scrollbar-color: hsl(var(--muted-foreground) / 0.45) transparent;
+}
+
+/* Slash command menu — replace hardcoded #fff / #1f1f1f */
+[data-copilotkit] [aria-label="Slash commands"] {
+  background-color: hsl(var(--popover)) !important;
+  border-color: hsl(var(--border)) !important;
+}
+
+[data-copilotkit] [aria-label="Slash commands"] button[data-active="true"],
+[data-copilotkit] [aria-label="Slash commands"] button:hover {
+  background-color: hsl(var(--accent)) !important;
+}
+
+html[data-skin="island"] [data-copilotkit] {
+  font-family: var(--animal-font-family) !important;
+}
+
+html[data-skin="island"] [data-copilotkit] button[data-testid="copilot-send-button"]:not(:disabled) {
+  box-shadow: var(--shadow-button) !important;
+}
+
+html[data-skin="island"] [data-copilotkit] .copilotKitInput,
+html[data-skin="island"] [data-copilotkit] [data-testid="copilot-chat-input"] {
+  border-radius: var(--radius-control) !important;
+}
+
+html[data-skin="island"] [data-copilotkit] [data-slot="suggestion-pill"] {
+  border-radius: var(--radius-control) !important;
+}

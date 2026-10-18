@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 // Unmodified copy of @copilotkit/react-core/dist/v2/index.css (Tailwind v4 output). next.config.js stubs the
 // package's own import because the app's Tailwind 3 PostCSS plugin rejects it.
 const COPILOTKIT_STYLES_HREF = "/assistant/copilotkit-v2.css";
+const COPILOTKIT_THEME_HREF = "/assistant/copilotkit-theme.css";
 const PRE_ENROLMENT_URL =
   "https://reg.um.edu.mo/current-students/enrolment-and-examinations/course-enrolment/pre-enrolment/";
 const ADD_DROP_URL =
@@ -79,6 +80,7 @@ export default function AssistantPanel({ plan }: { plan: LocalPlan | undefined }
   return (
     <>
       <link rel="stylesheet" href={COPILOTKIT_STYLES_HREF} />
+      <link rel="stylesheet" href={COPILOTKIT_THEME_HREF} />
       <CopilotKitProvider
         runtimeUrl="/api/copilotkit"
         onError={({ error }) => setNotice(describeAssistantError(error.message))}
@@ -87,6 +89,7 @@ export default function AssistantPanel({ plan }: { plan: LocalPlan | undefined }
         <NoticeContext.Provider value={notice}>
           <CopilotSidebar
             defaultOpen
+            width="clamp(300px, 28vw, 360px)"
             labels={{
               modalHeaderTitle: "AI 选课助手（试点）",
               welcomeMessageText:
