@@ -37,6 +37,12 @@ function stubFetch(router: Router) {
 
 const modeRadio = (name: RegExp) => screen.getByRole("radio", { name });
 
+async function waitForTesterListSettled() {
+  await waitFor(() => {
+    expect(screen.queryByText("Loading…")).toBeNull();
+  });
+}
+
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
@@ -60,6 +66,7 @@ describe("AssistantAccessClient", () => {
       url === "/api/admin/app-config" ? { ok: true, body: { config: {} } } : list([]),
     );
     render(<AssistantAccessClient initialAccess="off" />);
+    await waitForTesterListSettled();
 
     fireEvent.click(modeRadio(/Admins & testers/));
 
@@ -74,6 +81,7 @@ describe("AssistantAccessClient", () => {
     const fetchMock = stubFetch(() => list([]));
     const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
     render(<AssistantAccessClient initialAccess="testers" />);
+    await waitForTesterListSettled();
 
     fireEvent.click(modeRadio(/Everyone/));
 
@@ -88,6 +96,7 @@ describe("AssistantAccessClient", () => {
     );
     vi.spyOn(window, "confirm").mockReturnValue(true);
     render(<AssistantAccessClient initialAccess="testers" />);
+    await waitForTesterListSettled();
 
     fireEvent.click(modeRadio(/Everyone/));
 
@@ -101,6 +110,7 @@ describe("AssistantAccessClient", () => {
       url === "/api/admin/app-config" ? { ok: false, body: { error: { message: "boom" } } } : list([]),
     );
     render(<AssistantAccessClient initialAccess="off" />);
+    await waitForTesterListSettled();
 
     fireEvent.click(modeRadio(/Admins & testers/));
 
