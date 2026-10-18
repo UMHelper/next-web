@@ -8,11 +8,9 @@ import {
   useConfigureSuggestions,
   useFrontendTool,
 } from "@copilotkit/react-core/v2";
-import { X } from "lucide-react";
 import {
   createContext,
   forwardRef,
-  useCallback,
   useContext,
   useRef,
   useState,
@@ -59,8 +57,9 @@ const EXAMPLE_SUGGESTIONS = {
   suggestions: EXAMPLE_QUESTIONS.map((question) => ({ title: question, message: question })),
 };
 
+const LABELS = { modalHeaderTitle: "AI 选课助手", chatInputPlaceholder: "输入你的问题…" };
+
 const NoticeContext = createContext<string | null>(null);
-const CloseContext = createContext<() => void>(() => {});
 
 function Hidden() {
   return null;
@@ -73,34 +72,29 @@ const HiddenToggle = forwardRef<
   return null;
 });
 
-function PanelHeader() {
-  const close = useContext(CloseContext);
+function HeaderTitle({ children }: { children?: ReactNode }) {
   return (
-    <header className="flex h-[52px] shrink-0 items-center gap-2 border-b border-border px-4">
-      <h2 className="truncate text-sm font-semibold text-foreground">AI 选课助手</h2>
+    <h2 className="assistant-site-tokens flex items-center justify-center gap-2 whitespace-nowrap text-sm font-semibold text-foreground">
+      {children}
       <span className="shrink-0 rounded-full bg-brand/10 px-2 py-0.5 text-[11px] font-medium text-brand">
         试点
       </span>
-      <button
-        type="button"
-        aria-label="收起助手"
-        onClick={close}
-        className="ml-auto inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-control text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-      >
-        <X size={16} aria-hidden />
-      </button>
-    </header>
+    </h2>
   );
 }
+
+const HEADER = { titleContent: HeaderTitle, closeButton: { "aria-label": "收起助手" } };
 
 function WelcomeScreen({ input, suggestionView }: { input: ReactNode; suggestionView: ReactNode }) {
   return (
     <div className="flex h-full flex-col">
       <div className="flex-1 overflow-y-auto px-4 pt-6">
-        <p className="text-sm leading-relaxed text-foreground">
-          可以问课程、教授、评价和 section 时间，也能检查某个 section 会不会和你的课表冲突。
-        </p>
-        <p className="mt-1 text-xs text-muted-foreground">只读，不会改动课表 · 单次对话最多 30 轮</p>
+        <div className="assistant-site-tokens">
+          <p className="text-sm leading-relaxed text-foreground">
+            可以问课程、教授、评价和 section 时间，也能检查某个 section 会不会和你的课表冲突。
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">只读，不会改动课表 · 单次对话最多 30 轮</p>
+        </div>
         <div className="mt-4">{suggestionView}</div>
       </div>
       {input}
@@ -113,7 +107,10 @@ function BoundaryNotice({ className, ...props }: HTMLAttributes<HTMLDivElement>)
   return (
     <div
       {...props}
-      className={cn("space-y-1 px-4 pb-2 pt-1.5 text-[11px] leading-snug text-muted-foreground", className)}
+      className={cn(
+        "assistant-site-tokens space-y-1 px-4 pb-2 pt-1.5 text-[11px] leading-snug text-muted-foreground",
+        className,
+      )}
     >
       {notice ? (
         <p role="alert" className="text-xs font-medium text-destructive-strong">
@@ -139,13 +136,14 @@ function AssistantTools({ plan }: { plan: LocalPlan | undefined }) {
   const planRef = useRef(plan);
   planRef.current = plan;
 
-  useAgentContext({ description: "学生当前激活的课表方案（只读）", value: summarizePlan(plan) });
+  useAgentContext({ description: "The student's active timetable plan (read-only)", value: summarizePlan(plan) });
   useConfigureSuggestions(EXAMPLE_SUGGESTIONS);
 
   useFrontendTool(
     {
       name: "check_plan_conflicts",
-      description: "检查某门课某位教授的某个 section 是否与学生当前课表时间冲突。只读，不会修改课表。",
+      description:
+        "Check whether one section of a course taught by an instructor clashes with the student's current timetable. Read-only; never changes the timetable.",
       parameters: checkPlanConflictsParameters,
       handler: async (input) =>
         runCheckPlanConflicts(planRef.current?.payload.sections ?? [], input, getSections),
@@ -159,7 +157,6 @@ function AssistantTools({ plan }: { plan: LocalPlan | undefined }) {
 export default function AssistantPanel({ plan }: { plan: LocalPlan | undefined }) {
   const [notice, setNotice] = useState<string | null>(null);
   const [open, setOpen] = useState(true);
-  const close = useCallback(() => setOpen(false), []);
 
   return (
     <>
@@ -171,19 +168,18 @@ export default function AssistantPanel({ plan }: { plan: LocalPlan | undefined }
         onError={({ error }) => setNotice(describeAssistantError(error.message))}
       >
         <AssistantTools plan={plan} />
-        <CloseContext.Provider value={close}>
-          <NoticeContext.Provider value={notice}>
-            <CopilotSidebar
-              open={open}
-              onOpenChange={setOpen}
-              width={SIDEBAR_WIDTH}
-              header={PanelHeader}
-              toggleButton={HiddenToggle}
-              welcomeScreen={WelcomeScreen}
-              input={{ disclaimer: BoundaryNotice, showDisclaimer: true, addMenuButton: Hidden }}
-            />
-          </NoticeContext.Provider>
-        </CloseContext.Provider>
+        <NoticeContext.Provider value={notice}>
+          <CopilotSidebar
+            open={open}
+            onOpenChange={setOpen}
+            width={SIDEBAR_WIDTH}
+            labels={LABELS}
+            header={HEADER}
+            toggleButton={HiddenToggle}
+            welcomeScreen={WelcomeScreen}
+            input={{ disclaimer: BoundaryNotice, showDisclaimer: true, addMenuButton: Hidden }}
+          />
+        </NoticeContext.Provider>
       </CopilotKitProvider>
       <ResizeHandle visible={open} />
       {open ? null : (

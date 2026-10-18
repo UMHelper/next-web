@@ -23,11 +23,28 @@ describe("assistant theme sync", () => {
     expect(css).toMatch(/html\[data-skin="island"\]\s+\[data-copilotkit\]/);
   });
 
-  it("styles chat input, send button, and user message bubble", () => {
+  it("never defines a custom property from itself, which the browser treats as invalid", () => {
     const css = readFileSync(themePath, "utf8");
-    expect(css).toContain('[data-testid="copilot-chat-input"]');
-    expect(css).toContain('[data-testid="copilot-send-button"]');
-    expect(css).toContain('[data-testid="copilot-user-message"]');
+    const selfReferences = [...css.matchAll(/(--[\w-]+):([^;]*);/g)]
+      .filter(([, name, value]) => value.includes(`var(${name})`) || value.includes(`var(${name},`))
+      .map(([declaration]) => declaration);
+    expect(selfReferences).toEqual([]);
+  });
+
+  it("reads CopilotKit's color tokens as full colors inside the panel", () => {
+    const css = readFileSync(themePath, "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+    const panelRules = css.slice(css.indexOf("}", css.indexOf(":root {")) + 1);
+    const tokens = "background|foreground|card|popover|primary|secondary|muted|accent|destructive|border|input|ring";
+    expect(panelRules).not.toMatch(new RegExp(`hsl\\(var\\(--(${tokens})(-foreground)?\\)`));
+  });
+
+  it("gives the user's message bubble a surface distinct from the panel", () => {
+    const css = readFileSync(themePath, "utf8");
+    expect(css).toMatch(/\[data-testid="copilot-user-message"\][^{]*\{[^}]*background-color: hsl\(var\(--brand\)/);
+  });
+
+  it("overrides CopilotKit through cascade layers, not !important", () => {
+    expect(readFileSync(themePath, "utf8")).not.toContain("!important");
   });
 
   it("elevates the sidebar with surface-subtle, border, and layered shadow", () => {
@@ -41,10 +58,8 @@ describe("assistant theme sync", () => {
     expect(sidebarBlock).toContain("--border-strong");
     expect(sidebarBlock).toContain("box-shadow");
 
-    const darkSidebarBlock = css.slice(
-      css.indexOf(".dark [data-copilot-sidebar]"),
-      css.indexOf("[data-copilotkit] .copilotKitHeader"),
-    );
+    const darkStart = css.indexOf(".dark [data-copilot-sidebar]");
+    const darkSidebarBlock = css.slice(darkStart, css.indexOf("}", darkStart));
     expect(darkSidebarBlock).toContain("--surface-subtle");
     expect(darkSidebarBlock).toContain("box-shadow");
   });
@@ -62,10 +77,10 @@ describe("assistant theme sync", () => {
   it("widens the sidebar input and keeps example chips flush with the intro", () => {
     const css = readFileSync(themePath, "utf8");
     expect(css).toMatch(
-      /div\[data-sidebar-chat\] \.cpk\\:\\\[div\\\[data-sidebar-chat\\\]_\\&\\\]\\:px-8 \{\s*padding-inline: 0\.75rem !important;/,
+      /div\[data-sidebar-chat\] \.cpk\\:\\\[div\\\[data-sidebar-chat\\\]_\\&\\\]\\:px-8 \{\s*padding-inline: 0\.75rem;/,
     );
     expect(css).toMatch(
-      /div\[data-sidebar-chat\] \[data-testid="copilot-suggestions"\] \{\s*margin-inline: 0 !important;\s*padding-inline: 0 !important;/,
+      /div\[data-sidebar-chat\] \[data-testid="copilot-suggestions"\] \{\s*margin-inline: 0;\s*padding-inline: 0;/,
     );
   });
 });

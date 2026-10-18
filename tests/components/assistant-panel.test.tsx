@@ -6,8 +6,10 @@ import { installFakeStorage } from "@/tests/helpers/fake-storage";
 
 type SidebarProps = {
   open: boolean;
+  onOpenChange: (open: boolean) => void;
   width: string;
-  header: ComponentType;
+  labels: { modalHeaderTitle: string; chatInputPlaceholder: string };
+  header: { titleContent: ComponentType<{ children: ReactNode }>; closeButton: Record<string, string> };
   toggleButton: ComponentType;
   welcomeScreen?: ComponentType<{ input: ReactNode; suggestionView: ReactNode }>;
   input: { addMenuButton: ComponentType; disclaimer: ComponentType; showDisclaimer: boolean };
@@ -26,10 +28,11 @@ vi.mock("@copilotkit/react-core/v2", () => ({
   },
   CopilotSidebar: (props: SidebarProps) => {
     sidebarSpy(props);
-    const Header = props.header;
+    const Title = props.header.titleContent;
     return (
       <div data-testid="copilot-sidebar" data-open={String(props.open)}>
-        <Header />
+        <Title>{props.labels.modalHeaderTitle}</Title>
+        <button type="button" {...props.header.closeButton} onClick={() => props.onOpenChange(false)} />
       </div>
     );
   },
@@ -69,6 +72,14 @@ describe("AssistantPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: "AI 选课助手" }));
     expect(sidebar.getAttribute("data-open")).toBe("true");
     expect(screen.queryByRole("button", { name: "AI 选课助手" })).toBeNull();
+  });
+
+  it("uses CopilotKit's header and input with Chinese labels", () => {
+    render(<AssistantPanel plan={undefined} />);
+    expect(lastSidebarProps().labels).toMatchObject({
+      modalHeaderTitle: "AI 选课助手",
+      chatInputPlaceholder: "输入你的问题…",
+    });
   });
 
   it("removes CopilotKit's floating toggle, attach button, and dev inspector", () => {
