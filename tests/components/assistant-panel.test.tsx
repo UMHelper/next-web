@@ -51,6 +51,7 @@ afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
   vi.clearAllMocks();
+  document.documentElement.style.removeProperty("--assistant-width");
 });
 
 describe("AssistantPanel", () => {
@@ -77,5 +78,56 @@ describe("AssistantPanel", () => {
     expect(render(<Toggle />).container.innerHTML).toBe("");
     expect(render(<AddMenu />).container.innerHTML).toBe("");
     expect(providerSpy.mock.lastCall![0].enableInspector).toBe(false);
+  });
+
+  it("offers the three example questions before the first message", () => {
+    render(<AssistantPanel plan={undefined} />);
+    const questions = [
+      "有哪些和 accounting 相关的课？",
+      "ACCT1000 是什么课？几个学分？",
+      "ACCT1000 有哪些 section？什么时间上课？",
+    ];
+    expect(suggestionsSpy).toHaveBeenCalledWith({
+      available: "before-first-message",
+      suggestions: questions.map((question) => ({ title: question, message: question })),
+    });
+  });
+
+  it("sizes the sidebar from the resizable width variable", () => {
+    render(<AssistantPanel plan={undefined} />);
+    expect(lastSidebarProps().width).toBe("var(--assistant-width, 380px)");
+    expect(document.documentElement.style.getPropertyValue("--assistant-width")).toBe("380px");
+    expect(screen.getByRole("separator", { name: "调整助手宽度" })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "收起助手" }));
+    expect(screen.queryByRole("separator")).toBeNull();
+  });
+
+  it("shows the intro and example chips above the input on the welcome screen", () => {
+    render(<AssistantPanel plan={undefined} />);
+    const Welcome = lastSidebarProps().welcomeScreen!;
+    render(
+      <Welcome
+        input={<div data-testid="input" />}
+        suggestionView={<div data-testid="chips" />}
+      />,
+    );
+    expect(screen.getByText(/可以问课程、教授、评价和 section 时间/)).toBeTruthy();
+    expect(screen.getByText("只读，不会改动课表 · 单次对话最多 30 轮")).toBeTruthy();
+    expect(screen.getByTestId("chips")).toBeTruthy();
+    expect(screen.getByTestId("input")).toBeTruthy();
+  });
+
+  it("renders the disclaimer as one compact line with both official links", () => {
+    render(<AssistantPanel plan={undefined} />);
+    const Disclaimer = lastSidebarProps().input.disclaimer;
+    const { container } = render(<Disclaimer />);
+    expect(container.textContent).toMatch(/^本站不是 myUM · Pre-Enrolment · Add\/Drop · 数据更新于 /);
+    expect(screen.getByRole("link", { name: "Pre-Enrolment" }).getAttribute("href")).toContain(
+      "pre-enrolment",
+    );
+    expect(screen.getByRole("link", { name: "Add/Drop" }).getAttribute("href")).toContain(
+      "course-add-drop",
+    );
   });
 });
