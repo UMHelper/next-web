@@ -21,7 +21,7 @@
 - `BuiltInAgent`：`maxSteps: 5`，`overridableProperties: []`（客户端不能改模型、prompt、providerOptions）。
 - 服务端变量（禁止 `NEXT_PUBLIC_` 前缀）：`AI_BASE_URL=https://api.deepseek.com`、`AI_API_KEY`、`AI_MODEL=deepseek-flash`、`AI_THINKING=off`（`off | low`）、`AI_MAX_OUTPUT_TOKENS=400`、`AI_TIMEOUT_MS=30000`、`COPILOTKIT_TELEMETRY_DISABLED=true`、`AGENT_RATE_LIMIT_PER_HOUR=30`、`AGENT_RATE_LIMIT_PER_DAY=80`、`AGENT_MAX_TURNS_PER_CONVERSATION=30`、`AGENT_HISTORY_TURNS=8`。
 - 思考模式：`off` = `{ deepseek: { thinking: { type: "disabled" } } }`；`low` = `{ deepseek: { thinking: { type: "enabled" }, reasoningEffort: "low" } }`。
-- 白名单：服务端读 `sessionClaims.metadata.aiPilot === true`，客户端读 `useUser().user.publicMetadata.aiPilot === true`；判断逻辑只在 `lib/assistant/pilot.ts`。
+- 访问控制（2026-10-18 起）：见 [2026-10-18-assistant-access-control.md](2026-10-18-assistant-access-control.md)。原 `aiPilot` 白名单与 `lib/assistant/pilot.ts` 已删除。
 - 限流：键 `agent:user:<hashUserId>:hour`（3600 s）与 `agent:user:<hashUserId>:day`（86400 s），`hashUserId` 复用 `lib/mcp/rate-limit.ts`；每个 `agent/run` 请求计 1 次；存储失败返回 503（fail closed）；超限 429 + `Retry-After`。
 - 单会话：请求体里 `role: "user"` 的消息数 > 30 → 409；只把最近 8 轮 + 当前消息转给模型；更早轮次的 `tool` 结果压成一行 ≤ 200 字；丢弃客户端送来的 `system` / `developer` 消息；请求体 ≤ 256 KB、消息 ≤ 200 条。
 - 路由只放行：`GET /api/copilotkit/info`、`POST /api/copilotkit/agent/default/run`、`POST /api/copilotkit/agent/default/stop/:threadId`；`POST /api/copilotkit/agent/default/connect` 直接回空 SSE（不进 runtime）；其余一律 404（含 `/threads*`、`/memories*`、其它 agent id）。
@@ -2722,23 +2722,22 @@ git commit -m "docs(assistant): disclose DeepSeek processing and document assist
 
 这一步要真实 Clerk 会话与真实 DeepSeek，子 agent 不能独立完成：Step 1 由 Lua 做，其余可由执行者在 Lua 登录后的浏览器里完成。
 
-- [ ] **Step 1: Lua：配置 Clerk 开发实例**
+- [ ] **Step 1: Lua：打开访问权限（无需 Clerk Dashboard）**
 
-Clerk Dashboard（开发实例，`pk_test_...` 对应的那个）：
-
-1. **Sessions → Customize session token**，加入 `{"metadata": "{{user.public_metadata}}"}` 并保存。
-2. **Users → 自己的账号 → Metadata → Public**，设为 `{"aiPilot": true}`。
-3. 准备第二个账号，不设 `aiPilot`，用于反向验证。
+1. 在开发用 Supabase 执行 `supabase/migrations/20261018_assistant_access.sql`。
+2. 用平台管理员账号（`PLATFORM_ADMIN_USER_IDS` / `PLATFORM_ADMIN_EMAILS`）登录，打开 `http://localhost:3000/admin/assistant`。
+3. 加入一个非管理员测试账号的邮箱，把模式切到 `Admins & testers`。
+4. 准备第三个账号：既不是管理员也不在测试名单里，用于反向验证。
 
 - [ ] **Step 2: 本地跑起来**
 
 ```bash
-cd /Users/thomaswu/workspace/next-web/.worktrees/assistant-v1
+cd /Users/thomaswu/workspace/next-web
 source ~/.nvm/nvm.sh && nvm use 22
 npm run dev
 ```
 
-用白名单账号登录后打开 `http://localhost:3000/timetable`。
+用管理员或测试账号登录后打开 `http://localhost:3000/timetable`。
 
 - [ ] **Step 3: 浏览器检查并记录**
 
@@ -2752,7 +2751,7 @@ npm run dev
 6. 停掉 dev server，把 `.env.local` 的 `AI_THINKING` 改为 `low` 后重启，重复第 5 项里的 `sections`、`conflict`、`reviews` 三题，比较速度与答案；记录完改回 `off`。
 7. 冲突题：先在课表里放一门与目标 section 时间重叠的课，确认回答里的冲突与页面上的冲突一致。
 8. 错误提示：把 `.env.local` 的 `AGENT_RATE_LIMIT_PER_HOUR` 临时改成 `1`，重启后连问两次，第二次横幅显示「提问次数已达上限，请稍后再试。」；记录 `onError` 实际收到的 `error.message`，若 `describeAssistantError` 没匹配上，按实际格式修正正则并补测试用例。改回 `30`。
-9. 换非白名单账号登录：`/timetable` 没有按钮；控制台 `await fetch('/api/copilotkit/info').then(r => r.status)` 为 `403`。
+9. 换第三个账号（非管理员、非测试者）登录：`/timetable` 没有按钮；控制台 `await fetch('/api/copilotkit/info').then(r => r.status)` 为 `403`，`await fetch('/api/assistant/access').then(r => r.json())` 为 `{ enabled: false }`。再在 `/admin/assistant` 把模式切到 `Off`：管理员与测试账号刷新后按钮消失、`/api/copilotkit/info` 为 `403`；切回 `Admins & testers`。
 10. 浅色 / 深色与各皮肤下侧栏可读，没有把站点自身按钮、输入框样式改坏。
 
 - [ ] **Step 4: Workers 路径冒烟**
@@ -2762,7 +2761,7 @@ cp .env.local .dev.vars
 npm run preview
 ```
 
-在 `http://localhost:8787/timetable` 用白名单账号问一题，确认流式正常、无 `import.meta.url` / global scope 报错。完成后删除 `.dev.vars`（已被 `.gitignore` 忽略也要删，避免密钥留在磁盘）。
+在 `http://localhost:8787/timetable` 用管理员或测试账号问一题，确认流式正常、无 `import.meta.url` / global scope 报错。完成后删除 `.dev.vars`（已被 `.gitignore` 忽略也要删，避免密钥留在磁盘）。
 
 - [ ] **Step 5: Commit**
 
@@ -2780,7 +2779,7 @@ git commit -m "docs(assistant): record V1 end-to-end verification"
 **Files:** 无代码改动（PR 合并后发版）
 
 - [ ] **Step 1: 决定 Workers 档位**：在 Cloudflare Dashboard 看账号档位与 CPU 超限指标（spike：agent 请求 41–249 ms CPU，Free 档文档上限 10 ms，目前未被拦截）。决定保持 Free 或升级 Paid（$5/月），写进验证文档。
-- [ ] **Step 2: Clerk 生产实例**：同 Task 10 Step 1，在生产实例配置 session token 的 `metadata` claim；给第一批约 20 名试点同学设 `{"aiPilot": true}`。
+- [ ] **Step 2: 生产数据库**：在生产 Supabase 执行 `supabase/migrations/20261018_assistant_access.sql`（默认 `off`，执行后对所有人仍隐藏）。必须在部署代码之前或同时执行；先部署也只会 fail closed（助手隐藏），不影响其它页面。
 - [ ] **Step 3: Worker 密钥与变量**：
 
 ```bash
@@ -2790,6 +2789,6 @@ npx wrangler secret put AI_API_KEY
 其余 `AI_*`、`AGENT_*` 用默认值即可；需要改时在 Dashboard 设变量（`keep_vars: true` 不会被部署覆盖）。
 
 - [ ] **Step 4: DeepSeek 预充 $300**。
-- [ ] **Step 5: 合并 PR 并部署**：`npm run deploy`（或按现有发布流程）；部署后用白名单账号在生产 `/timetable` 问一题，用非白名单账号确认无按钮。
-- [ ] **Step 6: 试点 1–2 周**：已花 ≤ $150 → 扩到约 100 人；否则停下讨论。每次扩人前复核 DeepSeek 价格。
-- [ ] **回滚**：清空所有账号的 `aiPilot` 即对所有人隐藏；V1 无数据库对象需要清理。
+- [ ] **Step 5: 合并 PR 并部署**：`npm run deploy`（或按现有发布流程）。部署后在生产 `/admin/assistant` 加入第一批约 20 名试点同学的邮箱，切到 `Admins & testers`；用测试账号在生产 `/timetable` 问一题，用非测试账号确认无按钮。
+- [ ] **Step 6: 试点 1–2 周**：已花 ≤ $150 → 在 `/admin/assistant` 继续加邮箱到约 100 人；正式上线时切到 `Everyone`。否则停下讨论。每次扩人前复核 DeepSeek 价格。
+- [ ] **回滚**：在 `/admin/assistant` 切到 `Off`，下一次请求起对所有人隐藏并返回 403，无需重新部署。数据库对象（`ai_assistant_access` 列与 `assistant_testers` 表）保留即可。

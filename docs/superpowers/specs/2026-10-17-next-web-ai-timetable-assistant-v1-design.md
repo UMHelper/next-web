@@ -28,7 +28,7 @@
 | V3 | 面板只在 `/timetable`；助手只读当前激活方案的一行摘要 |
 | V4 | 服务端工具复用 `lib/mcp/data/*`，不另建工具数据层与 `redact.ts` |
 | V5 | 对话不落库，只在浏览器内存，刷新即丢 |
-| V6 | 沿用旧文档：Clerk 登录 + `publicMetadata.aiPilot` 白名单；每人每小时 30 / 每天 80；DeepSeek 预充 $300；20 人试点，已花 ≤ $150 再扩到约 100 人 |
+| V6 | Clerk 登录；访问控制改为 `off / testers / everyone` 运行时开关（见 [2026-10-18-assistant-access-control-design.md](2026-10-18-assistant-access-control-design.md)，取代原 `publicMetadata.aiPilot` 白名单）；每人每小时 30 / 每天 80；DeepSeek 预充 $300；20 人试点，已花 ≤ $150 再扩到约 100 人 |
 | V7 | `middleware.ts` 不改，鉴权在路由 handler 内 |
 
 ## 3. 目标与非目标
@@ -120,7 +120,7 @@ EDUC1001-002 (CHAN TAI MAN) MON 09:00-10:15, WED 09:00-10:15
 ## 8. 鉴权、白名单、限流
 
 - **鉴权**：handler 内 `auth()`；无会话 401，非白名单 403，均用 `apiError()`。`middleware.ts` 不改。
-- **白名单**：Clerk Dashboard 给试点账号设 `publicMetadata.aiPilot = true`；session token 加自定义 claim `"metadata": "{{user.public_metadata}}"`，服务端读 `sessionClaims.metadata.aiPilot`，客户端用 `useUser().user.publicMetadata.aiPilot`。仓库目前没有任何自定义 claim，这是一次性 Dashboard 配置。判断逻辑集中在 `lib/assistant/pilot.ts`。
+- **访问控制**：已被 [2026-10-18-assistant-access-control-design.md](2026-10-18-assistant-access-control-design.md) 取代。不再使用 Clerk `publicMetadata.aiPilot` 与 session token 自定义 claim；由 `app_config.ai_assistant_access`（`off / testers / everyone`）加 `assistant_testers` 邮箱名单控制，在 `/admin/assistant` 切换。判断逻辑集中在 `lib/assistant/access.ts`。
 - **限流**：`lib/rate-limit.ts` 的 action 联合类型加 `"agent"`。键 `agent:user:<hash>:hour`（30）、`agent:user:<hash>:day`（80），用户 id 哈希方式与 `lib/mcp/rate-limit.ts` 的 `hashUserId` 一致。超限 429 + `Retry-After`；限流存储失败一律拒绝（fail closed）。
 - **单会话**：最多 30 轮，到上限提示刷新开新会话；只发最近 8 轮给模型，旧工具结果压成一行。客户端每次请求带完整历史（§9），所以轮数按请求体里 `role: "user"` 的消息数算，不用 `afterRequestMiddleware` 的 `messageCount`（spike 实测不等于历史长度）；同时限制请求体大小与消息条数，并在构造 agent 前裁剪。历史由客户端提供，可被伪造，只影响该用户自己的会话与 token 消耗（受限流约束）。
 
@@ -194,7 +194,7 @@ COPILOTKIT_TELEMETRY_DISABLED=true
 - **工具适配**：5 个适配器的输出经 MCP 输出 schema，`verify_account`、`hidden`、`admin_note`、`admin_note_en`、`prof_with_course.id` 不出现。
 - **`plan-summary`**：格式、30 条上限、无方案。
 - **`check_plan_conflicts`**：有冲突、首尾相接不算冲突、section 不存在、请求失败。
-- **`pilot`**：claim 缺失 / false / true。
+- **`access`**：三种模式 × 未登录 / 普通用户 / 测试者 / 管理员；任何查询失败都拒绝（见访问控制 spec §8）。
 - **检索层 golden**：`tests/fixtures/assistant-golden-questions.ts` 约 10 题（搜课、看 section、看评价、问冲突、无关问题、提示注入、要求加课），CI 只跑工具输入 → 输出；端到端（真实 DeepSeek，比较思考低强度与关闭）本地手动跑。
 
 ## 15. 文件结构
@@ -206,7 +206,8 @@ COPILOTKIT_TELEMETRY_DISABLED=true
   components/assistant/assistant-panel.tsx
   lib/assistant/model.ts
   lib/assistant/prompt.ts
-  lib/assistant/pilot.ts
+  lib/assistant/access-mode.ts
+  lib/assistant/access.ts
   lib/assistant/plan-summary.ts
   lib/assistant/tools.ts
   lib/assistant/check-plan-conflicts.ts
