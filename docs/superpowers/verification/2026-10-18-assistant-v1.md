@@ -16,6 +16,8 @@
 | First Load JS shared by all | 103 kB | 103 kB | 0 |
 | other shared chunks | 2.56 kB | 3.01 kB | +0.45 kB |
 
+Access-control change (2026-10-18, `docs/superpowers/plans/2026-10-18-assistant-access-control.md` Task 5): `/` 176 kB, `/course/[code]` 133 kB, `/timetable` 205 kB, shared 103 kB.
+
 ## 2. 手动验证（Task 10）
 
 （待填）

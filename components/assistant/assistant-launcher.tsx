@@ -1,19 +1,38 @@
 "use client";
 
-import { useUser } from "@clerk/nextjs";
+import { useAuth } from "@clerk/nextjs";
 import dynamic from "next/dynamic";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-import { isPilotMetadata } from "@/lib/assistant/pilot";
 import type { LocalPlan } from "@/lib/timetable/store";
 
 const AssistantPanel = dynamic(() => import("./assistant-panel"), { ssr: false });
 
 export default function AssistantLauncher({ plan }: { plan: LocalPlan | undefined }) {
-  const { isLoaded, user } = useUser();
+  const { isLoaded, isSignedIn } = useAuth();
+  const [enabled, setEnabled] = useState(false);
   const [opened, setOpened] = useState(false);
 
-  if (!isLoaded || !isPilotMetadata(user?.publicMetadata)) return null;
+  useEffect(() => {
+    if (!isLoaded || !isSignedIn) {
+      setEnabled(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    fetch("/api/assistant/access", { cache: "no-store", signal: controller.signal })
+      .then(async (response) => {
+        if (!response.ok) return false;
+        const body = await response.json().catch(() => null);
+        return body?.enabled === true;
+      })
+      .then((nextEnabled) => setEnabled(nextEnabled))
+      .catch(() => setEnabled(false));
+
+    return () => controller.abort();
+  }, [isLoaded, isSignedIn]);
+
+  if (!enabled) return null;
   if (opened) return <AssistantPanel plan={plan} />;
 
   return (
