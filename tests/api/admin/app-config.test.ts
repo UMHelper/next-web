@@ -97,4 +97,35 @@ describe("/api/admin/app-config", () => {
     expect(response.status).toBe(400);
     expect(update).not.toHaveBeenCalled();
   });
+
+  it("updates the assistant access mode", async () => {
+    const request = new Request("http://localhost/api/admin/app-config", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ai_assistant_access: "everyone" }),
+    });
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(200);
+    expect(update.mock.calls[0][0]).toMatchObject({ ai_assistant_access: "everyone", updated_by: "user_admin" });
+    expect(revalidateTag).toHaveBeenCalledWith("app-config");
+    expect(writeAuditLog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "config.update",
+        after: expect.objectContaining({ ai_assistant_access: "everyone" }),
+      }),
+    );
+  });
+
+  it("rejects unknown assistant access modes", async () => {
+    const request = new Request("http://localhost/api/admin/app-config", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ai_assistant_access: "admins" }),
+    });
+    const response = await POST(request);
+    expect(response.status).toBe(400);
+    expect(update).not.toHaveBeenCalled();
+  });
 });
