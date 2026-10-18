@@ -19,11 +19,11 @@ const section = (code: string, sectionId: string, schedules: unknown[]) =>
 
 describe("summarizePlan", () => {
   it("says so when there is no plan", () => {
-    expect(summarizePlan(undefined)).toBe("当前没有课表方案");
+    expect(summarizePlan(undefined)).toBe("No timetable plan");
   });
 
   it("says so when the plan is empty", () => {
-    expect(summarizePlan(plan([]))).toBe("学期 2026/1，方案「我的课表」，还没有加入任何课");
+    expect(summarizePlan(plan([]))).toBe('Term 2026/1, plan "我的课表", no courses added yet');
   });
 
   it("lists one line per section", () => {
@@ -38,7 +38,7 @@ describe("summarizePlan", () => {
     );
     expect(summary).toBe(
       [
-        "学期 2026/1，方案「我的课表」，共 2 门：",
+        'Term 2026/1, plan "我的课表", 2 courses:',
         "EDUC1001-002 (CHAN TAI MAN) MON 09:00-10:15, WED 09:00-10:15",
         "MATH1000-001 (CHAN TAI MAN) TUE 14:00-15:15",
       ].join("\n"),
@@ -52,12 +52,12 @@ describe("summarizePlan", () => {
         section("EDUC1001", "003", [{ date: "FRI", time: "09:00-10:15", location: "" }]),
       ]),
     );
-    expect(summary.split("\n")[0]).toBe("学期 2026/1，方案「我的课表」，共 1 门：");
+    expect(summary.split("\n")[0]).toBe('Term 2026/1, plan "我的课表", 1 course:');
   });
 
   it("marks sections without meeting times", () => {
     expect(summarizePlan(plan([section("THES4000", "001", [])]))).toContain(
-      "THES4000-001 (CHAN TAI MAN) 无上课时间",
+      "THES4000-001 (CHAN TAI MAN) no meeting times",
     );
   });
 
@@ -67,6 +67,6 @@ describe("summarizePlan", () => {
     );
     const lines = summarizePlan(plan(sections)).split("\n");
     expect(lines).toHaveLength(32);
-    expect(lines[31]).toBe("……另有 2 个 section 未列出");
+    expect(lines[31]).toBe("…and 2 more sections not listed");
   });
 });

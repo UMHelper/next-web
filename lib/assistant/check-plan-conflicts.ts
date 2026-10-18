@@ -9,9 +9,9 @@ import {
 } from "@/lib/timetable/schema";
 
 export const checkPlanConflictsParameters = z.object({
-  code: z.string().min(1).max(20).describe("课号，例如 ECON1001"),
-  instructor: z.string().min(1).max(80).describe("教授英文名，例如 CHAN TAI MAN"),
-  section: z.string().min(1).max(20).describe("section 编号，例如 001"),
+  code: z.string().min(1).max(20).describe("Course code, e.g. ECON1001"),
+  instructor: z.string().min(1).max(80).describe("Instructor name in English, e.g. CHAN TAI MAN"),
+  section: z.string().min(1).max(20).describe("Section number, e.g. 001"),
 });
 
 export type CheckPlanConflictsInput = z.infer<typeof checkPlanConflictsParameters>;

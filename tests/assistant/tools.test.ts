@@ -36,6 +36,13 @@ describe("assistant server tools", () => {
     expect(createAssistantTools().map((tool) => tool.name)).toEqual([...ASSISTANT_SERVER_TOOL_NAMES]);
   });
 
+  it("describes tools in English so the model does not lean toward one reply language", () => {
+    const text = JSON.stringify(
+      createAssistantTools().map((tool) => [tool.description, (tool as { parameters?: unknown }).parameters]),
+    );
+    expect(text).not.toMatch(/[\p{Script=Han}]/u);
+  });
+
   it("normalizes input through the MCP schema before reading data", async () => {
     data.getCourseSections.mockResolvedValue({
       courseCode: "ACCT1000",
