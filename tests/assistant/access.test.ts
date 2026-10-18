@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 type QueryResult = { data: Record<string, unknown> | null; error: { message: string } | null };
 
@@ -45,6 +45,10 @@ beforeEach(() => {
   setMode("testers");
 });
 
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
+
 describe("readAssistantAccess", () => {
   it("reads only the mode column of the single config row", async () => {
     setMode("everyone");
@@ -65,6 +69,50 @@ describe("readAssistantAccess", () => {
   it("fails closed when the client throws", async () => {
     mocks.modeResult.mockRejectedValue(new Error("network"));
     await expect(readAssistantAccess()).resolves.toBe("off");
+  });
+});
+
+describe("readAssistantAccess preview override", () => {
+  it("uses the override and skips the database when PREVIEW_MODE is 1", async () => {
+    vi.stubEnv("PREVIEW_MODE", "1");
+    vi.stubEnv("ASSISTANT_ACCESS_OVERRIDE", "everyone");
+    setMode("off");
+
+    await expect(readAssistantAccess()).resolves.toBe("everyone");
+    expect(mocks.from).not.toHaveBeenCalled();
+  });
+
+  it("treats an invalid override as off", async () => {
+    vi.stubEnv("PREVIEW_MODE", "1");
+    vi.stubEnv("ASSISTANT_ACCESS_OVERRIDE", "bogus");
+    setMode("everyone");
+
+    await expect(readAssistantAccess()).resolves.toBe("off");
+  });
+
+  it("ignores the override unless PREVIEW_MODE is exactly 1", async () => {
+    vi.stubEnv("ASSISTANT_ACCESS_OVERRIDE", "everyone");
+    setMode("off");
+    await expect(readAssistantAccess()).resolves.toBe("off");
+
+    vi.stubEnv("PREVIEW_MODE", "true");
+    await expect(readAssistantAccess()).resolves.toBe("off");
+  });
+
+  it("falls back to the database when PREVIEW_MODE is 1 but no override is set", async () => {
+    vi.stubEnv("PREVIEW_MODE", "1");
+    vi.stubEnv("ASSISTANT_ACCESS_OVERRIDE", "");
+    setMode("testers");
+
+    await expect(readAssistantAccess()).resolves.toBe("testers");
+  });
+
+  it("lets canUseAssistant allow a signed-in user via the override", async () => {
+    vi.stubEnv("PREVIEW_MODE", "1");
+    vi.stubEnv("ASSISTANT_ACCESS_OVERRIDE", "everyone");
+    setMode("off");
+
+    await expect(canUseAssistant("user_1")).resolves.toBe(true);
   });
 });
 

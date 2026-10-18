@@ -10,8 +10,23 @@ import supabaseAdmin from "@/lib/supabase/admin";
 
 const describeError = (error: unknown) => (error instanceof Error ? error.message : String(error));
 
+/**
+ * Preview workers read a production database that has no `ai_assistant_access`
+ * column yet. `PREVIEW_MODE=1` plus `ASSISTANT_ACCESS_OVERRIDE` supplies the
+ * mode instead. Ignored everywhere else.
+ */
+function previewAccessOverride(): AssistantAccess | null {
+  if (process.env.PREVIEW_MODE !== "1") return null;
+  const raw = process.env.ASSISTANT_ACCESS_OVERRIDE;
+  if (!raw) return null;
+  return parseAssistantAccess(raw);
+}
+
 /** Selects only the mode column so a missing column cannot affect other app_config readers. */
 export async function readAssistantAccess(): Promise<AssistantAccess> {
+  const override = previewAccessOverride();
+  if (override) return override;
+
   try {
     const { data, error } = await supabaseAdmin
       .from("app_config")
