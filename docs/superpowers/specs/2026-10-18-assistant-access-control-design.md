@@ -30,12 +30,18 @@ Non-goals:
 
 ## 3. Access model
 
-`lib/assistant/access.ts` is the single source of truth.
+`lib/assistant/access.ts` (server-only) is the single source of truth. The mode type, mode list, parser, and tester cap live in `lib/assistant/access-mode.ts`, which has no server imports, so the admin UI can use them.
 
 ```ts
-export type AssistantAccess = "off" | "testers" | "everyone";
+// lib/assistant/access-mode.ts
+export const ASSISTANT_ACCESS_MODES = ["off", "testers", "everyone"] as const;
+export type AssistantAccess = (typeof ASSISTANT_ACCESS_MODES)[number];
+export const MAX_ASSISTANT_TESTERS = 200;
+export function parseAssistantAccess(value: unknown): AssistantAccess;
 
-export async function getAssistantAccess(): Promise<AssistantAccess>;   // cached read, fails closed to "off"
+// lib/assistant/access.ts
+export async function readAssistantAccess(): Promise<AssistantAccess>;  // uncached, fails closed to "off"
+export const getAssistantAccess: () => Promise<AssistantAccess>;        // cached wrapper
 export async function canUseAssistant(userId: string | null): Promise<boolean>;
 ```
 
@@ -72,7 +78,7 @@ create table if not exists public.assistant_testers (
 
 alter table public.assistant_testers enable row level security;
 revoke all on public.assistant_testers from public, anon, authenticated;
-grant select, insert, update, delete on public.assistant_testers to service_role;
+grant select, insert, delete on public.assistant_testers to service_role;
 ```
 
 This follows the existing convention (row-level security on, `service_role` only, as in `20260919_admin_console.sql`). Default mode is `off` and the tester table starts empty, so applying the migration changes nothing.
@@ -103,7 +109,7 @@ Add `GET /api/assistant/access`:
 
 `components/assistant/assistant-launcher.tsx`:
 
-- Keep `useUser()` only for `isLoaded` and `isSignedIn`. It no longer reads `publicMetadata`.
+- Switch from `useUser()` to `useAuth()` for `isLoaded` and `isSignedIn`, the same pattern as `components/admin-entry.tsx`. It no longer reads `publicMetadata`.
 - When loaded and signed in, fetch the endpoint once on mount.
 - Render the button only on `{ enabled: true }`. A network error, non-200 response, malformed body, or signed-out user renders nothing (fail closed).
 - Signed-out visitors cause no request.
@@ -118,14 +124,14 @@ All admin endpoints here are platform-admin only (`requireAdmin({ platformOnly: 
 Mode API:
 
 - Extend `appConfigUpdateSchema` with `ai_assistant_access: z.enum(["off","testers","everyone"]).optional()`.
-- `POST /api/admin/app-config` writes the column, calls `revalidateTag(CACHE_TAGS.appConfig)`, and writes an audit log entry through the existing `config.update` path.
-- `GET /api/admin/app-config` also returns the current mode, using a separate read of the new column (not through `mapAppConfigRow`), so the existing response shape and tests are unaffected apart from one added field.
+- `POST /api/admin/app-config` needs no code change: it already spreads the parsed body into the update, calls `revalidateTag(CACHE_TAGS.appConfig)`, and writes a `config.update` audit entry.
+- `GET /api/admin/app-config` is unchanged. The admin page reads the current mode on the server with `readAssistantAccess()` and passes it to the client component.
 
-Tester API (`app/api/admin/assistant-testers/route.ts`, modelled on `app/api/admin/admins`):
+Tester API (modelled on `app/api/admin/admins`):
 
-- `GET`: list testers (email, added_by, created_at), newest first.
-- `POST { email }`: validate and lowercase the email (zod `.email()`, max 254), insert, return 201. A duplicate returns 409. Writes an audit entry.
-- `DELETE { email }`: remove, returns 200 (404 if absent). Writes an audit entry.
+- `GET /api/admin/assistant-testers`: list testers (email, added_by, added_by_email, created_at), newest first.
+- `POST /api/admin/assistant-testers { email }`: validate and lowercase the email (zod `.email()`, max 254), insert, return 201. A duplicate returns 409. Writes an audit entry.
+- `DELETE /api/admin/assistant-testers/[email]` (URL-encoded email, like `admins/[userId]`): remove, returns 200 (404 if absent). Writes an audit entry.
 - `AuditEntry.action` gains `"assistant_tester.add"` and `"assistant_tester.remove"`, with `targetType: "assistant_tester"` and `targetId: <email>`.
 - Body size is capped with `readJsonBody`, as the other admin routes do. The list is capped at 200 testers (insert beyond that returns 409 with a clear message), which bounds the page and abuse by a compromised admin.
 
