@@ -13,7 +13,6 @@ export default async function AssistantAdminPage() {
     if (admin.response.status === 401) redirect("/sign-in");
     notFound();
   }
-  if (!admin.session.isPlatformAdmin) notFound();
 
   const access = await readAssistantAccess();
   return <AssistantAccessClient initialAccess={access} />;

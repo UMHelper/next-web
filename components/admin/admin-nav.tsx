@@ -12,7 +12,7 @@ const NAV_ITEMS = [
   { href: "/admin/update", label: "Update", platformOnly: true },
   { href: "/admin/notes", label: "Course Notes" },
   { href: "/admin/admins", label: "Admins", platformOnly: true },
-  { href: "/admin/assistant", label: "AI Assistant", platformOnly: true },
+  { href: "/admin/assistant", label: "AI Assistant" },
 ];
 
 export default function AdminNav({ isPlatformAdmin }: { isPlatformAdmin: boolean }) {

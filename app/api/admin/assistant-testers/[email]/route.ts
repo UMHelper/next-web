@@ -17,7 +17,7 @@ function decodeEmail(raw: string): string | null {
 }
 
 export async function DELETE(_request: Request, { params }: { params: Promise<{ email: string }> }) {
-  const admin = await requireAdmin({ platformOnly: true });
+  const admin = await requireAdmin();
   if (!admin.ok) return admin.response;
 
   const { email: rawEmail } = await params;

@@ -98,6 +98,35 @@ describe("/api/admin/app-config", () => {
     expect(update).not.toHaveBeenCalled();
   });
 
+  it("lets any admin update only the assistant access mode", async () => {
+    requireAdmin.mockResolvedValue({ ok: true, session: { userId: "user_admin", isPlatformAdmin: false } });
+    const request = new Request("http://localhost/api/admin/app-config", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ai_assistant_access: "testers" }),
+    });
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(200);
+    expect(requireAdmin).toHaveBeenCalledWith();
+    expect(update.mock.calls[0][0]).toMatchObject({ ai_assistant_access: "testers" });
+  });
+
+  it("rejects other config changes from a non-platform admin", async () => {
+    requireAdmin.mockResolvedValue({ ok: true, session: { userId: "user_admin", isPlatformAdmin: false } });
+    const request = new Request("http://localhost/api/admin/app-config", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ai_assistant_access: "off", current_sem: 2 }),
+    });
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(403);
+    expect(update).not.toHaveBeenCalled();
+  });
+
   it("updates the assistant access mode", async () => {
     const request = new Request("http://localhost/api/admin/app-config", {
       method: "POST",

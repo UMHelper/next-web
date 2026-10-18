@@ -30,8 +30,10 @@ describe("AdminNav", () => {
     expect(last.getAttribute("href")).toBe("/admin/assistant");
   });
 
-  it("hides the AI Assistant tab from other admins", () => {
+  it("shows the AI Assistant tab to every admin and keeps platform tabs hidden", () => {
     const view = render(<AdminNav isPlatformAdmin={false} />);
-    expect(view.queryByText("AI Assistant")).toBeNull();
+    expect(view.getByText("AI Assistant").getAttribute("href")).toBe("/admin/assistant");
+    expect(view.queryByText("Update")).toBeNull();
+    expect(view.queryByText("Admins")).toBeNull();
   });
 });

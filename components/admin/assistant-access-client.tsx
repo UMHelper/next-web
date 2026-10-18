@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -141,12 +140,8 @@ export default function AssistantAccessClient({ initialAccess }: { initialAccess
       <div className="rounded-lg border p-4">
         <div className="mb-1 text-sm font-medium">Testers</div>
         <div className="mb-3 text-xs text-muted-foreground">
-          Used only in &quot;Admins &amp; testers&quot; mode. Admins (see{" "}
-          <Link href="/admin/admins" className="underline">
-            Admins
-          </Link>
-          ) always have access. Matched against the user&apos;s verified email, so you can add people before
-          they sign up.
+          Used only in &quot;Admins &amp; testers&quot; mode. Admins always have access. Matched against the
+          user&apos;s verified email, so you can add people before they sign up.
         </div>
         <div className="mb-3 flex flex-col gap-2 sm:flex-row">
           <Input

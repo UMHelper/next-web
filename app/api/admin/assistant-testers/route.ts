@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 type TesterRow = { email: string; added_by: string; created_at: string };
 
 export async function GET() {
-  const admin = await requireAdmin({ platformOnly: true });
+  const admin = await requireAdmin();
   if (!admin.ok) return admin.response;
 
   const { data, error } = await supabaseAdmin
@@ -35,7 +35,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const admin = await requireAdmin({ platformOnly: true });
+  const admin = await requireAdmin();
   if (!admin.ok) return admin.response;
 
   const body = await readJsonBody(request, 1_024);

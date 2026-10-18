@@ -28,15 +28,10 @@ describe("AssistantAdminPage guard", () => {
     expect(readAssistantAccess).not.toHaveBeenCalled();
   });
 
-  it("404s non-platform admins without reading the mode", async () => {
+  it("renders the client with the current mode for any admin", async () => {
     getCurrentAdmin.mockResolvedValue({ ok: true, session: { userId: "u", isPlatformAdmin: false } });
-    await expect(AssistantAdminPage()).rejects.toThrow("NEXT_NOT_FOUND");
-    expect(readAssistantAccess).not.toHaveBeenCalled();
-  });
-
-  it("renders the client with the current mode for platform admins", async () => {
-    getCurrentAdmin.mockResolvedValue({ ok: true, session: { userId: "u", isPlatformAdmin: true } });
     const view = await AssistantAdminPage();
     expect(view.props.initialAccess).toBe("testers");
+    expect(notFound).not.toHaveBeenCalled();
   });
 });

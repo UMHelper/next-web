@@ -75,7 +75,7 @@ beforeEach(() => {
 });
 
 describe("assistant testers API", () => {
-  it.each([401, 403])("passes through a %i from requireAdmin and asks for platform admin", async (status) => {
+  it.each([401, 403])("passes through a %i from requireAdmin for any admin", async (status) => {
     mocks.requireAdmin.mockResolvedValue({
       ok: false,
       response: NextResponse.json({ error: { code: "x", message: "x" } }, { status }),
@@ -83,7 +83,7 @@ describe("assistant testers API", () => {
     expect((await GET()).status).toBe(status);
     expect((await post({ email: "a@b.co" })).status).toBe(status);
     expect((await remove("a%40b.co")).status).toBe(status);
-    expect(mocks.requireAdmin).toHaveBeenCalledWith({ platformOnly: true });
+    expect(mocks.requireAdmin).toHaveBeenCalledWith();
     expect(mocks.insert).not.toHaveBeenCalled();
     expect(mocks.deleteEq).not.toHaveBeenCalled();
   });
