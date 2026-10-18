@@ -39,7 +39,7 @@
 - 测试环境：webview 不推进 CSS transition，依赖过渡的计算值（`.btn-depth` 的 transform / box-shadow、焦点环）会读到旧值；读取前需设置内联 `transition:none` 或等待。这是环境产物，不是缺陷
 - 390px 视口存在横向溢出（scrollWidth 438），默认皮肤与 island 完全一致，属既有问题
 - 移动端侧栏 Sheet 缺少 `DialogTitle`，Radix 在控制台报错，属既有问题
-- 未登录时 `/timetable` 点击「Create timetable」，`/api/timetable/catalog/filters` 返回 401，随后客户端抛 `Cannot read properties of undefined (reading 'map')`。默认皮肤下同样复现，与皮肤无关
+- ~~未登录时 `/timetable` 点击「Create timetable」，`/api/timetable/catalog/filters` 返回 401，随后客户端抛 `Cannot read properties of undefined (reading 'map')`~~ 已修复：`/timetable` 未登录显示 Sign in 引导；filters 请求失败不再写入错误 body
 - 未做的验收：AC4 的 toast 浏览器端路由（需登录）、AC6 的 admin 外观（需登录）；两项均以单元测试覆盖，见上表
 
 ## Follow-up: search, switch, card corners, stars

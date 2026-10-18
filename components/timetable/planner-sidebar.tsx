@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useTimetablePlanner } from "@/components/timetable/planner-provider";
 import {
   getCourseDetail,
+  getFilters,
   getInstructorCourses,
   getSections,
 } from "@/lib/timetable/catalog-client";
@@ -44,10 +45,8 @@ export default function PlannerSidebar() {
   const { activePlan, addSection, replaceSection, createPlan } = useTimetablePlanner();
 
   useEffect(() => {
-    void fetch("/api/timetable/catalog/filters")
-      .then((response) => (response.ok ? response.json() : null))
+    void getFilters()
       .then((body) => {
-        if (!body) return;
         setFilters({
           faculties: Array.isArray(body.faculties) ? body.faculties : [],
           departments: Array.isArray(body.departments) ? body.departments : [],
