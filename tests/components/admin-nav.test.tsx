@@ -21,4 +21,17 @@ describe("AdminNav", () => {
     const link = view.getByText("Update");
     expect(link.getAttribute("href")).toBe("/admin/update");
   });
+
+  it("shows the AI Assistant tab last for platform admins", () => {
+    const view = render(<AdminNav isPlatformAdmin />);
+    const links = view.getAllByRole("link");
+    const last = links[links.length - 1];
+    expect(last.textContent).toBe("AI Assistant");
+    expect(last.getAttribute("href")).toBe("/admin/assistant");
+  });
+
+  it("hides the AI Assistant tab from other admins", () => {
+    const view = render(<AdminNav isPlatformAdmin={false} />);
+    expect(view.queryByText("AI Assistant")).toBeNull();
+  });
 });
