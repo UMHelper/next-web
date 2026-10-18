@@ -34,14 +34,14 @@ const baseContext = {
 };
 
 describe("TimetablePage", () => {
-  it("shows the empty planner state", async () => {
+  it("shows the empty planner state", () => {
     plannerMock.mockReturnValue(baseContext);
     render(<TimetablePage />);
     expect(screen.getByText("Create timetable")).toBeTruthy();
-    expect(await screen.findByTestId("assistant-launcher")).toBeTruthy();
+    expect(screen.getByTestId("assistant-launcher")).toBeTruthy();
   });
 
-  it("renders an active plan section and conflict count", async () => {
+  it("renders an active plan section and conflict count", () => {
     plannerMock.mockReturnValue({
       ...baseContext,
       activePlan: {
@@ -73,6 +73,6 @@ describe("TimetablePage", () => {
     render(<TimetablePage />);
     expect(screen.getByText("3 credits")).toBeTruthy();
     expect(screen.getAllByText("ACCT1000-A01").length).toBeGreaterThan(0);
-    expect(await screen.findByTestId("assistant-launcher")).toBeTruthy();
+    expect(screen.getByTestId("assistant-launcher")).toBeTruthy();
   });
 });

@@ -1,19 +1,15 @@
 "use client";
 
 import React from "react";
-import dynamic from "next/dynamic";
 import Link from "next/link";
 
+import AssistantLauncher from "@/components/assistant/assistant-launcher";
 import PlanHeader from "@/components/timetable/plan-header";
 import PlannerSidebar from "@/components/timetable/planner-sidebar";
 import SectionList from "@/components/timetable/section-list";
 import WeekGrid from "@/components/timetable/week-grid";
 import { useTimetablePlanner } from "@/components/timetable/planner-provider";
 import { detectScheduleConflicts } from "@/lib/timetable/conflicts";
-
-const AssistantLauncher = dynamic(() => import("@/components/assistant/assistant-launcher"), {
-  ssr: false,
-});
 
 const currentTerm = () => ({
   year: Number(process.env.NEXT_PUBLIC_CURRENT_YEAR ?? 2026),

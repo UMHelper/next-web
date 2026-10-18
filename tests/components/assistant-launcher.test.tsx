@@ -75,6 +75,48 @@ describe("AssistantLauncher", () => {
     expect(container.innerHTML).toBe("");
   });
 
+  it("does not render the button when access resolves after unmount or sign-out", async () => {
+    useAuthMock.mockReturnValue({ isLoaded: true, isSignedIn: true });
+    let resolveSignOut!: (value: FakeResponse) => void;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        () =>
+          new Promise<FakeResponse>((resolve) => {
+            resolveSignOut = resolve;
+          }),
+      ),
+    );
+
+    const { rerender } = render(<AssistantLauncher plan={undefined} />);
+    useAuthMock.mockReturnValue({ isLoaded: true, isSignedIn: false });
+    rerender(<AssistantLauncher plan={undefined} />);
+
+    await act(async () => {
+      resolveSignOut(respond(true, { enabled: true }));
+    });
+    expect(screen.queryByRole("button", { name: "AI 选课助手" })).toBeNull();
+
+    cleanup();
+
+    useAuthMock.mockReturnValue({ isLoaded: true, isSignedIn: true });
+    let resolveUnmount!: (value: FakeResponse) => void;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        () =>
+          new Promise<FakeResponse>((resolve) => {
+            resolveUnmount = resolve;
+          }),
+      ),
+    );
+    const { unmount } = render(<AssistantLauncher plan={undefined} />);
+    unmount();
+    await act(async () => {
+      resolveUnmount(respond(true, { enabled: true }));
+    });
+  });
+
   it("loads the panel only after the user opens it", async () => {
     useAuthMock.mockReturnValue({ isLoaded: true, isSignedIn: true });
     stubFetch(respond(true, { enabled: true }));

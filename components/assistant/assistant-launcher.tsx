@@ -19,6 +19,7 @@ export default function AssistantLauncher({ plan }: { plan: LocalPlan | undefine
       return;
     }
 
+    let cancelled = false;
     const controller = new AbortController();
     fetch("/api/assistant/access", { cache: "no-store", signal: controller.signal })
       .then(async (response) => {
@@ -26,10 +27,17 @@ export default function AssistantLauncher({ plan }: { plan: LocalPlan | undefine
         const body = await response.json().catch(() => null);
         return body?.enabled === true;
       })
-      .then((nextEnabled) => setEnabled(nextEnabled))
-      .catch(() => setEnabled(false));
+      .then((nextEnabled) => {
+        if (!cancelled) setEnabled(nextEnabled);
+      })
+      .catch(() => {
+        if (!cancelled) setEnabled(false);
+      });
 
-    return () => controller.abort();
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
   }, [isLoaded, isSignedIn]);
 
   if (!enabled) return null;
