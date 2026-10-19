@@ -1,4 +1,8 @@
-@tailwind base;
+/* Unlayered CSS beats every cascade layer. The preflight lives in its own layer so CopilotKit's layered
+   Tailwind v4 styles (public/assistant/copilotkit-v2.css) are not reset inside the assistant panel. */
+@layer site-base {
+  @tailwind base;
+}
 @tailwind components;
 @tailwind utilities;
 

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { SignInButton, useUser } from "@clerk/nextjs";
 import { usePathname } from "next/navigation";
 
+import AssistantLauncher from "@/components/assistant/assistant-launcher";
 import PlanHeader from "@/components/timetable/plan-header";
 import PlannerSidebar from "@/components/timetable/planner-sidebar";
 import SectionList from "@/components/timetable/section-list";
@@ -73,6 +74,7 @@ const TimetablePage = () => {
         <div className="mt-4 text-xs text-foreground-subtle">
           or <Link className="underline" href="/">browse courses</Link>
         </div>
+        <AssistantLauncher plan={undefined} />
       </div>
     );
   }
@@ -118,6 +120,7 @@ const TimetablePage = () => {
           </div>
         </div>
       </div>
+      <AssistantLauncher plan={activePlan} />
     </div>
   );
 };

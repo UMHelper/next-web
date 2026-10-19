@@ -1,0 +1,86 @@
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import { describe, expect, it } from "vitest";
+
+const root = process.cwd();
+const themePath = join(root, "public/assistant/copilotkit-theme.css");
+const panelPath = join(root, "components/assistant/assistant-panel.tsx");
+
+describe("assistant theme sync", () => {
+  it("ships a non-empty theme stylesheet", () => {
+    expect(existsSync(themePath)).toBe(true);
+    const css = readFileSync(themePath, "utf8");
+    expect(css.trim().length).toBeGreaterThan(200);
+  });
+
+  it("maps CopilotKit surfaces to site semantic tokens", () => {
+    const css = readFileSync(themePath, "utf8");
+    for (const token of ["--background", "--foreground", "--primary", "--border", "--card"]) {
+      expect(css).toContain(token);
+    }
+    expect(css).toMatch(/\[data-copilotkit\]/);
+    expect(css).toMatch(/\.dark\s+\[data-copilotkit\]/);
+    expect(css).toMatch(/html\[data-skin="island"\]\s+\[data-copilotkit\]/);
+  });
+
+  it("never defines a custom property from itself, which the browser treats as invalid", () => {
+    const css = readFileSync(themePath, "utf8");
+    const selfReferences = [...css.matchAll(/(--[\w-]+):([^;]*);/g)]
+      .filter(([, name, value]) => value.includes(`var(${name})`) || value.includes(`var(${name},`))
+      .map(([declaration]) => declaration);
+    expect(selfReferences).toEqual([]);
+  });
+
+  it("reads CopilotKit's color tokens as full colors inside the panel", () => {
+    const css = readFileSync(themePath, "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+    const panelRules = css.slice(css.indexOf("}", css.indexOf(":root {")) + 1);
+    const tokens = "background|foreground|card|popover|primary|secondary|muted|accent|destructive|border|input|ring";
+    expect(panelRules).not.toMatch(new RegExp(`hsl\\(var\\(--(${tokens})(-foreground)?\\)`));
+  });
+
+  it("gives the user's message bubble a surface distinct from the panel", () => {
+    const css = readFileSync(themePath, "utf8");
+    expect(css).toMatch(/\[data-testid="copilot-user-message"\][^{]*\{[^}]*background-color: hsl\(var\(--brand\)/);
+  });
+
+  it("overrides CopilotKit through cascade layers, not !important", () => {
+    expect(readFileSync(themePath, "utf8")).not.toContain("!important");
+  });
+
+  it("elevates the sidebar with surface-subtle, border, and layered shadow", () => {
+    const css = readFileSync(themePath, "utf8");
+    const sidebarBlock = css.slice(
+      css.indexOf("[data-copilot-sidebar]"),
+      css.indexOf(".dark [data-copilot-sidebar]"),
+    );
+    expect(sidebarBlock).toContain("--surface-subtle");
+    expect(sidebarBlock).toContain("border-left");
+    expect(sidebarBlock).toContain("--border-strong");
+    expect(sidebarBlock).toContain("box-shadow");
+
+    const darkStart = css.indexOf(".dark [data-copilot-sidebar]");
+    const darkSidebarBlock = css.slice(darkStart, css.indexOf("}", darkStart));
+    expect(darkSidebarBlock).toContain("--surface-subtle");
+    expect(darkSidebarBlock).toContain("box-shadow");
+  });
+
+  it("loads the theme sheet from the assistant panel after CopilotKit base CSS", () => {
+    const panel = readFileSync(panelPath, "utf8");
+    expect(panel).toContain('const COPILOTKIT_THEME_HREF = "/assistant/copilotkit-theme.css"');
+    expect(panel).toContain("href={COPILOTKIT_THEME_HREF}");
+    const baseIdx = panel.indexOf("href={COPILOTKIT_STYLES_HREF}");
+    const themeIdx = panel.indexOf("href={COPILOTKIT_THEME_HREF}");
+    expect(baseIdx).toBeGreaterThan(-1);
+    expect(themeIdx).toBeGreaterThan(baseIdx);
+  });
+
+  it("widens the sidebar input and keeps example chips flush with the intro", () => {
+    const css = readFileSync(themePath, "utf8");
+    expect(css).toMatch(
+      /div\[data-sidebar-chat\] \.cpk\\:\\\[div\\\[data-sidebar-chat\\\]_\\&\\\]\\:px-8 \{\s*padding-inline: 0\.75rem;/,
+    );
+    expect(css).toMatch(
+      /div\[data-sidebar-chat\] \[data-testid="copilot-suggestions"\] \{\s*margin-inline: 0;\s*padding-inline: 0;/,
+    );
+  });
+});

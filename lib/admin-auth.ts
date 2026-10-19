@@ -40,14 +40,9 @@ export async function getClerkUserEmails(userIds: string[]): Promise<Map<string,
   return new Map(uniqueIds.map((id) => [id, users.get(id)?.primaryEmail ?? null]));
 }
 
-export async function getCurrentAdmin(): Promise<
-  { ok: true; session: AdminSession } | { ok: false; response: ReturnType<typeof apiError> }
-> {
-  const { userId } = await auth();
-  if (!userId) {
-    return { ok: false, response: apiError("unauthorized", "Sign in required", 401) };
-  }
+export type AdminResolution = { ok: true; session: AdminSession | null } | { ok: false };
 
+export async function resolveAdminSession(userId: string): Promise<AdminResolution> {
   if (getPlatformAdminIds().has(userId)) {
     return { ok: true, session: { userId, isPlatformAdmin: true } };
   }
@@ -68,14 +63,31 @@ export async function getCurrentAdmin(): Promise<
 
   if (error) {
     console.error("[admin-auth] failed to load admin user:", error.message);
-    return { ok: false, response: apiError("internal_error", "Unable to verify admin access", 500) };
+    return { ok: false };
   }
 
-  if (!data || data.active !== true) {
+  if (!data || data.active !== true) return { ok: true, session: null };
+
+  return { ok: true, session: { userId, isPlatformAdmin: false } };
+}
+
+export async function getCurrentAdmin(): Promise<
+  { ok: true; session: AdminSession } | { ok: false; response: ReturnType<typeof apiError> }
+> {
+  const { userId } = await auth();
+  if (!userId) {
+    return { ok: false, response: apiError("unauthorized", "Sign in required", 401) };
+  }
+
+  const resolved = await resolveAdminSession(userId);
+  if (!resolved.ok) {
+    return { ok: false, response: apiError("internal_error", "Unable to verify admin access", 500) };
+  }
+  if (!resolved.session) {
     return { ok: false, response: apiError("forbidden", "Admin access required", 403) };
   }
 
-  return { ok: true, session: { userId, isPlatformAdmin: false } };
+  return { ok: true, session: resolved.session };
 }
 
 export async function requireAdmin(options: { platformOnly?: boolean } = {}) {

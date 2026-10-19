@@ -102,7 +102,7 @@ set
   course_id = excluded.course_id;
 
 insert into public.time_location (id, date, times, location)
-values (1, 'Mon', '09:00 - 10:15', 'E11-101')
+values (1, 'MON', '09:00-10:15', 'E11-101')
 on conflict (id) do update
 set
   date = excluded.date,

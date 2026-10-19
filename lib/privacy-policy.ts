@@ -4,7 +4,7 @@ export const privacyPolicy: Record<LegalLanguage, LegalContent> = {
     zh: {
         title: '隱私政策',
         updatedLabel: '最後更新日期：',
-        updatedDate: '2025-08-22',
+        updatedDate: '2026-10-18',
         intro:
             '歡迎使用 What2Reg @ UM 澳大選咩課（以下簡稱「本網站」）。我們重視您的私隱，並承諾以透明、負責任的方式處理個人資料。本隱私政策說明我們如何收集、使用、保存及保護您的資訊。',
         sections: [
@@ -45,6 +45,7 @@ export const privacyPolicy: Record<LegalLanguage, LegalContent> = {
                     'Supabase：資料儲存及後端服務。',
                     'Google Tag Manager / Google Analytics：流量分析。',
                     'Google Forms：意見回饋及問題回報。',
+                    'DeepSeek：AI 選課助手（試點）的對話處理。您在助手中輸入的內容及目前課表方案的摘要會傳送至 DeepSeek（中國內地）處理；本網站不保存對話內容。',
                 ],
             },
             {
@@ -86,7 +87,7 @@ export const privacyPolicy: Record<LegalLanguage, LegalContent> = {
     en: {
         title: 'Privacy Policy',
         updatedLabel: 'Last updated: ',
-        updatedDate: '2025-08-22',
+        updatedDate: '2026-10-18',
         intro:
             'Welcome to What2Reg @ UM 澳大選咩課 ("the Website"). We value your privacy and are committed to handling personal data in a transparent and responsible manner. This Privacy Policy explains how we collect, use, store and protect your information.',
         sections: [
@@ -127,6 +128,7 @@ export const privacyPolicy: Record<LegalLanguage, LegalContent> = {
                     'Supabase: data storage and backend services.',
                     'Google Tag Manager / Google Analytics: traffic analysis.',
                     'Google Forms: feedback and problem reports.',
+                    'DeepSeek: processing for the AI course assistant (pilot). What you type into the assistant, together with a summary of your active timetable plan, is sent to DeepSeek (Mainland China) for processing; the Website does not store conversation content.',
                 ],
             },
             {

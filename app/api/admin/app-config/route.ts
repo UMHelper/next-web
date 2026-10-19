@@ -26,7 +26,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const admin = await requireAdmin({ platformOnly: true });
+  const admin = await requireAdmin();
   if (!admin.ok) return admin.response;
 
   const body = await readJsonBody(request, 4_096);
@@ -37,6 +37,12 @@ export async function POST(request: Request) {
     return apiError("invalid_request", "Invalid app config", 400, {
       issues: parsed.error.issues.map((issue) => ({ path: issue.path.join("."), message: issue.message })),
     });
+  }
+
+  const fields = Object.keys(parsed.data);
+  const assistantOnly = fields.length === 1 && fields[0] === "ai_assistant_access";
+  if (!assistantOnly && !admin.session.isPlatformAdmin) {
+    return apiError("forbidden", "Platform admin required", 403);
   }
 
   const patch = {

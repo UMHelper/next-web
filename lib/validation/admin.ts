@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { ASSISTANT_ACCESS_MODES } from "@/lib/assistant/access-mode";
+
 const clerkUserIdPattern = /^user_[A-Za-z0-9_-]+$/;
 const emailAddressPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -83,6 +85,11 @@ export const appConfigUpdateSchema = z
       .regex(/^\d{4}-\d{2}-\d{2}$/)
       .nullable()
       .optional(),
+    ai_assistant_access: z.enum(ASSISTANT_ACCESS_MODES).optional(),
   })
   .refine((value) => Object.keys(value).length > 0, { message: "no fields to update" });
+
+export const assistantTesterSchema = z.object({
+  email: z.string().trim().toLowerCase().max(254).email(),
+});
 
