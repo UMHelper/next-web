@@ -56,6 +56,49 @@
     "binding": "IMAGES",
   },
   "env": {
+    "dev": {
+      "name": "next-web-dev",
+      "keep_vars": true,
+      "upload_source_maps": true,
+      "observability": {
+        "enabled": true,
+        "head_sampling_rate": 1,
+        "logs": {
+          "enabled": true,
+          "head_sampling_rate": 1,
+          "invocation_logs": true,
+        },
+      },
+      "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+      "vars": {
+        "COPILOTKIT_TELEMETRY_DISABLED": "true",
+        "AI_BASE_URL": "https://api.deepseek.com",
+        "AI_MODEL": "deepseek-flash",
+        "AI_THINKING": "off",
+        "AI_MAX_OUTPUT_TOKENS": "400",
+        "AI_TIMEOUT_MS": "30000",
+        "AGENT_RATE_LIMIT_PER_HOUR": "30",
+        "AGENT_RATE_LIMIT_PER_DAY": "80",
+        "AGENT_MAX_TURNS_PER_CONVERSATION": "30",
+        "AGENT_HISTORY_TURNS": "8",
+        "PREVIEW_MODE": "1",
+        "PREVIEW_DB_READONLY": "1",
+        "ASSISTANT_ACCESS_OVERRIDE": "everyone",
+      },
+      "assets": {
+        "directory": ".open-next/assets",
+        "binding": "ASSETS",
+      },
+      "services": [
+        {
+          "binding": "WORKER_SELF_REFERENCE",
+          "service": "next-web-dev",
+        },
+      ],
+      "images": {
+        "binding": "IMAGES",
+      },
+    },
     "preview": {
       "name": "next-web-preview",
       "keep_vars": true,
