@@ -65,6 +65,39 @@ describe("shapeConversation", () => {
   });
 });
 
+const call = (id: string) => ({ id, type: "function", function: { name: "check_plan_conflicts", arguments: "{}" } });
+const assistantCalls = (id: string, content: string, ...callIds: string[]): RunMessage => ({
+  id,
+  role: "assistant",
+  content,
+  toolCalls: callIds.map(call),
+});
+const result = (id: string, callId: string): RunMessage => ({ id, role: "tool", content: "{}", toolCallId: callId });
+
+describe("shapeConversation tool-call repair", () => {
+  it("drops tool calls that never got a result so the model provider accepts the history", () => {
+    const shaped = shapeConversation(
+      [user("u1"), assistantCalls("a1", "", "c1", "c2"), user("u2")],
+      8,
+    );
+    expect(shaped.map((message) => message.id)).toEqual(["u1", "u2"]);
+  });
+
+  it("keeps the text of an assistant message and only strips its unanswered calls", () => {
+    const shaped = shapeConversation(
+      [user("u1"), assistantCalls("a1", "checking", "c1", "c2"), result("t1", "c1"), user("u2")],
+      8,
+    );
+    expect(shaped[1]).toMatchObject({ id: "a1", content: "checking", toolCalls: [{ id: "c1" }] });
+    expect(shaped.map((message) => message.id)).toEqual(["u1", "a1", "t1", "u2"]);
+  });
+
+  it("leaves complete call and result pairs alone", () => {
+    const messages = [user("u1"), assistantCalls("a1", "", "c1"), result("t1", "c1"), assistant("a2"), user("u2")];
+    expect(shapeConversation(messages, 8)).toEqual(messages);
+  });
+});
+
 describe("runInputSchema", () => {
   it("keeps the other run fields", () => {
     const parsed = runInputSchema.parse({
