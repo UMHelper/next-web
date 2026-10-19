@@ -12,6 +12,7 @@ import {
   createContext,
   forwardRef,
   useContext,
+  useLayoutEffect,
   useRef,
   useState,
   type ComponentPropsWithoutRef,
@@ -27,7 +28,7 @@ import { describeAssistantError } from "@/lib/assistant/error-message";
 import { PANEL_WIDTH_DEFAULT } from "@/lib/assistant/panel-width";
 import { summarizePlan } from "@/lib/assistant/plan-summary";
 import { getSections } from "@/lib/timetable/catalog-client";
-import type { LocalPlan } from "@/lib/timetable/store";
+import { useTimetablePlanner } from "@/components/timetable/planner-provider";
 import { cn } from "@/lib/utils";
 
 import { AssistantBubble } from "./assistant-bubble";
@@ -48,6 +49,9 @@ const DATA_UPDATED_EN = DATA_UPDATED_AT ?? "Unknown";
 // CopilotSidebar remounts its whole view whenever `width` changes, so the value stays constant
 // and ResizeHandle moves the CSS variable instead.
 const SIDEBAR_WIDTH = `var(${PANEL_WIDTH_VAR}, ${PANEL_WIDTH_DEFAULT}px)`;
+
+// FloatingPlanner keys its offset off this attribute; the name is repeated literally in its Tailwind classes.
+const OPEN_ATTRIBUTE = "data-assistant-open";
 
 const EXAMPLE_QUESTIONS = [
   "有哪些和 accounting 相關的課？",
@@ -138,11 +142,12 @@ function BoundaryNotice({ className, ...props }: HTMLAttributes<HTMLDivElement>)
   );
 }
 
-function AssistantTools({ plan }: { plan: LocalPlan | undefined }) {
-  const planRef = useRef(plan);
-  planRef.current = plan;
+function AssistantTools() {
+  const { activePlan } = useTimetablePlanner();
+  const planRef = useRef(activePlan);
+  planRef.current = activePlan;
 
-  useAgentContext({ description: "The student's active timetable plan (read-only)", value: summarizePlan(plan) });
+  useAgentContext({ description: "The student's active timetable plan (read-only)", value: summarizePlan(activePlan) });
   useConfigureSuggestions(EXAMPLE_SUGGESTIONS);
 
   useFrontendTool(
@@ -160,9 +165,17 @@ function AssistantTools({ plan }: { plan: LocalPlan | undefined }) {
   return null;
 }
 
-export default function AssistantPanel({ plan }: { plan: LocalPlan | undefined }) {
+export default function AssistantPanel({ suppressed }: { suppressed: boolean }) {
   const [notice, setNotice] = useState<string | null>(null);
   const [open, setOpen] = useState(true);
+  const shown = open && !suppressed;
+
+  useLayoutEffect(() => {
+    if (!shown) return;
+    const root = document.documentElement;
+    root.setAttribute(OPEN_ATTRIBUTE, "");
+    return () => root.removeAttribute(OPEN_ATTRIBUTE);
+  }, [shown]);
 
   return (
     <>
@@ -173,10 +186,10 @@ export default function AssistantPanel({ plan }: { plan: LocalPlan | undefined }
         enableInspector={false}
         onError={({ error }) => setNotice(describeAssistantError(error.message))}
       >
-        <AssistantTools plan={plan} />
+        <AssistantTools />
         <NoticeContext.Provider value={notice}>
           <CopilotSidebar
-            open={open}
+            open={shown}
             onOpenChange={setOpen}
             width={SIDEBAR_WIDTH}
             labels={LABELS}
@@ -187,10 +200,8 @@ export default function AssistantPanel({ plan }: { plan: LocalPlan | undefined }
           />
         </NoticeContext.Provider>
       </CopilotKitProvider>
-      <ResizeHandle visible={open} />
-      {open ? null : (
-        <AssistantBubble onClick={() => setOpen(true)} />
-      )}
+      <ResizeHandle visible={shown} />
+      {open || suppressed ? null : <AssistantBubble onClick={() => setOpen(true)} />}
     </>
   );
 }

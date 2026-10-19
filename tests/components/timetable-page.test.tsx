@@ -22,10 +22,6 @@ vi.mock("@/components/timetable/planner-provider", () => ({
   useTimetablePlanner: plannerMock,
 }));
 
-vi.mock("@/components/assistant/assistant-launcher", () => ({
-  default: () => <div data-testid="assistant-launcher" />,
-}));
-
 import TimetablePage from "@/app/timetable/page";
 
 const emptyStore = {
@@ -117,7 +113,6 @@ describe("TimetablePage", () => {
     render(<TimetablePage />);
     expect(screen.getByText("3 credits")).toBeTruthy();
     expect(screen.getAllByText("ACCT1000-A01").length).toBeGreaterThan(0);
-    expect(screen.getByTestId("assistant-launcher")).toBeTruthy();
   });
 
   it("shows the empty workbench when signed in", () => {
@@ -135,7 +130,6 @@ describe("TimetablePage", () => {
 
     render(<TimetablePage />);
     expect(screen.getByRole("button", { name: "Create timetable" })).toBeTruthy();
-    expect(screen.getByTestId("assistant-launcher")).toBeTruthy();
     expect(screen.queryByText(/sign in to build and save/i)).toBeNull();
   });
 });
