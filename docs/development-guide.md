@@ -36,9 +36,9 @@
   - 数据库是如何演进到当前状态的增量历史
   - 用于后续继续提交结构变更
 
-当前本地启动流程不会逐条执行 `supabase/migrations/*.sql`。
+当前本地启动流程不会逐条重放历史 migration：`schema.sql` 已经包含了它们生效后的最终结构，重复执行会出现重复或冲突。
 
-原因是 `schema.sql` 已经包含了这些 migration 生效后的最终结构。初始化时先导入 `schema.sql`，再重复执行现有 migration，会出现重复或冲突。
+构建/部署前会自动应用增量：`npm run build`（`prebuild`）和 `npm run deploy`（`predeploy`）都会执行 `scripts/db-migrate.mjs`，它用 `public.schema_migrations` 账本只跑还没记录过的文件。首次运行时 `20261018_assistant_access.sql` 及更早的文件会登记为已应用，不会重放；`PREVIEW_MODE=1` / `PREVIEW_DB_READONLY=1` 时直接跳过。详见 README「关于 migrations」。
 
 ## 2. 跑起来的两种方式
 

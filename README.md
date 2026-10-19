@@ -69,18 +69,28 @@ npm run dev
 
 ## 关于 migrations
 
-仓库里有 [supabase/migrations](supabase/migrations)，但当前本地初始化流程不会逐条执行这些 migration。
+仓库里有 [supabase/migrations](supabase/migrations)。构建/部署前会自动应用还没执行过的 migration，脚本在 [scripts/db-migrate.mjs](scripts/db-migrate.mjs)。
 
-原因是：
+- `npm run build`：`prebuild` 先跑 `npm run db:migrate`；没有 `SUPABASE_DB_URL` 时跳过并告警
+- `npm run deploy`：`predeploy` 先跑同一个脚本（`--required`）；没有 `SUPABASE_DB_URL` 时直接失败，避免漏迁移上线
+- `npm run build:pages` / `npm run upload` 不自动执行；需要时先手动 `npm run db:migrate`
+- 账本：`public.schema_migrations(filename, checksum, applied_at)`
+- 首次运行时，`20261018_assistant_access.sql` 及更早的文件会被登记为已应用，**不会重放**（自动化之前它们是手工执行的，而且不全是幂等的）
+- 之后新增的 `supabase/migrations/*.sql` 会在下次 build/deploy 时按文件名顺序执行
+- `PREVIEW_DB_READONLY=1` / `PREVIEW_MODE=1` 时跳过，preview worker 永远不会写生产库
 
-- [supabase/schema.sql](supabase/schema.sql) 已经是包含这些 migration 结果的当前结构快照
-- onboarding 的目标是先让新成员最快把本地库跑起来
+手动查看 / 执行：
+
+```bash
+npm run db:migrate:status   # 只读，列出待执行的迁移
+npm run db:migrate          # 立即执行待执行的迁移
+```
 
 当前规则是：
 
-- 本地初始化：导入 `schema.sql` + `seed.sql`
-- 后续新改动：继续新增 `supabase/migrations/*.sql`
-- 不要在已经导入 `schema.sql` 后，再把现有 migration 手工重放一遍
+- 本地新库：先导入 `schema.sql` + `seed.sql`，再让脚本只补之后的增量
+- 后续新改动：继续新增 `supabase/migrations/*.sql`（文件名 `YYYYMMDD_描述.sql`，保证排序）
+- 不要在已经导入 `schema.sql` 后，再把历史 migration 手工重放一遍
 
 ## 本地数据库 SQL
 
