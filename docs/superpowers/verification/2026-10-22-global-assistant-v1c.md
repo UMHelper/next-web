@@ -1,7 +1,7 @@
 # Global assistant V1-C verification
 
 - Branch: `feat/global-assistant-v1`
-- HEAD at verification: `c3b23fe` (Tasks 1–5)
+- Code verified through: `ea5be95` (this doc correction is the commit after that)
 - Baseline before V1-C: `4b592d1` — 200 test files, 1,328 tests
 - Plan: [2026-10-22-global-assistant-v1c.md](../plans/2026-10-22-global-assistant-v1c.md)
 - Verified: 2026-10-22 (local)
@@ -12,7 +12,7 @@ Commands run separately (not chained).
 
 | Check | Result |
 |---|---|
-| `npm run lint` | exit 0 |
+| `npm run lint` | exit 0 at `ea5be95` |
 | `npx tsc --noEmit` | exit 0 |
 | `npx vitest run` | exit 0 — **Test Files 202 passed (202), Tests 1429 passed (1429)** (vs baseline 200 / 1,328: +2 files, +101 tests) |
 
@@ -20,7 +20,7 @@ Commands run separately (not chained).
 
 | Command | Result |
 |---|---|
-| `npm run build` | exit 0 (Next.js 15.5.27; CopilotKit `channel-manager` critical-dependency warning; same ESLint warning on `use-navigate-tool.ts` during build lint step) |
+| `npm run build` | exit 0 (Next.js 15.5.27; pre-existing CopilotKit `channel-manager` critical-dependency warning during compile; build lint/type step clean — no `use-navigate-tool.ts` exhaustive-deps warning) |
 | `npm run build:pages` | exit 0 (`OpenNext build complete`; no wrangler EPERM in this run) |
 
 ## Step 3: Lazy-chunk check (`landed_elsewhere`)
@@ -29,12 +29,13 @@ After `npm run build`, searched `.next` for `landed_elsewhere`.
 
 | Chunk | `landed_elsewhere` | `CopilotSidebar` |
 |---|---|---|
-| `.next/static/chunks/792.ee0e2e282436672c.js` | yes (only chunk) | yes |
+| `.next/static/chunks/792.8e95324abd7747c1.js` | yes (only chunk) | no |
+| `.next/static/chunks/950a34e6.4e16e1a3c4e6d61e.js` | no | yes (only chunk) |
 | `.next/static/chunks/app/layout-87c52d55012f1df2.js` (root layout) | no | no |
 
 Also checked root layout chunk for `CopilotKit`, `copilotKitSidebar`, and `navigate`: no matches.
 
-**Automated lazy-chunk criterion:** pass (string only in assistant lazy chunk 792, not in root layout chunk).
+**Automated lazy-chunk criterion:** `landed_elsewhere` is not in the root layout chunk (only in lazy chunk 792). Plan checklist also expects co-location with `CopilotSidebar`; this build splits them across 792 and 950 (both lazy, not in root layout).
 
 ## Step 4: Git hygiene (pre-commit)
 
