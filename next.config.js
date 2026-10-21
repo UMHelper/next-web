@@ -6,6 +6,10 @@ const ASSISTANT_BUILD_STUBS = path.join(__dirname, 'lib', 'assistant', 'build-st
 /** @type {import('next').NextConfig} */
 const nextConfig = {
     reactStrictMode: true,
+    // `next dev` writes to .next-dev (set via NEXT_DIST_DIR in the dev scripts) so a
+    // production `next build` (run by opennextjs-cloudflare into .next) cannot wipe the
+    // dev manifests out from under a running dev server.
+    distDir: process.env.NEXT_DIST_DIR || '.next',
     images: {
         remotePatterns: [
             { protocol: 'https', hostname: 'img.clerk.com' },
