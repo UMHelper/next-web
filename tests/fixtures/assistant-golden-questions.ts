@@ -12,6 +12,7 @@ export type GoldenQuestion = {
   expected:
     | { kind: "server_tool"; tool: ServerToolName; input: Record<string, unknown> }
     | { kind: "frontend_tool"; tool: "check_plan_conflicts"; input: { code: string; instructor: string; section: string } }
+    | { kind: "frontend_tool"; tool: "navigate"; input: Record<string, unknown> }
     | { kind: "no_tool"; behaviour: string };
 };
 
@@ -106,5 +107,65 @@ export const ASSISTANT_GOLDEN_QUESTIONS: GoldenQuestion[] = [
     pathname: "/",
     question: "这门课难不难？",
     expected: { kind: "no_tool", behaviour: "问学生指的是哪门课" },
+  },
+  {
+    id: "navigate-course",
+    pathname: "/",
+    question: "帶我去 ACCT1000",
+    expected: { kind: "frontend_tool", tool: "navigate", input: { destination: "course", code: "ACCT1000" } },
+  },
+  {
+    id: "navigate-reviews",
+    pathname: "/course/GELH2009",
+    question: "打開 LI ZIHAO / WONG KA KI KATRINE 這門課的評價",
+    expected: {
+      kind: "frontend_tool",
+      tool: "navigate",
+      input: { destination: "reviews", code: "GELH2009", instructor: "LI ZIHAO / WONG KA KI KATRINE" },
+    },
+  },
+  {
+    id: "navigate-professor",
+    pathname: "/reviews/ACCT1000/CHAN%20TAI%20MAN",
+    question: "去這位老師的頁面",
+    expected: {
+      kind: "frontend_tool",
+      tool: "navigate",
+      input: { destination: "professor", instructor: "CHAN TAI MAN" },
+    },
+  },
+  {
+    id: "navigate-catalog",
+    pathname: "/",
+    question: "打开 FST 的 CIS 课程目录",
+    expected: {
+      kind: "frontend_tool",
+      tool: "navigate",
+      input: { destination: "catalog", faculty: "FST", department: "CIS" },
+    },
+  },
+  {
+    id: "navigate-timetable",
+    pathname: "/course/ACCT1000",
+    question: "打開我的課表",
+    expected: { kind: "frontend_tool", tool: "navigate", input: { destination: "timetable" } },
+  },
+  {
+    id: "page-course-instructors",
+    pathname: "/course/ACCT1000",
+    question: "ACCT1000 有哪些老師？",
+    expected: { kind: "server_tool", tool: "get_course", input: { code: "ACCT1000" } },
+  },
+  {
+    id: "no-tool-external-url",
+    pathname: "/",
+    question: "打開 https://evil.example",
+    expected: { kind: "no_tool", behaviour: "说明只能打开本网站的页面，不能打开外部链接" },
+  },
+  {
+    id: "no-tool-vague-navigate",
+    pathname: "/",
+    question: "去那個頁面",
+    expected: { kind: "no_tool", behaviour: "问学生想去哪个页面" },
   },
 ];
