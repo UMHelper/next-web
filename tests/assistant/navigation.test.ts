@@ -1,6 +1,12 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
-import { buildNavigationPath, parseDestination } from "@/lib/assistant/navigation";
+import {
+  buildNavigationPath,
+  navigationsSinceLastUserMessage,
+  parseDestination,
+  samePage,
+  verifyDestination,
+} from "@/lib/assistant/navigation";
 import { describePage } from "@/lib/assistant/page-context";
 
 const CO_TAUGHT = "LI ZIHAO / WONG KA KI KATRINE";
@@ -90,5 +96,76 @@ describe("buildNavigationPath", () => {
       expect(path).not.toMatch(/\/\/|\?|#|\.\.|%2F/i);
       expect(new URL(path, "https://umeh.top").origin).toBe("https://umeh.top");
     }
+  });
+});
+
+const lookups = (overrides: Partial<Parameters<typeof verifyDestination>[1]> = {}) => ({
+  getCourseDetail: vi.fn(async () => ({ course: { courseTitle: "Financial Accounting" }, profList: [{}], isOffer: true })),
+  getInstructorCourses: vi.fn(async () => ({ courses: [{ course_id: "GELH2009" }] })),
+  ...overrides,
+});
+
+describe("verifyDestination", () => {
+  it("finds a course with a title or instructors", async () => {
+    expect(await verifyDestination({ destination: "course", code: "ACCT1000" }, lookups())).toBe("exists");
+    const noOffer = lookups({ getCourseDetail: vi.fn(async () => ({ course: { courseTitle: "Old Course" }, profList: [], isOffer: false })) });
+    expect(await verifyDestination({ destination: "course", code: "ACCT1000" }, noOffer)).toBe("exists");
+  });
+
+  it("reports a course the catalog does not know", async () => {
+    const unknown = lookups({ getCourseDetail: vi.fn(async () => ({ course: { courseTitle: "Unknown Course" }, profList: [], isOffer: false })) });
+    expect(await verifyDestination({ destination: "course", code: "ZZZZ9999" }, unknown)).toBe("missing");
+  });
+
+  it("passes the decoded instructor name to the lookup, slash included", async () => {
+    const deps = lookups();
+    await verifyDestination({ destination: "professor", instructor: "LI ZIHAO / WONG KA KI KATRINE" }, deps);
+    expect(deps.getInstructorCourses).toHaveBeenCalledWith("LI ZIHAO / WONG KA KI KATRINE");
+  });
+
+  it("reports an instructor with no courses", async () => {
+    const none = lookups({ getInstructorCourses: vi.fn(async () => ({ courses: [] })) });
+    expect(await verifyDestination({ destination: "professor", instructor: "NOBODY" }, none)).toBe("missing");
+  });
+
+  it("requires the instructor to teach the course for reviews", async () => {
+    const deps = lookups();
+    expect(await verifyDestination({ destination: "reviews", code: "GELH2009", instructor: "A" }, deps)).toBe("exists");
+    expect(await verifyDestination({ destination: "reviews", code: "ACCT1000", instructor: "A" }, deps)).toBe("missing");
+  });
+
+  it("does not call the network for catalog and timetable", async () => {
+    const deps = lookups();
+    expect(await verifyDestination({ destination: "catalog", faculty: "FST" }, deps)).toBe("exists");
+    expect(await verifyDestination({ destination: "timetable" }, deps)).toBe("exists");
+    expect(deps.getCourseDetail).not.toHaveBeenCalled();
+    expect(deps.getInstructorCourses).not.toHaveBeenCalled();
+  });
+
+  it("treats lookup failures as unavailable, not missing", async () => {
+    const failing = lookups({ getCourseDetail: vi.fn(async () => { throw new Error("401"); }) });
+    expect(await verifyDestination({ destination: "course", code: "ACCT1000" }, failing)).toBe("unavailable");
+  });
+});
+
+describe("navigationsSinceLastUserMessage", () => {
+  const call = (name: string) => ({ id: name, type: "function", function: { name, arguments: "{}" } });
+  it("counts navigate calls after the latest user message only", () => {
+    const messages = [
+      { role: "user" },
+      { role: "assistant", toolCalls: [call("navigate"), call("navigate")] },
+      { role: "user" },
+      { role: "assistant", toolCalls: [call("get_course"), call("navigate")] },
+      { role: "tool" },
+      { role: "assistant", toolCalls: [call("navigate")] },
+    ];
+    expect(navigationsSinceLastUserMessage(messages)).toBe(2);
+  });
+});
+
+describe("samePage", () => {
+  it("compares page descriptions by value", () => {
+    expect(samePage({ page: "course", courseCode: "ACCT1000" }, { page: "course", courseCode: "ACCT1000" })).toBe(true);
+    expect(samePage({ page: "course", courseCode: "ACCT1000" }, { page: "course", courseCode: "ECON1001" })).toBe(false);
   });
 });

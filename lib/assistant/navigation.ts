@@ -3,6 +3,19 @@ import { z } from "zod";
 import { COURSE_CODE, NAME, type PageContext } from "@/lib/assistant/page-context";
 import { faculty as FACULTIES, faculty_dept as FACULTY_DEPARTMENTS, normalizeFacultySlug } from "@/lib/consant";
 import { buildCatalogPath, buildCoursePath } from "@/lib/site";
+import { getCourseDetail, getInstructorCourses } from "@/lib/timetable/catalog-client";
+
+export const NAVIGATION_TIMEOUT_MS = 10_000;
+export const MAX_NAVIGATIONS_PER_MESSAGE = 2;
+
+// The course API substitutes this title when the catalog has no row, the same signal lib/mcp/data/get-course.ts uses.
+const MISSING_COURSE_TITLE = "Unknown Course";
+
+export type Existence = "exists" | "missing" | "unavailable";
+type CatalogLookups = {
+  getCourseDetail: (code: string) => Promise<{ course: any; profList: any[] }>;
+  getInstructorCourses: (prof: string) => Promise<{ courses: any[] }>;
+};
 
 export const navigateParameters = z.object({
   destination: z
@@ -114,3 +127,41 @@ export function buildNavigationPath(destination: NavigationDestination): string 
       return "/timetable";
   }
 }
+
+export async function verifyDestination(
+  destination: NavigationDestination,
+  lookups: CatalogLookups = { getCourseDetail, getInstructorCourses },
+): Promise<Existence> {
+  try {
+    switch (destination.destination) {
+      case "course": {
+        const { course, profList } = await lookups.getCourseDetail(destination.code);
+        return profList.length > 0 || course?.courseTitle !== MISSING_COURSE_TITLE ? "exists" : "missing";
+      }
+      case "professor": {
+        const { courses } = await lookups.getInstructorCourses(destination.instructor);
+        return courses.length > 0 ? "exists" : "missing";
+      }
+      case "reviews": {
+        const { courses } = await lookups.getInstructorCourses(destination.instructor);
+        return courses.some((row) => String(row.course_id).toUpperCase() === destination.code) ? "exists" : "missing";
+      }
+      default:
+        return "exists";
+    }
+  } catch {
+    return "unavailable";
+  }
+}
+
+type MessageLike = { role: string; toolCalls?: ReadonlyArray<{ function: { name: string } }> };
+
+export function navigationsSinceLastUserMessage(messages: ReadonlyArray<MessageLike>): number {
+  let count = 0;
+  for (let i = messages.length - 1; i >= 0 && messages[i].role !== "user"; i--) {
+    count += messages[i].toolCalls?.filter((call) => call.function.name === "navigate").length ?? 0;
+  }
+  return count;
+}
+
+export const samePage = (a: PageContext, b: PageContext) => JSON.stringify(a) === JSON.stringify(b);
