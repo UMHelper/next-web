@@ -23,6 +23,22 @@ describe("global assistant mount", () => {
     expect(layout.indexOf("<AssistantLauncher", launcher + 1)).toBe(-1);
   });
 
+  it("mounts the launcher only through the desktop gate", () => {
+    const layout = read("app/layout.tsx");
+    const gateOpen = layout.indexOf("<DesktopAssistantGate>");
+    const launcher = layout.indexOf("<AssistantLauncher />");
+    const gateClose = layout.indexOf("</DesktopAssistantGate>");
+    expect(gateOpen).toBeGreaterThan(layout.indexOf("<TimetablePlannerProvider>"));
+    expect(launcher).toBeGreaterThan(gateOpen);
+    expect(launcher).toBeLessThan(gateClose);
+    expect(gateClose).toBeLessThan(layout.indexOf("</TimetablePlannerProvider>"));
+    expect(layout.indexOf("<DesktopAssistantGate", gateOpen + 1)).toBe(-1);
+  });
+
+  it("keeps CopilotKit out of the root layout", () => {
+    expect(read("app/layout.tsx")).not.toMatch(/copilotkit/i);
+  });
+
   it("is not mounted anywhere else under app/", () => {
     const others = sourceFiles("app").filter(
       (path) => path !== "app/layout.tsx" && read(path).includes("assistant-launcher"),

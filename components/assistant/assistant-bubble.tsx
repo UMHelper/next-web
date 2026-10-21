@@ -8,7 +8,7 @@ export function AssistantBubble({ onClick }: { onClick: () => void }) {
       onClick={onClick}
       className="fixed bottom-6 right-6 z-40 flex items-center gap-2"
     >
-      <span className="relative hidden rounded-2xl border border-border bg-card px-3 py-2 text-left text-xs font-medium leading-snug text-foreground shadow-md md:block">
+      <span className="relative block rounded-2xl border border-border bg-card px-3 py-2 text-left text-xs font-medium leading-snug text-foreground shadow-md">
         可以試試 AI 選課
         <span className="mt-0.5 block font-normal text-muted-foreground">Try the AI course helper</span>
         <span

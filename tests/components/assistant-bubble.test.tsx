@@ -8,10 +8,10 @@ afterEach(() => {
 });
 
 describe("AssistantBubble", () => {
-  it("shows only the round button on phones so it clears FloatingPlanner's centered button", () => {
+  it("always shows the label next to the button, since it only renders on desktop", () => {
     render(<AssistantBubble onClick={() => {}} />);
     const label = screen.getByText("可以試試 AI 選課");
-    expect(label.className.split(" ")).toEqual(expect.arrayContaining(["hidden", "md:block"]));
+    expect(label.className.split(" ")).not.toContain("hidden");
     expect(screen.getByRole("button", { name: "AI 選課助手" })).toBeTruthy();
   });
 });
