@@ -1,5 +1,5 @@
 import type { ComponentType, ReactNode } from "react";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { installFakeStorage } from "@/tests/helpers/fake-storage";
@@ -15,14 +15,27 @@ type SidebarProps = {
   input: { addMenuButton: ComponentType; disclaimer: ComponentType; showDisclaimer: boolean };
 };
 
-const { sidebarSpy, providerSpy, suggestionsSpy, agentContextSpy, plannerMock, usePathnameMock } = vi.hoisted(() => ({
+const {
+  sidebarSpy,
+  providerSpy,
+  suggestionsSpy,
+  agentContextSpy,
+  plannerMock,
+  usePathnameMock,
+  pushMock,
+  frontendToolSpy,
+} = vi.hoisted(() => ({
   sidebarSpy: vi.fn(),
   providerSpy: vi.fn(),
   suggestionsSpy: vi.fn(),
   agentContextSpy: vi.fn(),
   plannerMock: vi.fn(),
   usePathnameMock: vi.fn(() => "/"),
+  pushMock: vi.fn(),
+  frontendToolSpy: vi.fn(),
 }));
+
+let rerenderPanel: (() => void) | undefined;
 
 vi.mock("@copilotkit/react-core/v2", () => ({
   CopilotKitProvider: (props: { children: ReactNode; enableInspector?: boolean }) => {
@@ -40,14 +53,32 @@ vi.mock("@copilotkit/react-core/v2", () => ({
     );
   },
   useAgentContext: agentContextSpy,
-  useFrontendTool: () => {},
+  useFrontendTool: (definition: unknown, deps: unknown) => {
+    frontendToolSpy(definition, deps);
+  },
   useConfigureSuggestions: suggestionsSpy,
 }));
-vi.mock("@/lib/timetable/catalog-client", () => ({ getSections: vi.fn() }));
+vi.mock("@/lib/timetable/catalog-client", () => ({
+  getSections: vi.fn(),
+  getCourseDetail: vi.fn(),
+  getInstructorCourses: vi.fn(),
+}));
 vi.mock("@/components/timetable/planner-provider", () => ({ useTimetablePlanner: plannerMock }));
-vi.mock("next/navigation", () => ({ usePathname: usePathnameMock }));
+vi.mock("next/navigation", () => ({
+  usePathname: usePathnameMock,
+  useRouter: () => ({
+    push: (path: string) => {
+      pushMock(path);
+      usePathnameMock.mockReturnValue(path);
+      act(() => {
+        rerenderPanel?.();
+      });
+    },
+  }),
+}));
 
 import AssistantPanel from "@/components/assistant/assistant-panel";
+import { navigateParameters } from "@/lib/assistant/navigation";
 import { PAGE_CONTEXT_DESCRIPTION } from "@/lib/assistant/page-context";
 import { summarizePlan } from "@/lib/assistant/plan-summary";
 import type { LocalPlan } from "@/lib/timetable/store";
@@ -56,6 +87,8 @@ const lastSidebarProps = () => sidebarSpy.mock.lastCall![0] as SidebarProps;
 
 const lastContext = (description: string) =>
   agentContextSpy.mock.calls.filter(([entry]) => entry.description === description).at(-1)?.[0];
+
+const registeredTools = () => frontendToolSpy.mock.calls.map(([definition]) => definition);
 
 beforeEach(() => {
   installFakeStorage();
@@ -243,5 +276,40 @@ describe("AssistantPanel", () => {
     rerender(<AssistantPanel suppressed={false} />);
     expect(sidebar.getAttribute("data-open")).toBe("true");
     expect(document.documentElement.hasAttribute("data-assistant-open")).toBe(true);
+  });
+
+  it("registers check_plan_conflicts and navigate as frontend tools", () => {
+    render(<AssistantPanel suppressed={false} />);
+    expect(registeredTools().map((tool: { name: string }) => tool.name)).toEqual([
+      "check_plan_conflicts",
+      "navigate",
+    ]);
+  });
+
+  it("registers navigate with passive follow-up and catalog parameters", () => {
+    render(<AssistantPanel suppressed={false} />);
+    const navigate = registeredTools().find((tool: { name: string }) => tool.name === "navigate");
+    expect(navigate).toMatchObject({
+      name: "navigate",
+      followUp: true,
+      reconnectBehavior: "passive",
+      parameters: navigateParameters,
+    });
+    expect(navigate).not.toHaveProperty("webmcp");
+  });
+
+  it("pushes the timetable route when the navigate handler runs", async () => {
+    usePathnameMock.mockReturnValue("/course/ACCT1000");
+    const view = render(<AssistantPanel suppressed={false} />);
+    rerenderPanel = () => {
+      view.rerender(<AssistantPanel suppressed={false} />);
+    };
+    const navigate = registeredTools().find((tool: { name: string }) => tool.name === "navigate") as {
+      handler: (input: { destination: string }) => Promise<unknown>;
+    };
+
+    await navigate.handler({ destination: "timetable" });
+
+    expect(pushMock).toHaveBeenCalledWith("/timetable");
   });
 });

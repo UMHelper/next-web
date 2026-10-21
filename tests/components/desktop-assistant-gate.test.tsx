@@ -1,19 +1,52 @@
 import { useEffect, type ReactNode } from "react";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { flushSync } from "react-dom";
 import { hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { installFakeStorage } from "@/tests/helpers/fake-storage";
 
-const { useAuthMock, usePathnameMock, providerLife } = vi.hoisted(() => ({
+const {
+  useAuthMock,
+  pathnameRef,
+  usePathnameMock,
+  pushMock,
+  providerLife,
+  frontendToolSpy,
+  agentContextSpy,
+  getCourseDetailMock,
+  getInstructorCoursesMock,
+} = vi.hoisted(() => {
+  const pathnameRef = { current: "/" };
+  return {
   useAuthMock: vi.fn(),
-  usePathnameMock: vi.fn(() => "/"),
+  pathnameRef,
+  usePathnameMock: vi.fn(() => pathnameRef.current),
+  pushMock: vi.fn(),
   providerLife: { mounts: 0, live: 0 },
-}));
+  frontendToolSpy: vi.fn(),
+  agentContextSpy: vi.fn(),
+  getCourseDetailMock: vi.fn(),
+  getInstructorCoursesMock: vi.fn(),
+};
+});
+
+let rerenderAssistant: (() => void) | undefined;
 
 vi.mock("@clerk/nextjs", () => ({ useAuth: useAuthMock }));
-vi.mock("next/navigation", () => ({ usePathname: usePathnameMock }));
+vi.mock("next/navigation", () => ({
+  usePathname: usePathnameMock,
+  useRouter: () => ({
+    push: (path: string) => {
+      pushMock(path);
+      pathnameRef.current = path;
+      flushSync(() => {
+        rerenderAssistant?.();
+      });
+    },
+  }),
+}));
 vi.mock("next/dynamic", async () => {
   const panel = await import("@/components/assistant/assistant-panel");
   return { default: () => panel.default };
@@ -38,17 +71,24 @@ vi.mock("@copilotkit/react-core/v2", () => ({
       <button type="button" {...props.header.closeButton} onClick={() => props.onOpenChange(false)} />
     </div>
   ),
-  useAgentContext: () => {},
-  useFrontendTool: () => {},
+  useAgentContext: agentContextSpy,
+  useFrontendTool: (definition: unknown, deps: unknown) => {
+    frontendToolSpy(definition, deps);
+  },
   useConfigureSuggestions: () => {},
 }));
-vi.mock("@/lib/timetable/catalog-client", () => ({ getSections: vi.fn() }));
+vi.mock("@/lib/timetable/catalog-client", () => ({
+  getSections: vi.fn(),
+  getCourseDetail: (...args: unknown[]) => getCourseDetailMock(...args),
+  getInstructorCourses: (...args: unknown[]) => getInstructorCoursesMock(...args),
+}));
 vi.mock("@/components/timetable/planner-provider", () => ({
   useTimetablePlanner: () => ({ activePlan: undefined }),
 }));
 
 import AssistantLauncher from "@/components/assistant/assistant-launcher";
 import DesktopAssistantGate from "@/components/assistant/desktop-assistant-gate";
+import { PAGE_CONTEXT_DESCRIPTION } from "@/lib/assistant/page-context";
 
 const BUTTON = { name: "AI 選課助手" };
 
@@ -88,13 +128,34 @@ function stubFetch() {
   return fetchMock;
 }
 
-function renderAssistant() {
-  return render(
+function assistantTree() {
+  return (
     <DesktopAssistantGate>
       <AssistantLauncher />
-    </DesktopAssistantGate>,
+    </DesktopAssistantGate>
   );
 }
+
+function renderAssistant() {
+  const result = render(assistantTree());
+  rerenderAssistant = () => {
+    result.rerender(assistantTree());
+  };
+  return result;
+}
+
+const navigateTool = () =>
+  frontendToolSpy.mock.calls
+    .map(([definition]) => definition as { name: string; handler: (input: unknown) => Promise<unknown> })
+    .find((tool) => tool.name === "navigate");
+
+const lastPageContext = () => {
+  const entry = agentContextSpy.mock.calls
+    .map(([context]) => context as { description: string; value: string })
+    .filter((context) => context.description === PAGE_CONTEXT_DESCRIPTION)
+    .at(-1);
+  return entry ? JSON.parse(entry.value) : undefined;
+};
 
 async function openPanel() {
   fireEvent.click(await screen.findByRole("button", BUTTON));
@@ -105,13 +166,19 @@ beforeEach(() => {
   installFakeStorage();
   installViewport(1280);
   useAuthMock.mockReturnValue({ isLoaded: true, isSignedIn: true, userId: "user_a" });
+  pathnameRef.current = "/";
   providerLife.mounts = 0;
   providerLife.live = 0;
+  getCourseDetailMock.mockResolvedValue({
+    course: { courseTitle: "Introductory Economics" },
+    profList: [{}],
+  });
+  getInstructorCoursesMock.mockResolvedValue({ courses: [{ course_id: "ECON1001" }] });
 });
 
 afterEach(() => {
   cleanup();
-  usePathnameMock.mockReturnValue("/");
+  pathnameRef.current = "/";
   vi.unstubAllGlobals();
   vi.clearAllMocks();
   document.documentElement.style.removeProperty("--assistant-width");
@@ -260,12 +327,8 @@ describe("DesktopAssistantGate", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "收起助手" }));
     fireEvent.click(screen.getByRole("button", BUTTON));
-    usePathnameMock.mockReturnValue("/course/COMP1000");
-    rerender(
-      <DesktopAssistantGate>
-        <AssistantLauncher />
-      </DesktopAssistantGate>,
-    );
+    pathnameRef.current = "/course/COMP1000";
+    rerender(assistantTree());
 
     expect(screen.getByTestId("copilot-sidebar").getAttribute("data-open")).toBe("true");
     expect(providerLife.mounts).toBe(1);
@@ -278,13 +341,61 @@ describe("DesktopAssistantGate", () => {
     await openPanel();
 
     useAuthMock.mockReturnValue({ isLoaded: true, isSignedIn: false, userId: null });
-    rerender(
-      <DesktopAssistantGate>
-        <AssistantLauncher />
-      </DesktopAssistantGate>,
-    );
+    rerender(assistantTree());
 
     expect(container.innerHTML).toBe("");
     expect(providerLife.live).toBe(0);
+  });
+
+  it(
+    "keeps the conversation open when navigate lands on another course page",
+    async () => {
+    pathnameRef.current = "/course/ACCT1000";
+    stubFetch();
+    renderAssistant();
+    await openPanel();
+    expect(providerLife.mounts).toBe(1);
+
+    await act(async () => {
+      await expect(
+        navigateTool()!.handler({ destination: "course", code: "ECON1001" }),
+      ).resolves.toEqual({
+        status: "navigated",
+        page: { page: "course", courseCode: "ECON1001" },
+      });
+    });
+    expect(pushMock).toHaveBeenCalledWith("/course/ECON1001");
+    expect(providerLife.mounts).toBe(1);
+    expect(screen.getByTestId("copilot-sidebar").getAttribute("data-open")).toBe("true");
+    expect(lastPageContext()).toEqual({ page: "course", courseCode: "ECON1001" });
+  });
+
+  it("cancels navigate without pushing when the gate closes during lookup", async () => {
+    pathnameRef.current = "/course/ACCT1000";
+    let resolveLookup!: () => void;
+    getCourseDetailMock.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveLookup = () =>
+            resolve({ course: { courseTitle: "Introductory Economics" }, profList: [{}] });
+        }),
+    );
+    stubFetch();
+    renderAssistant();
+    await openPanel();
+
+    const pending = navigateTool()!.handler({ destination: "course", code: "ECON1001" });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    resizeTo(800);
+    await act(async () => {
+      resolveLookup();
+      await pending;
+    });
+
+    expect(await pending).toEqual({ status: "cancelled" });
+    expect(pushMock).not.toHaveBeenCalled();
   });
 });

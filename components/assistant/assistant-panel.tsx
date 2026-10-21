@@ -26,6 +26,7 @@ import {
   checkPlanConflictsParameters,
   runCheckPlanConflicts,
 } from "@/lib/assistant/check-plan-conflicts";
+import { navigateParameters } from "@/lib/assistant/navigation";
 import { describeAssistantError } from "@/lib/assistant/error-message";
 import { PAGE_CONTEXT_DESCRIPTION, describePage } from "@/lib/assistant/page-context";
 import { PANEL_WIDTH_DEFAULT } from "@/lib/assistant/panel-width";
@@ -36,6 +37,7 @@ import { cn } from "@/lib/utils";
 
 import { AssistantBubble } from "./assistant-bubble";
 import ResizeHandle, { PANEL_WIDTH_VAR } from "./resize-handle";
+import { useNavigateTool } from "./use-navigate-tool";
 
 // Unmodified copy of @copilotkit/react-core/dist/v2/index.css (Tailwind v4 output). next.config.js stubs the
 // package's own import because the app's Tailwind 3 PostCSS plugin rejects it.
@@ -164,6 +166,21 @@ function AssistantTools() {
       parameters: checkPlanConflictsParameters,
       handler: async (input) =>
         runCheckPlanConflicts(planRef.current?.payload.sections ?? [], input, getSections),
+    },
+    [],
+  );
+
+  const navigate = useNavigateTool();
+  useFrontendTool(
+    {
+      name: "navigate",
+      description:
+        "Open a page on this site for the student: a course, an instructor, an instructor's reviews for a course, the catalog, or their timetable. Only call it when the student asks to open or go to a page. It cannot open other sites and never changes the timetable.",
+      parameters: navigateParameters,
+      handler: (input, context) =>
+        navigate(input, { signal: context?.signal, agent: context?.agent }),
+      followUp: true,
+      reconnectBehavior: "passive",
     },
     [],
   );
