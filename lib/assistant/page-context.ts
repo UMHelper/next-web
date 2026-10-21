@@ -21,8 +21,8 @@ const OTHER: PageContext = { page: "other" };
 
 // The URL is attacker-controlled (anyone can send a link) and the context lands in the system
 // prompt, so every value must match one of these or it is dropped.
-const COURSE_CODE = /^[A-Z]{4}\d{4}$/;
-const NAME = /^\p{Lu}[\p{Lu}\p{M} .,'’()/-]{0,79}$/u;
+export const COURSE_CODE = /^[A-Z]{4}\d{4}$/;
+export const NAME = /^\p{Lu}[\p{Lu}\p{M} .,'’()/-]{0,79}$/u;
 const SEARCH_QUERY = /^[A-Z0-9][A-Z0-9 &.,'()/-]{0,79}$/;
 
 function decode(segment: string): string | null {
