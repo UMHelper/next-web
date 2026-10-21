@@ -10,6 +10,7 @@
     "dev:proxy": "NODE_USE_ENV_PROXY=1 next dev --turbo",
     "build": "next build",
     "build:pages": "opennextjs-cloudflare build --dangerouslyUseUnsupportedNextVersion",
+    "build:preview": "bash scripts/check-preview-env.sh && opennextjs-cloudflare build --env preview --dangerouslyUseUnsupportedNextVersion",
     "start": "next start",
     "lint": "eslint . --max-warnings=0",
     "preview": "opennextjs-cloudflare build --dangerouslyUseUnsupportedNextVersion && opennextjs-cloudflare preview",

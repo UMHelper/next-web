@@ -18,23 +18,5 @@ set -a
 . "./$ENV_FILE"
 set +a
 
-case "${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:-}" in
-  pk_test_*) ;;
-  *)
-    echo "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY must be a Clerk development key (pk_test_...)." >&2
-    exit 1
-    ;;
-esac
-
-if [ "${PREVIEW_DB_READONLY:-}" != "1" ]; then
-  echo "PREVIEW_DB_READONLY must be 1 in $ENV_FILE so the build cannot write to the production database." >&2
-  exit 1
-fi
-
-: "${PREVIEW_MODE:?PREVIEW_MODE must be set in $ENV_FILE}"
-: "${NEXT_PUBLIC_SUPABASE_URL:?NEXT_PUBLIC_SUPABASE_URL must be set in $ENV_FILE}"
-: "${NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:?NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY must be set in $ENV_FILE}"
-: "${SUPABASE_SECRET_KEY:?SUPABASE_SECRET_KEY must be set in $ENV_FILE}"
-
-npx opennextjs-cloudflare build --env preview
+npm run build:preview
 npx opennextjs-cloudflare deploy --env preview
