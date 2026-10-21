@@ -8,6 +8,7 @@ vi.mock("@/lib/mcp/data/get-instructor", () => ({ getInstructor: vi.fn() }));
 vi.mock("@/lib/mcp/data/get-course-reviews", () => ({ getCourseReviews: vi.fn() }));
 vi.mock("@/lib/mcp/data/get-course-sections", () => ({ getCourseSections: vi.fn() }));
 
+import { describePage } from "@/lib/assistant/page-context";
 import { checkPlanConflictsParameters } from "@/lib/assistant/check-plan-conflicts";
 import { createAssistantTools } from "@/lib/assistant/tools";
 import {
@@ -51,4 +52,21 @@ describe("assistant golden questions", () => {
       expect(MCP_INPUT_SCHEMAS[expected.tool].safeParse(expected.input).success).toBe(true);
     },
   );
+
+  it.each(
+    ASSISTANT_GOLDEN_QUESTIONS.filter((question) => question.pathname).map(
+      (question) => [question.id, question] as const,
+    ),
+  )("%s: the page context supplies every identifier the expected tool input uses", (_id, question) => {
+    const page = describePage(question.pathname!);
+    const expected = question.expected;
+    if (expected.kind === "no_tool") {
+      expect(page).toEqual({ page: "home" });
+      return;
+    }
+    const identifiers = Object.values(page);
+    for (const value of Object.values(expected.input)) {
+      expect(identifiers).toContain(value);
+    }
+  });
 });

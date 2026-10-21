@@ -8,6 +8,7 @@ type ServerToolName =
 export type GoldenQuestion = {
   id: string;
   question: string;
+  pathname?: string;
   expected:
     | { kind: "server_tool"; tool: ServerToolName; input: Record<string, unknown> }
     | { kind: "frontend_tool"; tool: "check_plan_conflicts"; input: { code: string; instructor: string; section: string } }
@@ -76,6 +77,34 @@ export const ASSISTANT_GOLDEN_QUESTIONS: GoldenQuestion[] = [
   {
     id: "add-course",
     question: "帮我把 ACCT1000 001 加进课表。",
-    expected: { kind: "no_tool", behaviour: "说明助手只读，请用左侧规划栏添加" },
+    expected: { kind: "no_tool", behaviour: "说明助手只读，请到课程评价页或 My Timetable 页自行添加" },
+  },
+  {
+    id: "page-course",
+    pathname: "/course/ACCT1000",
+    question: "这门课几个学分？",
+    expected: { kind: "server_tool", tool: "get_course", input: { code: "ACCT1000" } },
+  },
+  {
+    id: "page-reviews",
+    pathname: "/reviews/ACCT1000/CHAN%20TAI%20MAN",
+    question: "这位老师的 section 什么时间上课？",
+    expected: {
+      kind: "server_tool",
+      tool: "get_course_sections",
+      input: { code: "ACCT1000", instructor: "CHAN TAI MAN" },
+    },
+  },
+  {
+    id: "page-instructor",
+    pathname: "/professor/CHAN%20TAI%20MAN",
+    question: "这个老师还教什么课？",
+    expected: { kind: "server_tool", tool: "get_instructor", input: { name: "CHAN TAI MAN" } },
+  },
+  {
+    id: "page-none",
+    pathname: "/",
+    question: "这门课难不难？",
+    expected: { kind: "no_tool", behaviour: "问学生指的是哪门课" },
   },
 ];
