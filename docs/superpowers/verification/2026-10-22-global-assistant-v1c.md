@@ -12,7 +12,7 @@ Commands run separately (not chained).
 
 | Check | Result |
 |---|---|
-| `npm run lint` | **exit 1** — 1 warning treated as error (`--max-warnings=0`): `components/assistant/use-navigate-tool.ts` line 45:44 `react-hooks/exhaustive-deps` (`listeners.current` in effect cleanup) |
+| `npm run lint` | exit 0 |
 | `npx tsc --noEmit` | exit 0 |
 | `npx vitest run` | exit 0 — **Test Files 202 passed (202), Tests 1429 passed (1429)** (vs baseline 200 / 1,328: +2 files, +101 tests) |
 

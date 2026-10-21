@@ -40,9 +40,10 @@ export function useNavigateTool() {
 
   useEffect(() => {
     mounted.current = true;
+    const currentListeners = listeners.current;
     return () => {
       mounted.current = false;
-      for (const listener of [...listeners.current]) listener(null);
+      for (const listener of [...currentListeners]) listener(null);
     };
   }, []);
 
