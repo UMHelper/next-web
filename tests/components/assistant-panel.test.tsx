@@ -15,12 +15,13 @@ type SidebarProps = {
   input: { addMenuButton: ComponentType; disclaimer: ComponentType; showDisclaimer: boolean };
 };
 
-const { sidebarSpy, providerSpy, suggestionsSpy, agentContextSpy, plannerMock } = vi.hoisted(() => ({
+const { sidebarSpy, providerSpy, suggestionsSpy, agentContextSpy, plannerMock, usePathnameMock } = vi.hoisted(() => ({
   sidebarSpy: vi.fn(),
   providerSpy: vi.fn(),
   suggestionsSpy: vi.fn(),
   agentContextSpy: vi.fn(),
   plannerMock: vi.fn(),
+  usePathnameMock: vi.fn(() => "/"),
 }));
 
 vi.mock("@copilotkit/react-core/v2", () => ({
@@ -44,16 +45,22 @@ vi.mock("@copilotkit/react-core/v2", () => ({
 }));
 vi.mock("@/lib/timetable/catalog-client", () => ({ getSections: vi.fn() }));
 vi.mock("@/components/timetable/planner-provider", () => ({ useTimetablePlanner: plannerMock }));
+vi.mock("next/navigation", () => ({ usePathname: usePathnameMock }));
 
 import AssistantPanel from "@/components/assistant/assistant-panel";
+import { PAGE_CONTEXT_DESCRIPTION } from "@/lib/assistant/page-context";
 import { summarizePlan } from "@/lib/assistant/plan-summary";
 import type { LocalPlan } from "@/lib/timetable/store";
 
 const lastSidebarProps = () => sidebarSpy.mock.lastCall![0] as SidebarProps;
 
+const lastContext = (description: string) =>
+  agentContextSpy.mock.calls.filter(([entry]) => entry.description === description).at(-1)?.[0];
+
 beforeEach(() => {
   installFakeStorage();
   plannerMock.mockReturnValue({ activePlan: undefined });
+  usePathnameMock.mockReturnValue("/");
 });
 
 afterEach(() => {
@@ -176,11 +183,37 @@ describe("AssistantPanel", () => {
     plannerMock.mockReturnValue({ activePlan: plan });
 
     render(<AssistantPanel suppressed={false} />);
-    expect(agentContextSpy).toHaveBeenLastCalledWith({
+    expect(lastContext("The student's active timetable plan (read-only)")).toEqual({
       description: "The student's active timetable plan (read-only)",
       value: summarizePlan(plan),
     });
     expect(summarizePlan(plan)).toContain("ACCT1000-A01");
+  });
+
+  it("tells the agent which page the student is on and follows client-side navigation", () => {
+    usePathnameMock.mockReturnValue("/course/ACCT1000");
+    const { rerender } = render(<AssistantPanel suppressed={false} />);
+    expect(JSON.parse(lastContext(PAGE_CONTEXT_DESCRIPTION).value)).toEqual({
+      page: "course",
+      courseCode: "ACCT1000",
+    });
+
+    usePathnameMock.mockReturnValue("/reviews/ACCT1000/CHAN%20TAI%20MAN");
+    rerender(<AssistantPanel suppressed={false} />);
+    expect(JSON.parse(lastContext(PAGE_CONTEXT_DESCRIPTION).value)).toEqual({
+      page: "course_reviews",
+      courseCode: "ACCT1000",
+      instructor: "CHAN TAI MAN",
+    });
+    expect(providerSpy).toHaveBeenCalled();
+    expect(screen.getByTestId("copilot-sidebar").getAttribute("data-open")).toBe("true");
+  });
+
+  it("keeps the plan context alongside the page context", () => {
+    usePathnameMock.mockReturnValue("/timetable");
+    render(<AssistantPanel suppressed={false} />);
+    expect(lastContext("The student's active timetable plan (read-only)")?.value).toBe("No timetable plan");
+    expect(JSON.parse(lastContext(PAGE_CONTEXT_DESCRIPTION).value)).toEqual({ page: "timetable" });
   });
 
   it("marks <html> only while the sidebar is visible", () => {

@@ -8,11 +8,13 @@ import {
   useConfigureSuggestions,
   useFrontendTool,
 } from "@copilotkit/react-core/v2";
+import { usePathname } from "next/navigation";
 import {
   createContext,
   forwardRef,
   useContext,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
   type ComponentPropsWithoutRef,
@@ -25,6 +27,7 @@ import {
   runCheckPlanConflicts,
 } from "@/lib/assistant/check-plan-conflicts";
 import { describeAssistantError } from "@/lib/assistant/error-message";
+import { PAGE_CONTEXT_DESCRIPTION, describePage } from "@/lib/assistant/page-context";
 import { PANEL_WIDTH_DEFAULT } from "@/lib/assistant/panel-width";
 import { summarizePlan } from "@/lib/assistant/plan-summary";
 import { getSections } from "@/lib/timetable/catalog-client";
@@ -146,8 +149,11 @@ function AssistantTools() {
   const { activePlan } = useTimetablePlanner();
   const planRef = useRef(activePlan);
   planRef.current = activePlan;
+  const pathname = usePathname();
+  const page = useMemo(() => JSON.stringify(describePage(pathname)), [pathname]);
 
   useAgentContext({ description: "The student's active timetable plan (read-only)", value: summarizePlan(activePlan) });
+  useAgentContext({ description: PAGE_CONTEXT_DESCRIPTION, value: page });
   useConfigureSuggestions(EXAMPLE_SUGGESTIONS);
 
   useFrontendTool(
