@@ -4,12 +4,14 @@ import {
   gradeTurn,
   summarize,
   type StepMetrics,
+  type ToolCallRecord,
   type TurnExpectation,
   type TurnTrace,
 } from "@/evals/assistant/grade";
 
 const CODES = ["CISC2001", "CISC3014"];
 const COURSE = { destination: "course", code: "CISC3014" };
+const COURSE_PATH = "/course/CISC3014";
 
 const step = (finish: string, outputTokens = 50, tools: string[] = []): StepMetrics => ({
   ms: 100,
@@ -37,52 +39,110 @@ function trace(overrides: Partial<TurnTrace> = {}): TurnTrace {
   };
 }
 
-const navigateTo = (args: Record<string, unknown>) => ({
+const navigateTo = (args: Record<string, unknown>, status = "navigated"): ToolCallRecord => ({
   name: "navigate",
   args,
-  result: JSON.stringify({ status: "navigated" }),
+  result: JSON.stringify({ status }),
 });
 
-describe("gradeTurn", () => {
+const grade = (turn: TurnTrace, expectation: TurnExpectation) => gradeTurn(turn, expectation, 5, CODES);
+
+describe("gradeTurn navigation", () => {
   const required: TurnExpectation = { navigate: "required", destination: COURSE };
 
-  it("passes a required navigation to the expected page", () => {
-    const grade = gradeTurn(trace({ toolCalls: [navigateTo({ destination: "course", code: "cisc3014" })] }), required, 5, CODES);
-    expect(grade.navigation).toBe("correct");
-    expect(grade.pass).toBe(true);
+  it("passes a required navigation that lands on the expected page", () => {
+    const result = grade(
+      trace({ toolCalls: [navigateTo({ destination: "course", code: "cisc3014" })], pathnameAfter: COURSE_PATH }),
+      required,
+    );
+    expect(result).toMatchObject({ selection: "correct", navigateStatus: "navigated", landed: true, pass: true });
+  });
+
+  it("accepts already_here when the student is on the page already", () => {
+    const result = grade(
+      trace({ toolCalls: [navigateTo(COURSE, "already_here")], pathnameBefore: COURSE_PATH, pathnameAfter: COURSE_PATH }),
+      required,
+    );
+    expect(result).toMatchObject({ selection: "correct", navigateStatus: "already_here", landed: true, pass: true });
+  });
+
+  it("does not complete the task when the page was not found", () => {
+    const result = grade(trace({ toolCalls: [navigateTo(COURSE, "not_found")] }), required);
+    expect(result).toMatchObject({ selection: "correct", navigateStatus: "not_found", landed: false, pass: false });
+  });
+
+  it("treats arguments the navigate tool rejects as a selection failure, not a wrong page", () => {
+    const result = grade(
+      trace({ toolCalls: [navigateTo({ destination: "reviews", code: "CISC3014" }, "invalid_destination")] }),
+      { navigate: "required", destination: { destination: "reviews", code: "CISC3014", instructor: "CHAN TAI MAN" } },
+    );
+    expect(result).toMatchObject({
+      selection: "invalid_arguments",
+      navigateStatus: "invalid_destination",
+      landed: false,
+      pass: false,
+    });
+  });
+
+  it("does not count a timeout as landing, even on the expected path", () => {
+    const result = grade(trace({ toolCalls: [navigateTo(COURSE, "timeout")], pathnameAfter: COURSE_PATH }), required);
+    expect(result).toMatchObject({ selection: "correct", navigateStatus: "timeout", landed: false, pass: false });
+  });
+
+  it("does not count a navigation that ended on another path", () => {
+    const wrongPath = grade(trace({ toolCalls: [navigateTo(COURSE)], pathnameAfter: "/course/CISC2001" }), required);
+    const elsewhere = grade(trace({ toolCalls: [navigateTo(COURSE, "landed_elsewhere")], pathnameAfter: "/" }), required);
+    expect(wrongPath).toMatchObject({ selection: "correct", navigateStatus: "navigated", landed: false, pass: false });
+    expect(elsewhere).toMatchObject({ selection: "correct", navigateStatus: "landed_elsewhere", landed: false, pass: false });
+  });
+
+  it("does not count a navigate call that never got a result", () => {
+    const result = grade(trace({ toolCalls: [{ name: "navigate", args: COURSE }], runCapHit: true }), required);
+    expect(result).toMatchObject({ selection: "correct", navigateStatus: null, landed: false, pass: false });
+  });
+
+  it("credits a retry that lands for completion but not for tool selection", () => {
+    const result = grade(
+      trace({
+        toolCalls: [navigateTo({ destination: "course", code: "nope" }, "invalid_destination"), navigateTo(COURSE)],
+        pathnameAfter: COURSE_PATH,
+      }),
+      required,
+    );
+    expect(result).toMatchObject({ selection: "invalid_arguments", navigateStatus: "invalid_destination", landed: true, pass: true });
+  });
+
+  it("flags navigation to the wrong page", () => {
+    const result = grade(
+      trace({ toolCalls: [navigateTo({ destination: "course", code: "CISC2001" })], pathnameAfter: "/course/CISC2001" }),
+      required,
+    );
+    expect(result).toMatchObject({ selection: "wrong_destination", landed: false, pass: false });
   });
 
   it("reports a missed navigation as an omission when nothing stopped the model", () => {
-    const grade = gradeTurn(trace(), required, 5, CODES);
-    expect(grade.navigation).toBe("missed");
-    expect(grade.limits.omission).toBe(true);
-    expect(grade.pass).toBe(false);
+    const result = grade(trace(), required);
+    expect(result).toMatchObject({ selection: "missed", navigateStatus: null, landed: false, pass: false });
+    expect(result.limits.omission).toBe(true);
   });
 
   it("does not call a navigation cut off by maxSteps an omission", () => {
     const steps = [1, 2, 3, 4, 5].map(() => step("tool-calls", 30, ["get_course"]));
-    const grade = gradeTurn(trace({ runs: [{ continuation: false, ms: 500, steps }] }), required, 5, CODES);
-    expect(grade.limits.maxStepsHit).toBe(true);
-    expect(grade.limits.omission).toBe(false);
-  });
-
-  it("flags navigation to the wrong page", () => {
-    const grade = gradeTurn(trace({ toolCalls: [navigateTo({ destination: "course", code: "CISC2001" })] }), required, 5, CODES);
-    expect(grade.navigation).toBe("wrong_destination");
-    expect(grade.pass).toBe(false);
+    const result = grade(trace({ runs: [{ continuation: false, ms: 500, steps }] }), required);
+    expect(result.limits.maxStepsHit).toBe(true);
+    expect(result.limits.omission).toBe(false);
   });
 
   it("flags navigation during an information question", () => {
     const expectation: TurnExpectation = { navigate: "forbidden", tools: [{ name: "get_course", args: { code: "CISC3014" } }] };
-    const grade = gradeTurn(
-      trace({ toolCalls: [{ name: "get_course", args: { code: "CISC3014" } }, navigateTo({ destination: "timetable" })] }),
+    const result = grade(
+      trace({
+        toolCalls: [{ name: "get_course", args: { code: "CISC3014" } }, navigateTo({ destination: "timetable" })],
+        pathnameAfter: "/timetable",
+      }),
       expectation,
-      5,
-      CODES,
     );
-    expect(grade.navigation).toBe("unsolicited");
-    expect(grade.academicTools).toBe(true);
-    expect(grade.pass).toBe(false);
+    expect(result).toMatchObject({ selection: "unsolicited", academicTools: true, landed: null, pass: false });
   });
 
   it("requires the academic tools only when an optional turn did not navigate", () => {
@@ -91,67 +151,84 @@ describe("gradeTurn", () => {
       destination: COURSE,
       tools: [{ name: "get_course", args: { code: "CISC3014" } }],
     };
-    const skipped = gradeTurn(trace(), expectation, 5, CODES);
-    const taken = gradeTurn(trace({ toolCalls: [navigateTo(COURSE)] }), expectation, 5, CODES);
-    expect(skipped).toMatchObject({ navigation: "optional_skipped", academicTools: false, pass: false });
-    expect(taken).toMatchObject({ navigation: "optional_taken", academicTools: null, pass: true });
+    const skipped = grade(trace(), expectation);
+    const taken = grade(trace({ toolCalls: [navigateTo(COURSE)], pathnameAfter: COURSE_PATH }), expectation);
+    const wrongPage = grade(
+      trace({ toolCalls: [navigateTo({ destination: "course", code: "CISC2001" })], pathnameAfter: "/course/CISC2001" }),
+      expectation,
+    );
+    expect(skipped).toMatchObject({ selection: "optional_skipped", academicTools: false, landed: null, pass: false });
+    expect(taken).toMatchObject({ selection: "optional_taken", academicTools: null, landed: true, pass: true });
+    expect(wrongPage).toMatchObject({ selection: "wrong_destination", landed: false, pass: false });
   });
 
-  it("completes a compound request only when the lookup comes before navigate", () => {
+  it("completes a compound request only when the lookup comes before a navigate call that lands", () => {
     const expectation: TurnExpectation = {
       navigate: "required",
       destination: COURSE,
       tools: [{ name: "search_catalog", args: { type: "course" } }],
     };
     const search = { name: "search_catalog", args: { type: "course", query: "database" } };
-    const inOrder = gradeTurn(trace({ toolCalls: [search, navigateTo(COURSE)] }), expectation, 5, CODES);
-    const reversed = gradeTurn(trace({ toolCalls: [navigateTo(COURSE), search] }), expectation, 5, CODES);
-    expect(inOrder.compound).toBe(true);
-    expect(reversed.compound).toBe(false);
-    expect(reversed.pass).toBe(false);
+    const inOrder = grade(trace({ toolCalls: [search, navigateTo(COURSE)], pathnameAfter: COURSE_PATH }), expectation);
+    const reversed = grade(trace({ toolCalls: [navigateTo(COURSE), search], pathnameAfter: COURSE_PATH }), expectation);
+    const notFound = grade(trace({ toolCalls: [search, navigateTo(COURSE, "not_found")] }), expectation);
+    expect(inOrder).toMatchObject({ compound: true, pass: true });
+    expect(reversed).toMatchObject({ compound: false, pass: false });
+    expect(notFound).toMatchObject({ compound: false, pass: false });
   });
+});
 
+describe("gradeTurn replies", () => {
   it("checks the reply: required mentions, unknown course codes, language and truncation", () => {
     const expectation: TurnExpectation = {
       navigate: "forbidden",
       mustMention: [["Database Systems", "資料庫系統"]],
       replyLanguage: "chinese",
     };
-    const grade = gradeTurn(
+    const result = grade(
       trace({ reply: "See ABCD1234.", runs: [{ continuation: false, ms: 100, steps: [step("length", 400)] }] }),
       expectation,
-      5,
-      CODES,
     );
-    expect(grade.responseProblems).toEqual([
+    expect(result.responseProblems).toEqual([
       "finish: length",
       "missing: Database Systems | 資料庫系統",
       "unknown course codes: ABCD1234",
       "reply is not in Chinese",
     ]);
-    expect(grade.limits).toMatchObject({ truncated: true, maxStepOutputTokens: 400 });
+    expect(result.limits).toMatchObject({ truncated: true, maxStepOutputTokens: 400 });
   });
 });
 
 describe("summarize", () => {
-  it("counts navigation outcomes, tool use and limits across turns", () => {
+  it("separates tool selection, simulated navigation and task completion", () => {
     const required: TurnExpectation = { navigate: "required", destination: COURSE };
     const forbidden: TurnExpectation = { navigate: "forbidden" };
     const grades = [
-      gradeTurn(trace({ ms: 1000, toolCalls: [navigateTo(COURSE)] }), required, 5, CODES),
-      gradeTurn(trace({ ms: 3000 }), required, 5, CODES),
-      gradeTurn(trace({ ms: 2000, toolCalls: [navigateTo(COURSE)] }), forbidden, 5, CODES),
+      grade(trace({ ms: 1000, toolCalls: [navigateTo(COURSE)], pathnameAfter: COURSE_PATH }), required),
+      grade(trace({ ms: 3000, toolCalls: [navigateTo(COURSE, "not_found")] }), required),
+      grade(trace({ ms: 4000 }), required),
+      grade(trace({ ms: 2000, toolCalls: [navigateTo(COURSE)], pathnameAfter: COURSE_PATH }), forbidden),
     ];
 
     const summary = summarize(grades);
 
-    expect(summary.turns).toBe(3);
+    expect(summary.turns).toBe(4);
     expect(summary.passed).toBe(1);
-    expect(summary.navigation).toEqual({ required: 2, correct: 1, missed: 1, wrongDestination: 0, omissions: 1 });
+    expect(summary.toolSelection).toEqual({
+      required: 3,
+      correct: 2,
+      missed: 1,
+      invalidArguments: 0,
+      wrongDestination: 0,
+      omissions: 1,
+    });
+    expect(summary.simulatedNavigation).toEqual({
+      required: 3,
+      landed: 1,
+      statuses: { navigated: 1, not_found: 1, no_call: 1 },
+    });
     expect(summary.unsolicited).toEqual({ forbidden: 1, navigated: 1 });
-    expect(summary.limits.latencyP50Ms).toBe(2000);
-    expect(summary.limits.finishCounts).toEqual({ stop: 3 });
-    expect(summary.limits.inputTokens).toBe(3000);
-    expect(summary.byTurn).toEqual({ "case#1": { passed: 1, total: 3 } });
+    expect(summary.limits).toMatchObject({ runs: 4, steps: 4, latencyP50Ms: 3000, finishCounts: { stop: 4 }, inputTokens: 4000 });
+    expect(summary.byTurn).toEqual({ "case#1": { passed: 1, total: 4 } });
   });
 });

@@ -1,16 +1,16 @@
 import { isDeepStrictEqual } from "node:util";
 
-import { parseDestination } from "@/lib/assistant/navigation";
+import { buildNavigationPath, parseDestination, type NavigationDestination } from "@/lib/assistant/navigation";
 import type { ASSISTANT_SERVER_TOOL_NAMES } from "@/lib/assistant/tools";
 
 export type ServerToolName = (typeof ASSISTANT_SERVER_TOOL_NAMES)[number];
 
 export type TurnExpectation = {
-  /** optional: either answering or navigating is fine, but navigation must go to `destination`. */
+  /** optional: either answering or navigating is fine, but navigation must land on `destination`. */
   navigate: "required" | "forbidden" | "optional";
   /** Raw navigate input; compared after parseDestination on both sides. */
   destination?: Record<string, string>;
-  /** Must be called, each before navigate. Not checked for an optional turn that navigated. */
+  /** Must be called, each before the navigate call that lands. Not checked for an optional turn that navigated. */
   tools?: Array<{ name: ServerToolName; args?: Record<string, string> }>;
   /** Each group needs one of its strings in the reply, case-insensitively. */
   mustMention?: string[][];
@@ -46,9 +46,11 @@ export type TurnTrace = {
   error?: string;
 };
 
-export type NavigationOutcome =
+/** Judged on the first navigate call: the right tool, valid arguments and the right page. */
+export type SelectionOutcome =
   | "correct"
   | "missed"
+  | "invalid_arguments"
   | "wrong_destination"
   | "unsolicited"
   | "none"
@@ -75,24 +77,39 @@ export type TurnGrade = {
   repeat: number;
   turn: number;
   expectation: TurnExpectation["navigate"];
-  navigation: NavigationOutcome;
+  selection: SelectionOutcome;
+  /** Status returned to the first navigate call; null when it was not called or never answered. */
+  navigateStatus: string | null;
+  /** A call to the expected page returned navigated or already_here and the turn ended on its path; null when no landing was needed. */
+  landed: boolean | null;
   academicTools: boolean | null;
   compound: boolean | null;
   responseProblems: string[];
   limits: TurnLimits;
+  /** Task completion, judged on the end state rather than the first navigate call. */
   pass: boolean;
 };
 
 export type Summary = {
   turns: number;
   passed: number;
-  navigation: { required: number; correct: number; missed: number; wrongDestination: number; omissions: number };
+  toolSelection: {
+    required: number;
+    correct: number;
+    missed: number;
+    invalidArguments: number;
+    wrongDestination: number;
+    omissions: number;
+  };
+  simulatedNavigation: { required: number; landed: number; statuses: Record<string, number> };
   unsolicited: { forbidden: number; navigated: number };
-  optional: { turns: number; navigated: number; wrongDestination: number };
+  optional: { turns: number; navigated: number; landed: number };
   academicTools: { required: number; ok: number };
   compound: { turns: number; complete: number };
   responses: { ok: number; total: number };
   limits: {
+    runs: number;
+    steps: number;
     runsPerTurnMean: number;
     runsPerTurnMax: number;
     maxStepsInRun: number;
@@ -111,7 +128,7 @@ export type Summary = {
 
 const COURSE_CODE_IN_TEXT = /\b[A-Z]{4}\d{4}\b/g;
 const HAN = /\p{Script=Han}/u;
-const ACCEPTED: ReadonlySet<NavigationOutcome> = new Set(["correct", "none", "optional_taken", "optional_skipped"]);
+const LANDED_STATUSES: ReadonlySet<string> = new Set(["navigated", "already_here"]);
 
 const normalized = (value: unknown) =>
   typeof value === "string" ? value.trim().replace(/\s+/g, " ").toUpperCase() : value;
@@ -123,15 +140,27 @@ function matchesTool(call: ToolCallRecord, wanted: NonNullable<TurnExpectation["
   );
 }
 
-function navigationOutcome(expectation: TurnExpectation, navigated: boolean, rightPlace: boolean): NavigationOutcome {
-  switch (expectation.navigate) {
-    case "required":
-      return !navigated ? "missed" : rightPlace ? "correct" : "wrong_destination";
-    case "forbidden":
-      return navigated ? "unsolicited" : "none";
-    case "optional":
-      return !navigated ? "optional_skipped" : rightPlace ? "optional_taken" : "wrong_destination";
+function statusOf(call: ToolCallRecord): string | null {
+  if (call.result === undefined) return null;
+  try {
+    const status: unknown = JSON.parse(call.result)?.status;
+    return typeof status === "string" ? status : null;
+  } catch {
+    return null;
   }
+}
+
+function selectionOf(
+  expectation: TurnExpectation,
+  first: ToolCallRecord | undefined,
+  wanted: NavigationDestination | null,
+): SelectionOutcome {
+  if (expectation.navigate === "forbidden") return first ? "unsolicited" : "none";
+  if (!first) return expectation.navigate === "required" ? "missed" : "optional_skipped";
+  const actual = parseDestination(first.args);
+  if (actual === null) return "invalid_arguments";
+  if (!isDeepStrictEqual(actual, wanted)) return "wrong_destination";
+  return expectation.navigate === "required" ? "correct" : "optional_taken";
 }
 
 function limitsOf(trace: TurnTrace, maxSteps: number, missed: boolean): TurnLimits {
@@ -186,12 +215,24 @@ export function gradeTurn(
   maxSteps: number,
   knownCodes: readonly string[],
 ): TurnGrade {
-  const navigateIndex = trace.toolCalls.findIndex((call) => call.name === "navigate");
-  const navigated = navigateIndex >= 0;
-  const actual = navigated ? parseDestination(trace.toolCalls[navigateIndex].args) : null;
+  const navigateCalls = trace.toolCalls.filter((call) => call.name === "navigate");
+  const navigated = navigateCalls.length > 0;
   const wanted = expectation.destination ? parseDestination(expectation.destination) : null;
-  const rightPlace = actual !== null && wanted !== null && isDeepStrictEqual(actual, wanted);
-  const navigation = navigationOutcome(expectation, navigated, rightPlace);
+  const selection = selectionOf(expectation, navigateCalls[0], wanted);
+
+  const landingIndex =
+    wanted === null
+      ? -1
+      : trace.toolCalls.findIndex(
+          (call) =>
+            call.name === "navigate" &&
+            isDeepStrictEqual(parseDestination(call.args), wanted) &&
+            LANDED_STATUSES.has(statusOf(call) ?? ""),
+        );
+  const needsLanding = expectation.navigate === "required" || (expectation.navigate === "optional" && navigated);
+  const landed = needsLanding
+    ? landingIndex >= 0 && wanted !== null && trace.pathnameAfter === buildNavigationPath(wanted)
+    : null;
 
   const toolsApply = expectation.tools !== undefined && !(expectation.navigate === "optional" && navigated);
   const positions = (expectation.tools ?? []).map((wantedTool) =>
@@ -200,22 +241,29 @@ export function gradeTurn(
   const academicTools = toolsApply ? positions.every((index) => index >= 0) : null;
   const compound =
     expectation.navigate === "required" && expectation.tools !== undefined
-      ? academicTools === true && navigation === "correct" && positions.every((index) => index < navigateIndex)
+      ? academicTools === true && landed === true && positions.every((index) => index < landingIndex)
       : null;
 
-  const limits = limitsOf(trace, maxSteps, navigation === "missed");
+  const limits = limitsOf(trace, maxSteps, selection === "missed");
   const problems = responseProblems(trace, expectation, limits.truncated, knownCodes);
   return {
     caseId: trace.caseId,
     repeat: trace.repeat,
     turn: trace.turn,
     expectation: expectation.navigate,
-    navigation,
+    selection,
+    navigateStatus: navigated ? statusOf(navigateCalls[0]) : null,
+    landed,
     academicTools,
     compound,
     responseProblems: problems,
     limits,
-    pass: ACCEPTED.has(navigation) && academicTools !== false && compound !== false && problems.length === 0,
+    pass:
+      selection !== "unsolicited" &&
+      landed !== false &&
+      academicTools !== false &&
+      compound !== false &&
+      problems.length === 0,
   };
 }
 
@@ -231,7 +279,13 @@ export function summarize(grades: TurnGrade[]): Summary {
     latencies.length === 0 ? 0 : latencies[Math.min(latencies.length - 1, Math.floor(p * latencies.length))];
   const total = (pick: (limits: TurnLimits) => number) => grades.reduce((sum, grade) => sum + pick(grade.limits), 0);
   const highest = (pick: (limits: TurnLimits) => number) => Math.max(0, ...grades.map((grade) => pick(grade.limits)));
+  const selected = (outcome: SelectionOutcome) => required.filter((grade) => grade.selection === outcome).length;
 
+  const statuses: Record<string, number> = {};
+  for (const grade of required) {
+    const status = grade.navigateStatus ?? (grade.selection === "missed" ? "no_call" : "no_result");
+    statuses[status] = (statuses[status] ?? 0) + 1;
+  }
   const finishCounts: Record<string, number> = {};
   for (const finish of grades.flatMap((grade) => grade.limits.finishes)) {
     finishCounts[finish] = (finishCounts[finish] ?? 0) + 1;
@@ -246,26 +300,34 @@ export function summarize(grades: TurnGrade[]): Summary {
   return {
     turns: grades.length,
     passed: where((grade) => grade.pass).length,
-    navigation: {
+    toolSelection: {
       required: required.length,
-      correct: required.filter((grade) => grade.navigation === "correct").length,
-      missed: required.filter((grade) => grade.navigation === "missed").length,
-      wrongDestination: required.filter((grade) => grade.navigation === "wrong_destination").length,
+      correct: selected("correct"),
+      missed: selected("missed"),
+      invalidArguments: selected("invalid_arguments"),
+      wrongDestination: selected("wrong_destination"),
       omissions: required.filter((grade) => grade.limits.omission).length,
+    },
+    simulatedNavigation: {
+      required: required.length,
+      landed: required.filter((grade) => grade.landed === true).length,
+      statuses,
     },
     unsolicited: {
       forbidden: forbidden.length,
-      navigated: forbidden.filter((grade) => grade.navigation === "unsolicited").length,
+      navigated: forbidden.filter((grade) => grade.selection === "unsolicited").length,
     },
     optional: {
       turns: optional.length,
-      navigated: optional.filter((grade) => grade.navigation === "optional_taken").length,
-      wrongDestination: optional.filter((grade) => grade.navigation === "wrong_destination").length,
+      navigated: optional.filter((grade) => grade.landed !== null).length,
+      landed: optional.filter((grade) => grade.landed === true).length,
     },
     academicTools: { required: withTools.length, ok: withTools.filter((grade) => grade.academicTools).length },
     compound: { turns: compound.length, complete: compound.filter((grade) => grade.compound).length },
     responses: { ok: where((grade) => grade.responseProblems.length === 0).length, total: grades.length },
     limits: {
+      runs: total((limits) => limits.runs),
+      steps: total((limits) => limits.steps),
       runsPerTurnMean: grades.length === 0 ? 0 : total((limits) => limits.runs) / grades.length,
       runsPerTurnMax: highest((limits) => limits.runs),
       maxStepsInRun: highest((limits) => limits.maxStepsInRun),
