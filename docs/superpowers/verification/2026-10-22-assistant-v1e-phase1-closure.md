@@ -90,32 +90,35 @@ All three live runs finished with `complete: true` and no `stoppedEarly`.
 
 ## 6. Remaining genuine agent failures
 
-From live `failures` (closure and closure-show-me):
+One line per failing live turn from `failures` in `.eval-results/assistant/2026-10-22T13-21-34-233Z-closure.json` and `.eval-results/assistant/2026-10-22T13-24-45-361Z-closure-show-me.json`.
 
-**Missed or wrong navigation**
+**Missed or wrong navigation** (repeats across repeats on `ambiguous-show-me-en`; one-off on `nav-show-reviews-page-en`)
 
-- `ambiguous-show-me-en` (repeats across runs): four pooled turns (closure repeats 0–2; closure-show-me repeat 2) used `get_course` only — **missed** required `navigate`; repeats on the same pattern in closure (3/3 miss) and mostly pass in targeted (4/5 land).
-- `nav-show-reviews-page-en` closure repeat 1: **wrong_destination** — navigated to course CISC3014 instead of reviews for CHAN TAI MAN; once.
+- ambiguous-show-me-en repeat 0 turn 1: get_course {"code":"CISC3014"}; reply "I'll look that up. **CISC3014 – Database Systems (資料庫系統)** - 3 credits, FST / CIS, undergraduate, taught in English - Co"; selection missed, status none, landed false; problems: none
+- ambiguous-show-me-en repeat 1 turn 1: get_course {"code":"CISC3014"}; reply "Here is CISC3014 on the site. **CISC3014 — Database Systems (資料庫系統)** - 3 credits, FST / CIS, undergraduate, taught in E"; selection missed, status none, landed false; problems: none
+- ambiguous-show-me-en repeat 2 turn 1: get_course {"code":"CISC3014"}; reply "I'll look that up. **CISC3014: Database Systems (資料庫系統)** - 3 credits, FST / CIS, undergraduate, taught in English - Des"; selection missed, status none, landed false; problems: none
+- ambiguous-show-me-en repeat 2 turn 1: get_course {"code":"CISC3014"}; reply "I'll look up that course for you. **CISC3014 – Database Systems 資料庫系統** - 3 credits, FST / CIS, undergraduate, taught in"; selection missed, status none, landed false; problems: none
+- nav-show-reviews-page-en repeat 1 turn 1: navigate {"destination":"course","code":"CISC3014"}; reply "I've taken you to the CISC3014 course page, where you can pick an instructor to see their reviews."; selection wrong_destination, status navigated, landed false; problems: none
 
 **Navigation that did not land**
 
-- Same `nav-show-reviews-page-en` repeat 1: `navigated` status but not on the expected reviews path (`landed false`).
+- No failing turns listed separately; the five lines above already record `landed false` where navigation did not reach the expected page.
 
-**Chinese prose in English replies**
+**Chinese prose in English replies** (appears once)
 
-- `nav-open-en` closure repeat 0: navigated correctly; reply in Chinese (`reply contains Chinese`); once in closure (repeat 0 only; 2/3 pass on that turn).
+- nav-open-en repeat 0 turn 1: navigate {"destination":"course","code":"CISC3014"}; reply "已打开 CISC3014 的课程页面。"; selection correct, status navigated, landed true; problems: reply contains Chinese
 
-**Simplified versus Traditional script**
+**Simplified versus Traditional script** (read by hand: the grader does not check script)
 
-- Not graded; no failure lines flagged script alone.
+- No failing turns in these runs.
 
 **`finish: length`**
 
-- None in closure or closure-show-me live runs (0 truncated turns).
+- No failing turns in these runs.
 
 **Missing lookups**
 
-- None in failure lines; academic tools 18/18 (closure) and 5/5 (targeted).
+- No failing turns in these runs.
 
 ## 7. Phase 2 recommendation
 
