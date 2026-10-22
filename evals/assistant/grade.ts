@@ -13,8 +13,10 @@ export type TurnExpectation = {
   /**
    * optional: either answering or navigating is fine, but navigation must land on `destination`.
    * unavailable: the student asked for a page this site cannot open; trying navigate is fine, but the turn must end where it started.
+   * clarify: the student asked for a page, but a value it needs has several valid answers; the assistant must not navigate,
+   * must run `tools`, name every one of `options` and ask which one.
    */
-  navigate: "required" | "forbidden" | "optional" | "unavailable";
+  navigate: "required" | "forbidden" | "optional" | "unavailable" | "clarify";
   /** Raw navigate input; compared after parseDestination on both sides. */
   destination?: Record<string, string>;
   /** Must be called, each before the navigate call that lands. Not checked for an optional turn that navigated. */
@@ -24,10 +26,19 @@ export type TurnExpectation = {
   replyLanguage?: ReplyLanguage;
   /** Course codes the student typed that are not in the catalog; the reply may repeat them. */
   studentCodes?: string[];
+  /** The page type the student asked for; a navigate call to any other page type is a substitute. */
+  requestedPage?: NavigationDestination["destination"];
+  /** clarify turns: the valid values the student has to choose between. */
+  options?: string[];
 };
 
-/** What the fixture catalog knows: codes the reply may mention, and titles it may quote in their original language. */
-export type CatalogFacts = { courseCodes: readonly string[]; officialTitles: readonly string[] };
+/** What the fixture catalog knows: codes the reply may mention, titles it may quote in their original language, and instructor names. */
+export type CatalogFacts = {
+  courseCodes: readonly string[];
+  officialTitles: readonly string[];
+  /** A clarify reply that names one of these outside the turn's options has invented a choice. */
+  instructorNames?: readonly string[];
+};
 
 export type ToolCallRecord = { name: string; args: Record<string, unknown>; result?: string };
 
@@ -79,11 +90,26 @@ export type SelectionOutcome =
   | "invalid_arguments"
   | "wrong_destination"
   | "unsolicited"
+  /** clarify turns only: navigate was called. */
+  | "premature"
   | "none"
   | "optional_taken"
   | "optional_skipped"
   /** unavailable turns only: navigate was tried. */
   | "attempted";
+
+export type Clarification = {
+  /** No navigate call, and the reply asks a question. */
+  detected: boolean;
+  /** The turn's tools ran (true when the turn lists none). */
+  lookedUp: boolean;
+  optionsNamed: number;
+  options: number;
+  /** Catalog instructor names in the reply that are not options. */
+  invented: string[];
+  /** detected, lookedUp, every option named and nothing invented. */
+  complete: boolean;
+};
 
 export type TurnLimits = {
   runs: number;
@@ -116,6 +142,14 @@ export type TurnGrade = {
   compound: boolean | null;
   /** unavailable turns: the turn ended on the page it started on; null otherwise. */
   stayed: boolean | null;
+  /** clarify turns: navigate was called at all; required turns with tools: the first navigate call came before every lookup had run. null otherwise. */
+  premature: boolean | null;
+  /** A navigate call to a different page type than requestedPage; null when the turn has no requestedPage. */
+  substituted: boolean | null;
+  /** The turn ended on a different page from where it started, and not on the page the student asked for. */
+  strayed: boolean;
+  /** clarify turns only. */
+  clarification: Clarification | null;
   /** The model read the request right (navigation decision and lookups), whether or not the page then loaded. */
   intentOk: boolean;
   /** null when the turn has no replyLanguage expectation. */
@@ -146,6 +180,11 @@ export type Summary = {
   /** Absent in results written before Phase 2. */
   intent?: { turns: number; ok: number };
   unavailable?: { turns: number; stayed: number; attempted: number };
+  /** Absent in results written before the semantic-action grader. */
+  clarification?: { turns: number; detected: number; complete: number };
+  premature?: { checked: number; navigated: number };
+  substituted?: { checked: number; navigated: number };
+  strayed?: { turns: number; count: number };
   responses: { ok: number; total: number };
   limits: {
     runs: number;
@@ -176,6 +215,7 @@ const HAN = /\p{Script=Han}/u;
 const HANGUL = /\p{Script=Hangul}/u;
 const KANA = /[\p{Script=Hiragana}\p{Script=Katakana}]/u;
 const LANDED_STATUSES: ReadonlySet<string> = new Set(["navigated", "already_here"]);
+const QUESTION_MARK = /[?？]/;
 
 const normalized = (value: unknown) =>
   typeof value === "string" ? value.trim().replace(/\s+/g, " ").toUpperCase() : value;
@@ -202,6 +242,7 @@ function selectionOf(
   first: ToolCallRecord | undefined,
   wanted: NavigationDestination | null,
 ): SelectionOutcome {
+  if (expectation.navigate === "clarify") return first ? "premature" : "none";
   if (expectation.navigate === "forbidden") return first ? "unsolicited" : "none";
   if (expectation.navigate === "unavailable") return first ? "attempted" : "none";
   if (!first) return expectation.navigate === "required" ? "missed" : "optional_skipped";
@@ -209,6 +250,38 @@ function selectionOf(
   if (actual === null) return "invalid_arguments";
   if (!isDeepStrictEqual(actual, wanted)) return "wrong_destination";
   return expectation.navigate === "required" ? "correct" : "optional_taken";
+}
+
+function prematureOf(expectation: TurnExpectation, firstNavigate: number, positions: number[]): boolean | null {
+  if (expectation.navigate === "clarify") return firstNavigate >= 0;
+  if (expectation.navigate !== "required" || expectation.tools === undefined) return null;
+  return firstNavigate >= 0 && positions.some((index) => index < 0 || index > firstNavigate);
+}
+
+function clarificationOf(
+  reply: string,
+  expectation: TurnExpectation,
+  navigated: boolean,
+  academicTools: boolean | null,
+  catalog: CatalogFacts,
+): Clarification | null {
+  if (expectation.navigate !== "clarify") return null;
+  const text = reply.replace(/\s+/g, " ").toUpperCase();
+  const options = expectation.options ?? [];
+  const optionsNamed = options.filter((name) => text.includes(name.toUpperCase())).length;
+  const invented = (catalog.instructorNames ?? []).filter(
+    (name) => !options.includes(name) && text.includes(name.toUpperCase()),
+  );
+  const detected = !navigated && QUESTION_MARK.test(reply);
+  const lookedUp = academicTools !== false;
+  return {
+    detected,
+    lookedUp,
+    optionsNamed,
+    options: options.length,
+    invented,
+    complete: detected && lookedUp && optionsNamed === options.length && invented.length === 0,
+  };
 }
 
 function limitsOf(trace: TurnTrace, maxSteps: number, missed: boolean): TurnLimits {
@@ -332,10 +405,21 @@ export function gradeTurn(
       : null;
 
   const stayed = expectation.navigate === "unavailable" ? trace.pathnameAfter === trace.pathnameBefore : null;
+  const firstNavigate = trace.toolCalls.findIndex((call) => call.name === "navigate");
+  const premature = prematureOf(expectation, firstNavigate, positions);
+  const substituted =
+    expectation.requestedPage === undefined
+      ? null
+      : navigateCalls.some((call) => {
+          const parsed = parseDestination(call.args);
+          return parsed !== null && parsed.destination !== expectation.requestedPage;
+        });
+  const strayed = trace.pathnameAfter !== trace.pathnameBefore && landed !== true;
+  const clarification = clarificationOf(trace.reply, expectation, navigated, academicTools, catalog);
   const navigationRead =
     expectation.navigate === "required"
       ? selection === "correct"
-      : expectation.navigate === "forbidden"
+      : expectation.navigate === "forbidden" || expectation.navigate === "clarify"
         ? selection === "none"
         : expectation.navigate === "optional"
           ? selection === "optional_taken" || selection === "optional_skipped"
@@ -355,12 +439,19 @@ export function gradeTurn(
     academicTools,
     compound,
     stayed,
+    premature,
+    substituted,
+    strayed,
+    clarification,
     intentOk: navigationRead && academicTools !== false,
     languageOk: expectation.replyLanguage === undefined ? null : language === null,
     responseProblems: problems,
     limits,
     pass:
       selection !== "unsolicited" &&
+      selection !== "premature" &&
+      substituted !== true &&
+      clarification?.complete !== false &&
       landed !== false &&
       stayed !== false &&
       academicTools !== false &&
@@ -378,6 +469,9 @@ export function summarize(grades: TurnGrade[]): Summary {
   const compound = where((grade) => grade.compound !== null);
   const languageChecked = where((grade) => grade.languageOk !== null);
   const unavailable = where((grade) => grade.expectation === "unavailable");
+  const clarify = where((grade) => grade.clarification !== null);
+  const prematureChecked = where((grade) => grade.premature !== null);
+  const substitutedChecked = where((grade) => grade.substituted !== null);
   const latencies = grades.map((grade) => grade.limits.ms).sort((a, b) => a - b);
   const percentile = (p: number) =>
     latencies.length === 0 ? 0 : latencies[Math.min(latencies.length - 1, Math.floor(p * latencies.length))];
@@ -435,6 +529,17 @@ export function summarize(grades: TurnGrade[]): Summary {
       stayed: unavailable.filter((grade) => grade.stayed === true).length,
       attempted: unavailable.filter((grade) => grade.selection === "attempted").length,
     },
+    clarification: {
+      turns: clarify.length,
+      detected: clarify.filter((grade) => grade.clarification?.detected).length,
+      complete: clarify.filter((grade) => grade.clarification?.complete).length,
+    },
+    premature: { checked: prematureChecked.length, navigated: prematureChecked.filter((grade) => grade.premature).length },
+    substituted: {
+      checked: substitutedChecked.length,
+      navigated: substitutedChecked.filter((grade) => grade.substituted).length,
+    },
+    strayed: { turns: grades.length, count: where((grade) => grade.strayed).length },
     responses: { ok: where((grade) => grade.responseProblems.length === 0).length, total: grades.length },
     limits: {
       runs: total((limits) => limits.runs),

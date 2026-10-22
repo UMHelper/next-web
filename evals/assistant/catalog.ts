@@ -108,6 +108,7 @@ export const EVAL_COURSE_CODES = EVAL_COURSES.map((course) => course.code);
 export const EVAL_CATALOG_FACTS: CatalogFacts = {
   courseCodes: EVAL_COURSE_CODES,
   officialTitles: EVAL_COURSES.flatMap((course) => [course.titleEn, course.titleZh]),
+  instructorNames: [...new Set(EVAL_COURSES.flatMap((course) => course.instructors.map((prof) => prof.name)))],
 };
 
 const findCourse = (code: string) => EVAL_COURSES.find((course) => course.code === code.trim().toUpperCase());

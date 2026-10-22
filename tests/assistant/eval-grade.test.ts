@@ -382,3 +382,138 @@ describe("summarize Phase 2 fields", () => {
     });
   });
 });
+
+describe("gradeTurn clarify turns", () => {
+  const clarify: TurnExpectation = {
+    navigate: "clarify",
+    tools: [{ name: "get_course", args: { code: "CISC2001" } }],
+    options: ["WONG KA KI", "LI MEI"],
+    requestedPage: "reviews",
+  };
+  const lookup: ToolCallRecord = { name: "get_course", args: { code: "CISC2001" } };
+  const NAMED: CatalogFacts = { ...FACTS, instructorNames: ["WONG KA KI", "LI MEI", "CHAN TAI MAN"] };
+  const gradeClarify = (turn: TurnTrace) => gradeTurn(turn, clarify, 5, NAMED);
+
+  it("passes a lookup, every option and a question, without navigating", () => {
+    const result = gradeClarify(
+      trace({ toolCalls: [lookup], reply: "CISC2001 has two instructors: WONG KA KI and Li Mei. Which reviews page do you want?" }),
+    );
+    expect(result).toMatchObject({
+      selection: "none",
+      premature: false,
+      substituted: false,
+      strayed: false,
+      intentOk: true,
+      pass: true,
+      clarification: { detected: true, lookedUp: true, optionsNamed: 2, options: 2, invented: [], complete: true },
+    });
+  });
+
+  it("accepts a full-width question mark", () => {
+    expect(gradeClarify(trace({ toolCalls: [lookup], reply: "WONG KA KI 定 LI MEI？" })).clarification?.detected).toBe(true);
+  });
+
+  it("counts any navigate call as premature, and the course page as a substitute", () => {
+    const result = gradeClarify(
+      trace({
+        toolCalls: [lookup, navigateTo({ destination: "course", code: "CISC2001" })],
+        pathnameAfter: "/course/CISC2001",
+        reply: "Opened CISC2001. WONG KA KI or LI MEI?",
+      }),
+    );
+    expect(result).toMatchObject({
+      selection: "premature",
+      premature: true,
+      substituted: true,
+      strayed: true,
+      intentOk: false,
+      pass: false,
+      clarification: { detected: false, complete: false },
+    });
+  });
+
+  it("does not credit a reply that picks one instructor or names one from another course", () => {
+    const picked = gradeClarify(trace({ toolCalls: [lookup], reply: "LI MEI teaches CISC2001. Want her reviews?" }));
+    const invented = gradeClarify(trace({ toolCalls: [lookup], reply: "WONG KA KI, LI MEI or CHAN TAI MAN?" }));
+    expect(picked).toMatchObject({ clarification: { detected: true, optionsNamed: 1, complete: false }, pass: false });
+    expect(invented).toMatchObject({ clarification: { invented: ["CHAN TAI MAN"], complete: false }, pass: false });
+  });
+
+  it("needs the lookup and a question", () => {
+    const noLookup = gradeClarify(trace({ reply: "WONG KA KI or LI MEI?" }));
+    const noQuestion = gradeClarify(trace({ toolCalls: [lookup], reply: "CISC2001 is taught by WONG KA KI and LI MEI." }));
+    expect(noLookup).toMatchObject({ clarification: { lookedUp: false, complete: false }, intentOk: false, pass: false });
+    expect(noQuestion).toMatchObject({ clarification: { detected: false, complete: false }, pass: false });
+  });
+});
+
+describe("gradeTurn premature, substituted and stray navigation", () => {
+  const REVIEWS = { destination: "reviews", code: "CISC3014", instructor: "CHAN TAI MAN" };
+  const REVIEWS_PATH = "/reviews/CISC3014/CHAN%20TAI%20MAN";
+  const lookup: ToolCallRecord = { name: "get_course", args: { code: "CISC3014" } };
+  const lookupFirst: TurnExpectation = {
+    navigate: "required",
+    destination: REVIEWS,
+    tools: [{ name: "get_course", args: { code: "CISC3014" } }],
+    requestedPage: "reviews",
+  };
+
+  it("flags a navigate call made before the lookup it needed, without changing completion", () => {
+    const guessed = grade(
+      trace({
+        toolCalls: [navigateTo({ destination: "reviews", code: "CISC3014", instructor: "CHAN" }, "not_found"), lookup, navigateTo(REVIEWS)],
+        pathnameAfter: REVIEWS_PATH,
+      }),
+      lookupFirst,
+    );
+    const inOrder = grade(trace({ toolCalls: [lookup, navigateTo(REVIEWS)], pathnameAfter: REVIEWS_PATH }), lookupFirst);
+    expect(guessed).toMatchObject({ premature: true, substituted: false, strayed: false, pass: true });
+    expect(inOrder).toMatchObject({ premature: false, substituted: false, strayed: false, pass: true });
+  });
+
+  it("fails a turn that opened another page type instead of the requested one", () => {
+    const result = grade(
+      trace({ toolCalls: [lookup, navigateTo({ destination: "course", code: "CISC3014" })], pathnameAfter: "/course/CISC3014" }),
+      lookupFirst,
+    );
+    expect(result).toMatchObject({ selection: "wrong_destination", substituted: true, strayed: true, pass: false });
+  });
+
+  it("leaves premature, substituted and clarification unset when the case does not define them", () => {
+    const result = grade(trace({ toolCalls: [navigateTo(COURSE)], pathnameAfter: COURSE_PATH }), {
+      navigate: "required",
+      destination: COURSE,
+    });
+    expect(result).toMatchObject({ premature: null, substituted: null, strayed: false, clarification: null });
+  });
+
+  it("counts an unsolicited landing as straying, but not already_here", () => {
+    const moved = grade(trace({ toolCalls: [navigateTo(COURSE)], pathnameAfter: COURSE_PATH }), { navigate: "forbidden" });
+    const stayed = grade(
+      trace({ toolCalls: [navigateTo(COURSE, "already_here")], pathnameBefore: COURSE_PATH, pathnameAfter: COURSE_PATH }),
+      { navigate: "forbidden" },
+    );
+    expect(moved.strayed).toBe(true);
+    expect(stayed.strayed).toBe(false);
+  });
+});
+
+describe("summarize semantic-action fields", () => {
+  it("counts clarify turns, premature, substituted and stray navigation", () => {
+    const clarify: TurnExpectation = { navigate: "clarify", options: ["WONG KA KI", "LI MEI"], requestedPage: "reviews" };
+    const grades = [
+      grade(trace({ reply: "WONG KA KI or LI MEI?" }), clarify),
+      grade(
+        trace({ toolCalls: [navigateTo({ destination: "course", code: "CISC2001" })], pathnameAfter: "/course/CISC2001" }),
+        clarify,
+      ),
+      grade(trace(), { navigate: "forbidden" }),
+    ];
+    expect(summarize(grades)).toMatchObject({
+      clarification: { turns: 2, detected: 1, complete: 1 },
+      premature: { checked: 2, navigated: 1 },
+      substituted: { checked: 2, navigated: 1 },
+      strayed: { turns: 3, count: 1 },
+    });
+  });
+});

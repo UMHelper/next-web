@@ -171,6 +171,20 @@ const METRICS: Array<[string, (summary: Summary, stepsUsed: number) => string]> 
   ],
   ["Unsolicited navigation", (s) => ratio(s.unsolicited.navigated, s.unsolicited.forbidden)],
   [
+    "Premature navigation (clarify turns, lookups-first turns)",
+    (s) => (s.premature ? ratio(s.premature.navigated, s.premature.checked) : "n/a"),
+  ],
+  ["Substituted page type", (s) => (s.substituted ? ratio(s.substituted.navigated, s.substituted.checked) : "n/a")],
+  ["Ended on a page not asked for", (s) => (s.strayed ? ratio(s.strayed.count, s.strayed.turns) : "n/a")],
+  [
+    "Missing parameter detected (clarify turns)",
+    (s) => (s.clarification ? ratio(s.clarification.detected, s.clarification.turns) : "n/a"),
+  ],
+  [
+    "Clarification complete (lookup, every option, a question)",
+    (s) => (s.clarification ? ratio(s.clarification.complete, s.clarification.turns) : "n/a"),
+  ],
+  [
     "Unavailable pages: stayed on page (navigate tried)",
     (s) => (s.unavailable ? `${ratio(s.unavailable.stayed, s.unavailable.turns)} (${s.unavailable.attempted})` : "n/a"),
   ],

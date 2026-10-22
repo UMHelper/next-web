@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { EvalCase } from "@/evals/assistant/cases";
-import { summarize, type CatalogFacts, type TurnTrace } from "@/evals/assistant/grade";
+import { summarize, type CatalogFacts, type Summary, type TurnTrace } from "@/evals/assistant/grade";
 import type { RequestAudit } from "@/evals/assistant/request-audit";
 import {
   evalFingerprint,
@@ -235,5 +235,19 @@ describe("report", () => {
     expect(table).toContain("| Reasoning tokens |");
     expect(table).toContain("| Simulated navigation landed (required turns) | 1/1 |");
     expect(table).toContain("| Model requests: steps graded / steps used | 1 / 1 |");
+  });
+
+  it("reports the semantic-action rows, and n/a for summaries written before them", () => {
+    const current = summarize([]);
+    const { clarification: _clarification, premature: _premature, substituted: _substituted, strayed: _strayed, ...older } = current;
+    const table = metricTable([
+      { title: "new", summary: current, stepsUsed: 0 },
+      { title: "old", summary: older as Summary, stepsUsed: 0 },
+    ]);
+    expect(table).toContain("| Premature navigation (clarify turns, lookups-first turns) | 0/0 | n/a |");
+    expect(table).toContain("| Substituted page type | 0/0 | n/a |");
+    expect(table).toContain("| Ended on a page not asked for | 0/0 | n/a |");
+    expect(table).toContain("| Missing parameter detected (clarify turns) | 0/0 | n/a |");
+    expect(table).toContain("| Clarification complete (lookup, every option, a question) | 0/0 | n/a |");
   });
 });
