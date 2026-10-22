@@ -1,5 +1,6 @@
 import { EVAL_CASES, type EvalCase } from "./cases";
 import { MULTILINGUAL_CASES } from "./multilingual-cases";
+import { SEMANTIC_CASES } from "./semantic-cases";
 import { SMOKE_CASES } from "./smoke-cases";
 import { TOKEN_CASES } from "./token-cases";
 
@@ -8,4 +9,5 @@ export const SUITES: Record<string, EvalCase[]> = {
   tokens: TOKEN_CASES,
   multilingual: MULTILINGUAL_CASES,
   smoke: SMOKE_CASES,
+  semantic: SEMANTIC_CASES,
 };

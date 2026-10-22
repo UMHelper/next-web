@@ -1,5 +1,3 @@
-import type { ZodTypeAny } from "zod";
-import { zodToJsonSchema } from "zod-to-json-schema";
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("@copilotkit/runtime/v2", () => ({ defineTool: (config: unknown) => config }));
@@ -13,32 +11,17 @@ import { EVAL_COURSE_CODES, evalNavigationLookups } from "@/evals/assistant/cata
 import { MULTILINGUAL_CASES } from "@/evals/assistant/multilingual-cases";
 import { SMOKE_CASES } from "@/evals/assistant/smoke-cases";
 import { SUITES } from "@/evals/assistant/suites";
-import { CHECK_PLAN_CONFLICTS_DESCRIPTION, checkPlanConflictsParameters } from "@/lib/assistant/check-plan-conflicts";
 import {
-  NAVIGATE_DESCRIPTION,
   buildNavigationPath,
-  navigateParameters,
   parseDestination,
   verifyDestination,
 } from "@/lib/assistant/navigation";
-import { PAGE_CONTEXT_DESCRIPTION, describePage } from "@/lib/assistant/page-context";
-import { PLAN_CONTEXT_DESCRIPTION } from "@/lib/assistant/plan-summary";
-import { ASSISTANT_PROMPT } from "@/lib/assistant/prompt";
-import { createAssistantTools } from "@/lib/assistant/tools";
+import { describePage } from "@/lib/assistant/page-context";
+
+import { modelText } from "./model-text";
 
 const turns = MULTILINGUAL_CASES.flatMap((evalCase) => evalCase.turns);
-const tools = createAssistantTools();
-const MODEL_TEXT = [
-  ASSISTANT_PROMPT,
-  NAVIGATE_DESCRIPTION,
-  PAGE_CONTEXT_DESCRIPTION,
-  PLAN_CONTEXT_DESCRIPTION,
-  CHECK_PLAN_CONFLICTS_DESCRIPTION,
-  ...tools.map((tool) => tool.description ?? ""),
-  ...[...tools.map((tool) => tool.parameters), navigateParameters, checkPlanConflictsParameters].map((schema) =>
-    JSON.stringify(zodToJsonSchema(schema as ZodTypeAny)),
-  ),
-].join("\n");
+const MODEL_TEXT = modelText();
 // The production instructor schema uses this name as its example; tool definitions are held constant in Phase 2.
 const KNOWN_SCHEMA_EXAMPLES = ["CHAN TAI MAN"];
 const FIXTURE_NAMES = ["WONG KA KI", "LI MEI", "CHAN TAI MAN"];
@@ -124,7 +107,7 @@ describe("phase 2 multilingual pilot", () => {
 
 describe("eval suites", () => {
   it("registers every suite once", () => {
-    expect(Object.keys(SUITES).sort()).toEqual(["multilingual", "navigation", "smoke", "tokens"]);
+    expect(Object.keys(SUITES).sort()).toEqual(["multilingual", "navigation", "semantic", "smoke", "tokens"]);
     expect(SUITES.multilingual).toBe(MULTILINGUAL_CASES);
     expect(SUITES.smoke).toBe(SMOKE_CASES);
   });

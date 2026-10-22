@@ -46,6 +46,15 @@ Every provider request is audited (`runs[].requests` in the result file): model,
 
 Reply language ignores exact official course titles from the fixture catalog. Any other Han text in an English reply counts as Chinese prose.
 
+Semantic-action fields, reported alongside the three layers:
+
+- `clarify` turns: the student wants a page but a value it needs has several valid answers (for example a reviews page for a course with two instructors). Any `navigate` call is `premature` and fails the turn. The turn passes only if the listed lookup ran, the reply names every option, names no other catalog instructor, and asks a question (`?` or `？`).
+- `premature`: on clarify turns, any `navigate` call; on required turns with lookups, a first `navigate` call made before every lookup ran (reported, does not change completion).
+- `substituted`: a `navigate` call to a different page type than the student asked for (`requestedPage`); fails the turn.
+- `strayed`: the turn ended on a different page from where it started and not on the requested page ("Ended on a page not asked for").
+
+Cases without `requestedPage` or `clarify` grade exactly as before.
+
 `settings.eval` is a fingerprint of `grade.ts`, `catalog.ts` and the suite's cases. Results are comparable only when it matches.
 
 ## Regrade and report
@@ -65,6 +74,7 @@ Regrading reads the saved traces and grades them under the current rules without
 | `tokens` | `token-cases.ts` | Long Traditional Chinese answers, output-budget pressure. |
 | `multilingual` | `multilingual-cases.ts` | Phase 2 pilot: the same goals in English, Traditional Chinese, Cantonese, Korean, Japanese and mixed languages. |
 | `smoke` | `smoke-cases.ts` | One thinking-mode continuation check: server tool, navigate follow-up run, later turn. |
+| `semantic` | `semantic-cases.ts` | Holdout: eight student goals (information, open a page, reviews with a named instructor, with one instructor, with several, find then open, "this course" then a choice, a page the site cannot open) in English, Traditional Chinese, Cantonese, Korean, Japanese and a mixed-language variant. Never used to tune the prompt. |
 
 Each suite has its own `settings.eval` fingerprint.
 
@@ -76,4 +86,4 @@ ASSISTANT_EVAL_PRICE_INPUT_MISS=<usd> ASSISTANT_EVAL_PRICE_INPUT_HIT=<usd> ASSIS
 npm run eval:assistant -- evals/assistant/compare.eval.ts
 ```
 
-List the files in arm order. The comparison fails unless every file is a complete live run of the same suite, cases, repeats, model, `maxSteps`, prompt fingerprint and eval fingerprint, and each file changes exactly one of thinking mode and `maxOutputTokens` from the file before it (for example 400/off → 1200/off → 1200/low → 2000/low). Prices are optional, in USD per million tokens; reasoning tokens are priced as output. It prints the JSON and a markdown table.
+List the files in arm order. With `ASSISTANT_COMPARE_VARY=inference` (default) each file must change exactly one of thinking mode and `maxOutputTokens` from the file before it (for example 400/off → 1200/off → 1200/low → 2000/low). With `ASSISTANT_COMPARE_VARY=prompt` each file must change only the prompt fingerprint, for before/after comparisons of a prompt change. Every file must be a complete live run of the same suite, cases, repeats, model, `maxSteps` and eval fingerprint. It also prints one intent × language pass table per arm. Prices are optional, in USD per million tokens; reasoning tokens are priced as output. It prints the JSON and a markdown table.
