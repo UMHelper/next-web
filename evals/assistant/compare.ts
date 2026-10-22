@@ -7,9 +7,12 @@ export type Prices = { inputCacheMiss: number; inputCacheHit: number; output: nu
 
 type Rate = { passed: number; total: number };
 
+export type Count = { count: number; of: number };
+
 export type ArmReport = {
   file: string;
   label: string;
+  prompt: string;
   thinking: string;
   maxOutputTokens: number;
   turns: number;
@@ -36,10 +39,25 @@ export type ArmReport = {
   /** Growth of the history the client resends on every run. */
   history: { messagesPerTurn: number; reasoningMessagesPerTurn: number; bytesPerTurn: number };
   requests: { total: number; reasoningReplayed: number; reasoningEmpty: number; reasoningAbsent: number };
+  /** From the run summary; null where the summary predates the semantic-action grader. */
+  semantic: {
+    strayed: Count | null;
+    unsolicited: Count;
+    premature: Count | null;
+    substituted: Count | null;
+    wrongDestination: number;
+    clarifyDetected: Count | null;
+    clarifyComplete: Count | null;
+  };
 };
 
-const CONTROLLED: ReadonlyArray<keyof RunSettings> = ["model", "maxSteps", "prompt", "eval"];
-const VARIED: ReadonlyArray<keyof RunSettings> = ["thinking", "maxOutputTokens"];
+export type Vary = "inference" | "prompt";
+
+const SETTINGS: ReadonlyArray<keyof RunSettings> = ["model", "maxSteps", "prompt", "eval", "thinking", "maxOutputTokens"];
+const VARIED: Record<Vary, ReadonlyArray<keyof RunSettings>> = {
+  inference: ["thinking", "maxOutputTokens"],
+  prompt: ["prompt"],
+};
 
 const percentile = (values: number[], p: number) => {
   const sorted = [...values].sort((a, b) => a - b);
@@ -48,9 +66,11 @@ const percentile = (values: number[], p: number) => {
 const sum = (values: number[]) => values.reduce((total, value) => total + value, 0);
 const mean = (values: number[]) => (values.length === 0 ? 0 : sum(values) / values.length);
 
-/** Runs in the given order; each must change exactly one of thinking and maxOutputTokens from the one before. */
-export function checkControlled(runs: Array<{ file: string; run: SavedRun }>): string[] {
+/** Runs in the given order; each must change exactly one of the varied settings from the one before and nothing else. */
+export function checkControlled(runs: Array<{ file: string; run: SavedRun }>, vary: Vary = "inference"): string[] {
   if (runs.length < 2) return ["compare at least two runs"];
+  const varied = VARIED[vary];
+  const controlled = SETTINGS.filter((key) => !varied.includes(key));
   const problems: string[] = [];
   const first = runs[0].run;
   for (const { file, run } of runs) {
@@ -61,7 +81,7 @@ export function checkControlled(runs: Array<{ file: string; run: SavedRun }>): s
     if (run.suite !== first.suite) problems.push(`${file}: suite differs`);
     if (JSON.stringify(run.cases) !== JSON.stringify(first.cases)) problems.push(`${file}: case set differs`);
     if (run.repeats !== first.repeats) problems.push(`${file}: repeats differ`);
-    for (const key of CONTROLLED) {
+    for (const key of controlled) {
       if (run.settings[key] !== first.settings[key]) problems.push(`${file}: settings.${key} differs`);
     }
   }
@@ -69,9 +89,9 @@ export function checkControlled(runs: Array<{ file: string; run: SavedRun }>): s
   for (let index = 1; index < runs.length; index++) {
     const before = runs[index - 1];
     const after = runs[index];
-    const changed = VARIED.filter((key) => before.run.settings[key] !== after.run.settings[key]);
-    if (changed.length === 0) problems.push(`${after.file}: same thinking and maxOutputTokens as ${before.file}`);
-    if (changed.length > 1) problems.push(`${after.file}: changes both thinking and maxOutputTokens from ${before.file}`);
+    const changed = varied.filter((key) => before.run.settings[key] !== after.run.settings[key]);
+    if (changed.length === 0) problems.push(`${after.file}: same ${varied.join(" and ")} as ${before.file}`);
+    if (changed.length > 1) problems.push(`${after.file}: changes both ${varied.join(" and ")} from ${before.file}`);
   }
   return problems;
 }
@@ -90,6 +110,7 @@ export function costOf(steps: StepMetrics[], prices: Prices): number {
 }
 
 export function armReport(file: string, run: SavedRun, prices: Prices | null, cases: readonly EvalCase[] = []): ArmReport {
+  const summary = run.summary;
   const meta = new Map(cases.map((evalCase) => [evalCase.id, evalCase]));
   const runs = run.traces.flatMap((trace) => trace.runs);
   const steps = runs.flatMap((entry) => entry.steps);
@@ -135,6 +156,7 @@ export function armReport(file: string, run: SavedRun, prices: Prices | null, ca
   return {
     file,
     label: run.label,
+    prompt: run.settings.prompt,
     thinking: run.settings.thinking,
     maxOutputTokens: run.settings.maxOutputTokens,
     turns: run.summary.turns,
@@ -167,18 +189,40 @@ export function armReport(file: string, run: SavedRun, prices: Prices | null, ca
       reasoningEmpty: sum(audits.map((audit) => audit.reasoningEmpty)),
       reasoningAbsent: sum(audits.map((audit) => audit.reasoningAbsent)),
     },
+    semantic: {
+      strayed: summary.strayed ? { count: summary.strayed.count, of: summary.strayed.turns } : null,
+      unsolicited: { count: summary.unsolicited.navigated, of: summary.unsolicited.forbidden },
+      premature: summary.premature ? { count: summary.premature.navigated, of: summary.premature.checked } : null,
+      substituted: summary.substituted ? { count: summary.substituted.navigated, of: summary.substituted.checked } : null,
+      wrongDestination: summary.toolSelection.wrongDestination,
+      clarifyDetected: summary.clarification
+        ? { count: summary.clarification.detected, of: summary.clarification.turns }
+        : null,
+      clarifyComplete: summary.clarification
+        ? { count: summary.clarification.complete, of: summary.clarification.turns }
+        : null,
+    },
   };
 }
 
 const two = (value: number) => value.toFixed(2);
+const shown = (value: Count | null) => (value === null ? "n/a" : `${value.count}/${value.of}`);
 
 export function armTable(arms: readonly ArmReport[]): string {
   const languages = [...new Set(arms.flatMap((arm) => Object.keys(arm.byLanguage)))].sort();
   const intents = [...new Set(arms.flatMap((arm) => Object.keys(arm.intents)))].sort();
   const rows: Array<[string, (arm: ArmReport) => string]> = [
     ["Thinking / output budget", (arm) => `${arm.thinking} / ${arm.maxOutputTokens}`],
+    ["Prompt fingerprint", (arm) => arm.prompt],
     ["Turns passed", (arm) => `${arm.passed}/${arm.turns}`],
     ["Intent read correctly", (arm) => `${arm.intentOk}/${arm.turns}`],
+    ["Ended on a page not asked for", (arm) => shown(arm.semantic.strayed)],
+    ["Unsolicited navigation", (arm) => shown(arm.semantic.unsolicited)],
+    ["Premature navigation", (arm) => shown(arm.semantic.premature)],
+    ["Substituted page type", (arm) => shown(arm.semantic.substituted)],
+    ["Wrong first destination (required turns)", (arm) => String(arm.semantic.wrongDestination)],
+    ["Clarify turns: missing parameter detected", (arm) => shown(arm.semantic.clarifyDetected)],
+    ["Clarify turns: complete clarification", (arm) => shown(arm.semantic.clarifyComplete)],
     ["Turns with finish: length", (arm) => `${arm.truncatedTurns}/${arm.turns}`],
     ["Output tokens: reasoning / visible", (arm) => `${arm.reasoningTokens} / ${arm.visibleOutputTokens}`],
     [
@@ -215,4 +259,21 @@ export function armTable(arms: readonly ArmReport[]): string {
     `|---|${arms.map(() => "---").join("|")}|`,
     ...rows.map(([name, pick]) => `| ${name} | ${arms.map(pick).join(" | ")} |`),
   ].join("\n");
+}
+
+/** Pass counts per intent and language, for intents asked in two or more languages. */
+export function intentTable(arm: ArmReport): string {
+  const languages = [...new Set(Object.values(arm.intents).flatMap((entry) => Object.keys(entry.languages)))].sort();
+  const rows = Object.entries(arm.intents)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([intent, entry]) => {
+      const cells = languages.map((language) => {
+        const rate = entry.languages[language];
+        return rate ? `${rate.passed}/${rate.total}` : "—";
+      });
+      return `| ${intent} | ${cells.join(" | ")} |`;
+    });
+  return [`| ${arm.label}: intent | ${languages.join(" | ")} |`, `|---|${languages.map(() => "---").join("|")}|`, ...rows].join(
+    "\n",
+  );
 }

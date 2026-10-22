@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { armReport, armTable, checkControlled, costOf } from "@/evals/assistant/compare";
+import { armReport, armTable, checkControlled, costOf, intentTable, type ArmReport } from "@/evals/assistant/compare";
 import type { EvalCase } from "@/evals/assistant/cases";
 import { summarize, type StepMetrics, type TurnGrade, type TurnTrace } from "@/evals/assistant/grade";
 import type { SavedRun } from "@/evals/assistant/results";
@@ -187,5 +187,86 @@ describe("armReport Phase 2 metrics", () => {
       requests: { total: 1, reasoningEmpty: 1, reasoningReplayed: 0, reasoningAbsent: 0 },
     });
     expect(armTable([report])).toContain("| Output tokens: reasoning / visible | 200 / 200 |");
+  });
+});
+
+describe("checkControlled with a prompt change", () => {
+  const withPrompt = (base: SavedRun, prompt: string): SavedRun => ({ ...base, settings: { ...base.settings, prompt } });
+
+  it("accepts runs that differ only in the prompt", () => {
+    expect(
+      checkControlled([{ file: "before", run: run(1200) }, { file: "after", run: withPrompt(run(1200), "p2") }], "prompt"),
+    ).toEqual([]);
+  });
+
+  it("refuses a prompt comparison that also changes the budget", () => {
+    expect(
+      checkControlled([{ file: "before", run: run(1200) }, { file: "after", run: withPrompt(run(400), "p2") }], "prompt"),
+    ).toEqual(["after: settings.maxOutputTokens differs"]);
+  });
+
+  it("refuses a prompt comparison where the prompt did not change", () => {
+    expect(checkControlled([{ file: "a", run: run(1200) }, { file: "b", run: run(1200) }], "prompt")).toEqual([
+      "b: same prompt as a",
+    ]);
+  });
+
+  it("still refuses a prompt change in an inference comparison", () => {
+    expect(checkControlled([{ file: "a", run: run(400) }, { file: "b", run: withPrompt(run(1200), "p2") }])).toEqual([
+      "b: settings.prompt differs",
+    ]);
+  });
+});
+
+describe("armReport semantic-action rows", () => {
+  it("reports false navigation and clarification from the run summary", () => {
+    const summary = {
+      ...summarize([]),
+      strayed: { turns: 4, count: 1 },
+      premature: { checked: 2, navigated: 1 },
+      substituted: { checked: 3, navigated: 0 },
+      clarification: { turns: 2, detected: 1, complete: 1 },
+      unsolicited: { forbidden: 2, navigated: 1 },
+    };
+    const report = armReport("a.json", run(1200, { summary }), null);
+    expect(report.prompt).toBe("p");
+    expect(report.semantic).toEqual({
+      strayed: { count: 1, of: 4 },
+      unsolicited: { count: 1, of: 2 },
+      premature: { count: 1, of: 2 },
+      substituted: { count: 0, of: 3 },
+      wrongDestination: 0,
+      clarifyDetected: { count: 1, of: 2 },
+      clarifyComplete: { count: 1, of: 2 },
+    });
+    const table = armTable([report]);
+    expect(table).toContain("| Prompt fingerprint | p |");
+    expect(table).toContain("| Ended on a page not asked for | 1/4 |");
+    expect(table).toContain("| Clarify turns: complete clarification | 1/2 |");
+  });
+
+  it("shows n/a for summaries written before the semantic-action grader", () => {
+    const { strayed: _s, premature: _p, substituted: _u, clarification: _c, ...older } = summarize([]);
+    const report = armReport("old.json", run(1200, { summary: older as SavedRun["summary"] }), null);
+    expect(report.semantic.strayed).toBeNull();
+    expect(armTable([report])).toContain("| Premature navigation | n/a |");
+  });
+});
+
+describe("intentTable", () => {
+  it("prints one row per intent and one column per language", () => {
+    const arm = {
+      label: "B",
+      intents: {
+        "course-page": { languages: { en: { passed: 1, total: 2 }, ko: { passed: 2, total: 2 } }, spread: 0.5 },
+        "course-info": { languages: { en: { passed: 2, total: 2 }, ja: { passed: 0, total: 2 } }, spread: 1 },
+      },
+    } as unknown as ArmReport;
+    expect(intentTable(arm).split("\n")).toEqual([
+      "| B: intent | en | ja | ko |",
+      "|---|---|---|---|",
+      "| course-info | 2/2 | 0/2 | — |",
+      "| course-page | 1/2 | — | 2/2 |",
+    ]);
   });
 });
