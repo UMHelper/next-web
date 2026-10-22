@@ -17,6 +17,9 @@ export type TurnExpectation = {
   replyLanguage?: "chinese" | "english";
 };
 
+/** What the fixture catalog knows: codes the reply may mention, and titles it may quote in their original language. */
+export type CatalogFacts = { courseCodes: readonly string[]; officialTitles: readonly string[] };
+
 export type ToolCallRecord = { name: string; args: Record<string, unknown>; result?: string };
 
 export type StepMetrics = {
@@ -84,6 +87,8 @@ export type TurnGrade = {
   landed: boolean | null;
   academicTools: boolean | null;
   compound: boolean | null;
+  /** null when the turn has no replyLanguage expectation. */
+  languageOk: boolean | null;
   responseProblems: string[];
   limits: TurnLimits;
   /** Task completion, judged on the end state rather than the first navigate call. */
@@ -106,6 +111,7 @@ export type Summary = {
   optional: { turns: number; navigated: number; landed: number };
   academicTools: { required: number; ok: number };
   compound: { turns: number; complete: number };
+  language: { checked: number; ok: number };
   responses: { ok: number; total: number };
   limits: {
     runs: number;
@@ -188,11 +194,32 @@ function limitsOf(trace: TurnTrace, maxSteps: number, missed: boolean): TurnLimi
   };
 }
 
+function withoutOfficialTitles(reply: string, titles: readonly string[]): string {
+  // Longest first, so a title that contains a shorter one is removed whole.
+  return [...titles]
+    .filter((title) => title !== "")
+    .sort((a, b) => b.length - a.length)
+    .reduce((text, title) => text.replaceAll(title, " "), reply);
+}
+
+function languageProblem(
+  reply: string,
+  language: TurnExpectation["replyLanguage"],
+  officialTitles: readonly string[],
+): string | null {
+  if (language === undefined) return null;
+  const ownChinese = HAN.test(withoutOfficialTitles(reply, officialTitles));
+  if (language === "chinese" && !ownChinese) return "reply is not in Chinese";
+  if (language === "english" && ownChinese) return "reply contains Chinese";
+  return null;
+}
+
 function responseProblems(
   trace: TurnTrace,
   expectation: TurnExpectation,
   truncated: boolean,
   knownCodes: readonly string[],
+  language: string | null,
 ): string[] {
   const problems: string[] = [];
   if (trace.error !== undefined) problems.push(`error: ${trace.error}`);
@@ -204,8 +231,7 @@ function responseProblems(
   }
   const unknown = [...new Set(trace.reply.match(COURSE_CODE_IN_TEXT) ?? [])].filter((code) => !knownCodes.includes(code));
   if (unknown.length > 0) problems.push(`unknown course codes: ${unknown.join(", ")}`);
-  if (expectation.replyLanguage === "chinese" && !HAN.test(trace.reply)) problems.push("reply is not in Chinese");
-  if (expectation.replyLanguage === "english" && HAN.test(trace.reply)) problems.push("reply contains Chinese");
+  if (language !== null) problems.push(language);
   return problems;
 }
 
@@ -213,7 +239,7 @@ export function gradeTurn(
   trace: TurnTrace,
   expectation: TurnExpectation,
   maxSteps: number,
-  knownCodes: readonly string[],
+  catalog: CatalogFacts,
 ): TurnGrade {
   const navigateCalls = trace.toolCalls.filter((call) => call.name === "navigate");
   const navigated = navigateCalls.length > 0;
@@ -245,7 +271,8 @@ export function gradeTurn(
       : null;
 
   const limits = limitsOf(trace, maxSteps, selection === "missed");
-  const problems = responseProblems(trace, expectation, limits.truncated, knownCodes);
+  const language = languageProblem(trace.reply, expectation.replyLanguage, catalog.officialTitles);
+  const problems = responseProblems(trace, expectation, limits.truncated, catalog.courseCodes, language);
   return {
     caseId: trace.caseId,
     repeat: trace.repeat,
@@ -256,6 +283,7 @@ export function gradeTurn(
     landed,
     academicTools,
     compound,
+    languageOk: expectation.replyLanguage === undefined ? null : language === null,
     responseProblems: problems,
     limits,
     pass:
@@ -274,6 +302,7 @@ export function summarize(grades: TurnGrade[]): Summary {
   const optional = where((grade) => grade.expectation === "optional");
   const withTools = where((grade) => grade.academicTools !== null);
   const compound = where((grade) => grade.compound !== null);
+  const languageChecked = where((grade) => grade.languageOk !== null);
   const latencies = grades.map((grade) => grade.limits.ms).sort((a, b) => a - b);
   const percentile = (p: number) =>
     latencies.length === 0 ? 0 : latencies[Math.min(latencies.length - 1, Math.floor(p * latencies.length))];
@@ -324,6 +353,7 @@ export function summarize(grades: TurnGrade[]): Summary {
     },
     academicTools: { required: withTools.length, ok: withTools.filter((grade) => grade.academicTools).length },
     compound: { turns: compound.length, complete: compound.filter((grade) => grade.compound).length },
+    language: { checked: languageChecked.length, ok: languageChecked.filter((grade) => grade.languageOk).length },
     responses: { ok: where((grade) => grade.responseProblems.length === 0).length, total: grades.length },
     limits: {
       runs: total((limits) => limits.runs),

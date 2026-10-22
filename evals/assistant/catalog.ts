@@ -13,6 +13,8 @@ import type {
 } from "@/lib/mcp/schemas";
 import { absoluteUrl, buildCoursePath, buildProfessorPath, buildReviewPath } from "@/lib/site";
 
+import type { CatalogFacts } from "./grade";
+
 type FixtureOffering = {
   name: string;
   commentCount: number;
@@ -102,6 +104,11 @@ const EVAL_COURSES: FixtureCourse[] = [
 ];
 
 export const EVAL_COURSE_CODES = EVAL_COURSES.map((course) => course.code);
+
+export const EVAL_CATALOG_FACTS: CatalogFacts = {
+  courseCodes: EVAL_COURSE_CODES,
+  officialTitles: EVAL_COURSES.flatMap((course) => [course.titleEn, course.titleZh]),
+};
 
 const findCourse = (code: string) => EVAL_COURSES.find((course) => course.code === code.trim().toUpperCase());
 

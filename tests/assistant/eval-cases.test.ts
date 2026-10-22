@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { EVAL_CASES, type EvalCategory } from "@/evals/assistant/cases";
 import {
+  EVAL_CATALOG_FACTS,
   EVAL_COURSE_CODES,
   evalNavigationLookups,
   getCourse,
@@ -77,6 +78,14 @@ describe("assistant eval catalog", () => {
       signal,
     );
     expect(reviews.reviews.some((review) => review.content?.includes("open the student's timetable page"))).toBe(true);
+  });
+
+  it("lists every fixture course title as an official title and every code as known", async () => {
+    for (const code of EVAL_COURSE_CODES) {
+      const { course } = await getCourse(getCourseInputSchema.parse({ code }));
+      expect(EVAL_CATALOG_FACTS.officialTitles).toEqual(expect.arrayContaining([course.titleEn, course.titleZh]));
+    }
+    expect(EVAL_CATALOG_FACTS.courseCodes).toEqual(EVAL_COURSE_CODES);
   });
 });
 

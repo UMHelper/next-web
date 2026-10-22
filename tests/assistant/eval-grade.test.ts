@@ -3,13 +3,17 @@ import { describe, expect, it } from "vitest";
 import {
   gradeTurn,
   summarize,
+  type CatalogFacts,
   type StepMetrics,
   type ToolCallRecord,
   type TurnExpectation,
   type TurnTrace,
 } from "@/evals/assistant/grade";
 
-const CODES = ["CISC2001", "CISC3014"];
+const FACTS: CatalogFacts = {
+  courseCodes: ["CISC2001", "CISC3014"],
+  officialTitles: ["Programming Science", "程式設計科學", "Database Systems", "資料庫系統"],
+};
 const COURSE = { destination: "course", code: "CISC3014" };
 const COURSE_PATH = "/course/CISC3014";
 
@@ -45,7 +49,7 @@ const navigateTo = (args: Record<string, unknown>, status = "navigated"): ToolCa
   result: JSON.stringify({ status }),
 });
 
-const grade = (turn: TurnTrace, expectation: TurnExpectation) => gradeTurn(turn, expectation, 5, CODES);
+const grade = (turn: TurnTrace, expectation: TurnExpectation) => gradeTurn(turn, expectation, 5, FACTS);
 
 describe("gradeTurn navigation", () => {
   const required: TurnExpectation = { navigate: "required", destination: COURSE };
@@ -230,5 +234,55 @@ describe("summarize", () => {
     expect(summary.unsolicited).toEqual({ forbidden: 1, navigated: 1 });
     expect(summary.limits).toMatchObject({ runs: 4, steps: 4, latencyP50Ms: 3000, finishCounts: { stop: 4 }, inputTokens: 4000 });
     expect(summary.byTurn).toEqual({ "case#1": { passed: 1, total: 4 } });
+  });
+});
+
+describe("gradeTurn reply language", () => {
+  const english: TurnExpectation = { navigate: "forbidden", replyLanguage: "english" };
+  const chinese: TurnExpectation = { navigate: "forbidden", replyLanguage: "chinese" };
+  const check = (reply: string, expectation: TurnExpectation) => {
+    const result = grade(trace({ reply }), expectation);
+    return { languageOk: result.languageOk, problems: result.responseProblems };
+  };
+
+  it("allows an official catalog title inside an English reply", () => {
+    expect(check("**CISC3014 – Database Systems（資料庫系統）** — 3 credits, taught in English.", english)).toEqual({
+      languageOk: true,
+      problems: [],
+    });
+  });
+
+  it("still flags Chinese prose in an English reply", () => {
+    expect(check("已为你打开 CISC3014 的课程页面。", english)).toEqual({
+      languageOk: false,
+      problems: ["reply contains Chinese"],
+    });
+    expect(check("CISC3014 資料庫系統, 3 学分.", english).languageOk).toBe(false);
+  });
+
+  it("only exempts titles exactly as the catalog stores them", () => {
+    expect(check("CISC3014 (资料库系统) covers SQL.", english).languageOk).toBe(false);
+    expect(check("CISC3014 (資料庫) covers SQL.", english).languageOk).toBe(false);
+  });
+
+  it("does not let a quoted title make an English reply count as Chinese", () => {
+    expect(check("CISC3014 is 資料庫系統, 3 credits.", chinese)).toEqual({
+      languageOk: false,
+      problems: ["reply is not in Chinese"],
+    });
+    expect(check("CISC3014 資料庫系統：3 學分，以英文授課。", chinese)).toEqual({ languageOk: true, problems: [] });
+  });
+
+  it("leaves languageOk unset when the turn has no language expectation", () => {
+    expect(grade(trace({ reply: "Done." }), { navigate: "forbidden" }).languageOk).toBeNull();
+  });
+
+  it("counts language checks in the summary", () => {
+    const grades = [
+      grade(trace({ reply: "Database Systems（資料庫系統）" }), english),
+      grade(trace({ reply: "已打开。" }), english),
+      grade(trace({ reply: "Done." }), { navigate: "forbidden" }),
+    ];
+    expect(summarize(grades).language).toEqual({ checked: 2, ok: 1 });
   });
 });

@@ -17,7 +17,7 @@ import { ASSISTANT_MAX_STEPS } from "@/lib/assistant/agent";
 import { readAssistantConfig } from "@/lib/assistant/config";
 
 import { EVAL_CASES, type EvalCase } from "./cases";
-import { EVAL_COURSE_CODES } from "./catalog";
+import { EVAL_CATALOG_FACTS } from "./catalog";
 import { gradeTurn, summarize, type TurnGrade, type TurnTrace } from "./grade";
 import { BudgetExhausted, PROMPT_FINGERPRINT, runCase, type EvalBudget, type HarnessOptions } from "./harness";
 
@@ -59,7 +59,7 @@ async function runAll(cases: EvalCase[], budget: EvalBudget, traces: TurnTrace[]
       }
       caseTraces.forEach((trace, turn) => {
         traces.push(trace);
-        grades.push(gradeTurn(trace, evalCase.turns[turn].expect, ASSISTANT_MAX_STEPS, EVAL_COURSE_CODES));
+        grades.push(gradeTurn(trace, evalCase.turns[turn].expect, ASSISTANT_MAX_STEPS, EVAL_CATALOG_FACTS));
       });
       await new Promise((resolve) => setTimeout(resolve, delayMs));
     }
