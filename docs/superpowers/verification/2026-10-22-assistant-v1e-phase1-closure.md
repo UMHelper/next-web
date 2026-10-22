@@ -138,4 +138,53 @@ Keep production `maxSteps` at 5 for Phase 2; no run hit the step cap.
 
 ## 8. Automated checks
 
-Written in Task 6.
+| Command | Exit | Notes |
+|---|---|---|
+| `npm run lint` | 0 | |
+| `npx tsc --noEmit` | 0 | |
+| `npm test -- --run` | 0 | 211 test files, 1550 tests |
+| `npm run build` | 0 | CopilotKit `channel-manager` critical-dependency warning; browserslist age notice |
+| `npm run build:pages` | 0 | Unsupported Next.js version warning; same CopilotKit warning; wrangler debug log EPERM in sandbox (build still completed) |
+| `npm run eval:assistant` | 0 | No env: 4 eval files / 4 tests skipped |
+
+## 9. Preserved behaviour
+
+| Preserved | Covered by |
+|---|---|
+| Desktop-only at >=1024px | `tests/components/desktop-assistant-gate.test.tsx` |
+| Clerk authorization and access modes | `tests/api/copilotkit.test.ts`, `tests/assistant/access*.test.ts`, `tests/api/assistant-access.test.ts` |
+| Server rate limits | `tests/assistant/rate-limit.test.ts`, `tests/api/copilotkit.test.ts` |
+| Read-only academic tools | `tests/assistant/tools.test.ts`, `tests/assistant/golden.test.ts` |
+| Validated `navigate`, one page per message | `tests/assistant/navigation.test.ts`, `tests/components/use-navigate-tool.test.tsx` |
+| No `toolChoice`, no keyword routing | `tests/assistant/agent.test.ts` "leaves the choice of tool to the model"; the only product change is one prompt sentence |
+| Language rules unchanged | `tests/assistant/agent.test.ts` language assertions; `git diff fa3ede9~1 HEAD -- lib/assistant/prompt.ts` shows only the Task 3 sentence |
+| `maxSteps` 5, 400 output tokens, `deepseek-flash`, thinking off | `settings` in every live result file |
+| Eval opt-in | `npm run eval:assistant` with no env: all suites skipped |
+
+## 10. Commits
+
+| SHA | Subject |
+|---|---|
+| c313ffe | test(assistant): grade navigation by selection, landing and task completion |
+| e16a38b | test(assistant): allow official catalog titles in English replies |
+| bc81d29 | test(assistant): expect 'Show me <course>' to open the course page |
+| fa3ede9 | feat(assistant): treat a request to be shown a specific course as a page request |
+| c54eaa9 | test(assistant): fail incomplete eval runs and regrade saved traces |
+| af29e02 | docs(assistant): record the V1-E phase 1 closure benchmark |
+| 1e29d0d | docs(assistant): list each live failure in the closure record |
+| e0a1c7e | test(assistant): add the phase 2 output-budget suite and controlled comparison |
+| 89cb638 | docs(assistant): design the V1-E phase 2 output-budget experiment |
+| d8d5cbc | fix(assistant): type the phase 2 overview tool list |
+| d1048fd | docs(assistant): recommend the full phase 2 token-budget design |
+
+## 11. Remaining risks
+
+- Fixture catalog: two fictional courses. Real catalog size, search ranking and review text are not exercised.
+- 3 repeats (5 on the targeted run) at the provider's default temperature: differences of one or two turns are noise.
+- The language check does not tell Traditional from Simplified Chinese. Script mismatches are read by hand in section 6.
+- The harness lands navigation instantly. Real `timeout` and `landed_elsewhere` results are covered only by grader unit tests and the scripted component tests.
+- Clerk, access mode, rate limiting and the browser UI are not part of the real-model runs.
+
+## 12. Excluded from commits
+
+`app/layout.tsx`, untracked `docs/superpowers/plans/2026-10-22-assistant-v1e-phase1-tool-use.md`, untracked `.next-dev/**`, `.eval-results/` (ignored), `stash@{0}`: all untouched.
