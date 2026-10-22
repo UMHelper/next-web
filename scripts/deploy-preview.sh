@@ -36,5 +36,5 @@ fi
 : "${NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:?NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY must be set in $ENV_FILE}"
 : "${SUPABASE_SECRET_KEY:?SUPABASE_SECRET_KEY must be set in $ENV_FILE}"
 
-npx opennextjs-cloudflare build --env preview
+npx opennextjs-cloudflare build --env preview --dangerouslyUseUnsupportedNextVersion
 npx opennextjs-cloudflare deploy --env preview
