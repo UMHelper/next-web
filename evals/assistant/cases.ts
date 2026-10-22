@@ -8,11 +8,23 @@ export type EvalCategory =
   | "information"
   | "ambiguous"
   | "compound"
-  | "follow-up";
+  | "follow-up"
+  | "current-page"
+  | "missing-parameter"
+  | "comparison"
+  | "unavailable"
+  | "injection";
+
+/** The language of the student's message; mixed means code-switching with English. */
+export type CaseLanguage = "en" | "zh-hant" | "yue" | "ko" | "ja" | "mixed-yue-en" | "mixed-ko-en";
 
 export type EvalCase = {
   id: string;
   category: EvalCategory;
+  /** Phase 2 suites only. */
+  language?: CaseLanguage;
+  /** The student goal; cases with the same intent in different languages are compared for consistency. */
+  intent?: string;
   pathname: string;
   why: string;
   turns: Array<{ message: string; expect: TurnExpectation }>;
