@@ -189,3 +189,51 @@ Conclusion: The 400-token and 5-step limits did not cause any Phase 1 failure. N
 1. Output tokens 800 and 1,200. Run `ASSISTANT_EVAL_MAX_OUTPUT_TOKENS=800` and then `=1200` with `ASSISTANT_EVAL_CASES=info-compare-zh-hant,info-reviews-injection-en,info-course-zh-hant,compound-find-then-open-en` and `ASSISTANT_EVAL_REPEATS=5`, against the 400 baseline from the same day. Compare `finish: length` count, output tokens p90 per step, latency p50/p90, reply problems and sidebar fit (comparison replies over about 250 words read poorly in a 380px panel). Adopt the smallest value that removes truncation without longer replies being the main effect.
 2. Real-catalog cases: add two or three cases with real course codes and read-only Supabase once Phase 1 behaviour is stable, to check that fixture results carry over.
 3. Remaining non-limit gaps: prefer case-specific prompt wording (reply language, optional navigate vs lookup on `ambiguous-show-me-en`) before any per-request `toolChoice` experiment; section 6 showed no omission-style missed navigations.
+
+## 8. Automated checks
+
+| Command | Result |
+|---|---|
+| `npm run lint` | exit 0 |
+| `npx tsc --noEmit` | exit 0 |
+| `npm test -- --run` | exit 0 — 208 files, 1512 tests |
+| `npm run build` | exit 0 (CopilotKit `channel-manager` critical-dependency; browserslist age notice on first compile) |
+| `npm run build:pages` | exit 0 (unsupported Next.js version; CopilotKit `channel-manager` critical-dependency) |
+
+| Preserved | Covered by |
+|---|---|
+| Desktop-only at >=1024px | `tests/components/desktop-assistant-gate.test.tsx` |
+| Clerk authorization and access modes | `tests/api/copilotkit.test.ts`, `tests/assistant/access*.test.ts`, `tests/api/assistant-access.test.ts` |
+| Server rate limits | `tests/assistant/rate-limit.test.ts`, `tests/api/copilotkit.test.ts` |
+| Five academic server tools | `tests/assistant/tools.test.ts`, `tests/assistant/golden.test.ts` |
+| `check_plan_conflicts` | `tests/assistant/check-plan-conflicts.test.ts`, runtime integration test |
+| Validated `navigate`, one page per message | `tests/assistant/navigation.test.ts`, `tests/components/use-navigate-tool.test.tsx`, runtime integration test |
+| Page-aware context and continuity | `tests/assistant/page-context.test.ts`, `tests/components/assistant-runtime.integration.test.tsx` |
+| Read-only timetable, review text as data | `tests/assistant/agent.test.ts` prompt assertions, `info-reviews-injection-en` eval case |
+| No `toolChoice` | `tests/assistant/agent.test.ts` "leaves the choice of tool to the model" |
+
+## 9. Commits
+
+| Commit | Change |
+|---|---|
+| `b165cea` | eval cases, fixture catalog, grader |
+| `387f7d2` | opt-in real-model harness, shared plan context label |
+| `901ccb6` | baseline record |
+| `37b7a1e` | prompt and navigate description |
+| `69665de` | before/after record |
+| `8a49f08` | limits record |
+| `f903ec5` | correct the V1-E baseline navigation wording |
+
+## 10. Remaining risks
+
+- Fixture catalog: two fictional courses. Real catalog size, real search ranking and real review text are not exercised.
+- Sample size: 3 repeats per case at the provider's default temperature. Differences of one or two turns are noise.
+- The harness lands navigation instantly; real page loads, timeouts and `landed_elsewhere` are covered only by the scripted tests.
+- Clerk, access mode, rate limiting and the browser UI are not in the real-model runs.
+- English-only prompt wording for Chinese and Cantonese requests (kept to protect reply-language behaviour); revised run: required navigation 3/3 on `nav-take-me-zh-hant`, `nav-open-timetable-yue`, and `nav-reviews-page-yue`; `info-course-zh-hant` 3/3; `info-compare-zh-hant` 2/3 (one `finish: length`).
+- After Task 5: `ambiguous-show-me-en` still 0/3 (optional lookup vs navigate; reply language on English turns); `compound-find-then-open-en` 1/3 (navigation correct when attempted; reply language failures on two repeats).
+- Real DeepSeek compliance with `limit_reached` (residual risk from V1-D) still not measured in these runs.
+
+## 11. Excluded from commits
+
+`app/layout.tsx`, untracked `.next-dev/**`, `.eval-results/` (ignored), `stash@{0}` — all untouched.
