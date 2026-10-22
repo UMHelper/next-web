@@ -42,6 +42,11 @@ describe("createAssistantAgent", () => {
     });
   });
 
+  it("leaves the choice of tool to the model", () => {
+    createAssistantAgent(readAssistantConfig({ AI_API_KEY: "sk-test" }));
+    expect(BuiltInAgent).toHaveBeenLastCalledWith(expect.not.objectContaining({ toolChoice: expect.anything() }));
+  });
+
   it("tells the model which Chinese script the student's latest message uses", () => {
     createAssistantAgent(readAssistantConfig({ AI_API_KEY: "sk-test" }));
     const middleware = use.mock.lastCall?.[0] as (
@@ -99,9 +104,21 @@ describe("ASSISTANT_PROMPT", () => {
     expect(ASSISTANT_PROMPT).not.toMatch(/[\p{Script=Han}]/u);
   });
 
-  it("tells the model to navigate only when the student asks to open a page", () => {
-    expect(ASSISTANT_PROMPT).toContain("When the student asks to open or go to a course, instructor, reviews, catalog or timetable page, call navigate");
-    expect(ASSISTANT_PROMPT).toContain("Answering a question is not a request to navigate");
+  it("tells the model to tell questions, page requests and compound requests apart", () => {
+    expect(ASSISTANT_PROMPT).toContain("Naming a course or instructor, or comparing them, is not a request to open a page");
+    expect(ASSISTANT_PROMPT).toContain("in any wording or language, including Chinese and Cantonese. Call navigate");
+    expect(ASSISTANT_PROMPT).toContain("call the lookup tools first, then navigate");
+    expect(ASSISTANT_PROMPT).toContain("If you cannot tell whether they want an answer or the page, answer and include the link");
+  });
+
+  it("does not let a link stand in for a requested page", () => {
+    expect(ASSISTANT_PROMPT).toContain("A link does not replace navigate when the student asked to be taken to a page");
+    expect(ASSISTANT_PROMPT).toContain("When you answer a question, lead with a one-sentence answer, then links");
+    expect(ASSISTANT_PROMPT).not.toContain("Then lead with a one-sentence answer, then links");
+  });
+
+  it("counts opening pages on this site as in scope", () => {
+    expect(ASSISTANT_PROMPT).toContain("and requests to open pages on this site. Politely decline anything else");
   });
 
   it("formats replies for the narrow sidebar", () => {
