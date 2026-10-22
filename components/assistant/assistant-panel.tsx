@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  CopilotChatReasoningMessage,
   CopilotChatToggleButton,
   CopilotKitProvider,
   CopilotSidebar,
@@ -76,6 +77,11 @@ const NoticeContext = createContext<string | null>(null);
 function Hidden() {
   return null;
 }
+
+// CopilotKit shows the model's raw reasoning as a "Thoughts" block; students should only see the answer.
+const MESSAGE_VIEW = {
+  reasoningMessage: Hidden as unknown as typeof CopilotChatReasoningMessage,
+};
 
 const HiddenToggle = forwardRef<
   HTMLButtonElement,
@@ -218,6 +224,7 @@ export default function AssistantPanel({ suppressed }: { suppressed: boolean }) 
             header={HEADER}
             toggleButton={HiddenToggle}
             welcomeScreen={WelcomeScreen}
+            messageView={MESSAGE_VIEW}
             input={{ disclaimer: BoundaryNotice, showDisclaimer: true, addMenuButton: Hidden }}
           />
         </NoticeContext.Provider>

@@ -12,6 +12,7 @@ type SidebarProps = {
   header: { titleContent: ComponentType<{ children: ReactNode }>; closeButton: Record<string, string> };
   toggleButton: ComponentType;
   welcomeScreen?: ComponentType<{ input: ReactNode; suggestionView: ReactNode }>;
+  messageView: { reasoningMessage: ComponentType };
   input: { addMenuButton: ComponentType; disclaimer: ComponentType; showDisclaimer: boolean };
 };
 
@@ -137,6 +138,12 @@ describe("AssistantPanel", () => {
     expect(render(<Toggle />).container.innerHTML).toBe("");
     expect(render(<AddMenu />).container.innerHTML).toBe("");
     expect(providerSpy.mock.lastCall![0].enableInspector).toBe(false);
+  });
+
+  it("never shows the model's reasoning to the student", () => {
+    render(<AssistantPanel suppressed={false} />);
+    const Reasoning = lastSidebarProps().messageView.reasoningMessage;
+    expect(render(<Reasoning />).container.innerHTML).toBe("");
   });
 
   it("offers the three example questions before the first message", () => {
