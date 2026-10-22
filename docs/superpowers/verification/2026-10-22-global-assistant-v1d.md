@@ -3,7 +3,7 @@
 - Branch: `feat/global-assistant-v1`
 - Code verified through: `0584f7e` (this record is the commit after that)
 - Baseline before V1-D: `d6b28c7` — 202 test files, 1,429 tests
-- Verified: 2026-10-22 (local)
+- Verified: 2026-10-22 (local); preview credential storage corrected same day (see §7)
 
 ## 1. What changed
 
@@ -126,8 +126,8 @@ Browser: the Cursor browser on `localhost:3000` has no Clerk session, so the ass
 | Production secrets | `AI_API_KEY`, `CLERK_SECRET_KEY`, `SUPABASE_SECRET_KEY` present as secrets (`wrangler secret list --name next-web`) | ok |
 | Production `AI_*` / `AGENT_*` vars | none set; code defaults apply (deepseek-flash, 400 tokens, 30 s, 30/h, 80/day) | ok |
 | Production DB migration `20261018_assistant_access.sql` | **not checked** (read-only query was out of scope for the agent) | prerequisite |
-| Preview Worker `next-web-preview` | exists, latest version `0bb7c180` (2026-10-21 14:51 UTC) | ok |
-| Preview credentials | **stored as plain-text environment variables, not secrets**: `AI_API_KEY`, `CLERK_SECRET_KEY`, `SUPABASE_SECRET_KEY`, `SUPABASE_DB_URL`, `TELEGRAM_BOT_TOKEN`, `UM_IOS_API_SECRET`, `IMGUR_CLIENT_SECRET`, `BLOB_READ_WRITE_TOKEN`. `wrangler secret list --env preview` is empty. Values show in `wrangler versions view` and the dashboard | **security, operational** |
+| Preview Worker `next-web-preview` | exists; deployed version `47615862-a2f5-4288-8903-f30420bd3955` (2026-10-22, after credential fix) | ok |
+| Preview credentials | **fixed 2026-10-22:** nine names bound as Worker secrets (`wrangler secret list --env preview`): `AI_API_KEY`, `BLOB_READ_WRITE_TOKEN`, `CLERK_SECRET_KEY`, `IMGUR_CLIENT_SECRET`, `SUPABASE_DB_URL`, `SUPABASE_SECRET_KEY`, `TELEGRAM_BOT_TOKEN`, `UM_IOS_API_SECRET`, `UM_OPEN_DATA_TOKEN`. Keys were not rotated (operator choice). Smoke after redeploy: `https://next-web-preview.umhelper.workers.dev/` and `/course/CISC2001` → 200; `/api/copilotkit/info` unsigned → 401 | ok |
 | `build:preview` reference | gone; `deploy:preview` → `scripts/deploy-preview.sh` | ok |
 | `deploy-preview.sh` Next-version gate | fixed in `0584f7e` (script not executed: deploy not authorized) | app defect, fixed |
 | Assistant access default | `off` after migration until an admin changes it | by design |
@@ -135,7 +135,7 @@ Browser: the Cursor browser on `localhost:3000` has no Clerk session, so the ass
 
 ## 8. Operational checklist (not executed)
 
-1. Preview credentials: in the dashboard (Workers → `next-web-preview` → Settings → Variables), delete each plain-text credential, then `npx wrangler secret put <NAME> --env preview` for it. Rotate the DeepSeek key first (its full value was printed during this check), then the others. `SUPABASE_SECRET_KEY` and `SUPABASE_DB_URL` reach the production database. Verify with `npx wrangler secret list --env preview` and `npx wrangler versions view <id> --name next-web-preview` (no credential under "Environment Variable").
+1. ~~Preview credentials → secrets on `next-web-preview`~~ **done 2026-10-22** (see §7). After future preview deploys, spot-check that new credentials are added with `npx wrangler secret put <NAME> --env preview`, not as plain-text variables.
 2. Preview deploy: `npm run deploy:preview`, then sign in on the preview URL at ≥1024px and run the §9 browser checklist; read `[assistant] step` lines and `cpuTime` in Workers Observability (`next-web-preview`, filter path `/api/copilotkit/agent/default/run`).
 3. Production DB (Supabase SQL editor, read-only):
    `select column_name from information_schema.columns where table_schema = 'public' and table_name = 'app_config' and column_name = 'ai_assistant_access';`
