@@ -3,7 +3,7 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { EVAL_CASES } from "./cases";
+import { SUITES } from "./suites";
 import { EVAL_CATALOG_FACTS } from "./catalog";
 import { evalFingerprint, failureLines, regradeTraces, resultFileName, type RegradedRun, type SavedRun } from "./results";
 
@@ -16,7 +16,9 @@ describe.skipIf(sources.length === 0)("regrade saved assistant eval traces", () 
   it("regrades every file under the current rules", () => {
     for (const source of sources) {
       const saved = JSON.parse(readFileSync(source, "utf8")) as SavedRun;
-      const regraded = regradeTraces(saved.traces, EVAL_CASES, saved.settings.maxSteps, EVAL_CATALOG_FACTS, saved.repeats);
+      const suiteCases = SUITES[saved.suite ?? "navigation"];
+      expect(suiteCases, `${source}: unknown suite "${saved.suite}"`).toBeDefined();
+      const regraded = regradeTraces(saved.traces, suiteCases, saved.settings.maxSteps, EVAL_CATALOG_FACTS, saved.repeats);
       expect(regraded.unmatched, `${source}: saved turns whose case was removed`).toEqual([]);
 
       const record: RegradedRun = {
@@ -26,7 +28,7 @@ describe.skipIf(sources.length === 0)("regrade saved assistant eval traces", () 
         sourceSettings: saved.settings,
         sourceStepsUsed: saved.stepsUsed,
         sourceStoppedEarly: saved.stoppedEarly,
-        evalFingerprint: evalFingerprint(EVAL_CASES),
+        evalFingerprint: evalFingerprint(suiteCases),
         repeats: saved.repeats,
         missing: regraded.missing,
         failures: failureLines(regraded.grades, saved.traces),

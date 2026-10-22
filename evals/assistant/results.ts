@@ -1,9 +1,13 @@
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import { isDeepStrictEqual } from "node:util";
+
+import type { ThinkingMode } from "@/lib/assistant/config";
 
 import type { EvalCase } from "./cases";
 import { gradeTurn, summarize, type CatalogFacts, type Summary, type TurnGrade, type TurnTrace } from "./grade";
+import type { RequestAudit } from "./request-audit";
 
 export type RunSettings = {
   model: string;
@@ -32,6 +36,7 @@ export type SavedRun = {
   grades: TurnGrade[];
   traces: TurnTrace[];
   failures?: string[];
+  requestMismatches?: string[];
 };
 
 export type RegradedRun = {
@@ -191,4 +196,41 @@ export function metricTable(columns: ReportColumn[]): string {
       ([name, pick]) => `| ${name} | ${columns.map((column) => pick(column.summary, column.stepsUsed)).join(" | ")} |`,
     ),
   ].join("\n");
+}
+
+export function thinkingMode(value: string | undefined): ThinkingMode {
+  if (value === undefined || value === "" || value === "off") return "off";
+  if (value === "low") return "low";
+  throw new Error(`ASSISTANT_EVAL_THINKING must be "off" or "low", got "${value}"`);
+}
+
+/** Every provider request must carry exactly the settings the run claims; returns one line per difference. */
+export function requestMismatches(
+  traces: readonly TurnTrace[],
+  settings: Pick<RunSettings, "model" | "thinking" | "maxOutputTokens">,
+): string[] {
+  const wanted: Array<[keyof RequestAudit, unknown]> = [
+    ["model", settings.model],
+    ["maxTokens", settings.maxOutputTokens],
+    ["thinking", { type: settings.thinking === "low" ? "enabled" : "disabled" }],
+    ["reasoningEffort", settings.thinking === "low" ? "low" : null],
+  ];
+  return traces.flatMap((trace) =>
+    trace.runs.flatMap((run, index) => {
+      const where = `${trace.caseId} repeat ${trace.repeat} turn ${trace.turn + 1} run ${index + 1}`;
+      const audits = run.requests ?? [];
+      const lines =
+        audits.length < run.steps.length
+          ? [`${where}: ${run.steps.length} model steps but ${audits.length} provider requests captured`]
+          : [];
+      for (const audit of audits) {
+        for (const [key, value] of wanted) {
+          if (!isDeepStrictEqual(audit[key], value)) {
+            lines.push(`${where}: ${key} ${JSON.stringify(audit[key])}, expected ${JSON.stringify(value)}`);
+          }
+        }
+      }
+      return lines;
+    }),
+  );
 }

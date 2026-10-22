@@ -1,6 +1,8 @@
 import { isDeepStrictEqual } from "node:util";
 
 import { buildNavigationPath, parseDestination, type NavigationDestination } from "@/lib/assistant/navigation";
+
+import type { RequestAudit } from "./request-audit";
 import type { ASSISTANT_SERVER_TOOL_NAMES } from "@/lib/assistant/tools";
 
 export type ServerToolName = (typeof ASSISTANT_SERVER_TOOL_NAMES)[number];
@@ -34,7 +36,16 @@ export type StepMetrics = {
   tools: string[];
 };
 
-export type RunTrace = { continuation: boolean; ms: number; steps: StepMetrics[]; error?: string };
+export type RunTrace = {
+  continuation: boolean;
+  ms: number;
+  steps: StepMetrics[];
+  error?: string;
+  /** One per provider request. Absent before Phase 2. */
+  requests?: RequestAudit[];
+  /** Reasoning messages this run added to the client history. Absent before Phase 2. */
+  reasoningMessages?: number;
+};
 
 export type TurnTrace = {
   caseId: string;
@@ -49,6 +60,9 @@ export type TurnTrace = {
   ms: number;
   runCapHit: boolean;
   error?: string;
+  /** Messages and UTF-8 JSON bytes this turn added to the history the client resends. Absent before Phase 2. */
+  messagesAdded?: number;
+  bytesAdded?: number;
 };
 
 /** Judged on the first navigate call: the right tool, valid arguments and the right page. */

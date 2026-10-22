@@ -16,12 +16,21 @@ vi.mock("@/lib/mcp/data/get-course-sections", async () => ({
 import { ASSISTANT_MAX_STEPS } from "@/lib/assistant/agent";
 import { readAssistantConfig } from "@/lib/assistant/config";
 
-import { EVAL_CASES, type EvalCase } from "./cases";
+import type { EvalCase } from "./cases";
 import { EVAL_CATALOG_FACTS } from "./catalog";
 import { gradeTurn, summarize, type TurnGrade, type TurnTrace } from "./grade";
 import { BudgetExhausted, PROMPT_FINGERPRINT, runCase, type EvalBudget, type HarnessOptions } from "./harness";
-import { evalFingerprint, expectedTurns, failureLines, isComplete, positiveInt, resultFileName } from "./results";
-import { TOKEN_CASES } from "./token-cases";
+import {
+  evalFingerprint,
+  expectedTurns,
+  failureLines,
+  isComplete,
+  positiveInt,
+  requestMismatches,
+  resultFileName,
+  thinkingMode,
+} from "./results";
+import { SUITES } from "./suites";
 
 const env = process.env;
 const enabled = env.ASSISTANT_EVAL === "1";
@@ -36,19 +45,20 @@ function readLocalEnv(names: readonly string[]): Record<string, string> {
   return values;
 }
 
-// Model, thinking mode and step limits stay at the production defaults; only credentials come from the environment.
+// Model and maxSteps stay at the production defaults. Thinking mode and the output budget are the Phase 2 arms
+// and are parsed strictly, so a typo fails the run instead of quietly falling back to a default.
 const local = enabled ? readLocalEnv(["AI_API_KEY", "AI_BASE_URL"]) : {};
 const config = readAssistantConfig({
   AI_API_KEY: env.AI_API_KEY ?? local.AI_API_KEY,
   AI_BASE_URL: env.AI_BASE_URL ?? local.AI_BASE_URL,
-  AI_MAX_OUTPUT_TOKENS: env.ASSISTANT_EVAL_MAX_OUTPUT_TOKENS,
+  AI_THINKING: thinkingMode(env.ASSISTANT_EVAL_THINKING),
+  AI_MAX_OUTPUT_TOKENS: String(positiveInt("ASSISTANT_EVAL_MAX_OUTPUT_TOKENS", env.ASSISTANT_EVAL_MAX_OUTPUT_TOKENS, 400)),
 });
 const repeats = positiveInt("ASSISTANT_EVAL_REPEATS", env.ASSISTANT_EVAL_REPEATS, 3);
 const stepBudget = positiveInt("ASSISTANT_EVAL_MAX_STEPS", env.ASSISTANT_EVAL_MAX_STEPS, 200);
 const delayMs = Number(env.ASSISTANT_EVAL_DELAY_MS ?? "500");
 const label = env.ASSISTANT_EVAL_LABEL ?? "run";
 const only = env.ASSISTANT_EVAL_CASES?.split(",").map((id) => id.trim());
-const SUITES: Record<string, EvalCase[]> = { navigation: EVAL_CASES, tokens: TOKEN_CASES };
 const suite = env.ASSISTANT_EVAL_SUITE ?? "navigation";
 
 async function runAll(cases: EvalCase[], budget: EvalBudget, traces: TurnTrace[], grades: TurnGrade[]) {
@@ -111,10 +121,15 @@ describe.skipIf(!enabled)("assistant navigation behaviour against the real model
     };
     const summary = summarize(grades);
     const failures = failureLines(grades, traces);
+    const mismatches = requestMismatches(traces, header.settings);
     const file = path.join(".eval-results", "assistant", resultFileName(startedAt, label, complete));
     mkdirSync(path.dirname(file), { recursive: true });
-    writeFileSync(file, JSON.stringify({ ...header, summary, failures, grades, traces }, null, 2));
-    console.info(JSON.stringify({ file, ...header, summary, failures }, null, 2));
+    writeFileSync(
+      file,
+      JSON.stringify({ ...header, summary, failures, requestMismatches: mismatches, grades, traces }, null, 2),
+    );
+    console.info(JSON.stringify({ file, ...header, summary, failures, requestMismatches: mismatches }, null, 2));
     expect(complete, `incomplete run, partial results in ${file}: ${stoppedEarly ?? "turn count mismatch"}`).toBe(true);
+    expect(mismatches, `provider requests differ from the run settings, see ${file}`).toEqual([]);
   });
 });

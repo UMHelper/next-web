@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { EvalCase } from "@/evals/assistant/cases";
 import { summarize, type CatalogFacts, type TurnTrace } from "@/evals/assistant/grade";
+import type { RequestAudit } from "@/evals/assistant/request-audit";
 import {
   evalFingerprint,
   expectedTurns,
@@ -11,7 +12,9 @@ import {
   positiveInt,
   regradeTraces,
   reportColumn,
+  requestMismatches,
   resultFileName,
+  thinkingMode,
   type RegradedRun,
   type SavedRun,
 } from "@/evals/assistant/results";
@@ -119,6 +122,72 @@ describe("failureLines", () => {
     const { grades } = regradeTraces(traces, CASES, 5, FACTS, 1);
     expect(failureLines(grades, traces)).toEqual([
       'open repeat 0 turn 1: navigate {"destination":"course","code":"CISC3014"}; reply "Opened CISC3014."; selection correct, status not_found, landed false; problems: none',
+    ]);
+  });
+});
+
+describe("thinkingMode", () => {
+  it("accepts off and low only", () => {
+    expect(thinkingMode(undefined)).toBe("off");
+    expect(thinkingMode("off")).toBe("off");
+    expect(thinkingMode("low")).toBe("low");
+    expect(() => thinkingMode("high")).toThrow('ASSISTANT_EVAL_THINKING must be "off" or "low", got "high"');
+  });
+});
+
+describe("requestMismatches", () => {
+  const audit = (overrides: Partial<RequestAudit> = {}): RequestAudit => ({
+    model: "deepseek-flash",
+    stream: true,
+    maxTokens: 1200,
+    thinking: { type: "enabled" },
+    reasoningEffort: "low",
+    toolChoice: null,
+    tools: [],
+    messages: 2,
+    assistantMessages: 0,
+    reasoningReplayed: 0,
+    reasoningEmpty: 0,
+    reasoningAbsent: 0,
+    ...overrides,
+  });
+  const traceWith = (requests: RequestAudit[], steps = requests.length): TurnTrace => ({
+    caseId: "c",
+    repeat: 0,
+    turn: 0,
+    message: "m",
+    pathnameBefore: "/",
+    pathnameAfter: "/",
+    toolCalls: [],
+    runs: [
+      { continuation: false, ms: 1, steps: Array.from({ length: steps }, () => ({ ms: 1, finish: "stop", tools: [] })), requests },
+    ],
+    reply: "r",
+    ms: 1,
+    runCapHit: false,
+  });
+  const low = { model: "deepseek-flash", thinking: "low", maxOutputTokens: 1200 };
+
+  it("accepts requests that match the run settings", () => {
+    expect(requestMismatches([traceWith([audit()])], low)).toEqual([]);
+  });
+
+  it("names a provider default that replaced the requested effort", () => {
+    expect(requestMismatches([traceWith([audit({ reasoningEffort: null })])], low)).toEqual([
+      'c repeat 0 turn 1 run 1: reasoningEffort null, expected "low"',
+    ]);
+  });
+
+  it("expects thinking disabled and no effort when thinking is off", () => {
+    expect(requestMismatches([traceWith([audit()])], { ...low, thinking: "off" })).toEqual([
+      'c repeat 0 turn 1 run 1: thinking {"type":"enabled"}, expected {"type":"disabled"}',
+      'c repeat 0 turn 1 run 1: reasoningEffort "low", expected null',
+    ]);
+  });
+
+  it("flags model steps that no captured request explains", () => {
+    expect(requestMismatches([traceWith([], 1)], low)).toEqual([
+      "c repeat 0 turn 1 run 1: 1 model steps but 0 provider requests captured",
     ]);
   });
 });

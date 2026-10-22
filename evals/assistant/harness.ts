@@ -31,6 +31,7 @@ import { ASSISTANT_PROMPT } from "@/lib/assistant/prompt";
 import type { EvalCase } from "./cases";
 import { evalNavigationLookups, getPlanSections } from "./catalog";
 import type { RunTrace, StepMetrics, ToolCallRecord, TurnTrace } from "./grade";
+import { captureRequests, type RequestAudit } from "./request-audit";
 
 export const MAX_RUNS_PER_TURN = 4;
 
@@ -92,6 +93,8 @@ function parseArgs(text: string): Record<string, unknown> {
 const toolCallsIn = (messages: Message[]): ToolCall[] =>
   messages.flatMap((message) => (message.role === "assistant" ? (message.toolCalls ?? []) : []));
 
+const historyBytes = (messages: Message[]) => Buffer.byteLength(JSON.stringify(messages));
+
 function captureStepMetrics(into: StepMetrics[]): () => void {
   const original = console.log;
   console.log = (...args: unknown[]) => {
@@ -130,24 +133,27 @@ async function runOnce(session: Session, options: HarnessOptions, continuation: 
   if (options.budget.used >= options.budget.maxSteps) {
     throw new BudgetExhausted(`model step budget of ${options.budget.maxSteps} used up`);
   }
-  const agent = createAssistantAgent(options.config);
-  agent.setMessages(shapeConversation(session.messages as RunMessage[], options.config.historyTurns) as Message[]);
-  const context: Context[] = [
-    { description: PLAN_CONTEXT_DESCRIPTION, value: summarizePlan(undefined) },
-    { description: PAGE_CONTEXT_DESCRIPTION, value: JSON.stringify(describePage(session.pathname)) },
-  ];
-
   const steps: StepMetrics[] = [];
-  const restore = captureStepMetrics(steps);
+  const requests: RequestAudit[] = [];
+  const restoreLog = captureStepMetrics(steps);
+  // The model binds fetch when it is built, so the capture must be installed before createAssistantAgent.
+  const restoreFetch = captureRequests(requests);
   const started = Date.now();
   let newMessages: Message[] = [];
   let error: string | undefined;
   try {
+    const agent = createAssistantAgent(options.config);
+    agent.setMessages(shapeConversation(session.messages as RunMessage[], options.config.historyTurns) as Message[]);
+    const context: Context[] = [
+      { description: PLAN_CONTEXT_DESCRIPTION, value: summarizePlan(undefined) },
+      { description: PAGE_CONTEXT_DESCRIPTION, value: JSON.stringify(describePage(session.pathname)) },
+    ];
     ({ newMessages } = await agent.runAgent({ runId: randomUUID(), tools: FRONTEND_TOOLS, context }));
   } catch (caught) {
     error = caught instanceof Error ? `${caught.name}: ${caught.message}`.slice(0, 200) : "unknown";
   } finally {
-    restore();
+    restoreFetch();
+    restoreLog();
     options.budget.used += Math.max(steps.length, 1);
   }
   session.messages.push(...newMessages);
@@ -156,7 +162,14 @@ async function runOnce(session: Session, options: HarnessOptions, continuation: 
   const pending: PendingCall[] = toolCallsIn(newMessages)
     .filter((call) => FRONTEND_TOOL_NAMES.has(call.function.name) && !answered.has(call.id))
     .map((call) => ({ id: call.id, name: call.function.name, args: parseArgs(call.function.arguments) }));
-  const trace: RunTrace = { continuation, ms: Date.now() - started, steps, error };
+  const trace: RunTrace = {
+    continuation,
+    ms: Date.now() - started,
+    steps,
+    error,
+    requests,
+    reasoningMessages: newMessages.filter((message) => message.role === "reasoning").length,
+  };
   return { trace, pending };
 }
 
@@ -190,6 +203,8 @@ async function runTurn(
 ): Promise<TurnTrace> {
   const started = Date.now();
   const pathnameBefore = session.pathname;
+  const lengthBefore = session.messages.length;
+  const bytesBefore = historyBytes(session.messages);
   session.messages.push({ id: randomUUID(), role: "user", content: message });
   const turnStart = session.messages.length - 1;
 
@@ -228,6 +243,8 @@ async function runTurn(
     ms: Date.now() - started,
     runCapHit,
     error,
+    messagesAdded: session.messages.length - lengthBefore,
+    bytesAdded: historyBytes(session.messages) - bytesBefore,
   };
 }
 

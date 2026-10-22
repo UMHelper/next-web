@@ -2,9 +2,11 @@ import type { LanguageModelV3StreamPart } from "@ai-sdk/provider";
 import { MockLanguageModelV3, simulateReadableStream } from "ai/test";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-type Step = { text: string } | { tool: string; input: Record<string, unknown> };
+type Step = { text: string; reasoning?: string } | { tool: string; input: Record<string, unknown> };
 
-const script = vi.hoisted(() => ({ steps: [] as Array<{ text: string } | { tool: string; input: Record<string, unknown> }> }));
+const script = vi.hoisted(() => ({
+  steps: [] as Array<{ text: string; reasoning?: string } | { tool: string; input: Record<string, unknown> }>,
+}));
 
 vi.mock("@/lib/mcp/data/search-catalog", async () => ({
   searchCatalog: (await import("@/evals/assistant/catalog")).searchCatalog,
@@ -36,8 +38,16 @@ const usage = {
 let toolCallCount = 0;
 function streamFor(step: Step): LanguageModelV3StreamPart[] {
   if ("text" in step) {
+    const reasoning: LanguageModelV3StreamPart[] = step.reasoning
+      ? [
+          { type: "reasoning-start", id: "r" },
+          { type: "reasoning-delta", id: "r", delta: step.reasoning },
+          { type: "reasoning-end", id: "r" },
+        ]
+      : [];
     return [
       { type: "stream-start", warnings: [] },
+      ...reasoning,
       { type: "text-start", id: "t" },
       { type: "text-delta", id: "t", delta: step.text },
       { type: "text-end", id: "t" },
@@ -155,5 +165,18 @@ describe("assistant eval harness", () => {
     await runCase(singleTurn("/", "Hello"), { config, budget: budget(), repeat: 0 });
 
     expect(console.log).toBe(original);
+  });
+
+  it("counts reasoning messages and history growth but never stores reasoning text", async () => {
+    script.steps = [{ reasoning: "PRIVATE-CHAIN", text: "Answer." }];
+
+    const [trace] = await runCase(singleTurn("/", "Hello"), { config, budget: budget(), repeat: 0 });
+
+    expect(trace.reply).toBe("Answer.");
+    expect(trace.runs[0].reasoningMessages).toBe(1);
+    expect(trace.runs[0].requests).toEqual([]);
+    expect(trace.messagesAdded).toBeGreaterThanOrEqual(3);
+    expect(trace.bytesAdded).toBeGreaterThan(0);
+    expect(JSON.stringify(trace)).not.toContain("PRIVATE-CHAIN");
   });
 });
