@@ -63,6 +63,23 @@ describe("shapeConversation", () => {
     const shaped = shapeConversation([user("u1"), tool("t1", long)], 8);
     expect(shaped[1].content).toBe(long);
   });
+
+  it("keeps reasoning messages in place and never starts the window with one", () => {
+    const turn = (n: number): RunMessage[] => [
+      { role: "user", content: `q${n}` },
+      { role: "reasoning", content: `r${n}` },
+      { role: "assistant", content: `a${n}` },
+    ];
+    const shaped = shapeConversation([...turn(1), ...turn(2), ...turn(3)], 1);
+    expect(shaped.map((message) => `${message.role}:${String(message.content)}`)).toEqual([
+      "user:q2",
+      "reasoning:r2",
+      "assistant:a2",
+      "user:q3",
+      "reasoning:r3",
+      "assistant:a3",
+    ]);
+  });
 });
 
 const call = (id: string) => ({ id, type: "function", function: { name: "check_plan_conflicts", arguments: "{}" } });
