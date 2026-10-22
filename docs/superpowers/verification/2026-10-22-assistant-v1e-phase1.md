@@ -1,5 +1,7 @@
 # Assistant V1-E Phase 1 verification: tool-use reliability
 
+> Grading note: the pass counts below come from the Phase 1 grader. They are regraded under the stricter closure rules in [2026-10-22-assistant-v1e-phase1-closure.md](2026-10-22-assistant-v1e-phase1-closure.md).
+
 - Branch: `feat/global-assistant-v1`
 - Baseline code: `387f7d2`, prompt fingerprint `e4f5f5b5a758`
 - Model settings (production defaults): `deepseek-flash`, thinking off, 400 output tokens per step, `maxSteps` 5
