@@ -109,6 +109,9 @@ describe("ASSISTANT_PROMPT", () => {
     expect(ASSISTANT_PROMPT).toContain("in any wording or language, including Chinese and Cantonese. Call navigate");
     expect(ASSISTANT_PROMPT).toContain("call the lookup tools first, then navigate");
     expect(ASSISTANT_PROMPT).toContain("If you cannot tell whether they want an answer or the page, answer and include the link");
+    expect(ASSISTANT_PROMPT).toContain(
+      "Asking to be shown a specific course, instructor or their reviews counts, even without the word page; asking what one is about is a question.",
+    );
   });
 
   it("does not let a link stand in for a requested page", () => {
