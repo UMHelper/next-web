@@ -104,6 +104,16 @@ describe("ASSISTANT_PROMPT", () => {
     expect(ASSISTANT_PROMPT).toContain("Answering a question is not a request to navigate");
   });
 
+  it("formats replies for the narrow sidebar", () => {
+    expect(ASSISTANT_PROMPT).toContain("The chat is a narrow sidebar");
+    expect(ASSISTANT_PROMPT).toContain("Use a Markdown table only when it has at most three short columns");
+    expect(ASSISTANT_PROMPT).toContain("To compare courses or instructors, give each one a bold line");
+    expect(ASSISTANT_PROMPT).toContain("rating numbers with their scale");
+    expect(ASSISTANT_PROMPT).toContain("Put your own recommendation after the facts");
+    expect(ASSISTANT_PROMPT).toContain("Write links as Markdown links with short text");
+    expect(ASSISTANT_PROMPT).toContain("Do not repeat facts you already gave");
+  });
+
   it("states the same one-page limit the navigate tool enforces", () => {
     expect(MAX_NAVIGATIONS_PER_MESSAGE).toBe(1);
     expect(ASSISTANT_PROMPT).toContain("Open at most one page per student message");

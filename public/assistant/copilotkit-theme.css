@@ -124,6 +124,42 @@ div[data-sidebar-chat] [data-testid="copilot-suggestions"] {
   padding-inline: 0;
 }
 
+/* The chat scroller hides horizontal overflow, so anything wider than the sidebar is cut off. Streamdown asks
+   for Tailwind 4's `wrap-anywhere` on links, which neither stylesheet defines. */
+[data-copilotkit] [data-streamdown="link"],
+[data-copilotkit] [data-streamdown="inline-code"] {
+  overflow-wrap: anywhere;
+}
+
+[data-copilotkit] [data-streamdown="table-wrapper"] > div {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+[data-copilotkit] [data-streamdown="table"] {
+  border-collapse: collapse;
+  margin: 0;
+  font-size: 0.8125rem;
+}
+
+/* Streamdown keeps header text on one line, which pushes even a two-column table past 380px. */
+[data-copilotkit] [data-streamdown="table-header-cell"],
+[data-copilotkit] [data-streamdown="table-cell"] {
+  white-space: normal;
+  padding: 0.375rem 0.5rem;
+  vertical-align: top;
+  border: 1px solid var(--border);
+}
+
+[data-copilotkit] .copilotKitAssistantMessage :is(h1, h2, h3, h4) {
+  font-size: 1em;
+  margin: 1em 0 0.25em;
+}
+
+div[data-sidebar-chat] .cpk\:overflow-y-auto {
+  overscroll-behavior: contain;
+}
+
 html[data-skin="island"] [data-copilotkit] {
   font-family: var(--animal-font-family);
 }
