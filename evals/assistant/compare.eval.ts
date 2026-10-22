@@ -3,8 +3,9 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { armReport, checkControlled, type Prices } from "./compare";
+import { armReport, armTable, checkControlled, type Prices } from "./compare";
 import { resultFileName, type SavedRun } from "./results";
+import { SUITES } from "./suites";
 
 const env = process.env;
 const files = (env.ASSISTANT_COMPARE ?? "")
@@ -23,16 +24,16 @@ function prices(): Prices | null {
 }
 
 describe.skipIf(files.length === 0)("compare assistant eval runs", () => {
-  it("compares runs that differ only in the output budget", () => {
+  it("compares runs that change one inference setting at a time, in the given order", () => {
     const runs = files.map((file) => ({ file: path.basename(file), run: JSON.parse(readFileSync(file, "utf8")) as SavedRun }));
     expect(checkControlled(runs)).toEqual([]);
     const pricing = prices();
-    const arms = runs
-      .map(({ file, run }) => armReport(file, run, pricing))
-      .sort((a, b) => a.maxOutputTokens - b.maxOutputTokens);
+    const cases = SUITES[runs[0].run.suite ?? "navigation"] ?? [];
+    const arms = runs.map(({ file, run }) => armReport(file, run, pricing, cases));
     const out = path.join(".eval-results", "assistant", resultFileName(new Date(), "compare", true));
     mkdirSync(path.dirname(out), { recursive: true });
     writeFileSync(out, JSON.stringify({ kind: "comparison", prices: pricing, arms }, null, 2));
     console.info(JSON.stringify({ file: out, prices: pricing, arms }, null, 2));
+    console.info(`\n${armTable(arms)}\n`);
   });
 });

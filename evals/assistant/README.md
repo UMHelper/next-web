@@ -16,9 +16,12 @@ ASSISTANT_EVAL=1 ASSISTANT_EVAL_LABEL=closure npm run eval:assistant -- evals/as
 | `ASSISTANT_EVAL_CASES` | all | Comma-separated case ids. An unknown id fails the run before any model call. |
 | `ASSISTANT_EVAL_MAX_STEPS` | `200` | Global model-step budget for the whole invocation. |
 | `ASSISTANT_EVAL_DELAY_MS` | `500` | Pause between cases. |
-| `ASSISTANT_EVAL_MAX_OUTPUT_TOKENS` | production default (400) | Output budget per step. Only for the Phase 2 comparison. |
+| `ASSISTANT_EVAL_MAX_OUTPUT_TOKENS` | production default (400) | Output budget per step. A positive integer, or the run fails before any model call. |
+| `ASSISTANT_EVAL_THINKING` | `off` | `off` or `low`. Anything else fails the run before any model call. |
 
-`AI_API_KEY` and `AI_BASE_URL` come from the environment or `.env.local`. Model, thinking mode and `maxSteps` are always the production defaults.
+`AI_API_KEY` and `AI_BASE_URL` come from the environment or `.env.local`. Model and `maxSteps` are always the production defaults.
+
+Every provider request is audited (`runs[].requests` in the result file): model, `max_tokens`, `thinking`, `reasoning_effort`, tool names, and how many earlier assistant messages carried their `reasoning_content`, carried `""`, or had none. No prompt, reply or reasoning text is stored. A live run fails if any request differs from its settings (`requestMismatches`).
 
 ## Step budget and incomplete runs
 
@@ -56,9 +59,16 @@ Regrading reads the saved traces and grades them under the current rules without
 
 ## Suites
 
-`ASSISTANT_EVAL_SUITE=navigation` (default) runs `cases.ts`. `ASSISTANT_EVAL_SUITE=tokens` runs `token-cases.ts`, the Phase 2 output-budget suite. Each suite has its own `settings.eval` fingerprint.
+| `ASSISTANT_EVAL_SUITE` | File | Purpose |
+|---|---|---|
+| `navigation` (default) | `cases.ts` | Phase 1 regression cases. |
+| `tokens` | `token-cases.ts` | Long Traditional Chinese answers, output-budget pressure. |
+| `multilingual` | `multilingual-cases.ts` | Phase 2 pilot: the same goals in English, Traditional Chinese, Cantonese, Korean, Japanese and mixed languages. |
+| `smoke` | `smoke-cases.ts` | One thinking-mode continuation check: server tool, navigate follow-up run, later turn. |
 
-## Output-budget comparison
+Each suite has its own `settings.eval` fingerprint.
+
+## Arm comparison
 
 ```bash
 ASSISTANT_COMPARE=.eval-results/assistant/A.json,.eval-results/assistant/B.json,.eval-results/assistant/C.json \
@@ -66,4 +76,4 @@ ASSISTANT_EVAL_PRICE_INPUT_MISS=<usd> ASSISTANT_EVAL_PRICE_INPUT_HIT=<usd> ASSIS
 npm run eval:assistant -- evals/assistant/compare.eval.ts
 ```
 
-The comparison fails unless every file is a complete live run, and the files share the same suite, cases, repeats, model, thinking mode, `maxSteps`, prompt fingerprint and eval fingerprint, with a different `maxOutputTokens` each. Prices are optional and are in USD per million tokens. Without them, `costUsd` is `null`.
+List the files in arm order. The comparison fails unless every file is a complete live run of the same suite, cases, repeats, model, `maxSteps`, prompt fingerprint and eval fingerprint, and each file changes exactly one of thinking mode and `maxOutputTokens` from the file before it (for example 400/off → 1200/off → 1200/low → 2000/low). Prices are optional, in USD per million tokens; reasoning tokens are priced as output. It prints the JSON and a markdown table.
