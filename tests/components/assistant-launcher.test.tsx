@@ -60,9 +60,9 @@ describe("AssistantLauncher", () => {
     const fetchMock = stubFetch(respond(true, { enabled: true }));
     render(<AssistantLauncher />);
 
-    expect(await screen.findByRole("button", { name: "AI 選課助手" })).toBeTruthy();
-    expect(screen.getByText("可以試試 AI 選課")).toBeTruthy();
-    expect(screen.getByText("Try the AI course helper")).toBeTruthy();
+    expect(await screen.findByRole("button", { name: "AI Course Helper" })).toBeTruthy();
+    expect(screen.getByText("AI Course Helper")).toBeTruthy();
+    expect(screen.getByText("AI 選課助手")).toBeTruthy();
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock).toHaveBeenCalledWith("/api/assistant/access", expect.objectContaining({ cache: "no-store" }));
   });
@@ -102,7 +102,7 @@ describe("AssistantLauncher", () => {
     await act(async () => {
       resolveSignOut(respond(true, { enabled: true }));
     });
-    expect(screen.queryByRole("button", { name: "AI 選課助手" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "AI Course Helper" })).toBeNull();
 
     cleanup();
 
@@ -129,7 +129,7 @@ describe("AssistantLauncher", () => {
     stubFetch(respond(true, { enabled: true }));
     render(<AssistantLauncher />);
 
-    const button = await screen.findByRole("button", { name: "AI 選課助手" });
+    const button = await screen.findByRole("button", { name: "AI Course Helper" });
     expect(screen.queryByTestId("assistant-panel")).toBeNull();
     fireEvent.click(button);
     expect(screen.getByTestId("assistant-panel")).toBeTruthy();
@@ -153,7 +153,7 @@ describe("AssistantLauncher", () => {
     useAuthMock.mockReturnValue({ isLoaded: true, isSignedIn: true, userId: "user_a" });
     stubFetch(respond(true, { enabled: true }));
     const { rerender } = render(<AssistantLauncher />);
-    fireEvent.click(await screen.findByRole("button", { name: "AI 選課助手" }));
+    fireEvent.click(await screen.findByRole("button", { name: "AI Course Helper" }));
     expect(screen.getByTestId("assistant-panel").getAttribute("data-suppressed")).toBe("false");
 
     usePathnameMock.mockReturnValue("/admin/assistant");
@@ -169,7 +169,7 @@ describe("AssistantLauncher", () => {
     useAuthMock.mockReturnValue({ isLoaded: true, isSignedIn: true, userId: "user_a" });
     stubFetch(respond(true, { enabled: true }));
     const { rerender } = render(<AssistantLauncher />);
-    fireEvent.click(await screen.findByRole("button", { name: "AI 選課助手" }));
+    fireEvent.click(await screen.findByRole("button", { name: "AI Course Helper" }));
     expect(screen.getByTestId("assistant-panel")).toBeTruthy();
 
     useAuthMock.mockReturnValue({ isLoaded: true, isSignedIn: false, userId: null });
@@ -178,7 +178,7 @@ describe("AssistantLauncher", () => {
 
     useAuthMock.mockReturnValue({ isLoaded: true, isSignedIn: true, userId: "user_a" });
     rerender(<AssistantLauncher />);
-    expect(await screen.findByRole("button", { name: "AI 選課助手" })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: "AI Course Helper" })).toBeTruthy();
     expect(screen.queryByTestId("assistant-panel")).toBeNull();
   });
 
@@ -186,12 +186,12 @@ describe("AssistantLauncher", () => {
     useAuthMock.mockReturnValue({ isLoaded: true, isSignedIn: true, userId: "user_a" });
     const fetchMock = stubFetch(respond(true, { enabled: true }));
     const { rerender } = render(<AssistantLauncher />);
-    fireEvent.click(await screen.findByRole("button", { name: "AI 選課助手" }));
+    fireEvent.click(await screen.findByRole("button", { name: "AI Course Helper" }));
 
     useAuthMock.mockReturnValue({ isLoaded: true, isSignedIn: true, userId: "user_b" });
     rerender(<AssistantLauncher />);
     expect(screen.queryByTestId("assistant-panel")).toBeNull();
-    expect(await screen.findByRole("button", { name: "AI 選課助手" })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: "AI Course Helper" })).toBeTruthy();
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });

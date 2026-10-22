@@ -62,15 +62,6 @@ vi.mock("@copilotkit/react-core/v2", () => ({
     }, []);
     return <>{children}</>;
   },
-  CopilotSidebar: (props: {
-    open: boolean;
-    onOpenChange: (open: boolean) => void;
-    header: { closeButton: Record<string, string> };
-  }) => (
-    <div data-testid="copilot-sidebar" data-open={String(props.open)}>
-      <button type="button" {...props.header.closeButton} onClick={() => props.onOpenChange(false)} />
-    </div>
-  ),
   useAgentContext: agentContextSpy,
   useFrontendTool: (definition: unknown, deps: unknown) => {
     frontendToolSpy(definition, deps);
@@ -85,12 +76,22 @@ vi.mock("@/lib/timetable/catalog-client", () => ({
 vi.mock("@/components/timetable/planner-provider", () => ({
   useTimetablePlanner: () => ({ activePlan: undefined }),
 }));
+vi.mock("@/components/assistant/assistant-chat", () => ({
+  default: (props: { notice: string | null; onClose: () => void }) => (
+    <div data-testid="assistant-chat">
+      <button type="button" onClick={props.onClose}>
+        close-chat
+      </button>
+      {props.notice ? <div role="alert">{props.notice}</div> : null}
+    </div>
+  ),
+}));
 
 import AssistantLauncher from "@/components/assistant/assistant-launcher";
 import DesktopAssistantGate from "@/components/assistant/desktop-assistant-gate";
 import { PAGE_CONTEXT_DESCRIPTION } from "@/lib/assistant/page-context";
 
-const BUTTON = { name: "AI 選課助手" };
+const BUTTON = { name: "AI Course Helper" };
 
 // Evaluates min-width queries against a mutable width, the way a browser would.
 const viewport = { width: 1280, listeners: new Set<() => void>() };
@@ -159,7 +160,7 @@ const lastPageContext = () => {
 
 async function openPanel() {
   fireEvent.click(await screen.findByRole("button", BUTTON));
-  expect(screen.getByTestId("copilot-sidebar").getAttribute("data-open")).toBe("true");
+  expect(screen.getByTestId("assistant-chat")).toBeTruthy();
 }
 
 beforeEach(() => {
@@ -288,7 +289,7 @@ describe("DesktopAssistantGate", () => {
     resizeTo(1280);
 
     expect(await screen.findByRole("button", BUTTON)).toBeTruthy();
-    expect(screen.queryByTestId("copilot-sidebar")).toBeNull();
+    expect(screen.queryByTestId("assistant-chat")).toBeNull();
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(providerLife.live).toBe(0);
   });
@@ -313,7 +314,7 @@ describe("DesktopAssistantGate", () => {
     resizeTo(1024);
     expect(fetchMock).toHaveBeenCalledTimes(6);
     expect(providerLife.live).toBe(1);
-    expect(screen.getAllByTestId("copilot-sidebar")).toHaveLength(1);
+    expect(screen.getAllByTestId("assistant-chat")).toHaveLength(1);
 
     unmount();
     expect(viewport.listeners.size).toBe(0);
@@ -325,12 +326,12 @@ describe("DesktopAssistantGate", () => {
     const { rerender } = renderAssistant();
     await openPanel();
 
-    fireEvent.click(screen.getByRole("button", { name: "收起助手" }));
+    fireEvent.click(screen.getByRole("button", { name: "close-chat" }));
     fireEvent.click(screen.getByRole("button", BUTTON));
     pathnameRef.current = "/course/COMP1000";
     rerender(assistantTree());
 
-    expect(screen.getByTestId("copilot-sidebar").getAttribute("data-open")).toBe("true");
+    expect(screen.getByTestId("assistant-chat")).toBeTruthy();
     expect(providerLife.mounts).toBe(1);
     expect(providerLife.live).toBe(1);
   });
@@ -366,7 +367,7 @@ describe("DesktopAssistantGate", () => {
     });
     expect(pushMock).toHaveBeenCalledWith("/course/ECON1001");
     expect(providerLife.mounts).toBe(1);
-    expect(screen.getByTestId("copilot-sidebar").getAttribute("data-open")).toBe("true");
+    expect(screen.getByTestId("assistant-chat")).toBeTruthy();
     expect(lastPageContext()).toEqual({ page: "course", courseCode: "ECON1001" });
   });
 

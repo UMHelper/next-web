@@ -21,7 +21,7 @@ afterEach(() => {
 describe("ResizeHandle", () => {
   it("starts at 380 and exposes the width to assistive tech", () => {
     render(<ResizeHandle visible />);
-    const handle = screen.getByRole("separator", { name: "調整助手寬度" });
+    const handle = screen.getByRole("separator", { name: "Resize assistant" });
     expect(handle.getAttribute("aria-valuenow")).toBe("380");
     expect(handle.getAttribute("aria-valuemin")).toBe("320");
     expect(handle.getAttribute("aria-valuemax")).toBe("560");
@@ -60,6 +60,41 @@ describe("ResizeHandle", () => {
     rerender(<ResizeHandle visible={false} />);
     expect(screen.queryByRole("separator")).toBeNull();
     expect(cssWidth()).toBe("420px");
+  });
+
+  it("updates the width variable on pointer move so the panel tracks the pointer", () => {
+    const proto = HTMLElement.prototype as unknown as Record<string, unknown>;
+    const original = {
+      set: proto.setPointerCapture,
+      has: proto.hasPointerCapture,
+      release: proto.releasePointerCapture,
+    };
+    proto.setPointerCapture = vi.fn();
+    proto.hasPointerCapture = vi.fn(() => true);
+    proto.releasePointerCapture = vi.fn();
+
+    const panel = document.createElement("aside");
+    const panelRef = { current: panel };
+
+    try {
+      render(<ResizeHandle visible panelRef={panelRef} />);
+      const handle = screen.getByRole("separator");
+
+      fireEvent.pointerDown(handle, { pointerId: 1, clientX: 1200 });
+      fireEvent.pointerMove(handle, { pointerId: 1, clientX: 1000 });
+
+      expect(cssWidth()).toBe("440px");
+      expect(panel.style.width).toBe("440px");
+      expect((handle as HTMLElement).style.right).toBe("var(--assistant-width, 380px)");
+
+      fireEvent.pointerUp(handle, { pointerId: 1 });
+      expect(storage.getItem("umeh-assistant-width")).toBe("440");
+      expect(panel.style.width).toBe("440px");
+    } finally {
+      proto.setPointerCapture = original.set;
+      proto.hasPointerCapture = original.has;
+      proto.releasePointerCapture = original.release;
+    }
   });
 
   it("re-clamps when the window shrinks and removes the variable on unmount", () => {

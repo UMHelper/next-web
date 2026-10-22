@@ -68,12 +68,12 @@ export function createAssistantTools() {
     defineTool({
       name: "search_catalog",
       description:
-        "Search the site catalog by course code, English course title, or English instructor name. type=course searches courses, type=instructor searches instructors. Give at least one of query, faculty, or department.",
+        "Search the site catalog by course code/prefix, English course title, or English instructor name. type=course searches courses, type=instructor searches instructors. For a subject's full course list, pass the code prefix (e.g. ACCT) rather than the English subject word. Give at least one of query, faculty, or department.",
       parameters: z.object({
         type: z.enum(["course", "instructor"]),
-        query: z.string().max(80).optional().describe("Course code, English course title, or English instructor name"),
-        faculty: z.string().max(40).optional().describe("Faculty code, e.g. FBA"),
-        department: z.string().max(80).optional().describe("Department code, e.g. ACCT"),
+        query: z.string().max(80).optional().describe("Course code or prefix (e.g. ACCT), English course title, or English instructor name. Use the code prefix for a subject's full course list."),
+        faculty: z.string().max(40).optional().describe("Faculty / offering unit code, e.g. FBA"),
+        department: z.string().max(80).optional().describe("Offering department code, e.g. AIM (Accounting and Information Management). Do not pass a course-code prefix here."),
         page: pageParam,
       }),
       execute: (args) =>

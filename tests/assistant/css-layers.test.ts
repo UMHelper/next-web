@@ -27,9 +27,8 @@ function findRule(root: postcss.Root, match: (rule: Rule) => boolean): Rule {
 }
 
 /**
- * CopilotKit v2 ships Tailwind v4 CSS inside cascade layers. Unlayered CSS beats every layer, so an
- * unlayered Tailwind 3 preflight zeroes CopilotKit's translate (the sidebar never slides closed) and
- * strips button padding, borders and backgrounds inside the chat.
+ * The site preflight lives in a cascade layer so third-party CSS cannot be reset by it. Keep that
+ * contract: an unlayered preflight would also beat every utility the assistant loads.
  */
 describe("site CSS cascade layers", () => {
   let root: postcss.Root;
