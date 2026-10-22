@@ -128,4 +128,16 @@ describe("assistant eval cases", () => {
     const turns = EVAL_CASES.flatMap((evalCase) => evalCase.turns);
     expect(turns.filter((turn) => turn.expect.navigate !== "forbidden").every((turn) => turn.expect.destination)).toBe(true);
   });
+
+  it("opens the course page for 'Show me' but only answers 'What is it about'", () => {
+    const turnOf = (id: string) => EVAL_CASES.find((evalCase) => evalCase.id === id)?.turns[0];
+    expect(turnOf("ambiguous-show-me-en")).toMatchObject({
+      message: "Show me CISC3014",
+      expect: { navigate: "required", destination: { destination: "course", code: "CISC3014" } },
+    });
+    expect(turnOf("info-about-course-en")).toMatchObject({
+      message: "What is CISC3014 about?",
+      expect: { navigate: "forbidden", tools: [{ name: "get_course", args: { code: "CISC3014" } }] },
+    });
+  });
 });

@@ -151,14 +151,26 @@ export const EVAL_CASES: EvalCase[] = [
     id: "ambiguous-show-me-en",
     category: "ambiguous",
     pathname: "/",
-    why: "'Show me' a course: opening it or answering with a link are both acceptable.",
+    why: "'Show me' an identifiable course asks for its page, even without the word 'page'; contrast info-about-course-en.",
     turns: [
       {
         message: "Show me CISC3014",
+        expect: { navigate: "required", destination: CISC3014, replyLanguage: "english" },
+      },
+    ],
+  },
+  {
+    id: "info-about-course-en",
+    category: "information",
+    pathname: "/",
+    why: "Asking what a course is about wants an answer, even though the course could be opened.",
+    turns: [
+      {
+        message: "What is CISC3014 about?",
         expect: {
-          navigate: "optional",
-          destination: CISC3014,
+          navigate: "forbidden",
           tools: [{ name: "get_course", args: { code: "CISC3014" } }],
+          mustMention: [["Database Systems"], ["SQL", "relational", "normalisation", "normalization", "transaction"]],
           replyLanguage: "english",
         },
       },
