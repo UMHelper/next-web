@@ -17,6 +17,9 @@ type CatalogLookups = {
   getInstructorCourses: (prof: string) => Promise<{ courses: any[] }>;
 };
 
+export const NAVIGATE_DESCRIPTION =
+  "Open a page on this site for the student: a course, an instructor, an instructor's reviews for a course, the catalog, or their timetable. Only call it when the student asks to open or go to a page. It cannot open other sites and never changes the timetable.";
+
 export const navigateParameters = z.object({
   destination: z
     .enum(["course", "professor", "reviews", "catalog", "timetable"])

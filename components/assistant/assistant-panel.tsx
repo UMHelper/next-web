@@ -23,10 +23,11 @@ import {
 } from "react";
 
 import {
+  CHECK_PLAN_CONFLICTS_DESCRIPTION,
   checkPlanConflictsParameters,
   runCheckPlanConflicts,
 } from "@/lib/assistant/check-plan-conflicts";
-import { navigateParameters } from "@/lib/assistant/navigation";
+import { NAVIGATE_DESCRIPTION, navigateParameters } from "@/lib/assistant/navigation";
 import { describeAssistantError } from "@/lib/assistant/error-message";
 import { PAGE_CONTEXT_DESCRIPTION, describePage } from "@/lib/assistant/page-context";
 import { PANEL_WIDTH_DEFAULT } from "@/lib/assistant/panel-width";
@@ -161,8 +162,7 @@ function AssistantTools() {
   useFrontendTool(
     {
       name: "check_plan_conflicts",
-      description:
-        "Check whether one section of a course taught by an instructor clashes with the student's current timetable. Read-only; never changes the timetable.",
+      description: CHECK_PLAN_CONFLICTS_DESCRIPTION,
       parameters: checkPlanConflictsParameters,
       handler: async (input) =>
         runCheckPlanConflicts(planRef.current?.payload.sections ?? [], input, getSections),
@@ -174,8 +174,7 @@ function AssistantTools() {
   useFrontendTool(
     {
       name: "navigate",
-      description:
-        "Open a page on this site for the student: a course, an instructor, an instructor's reviews for a course, the catalog, or their timetable. Only call it when the student asks to open or go to a page. It cannot open other sites and never changes the timetable.",
+      description: NAVIGATE_DESCRIPTION,
       parameters: navigateParameters,
       handler: (input, context) =>
         navigate(input, { signal: context?.signal, agent: context?.agent }),

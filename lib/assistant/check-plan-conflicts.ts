@@ -8,6 +8,9 @@ import {
   type PlanSection,
 } from "@/lib/timetable/schema";
 
+export const CHECK_PLAN_CONFLICTS_DESCRIPTION =
+  "Check whether one section of a course taught by an instructor clashes with the student's current timetable. Read-only; never changes the timetable.";
+
 export const checkPlanConflictsParameters = z.object({
   code: z.string().min(1).max(20).describe("Course code, e.g. ECON1001"),
   instructor: z.string().min(1).max(80).describe("Instructor name in English, e.g. CHAN TAI MAN"),
