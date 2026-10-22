@@ -93,6 +93,7 @@ async function handleRun(request: Request, userId: string, config: AssistantConf
     return apiError("temporarily_unavailable", "Assistant is temporarily unavailable", 503);
   }
   if (!outcome.allowed) {
+    console.warn("[assistant] rate limited", JSON.stringify({ window: outcome.window, turns }));
     const response = apiError("rate_limited", "Too many assistant requests", 429);
     response.headers.set("Retry-After", String(outcome.retryAfter));
     return response;
@@ -100,9 +101,11 @@ async function handleRun(request: Request, userId: string, config: AssistantConf
 
   const messages = shapeConversation(parsed.data.messages, config.historyTurns);
   const payload = JSON.stringify({ ...parsed.data, messages });
+  // CopilotKit starts a follow-up run after each frontend tool, ending the history with its result.
+  const continuation = parsed.data.messages.at(-1)?.role === "tool";
   console.log(
     "[assistant] run",
-    JSON.stringify({ turns, messages: messages.length, bytes: payload.length }),
+    JSON.stringify({ turns, continuation, messages: messages.length, bytes: payload.length }),
   );
 
   const headers = new Headers(request.headers);

@@ -4,6 +4,8 @@ import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { MockLanguageModelV3, simulateReadableStream } from "ai/test";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
+import type { AgentRateLimitOutcome } from "@/lib/assistant/rate-limit";
+
 /**
  * Drives the real AssistantPanel, CopilotKitProvider, /api/copilotkit route, CopilotRuntime and
  * BuiltInAgent end to end. Only Clerk, assistant access, the rate-limit store, the catalog and the
@@ -27,7 +29,7 @@ const h = vi.hoisted(() => ({
   runs: [] as unknown[],
   serverToolCodes: [] as string[],
   rateLimitCalls: 0,
-  rateLimit: { allowed: true } as { allowed: true } | { allowed: false; retryAfter: number },
+  rateLimit: { allowed: true } as AgentRateLimitOutcome,
   access: true,
   plan: undefined as unknown,
   core: undefined as unknown,
@@ -392,7 +394,7 @@ describe("assistant runtime integration (scripted model)", () => {
     h.brain = (() => ({ text: "fine" })) as never;
     await mountAssistant("/");
 
-    h.rateLimit = { allowed: false, retryAfter: 60 };
+    h.rateLimit = { allowed: false, window: "hour", retryAfter: 60 };
     const rejected = await ask("hello");
     expect(rejected[0].modelCalls).toHaveLength(0);
     expect(await screen.findByRole("alert")).toHaveProperty("textContent", "提問次數已達上限，請稍後再試。");
