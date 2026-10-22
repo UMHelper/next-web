@@ -28,6 +28,8 @@ export type StepMetrics = {
   inputTokens?: number;
   cachedInputTokens?: number;
   outputTokens?: number;
+  /** Included in outputTokens. Absent before Phase 2 and when thinking is off. */
+  reasoningTokens?: number;
   finish: string;
   tools: string[];
 };

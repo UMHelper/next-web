@@ -41,6 +41,7 @@ export function withStepMetrics<M extends LanguageModelV3>(model: M): M {
                 inputTokens: part.usage.inputTokens.total,
                 cachedInputTokens: part.usage.inputTokens.cacheRead,
                 outputTokens: part.usage.outputTokens.total,
+                reasoningTokens: part.usage.outputTokens.reasoning,
                 finish: part.finishReason.unified,
                 tools,
               }),

@@ -71,6 +71,16 @@ describe("withStepMetrics", () => {
     });
   });
 
+  it("logs reasoning tokens separately when the provider reports them", async () => {
+    const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
+    const thinkingUsage = { ...usage, outputTokens: { total: 90, text: 30, reasoning: 60 } };
+    const chunks = textStep.map((part) => (part.type === "finish" ? { ...part, usage: thinkingUsage } : part));
+
+    await convertReadableStreamToArray((await withStepMetrics(modelStreaming(chunks)).doStream(callOptions)).stream);
+
+    expect(stepLogs(log)[0]).toMatchObject({ outputTokens: 90, reasoningTokens: 60 });
+  });
+
   it("never logs prompt text, reply text or tool arguments", async () => {
     const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
 
