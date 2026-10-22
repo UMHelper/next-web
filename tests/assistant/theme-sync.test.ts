@@ -74,6 +74,37 @@ describe("assistant theme sync", () => {
     expect(themeIdx).toBeGreaterThan(baseIdx);
   });
 
+  const ruleFor = (css: string, selector: string) => {
+    const start = css.indexOf(selector);
+    expect(start, `missing rule for ${selector}`).toBeGreaterThan(-1);
+    return css.slice(start, css.indexOf("}", start));
+  };
+
+  it("wraps long links and inline identifiers inside assistant replies", () => {
+    const css = readFileSync(themePath, "utf8");
+    for (const selector of ['[data-streamdown="link"]', '[data-streamdown="inline-code"]']) {
+      expect(ruleFor(css, `[data-copilotkit] ${selector}`)).toContain("overflow-wrap: anywhere");
+    }
+  });
+
+  it("keeps wide tables scrolling inside their own box with wrapping, compact cells", () => {
+    const css = readFileSync(themePath, "utf8");
+    expect(ruleFor(css, '[data-copilotkit] [data-streamdown="table-wrapper"] > div')).toContain("overflow-x: auto");
+    const cells = ruleFor(css, '[data-copilotkit] [data-streamdown="table-header-cell"]');
+    expect(cells).toContain("white-space: normal");
+    expect(cells).toContain("padding:");
+  });
+
+  it("keeps headings in replies close to body size", () => {
+    const css = readFileSync(themePath, "utf8");
+    expect(ruleFor(css, "[data-copilotkit] .copilotKitAssistantMessage :is(h1, h2, h3, h4)")).toContain("font-size: 1em");
+  });
+
+  it("stops chat scrolling from scrolling the page behind the sidebar", () => {
+    const css = readFileSync(themePath, "utf8");
+    expect(ruleFor(css, "div[data-sidebar-chat] .cpk\\:overflow-y-auto")).toContain("overscroll-behavior: contain");
+  });
+
   it("widens the sidebar input and keeps example chips flush with the intro", () => {
     const css = readFileSync(themePath, "utf8");
     expect(css).toMatch(

@@ -19,6 +19,8 @@ import { TimetablePlannerProvider } from '@/components/timetable/planner-provide
 import { ThemeProvider } from '@/components/providers/theme-provider';
 import { ThemeColorMeta } from '@/components/theme-color-meta';
 import FloatingPlanner from '@/components/timetable/floating-planner';
+import AssistantLauncher from '@/components/assistant/assistant-launcher';
+import DesktopAssistantGate from '@/components/assistant/desktop-assistant-gate';
 import { SKIN_INIT_SCRIPT } from '@/lib/skin';
 import { SkinController } from '@/components/skin-controller';
 import { IslandLayer } from '@/components/island-layer';
@@ -146,6 +148,9 @@ export default function RootLayout({
                         }}
                     />
                     <FloatingPlanner />
+                    <DesktopAssistantGate>
+                        <AssistantLauncher />
+                    </DesktopAssistantGate>
                     </TimetablePlannerProvider>
                     </ClerkProviderClient>
                     </ThemeProvider>

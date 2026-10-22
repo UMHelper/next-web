@@ -165,12 +165,42 @@ describe("/api/copilotkit", () => {
   });
 
   it("returns 429 with Retry-After when the user is over the limit", async () => {
-    mocks.consumeAgentRateLimits.mockResolvedValue({ allowed: false, retryAfter: 1800 });
+    mocks.consumeAgentRateLimits.mockResolvedValue({ allowed: false, window: "hour", retryAfter: 1800 });
     const { POST } = await loadRoute();
     const response = await POST(post("/agent/default/run", runBody([now])));
     expect(response.status).toBe(429);
     expect(response.headers.get("Retry-After")).toBe("1800");
     expect(mocks.runtimeHandler).not.toHaveBeenCalled();
+  });
+
+  it("logs which window rejected the run without identifying the user", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    mocks.consumeAgentRateLimits.mockResolvedValue({ allowed: false, window: "day", retryAfter: 40_000 });
+    const { POST } = await loadRoute();
+
+    await POST(post("/agent/default/run", runBody([now])));
+
+    expect(warn).toHaveBeenCalledWith("[assistant] rate limited", JSON.stringify({ window: "day", turns: 1 }));
+    expect(JSON.stringify(warn.mock.calls)).not.toContain("user_1");
+    warn.mockRestore();
+  });
+
+  it("marks runs that continue after a frontend tool result", async () => {
+    const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
+    const { POST } = await loadRoute();
+    const toolTurn = [
+      now,
+      { id: "a1", role: "assistant", content: "", toolCalls: [{ id: "c1", type: "function", function: { name: "navigate", arguments: "{}" } }] },
+      { id: "t1", role: "tool", toolCallId: "c1", content: '{"status":"navigated"}' },
+    ];
+
+    await POST(post("/agent/default/run", runBody([now])));
+    await POST(post("/agent/default/run", runBody(toolTurn)));
+
+    const runs = log.mock.calls.filter(([label]) => label === "[assistant] run").map(([, json]) => JSON.parse(json));
+    expect(runs.map((run) => run.continuation)).toEqual([false, true]);
+    expect(JSON.stringify(log.mock.calls)).not.toContain("current question");
+    log.mockRestore();
   });
 
   it("fails closed with 503 when the rate limit store is down", async () => {
