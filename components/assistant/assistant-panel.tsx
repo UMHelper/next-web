@@ -31,7 +31,7 @@ import { NAVIGATE_DESCRIPTION, navigateParameters } from "@/lib/assistant/naviga
 import { describeAssistantError } from "@/lib/assistant/error-message";
 import { PAGE_CONTEXT_DESCRIPTION, describePage } from "@/lib/assistant/page-context";
 import { PANEL_WIDTH_DEFAULT } from "@/lib/assistant/panel-width";
-import { summarizePlan } from "@/lib/assistant/plan-summary";
+import { PLAN_CONTEXT_DESCRIPTION, summarizePlan } from "@/lib/assistant/plan-summary";
 import { getSections } from "@/lib/timetable/catalog-client";
 import { useTimetablePlanner } from "@/components/timetable/planner-provider";
 import { cn } from "@/lib/utils";
@@ -155,7 +155,7 @@ function AssistantTools() {
   const pathname = usePathname();
   const page = useMemo(() => JSON.stringify(describePage(pathname)), [pathname]);
 
-  useAgentContext({ description: "The student's active timetable plan (read-only)", value: summarizePlan(activePlan) });
+  useAgentContext({ description: PLAN_CONTEXT_DESCRIPTION, value: summarizePlan(activePlan) });
   useAgentContext({ description: PAGE_CONTEXT_DESCRIPTION, value: page });
   useConfigureSuggestions(EXAMPLE_SUGGESTIONS);
 
