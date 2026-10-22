@@ -149,17 +149,47 @@ describe("verifyDestination", () => {
 });
 
 describe("navigationsSinceLastUserMessage", () => {
-  const call = (name: string) => ({ id: name, type: "function", function: { name, arguments: "{}" } });
-  it("counts navigate calls after the latest user message only", () => {
+  const call = (id: string, name = "navigate") => ({ id, type: "function", function: { name, arguments: "{}" } });
+  const result = (toolCallId: string, status: string) => ({
+    role: "tool",
+    toolCallId,
+    content: JSON.stringify({ status }),
+  });
+
+  it("counts pages opened after the latest user message only", () => {
     const messages = [
       { role: "user" },
-      { role: "assistant", toolCalls: [call("navigate"), call("navigate")] },
+      { role: "assistant", toolCalls: [call("old")] },
+      result("old", "navigated"),
       { role: "user" },
-      { role: "assistant", toolCalls: [call("get_course"), call("navigate")] },
-      { role: "tool" },
-      { role: "assistant", toolCalls: [call("navigate")] },
+      { role: "assistant", toolCalls: [call("course", "get_course"), call("first")] },
+      result("course", "navigated"),
+      result("first", "navigated"),
+      { role: "assistant", toolCalls: [call("pending")] },
     ];
-    expect(navigationsSinceLastUserMessage(messages)).toBe(2);
+    expect(navigationsSinceLastUserMessage(messages)).toBe(1);
+  });
+
+  it.each(["navigated", "landed_elsewhere", "timeout"])("counts a %s result as an opened page", (status) => {
+    const messages = [{ role: "user" }, { role: "assistant", toolCalls: [call("a")] }, result("a", status)];
+    expect(navigationsSinceLastUserMessage(messages)).toBe(1);
+  });
+
+  it.each(["already_here", "not_found", "unavailable", "invalid_destination", "busy", "cancelled", "limit_reached"])(
+    "does not count a %s result",
+    (status) => {
+      const messages = [{ role: "user" }, { role: "assistant", toolCalls: [call("a")] }, result("a", status)];
+      expect(navigationsSinceLastUserMessage(messages)).toBe(0);
+    },
+  );
+
+  it("ignores results that are not JSON", () => {
+    const messages = [
+      { role: "user" },
+      { role: "assistant", toolCalls: [call("a")] },
+      { role: "tool", toolCallId: "a", content: "Error: boom" },
+    ];
+    expect(navigationsSinceLastUserMessage(messages)).toBe(0);
   });
 });
 

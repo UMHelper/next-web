@@ -11,15 +11,13 @@ import {
   parseDestination,
   samePage,
   verifyDestination,
+  type MessageLike,
   type NavigateResult,
 } from "@/lib/assistant/navigation";
 import { describePage } from "@/lib/assistant/page-context";
 
 type Landing = { pathname: string } | { status: "timeout" | "cancelled" };
-type ToolContext = {
-  signal?: AbortSignal;
-  agent?: { messages: ReadonlyArray<{ role: string; toolCalls?: ReadonlyArray<{ function: { name: string } }> }> };
-};
+type ToolContext = { signal?: AbortSignal; agent?: { messages: ReadonlyArray<MessageLike> } };
 
 export function useNavigateTool() {
   const router = useRouter();
@@ -50,7 +48,7 @@ export function useNavigateTool() {
   return useCallback(async (input: unknown, context: ToolContext = {}): Promise<NavigateResult> => {
     const destination = parseDestination(input);
     if (!destination) return { status: "invalid_destination" };
-    if (context.agent && navigationsSinceLastUserMessage(context.agent.messages) > MAX_NAVIGATIONS_PER_MESSAGE) {
+    if (context.agent && navigationsSinceLastUserMessage(context.agent.messages) >= MAX_NAVIGATIONS_PER_MESSAGE) {
       return { status: "limit_reached" };
     }
     if (busy.current) return { status: "busy" };

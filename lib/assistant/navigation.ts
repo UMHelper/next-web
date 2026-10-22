@@ -6,7 +6,7 @@ import { buildCatalogPath, buildCoursePath } from "@/lib/site";
 import { getCourseDetail, getInstructorCourses } from "@/lib/timetable/catalog-client";
 
 export const NAVIGATION_TIMEOUT_MS = 10_000;
-export const MAX_NAVIGATIONS_PER_MESSAGE = 2;
+export const MAX_NAVIGATIONS_PER_MESSAGE = 1;
 
 // The course API substitutes this title when the catalog has no row, the same signal lib/mcp/data/get-course.ts uses.
 const MISSING_COURSE_TITLE = "Unknown Course";
@@ -154,14 +154,45 @@ export async function verifyDestination(
   }
 }
 
-type MessageLike = { role: string; toolCalls?: ReadonlyArray<{ function: { name: string } }> };
+export type MessageLike = {
+  role: string;
+  content?: unknown;
+  toolCallId?: string;
+  toolCalls?: ReadonlyArray<{ id: string; function: { name: string } }>;
+};
 
-export function navigationsSinceLastUserMessage(messages: ReadonlyArray<MessageLike>): number {
-  let count = 0;
-  for (let i = messages.length - 1; i >= 0 && messages[i].role !== "user"; i--) {
-    count += messages[i].toolCalls?.filter((call) => call.function.name === "navigate").length ?? 0;
+// The router was pushed for these, so the page changed or may still be changing.
+const OPENED_STATUSES: ReadonlySet<string> = new Set(["navigated", "landed_elsewhere", "timeout"]);
+
+function resultStatus(content: unknown): string | undefined {
+  if (typeof content !== "string") return undefined;
+  try {
+    const status = JSON.parse(content)?.status;
+    return typeof status === "string" ? status : undefined;
+  } catch {
+    return undefined;
   }
-  return count;
+}
+
+/**
+ * Pages opened since the student's latest message. CopilotKit's follow-up runs after a frontend
+ * tool add no user message, so the count carries across every continuation of the same turn.
+ */
+export function navigationsSinceLastUserMessage(messages: ReadonlyArray<MessageLike>): number {
+  let start = messages.length;
+  while (start > 0 && messages[start - 1].role !== "user") start--;
+  const turn = messages.slice(start);
+
+  const navigateCalls = new Set(
+    turn.flatMap((message) => message.toolCalls?.filter((call) => call.function.name === "navigate").map((call) => call.id) ?? []),
+  );
+  return turn.filter(
+    (message) =>
+      message.role === "tool" &&
+      message.toolCallId !== undefined &&
+      navigateCalls.has(message.toolCallId) &&
+      OPENED_STATUSES.has(resultStatus(message.content) ?? ""),
+  ).length;
 }
 
 export const samePage = (a: PageContext, b: PageContext) => JSON.stringify(a) === JSON.stringify(b);

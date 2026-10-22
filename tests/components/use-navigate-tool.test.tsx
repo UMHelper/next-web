@@ -53,16 +53,15 @@ function wrapper({ children }: { children: ReactNode }) {
   );
 }
 
-const navigateCall = { function: { name: "navigate" } };
-
-function agentWithNavigateCalls(count: number) {
+function agentAfterNavigateResults(...statuses: string[]) {
   return {
     messages: [
-      { role: "user" as const },
-      ...Array.from({ length: count }, () => ({
-        role: "assistant" as const,
-        toolCalls: [navigateCall],
-      })),
+      { role: "user" },
+      ...statuses.flatMap((status, index) => [
+        { role: "assistant", toolCalls: [{ id: `nav-${index}`, function: { name: "navigate" } }] },
+        { role: "tool", toolCallId: `nav-${index}`, content: JSON.stringify({ status }) },
+      ]),
+      { role: "assistant", toolCalls: [{ id: "nav-now", function: { name: "navigate" } }] },
     ],
   };
 }
@@ -319,20 +318,26 @@ describe("useNavigateTool", () => {
     });
   });
 
-  it("returns limit_reached after two prior navigate calls in the same turn", async () => {
+  it.each(["navigated", "timeout"])(
+    "returns limit_reached once a page was opened this turn (previous result %s)",
+    async (status) => {
+      const { result } = mountNavigate();
+
+      await expect(
+        result.current({ destination: "course", code: "ECON1001" }, { agent: agentAfterNavigateResults(status) }),
+      ).resolves.toEqual({ status: "limit_reached" });
+      expect(getCourseDetailMock).not.toHaveBeenCalled();
+      expect(pushMock).not.toHaveBeenCalled();
+    },
+  );
+
+  it("allows a corrected navigation after a not_found in the same turn", async () => {
     const { result } = mountNavigate();
 
-    await expect(
-      result.current({ destination: "timetable" }, { agent: agentWithNavigateCalls(3) }),
-    ).resolves.toEqual({ status: "limit_reached" });
-    expect(getCourseDetailMock).not.toHaveBeenCalled();
-    expect(pushMock).not.toHaveBeenCalled();
-  });
-
-  it("allows navigation when only two navigate calls are present", async () => {
-    const { result } = mountNavigate();
-
-    const pending = result.current({ destination: "timetable" }, { agent: agentWithNavigateCalls(2) });
+    const pending = result.current(
+      { destination: "timetable" },
+      { agent: agentAfterNavigateResults("not_found", "invalid_destination") },
+    );
     await act(async () => {
       await Promise.resolve();
     });
@@ -342,6 +347,19 @@ describe("useNavigateTool", () => {
       status: "navigated",
       page: { page: "timetable" },
     });
+  });
+
+  it("allows the first navigation of a turn after a page opened in an earlier turn", async () => {
+    const { result } = mountNavigate();
+    const agent = agentAfterNavigateResults("navigated");
+    agent.messages.splice(-1, 0, { role: "user" });
+
+    const pending = result.current({ destination: "timetable" }, { agent });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    land("/timetable");
+    await expect(pending).resolves.toMatchObject({ status: "navigated" });
   });
 
   it("returns cancelled when unmounted while waiting to land", async () => {

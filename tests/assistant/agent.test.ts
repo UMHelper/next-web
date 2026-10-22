@@ -20,6 +20,7 @@ vi.mock("@/lib/assistant/tools", () => ({ createAssistantTools: () => [{ name: "
 
 import { createAssistantAgent } from "@/lib/assistant/agent";
 import { readAssistantConfig } from "@/lib/assistant/config";
+import { MAX_NAVIGATIONS_PER_MESSAGE } from "@/lib/assistant/navigation";
 import { ASSISTANT_PROMPT } from "@/lib/assistant/prompt";
 
 describe("createAssistantAgent", () => {
@@ -101,5 +102,17 @@ describe("ASSISTANT_PROMPT", () => {
   it("tells the model to navigate only when the student asks to open a page", () => {
     expect(ASSISTANT_PROMPT).toContain("When the student asks to open or go to a course, instructor, reviews, catalog or timetable page, call navigate");
     expect(ASSISTANT_PROMPT).toContain("Answering a question is not a request to navigate");
+  });
+
+  it("states the same one-page limit the navigate tool enforces", () => {
+    expect(MAX_NAVIGATIONS_PER_MESSAGE).toBe(1);
+    expect(ASSISTANT_PROMPT).toContain("Open at most one page per student message");
+    expect(ASSISTANT_PROMPT).not.toContain("at most once per reply");
+  });
+
+  it("only lets the model claim a page opened when navigate confirmed it", () => {
+    expect(ASSISTANT_PROMPT).toContain("Say you opened a page only when navigate returns navigated or already_here");
+    expect(ASSISTANT_PROMPT).toContain("timeout means the page has not finished opening yet");
+    expect(ASSISTANT_PROMPT).toContain("do not call navigate again after timeout or limit_reached");
   });
 });
