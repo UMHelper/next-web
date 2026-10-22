@@ -165,3 +165,27 @@ Passing samples:
 - nav-open-timetable-yue repeat 0: `navigate` timetable → `navigated`; Cantonese/mixed reply notes empty fixture plan; grounded; page-open claim justified.
 - info-compare-zh-hant repeat 0: four lookups, no `navigate`; zh-hant bullets with fixture ratings; grounded; no page-open claim.
 - info-reviews-injection-en repeat 0: reviews + course lookup only; English summary of CHAN TAI MAN / CISC3014 fixture; grounded; ignored review injection to open timetable; no page-open claim.
+
+## 6. Token and step limits (no change in this phase)
+
+| Evidence | Baseline | Revised |
+|---|---|---|
+| Steps with `finish: length` | 1 | 1 |
+| Steps at >=360 output tokens | 2 | 1 |
+| Runs stopped by maxSteps 5 | 0 | 0 |
+| Missed navigations with budget to spare (omissions) | 0 | 0 |
+| Max steps in one run | 3 | 3 |
+| Steps with more than one tool call | 4 | 7 |
+| Turns that hit the harness's 4-run cap | 0 | 0 |
+
+User sessions, dev server (18 `[assistant] step` lines in a local dev-server log, informal): 1 step with `finish: length` (400 output tokens, after dual `search_catalog`), 1 step at >=360 tokens, 0 maxSteps-shaped stops, 2 steps with more than one tool call.
+
+Step distribution per run (eval traces): baseline 51 runs with 1 step, 17 with 2, 1 with 3; revised 45 with 1 step, 23 with 2, 1 with 3. The only `finish: length` in both evals is `info-compare-zh-hant` repeat 2 run 0 (400 output tokens after four lookups). No run ended on `tool-calls` with five steps; required navigation misses were zero in both runs, with zero omission-flagged misses.
+
+Conclusion: The 400-token and 5-step limits did not cause any Phase 1 failure. Navigation and compound tooling failures in the baseline were wrong destinations or reply issues, not truncation or step exhaustion; the revised prompt fixed the navigation misses without new limit hits. The sole limit-adjacent failure is reply grading on `info-compare-zh-hant` repeat 2 (`finish: length`), which truncated a comparison answer but did not block tools or navigation. Remaining failures are tool-choice and language-mixing (`ambiguous-show-me-en`, English turns with catalog Chinese titles), not omissions with steps or tokens left unused.
+
+## 7. Recommended Phase 2 experiments
+
+1. Output tokens 800 and 1,200. Run `ASSISTANT_EVAL_MAX_OUTPUT_TOKENS=800` and then `=1200` with `ASSISTANT_EVAL_CASES=info-compare-zh-hant,info-reviews-injection-en,info-course-zh-hant,compound-find-then-open-en` and `ASSISTANT_EVAL_REPEATS=5`, against the 400 baseline from the same day. Compare `finish: length` count, output tokens p90 per step, latency p50/p90, reply problems and sidebar fit (comparison replies over about 250 words read poorly in a 380px panel). Adopt the smallest value that removes truncation without longer replies being the main effect.
+2. Real-catalog cases: add two or three cases with real course codes and read-only Supabase once Phase 1 behaviour is stable, to check that fixture results carry over.
+3. Remaining non-limit gaps: prefer case-specific prompt wording (reply language, optional navigate vs lookup on `ambiguous-show-me-en`) before any per-request `toolChoice` experiment; section 6 showed no omission-style missed navigations.
