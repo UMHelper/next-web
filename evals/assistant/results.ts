@@ -159,6 +159,10 @@ const counts = (values: Record<string, number>) =>
 
 const METRICS: Array<[string, (summary: Summary, stepsUsed: number) => string]> = [
   ["Task completion (turns passed)", (s) => ratio(s.passed, s.turns)],
+  [
+    "Intent read correctly (navigation decision and lookups)",
+    (s) => (s.intent ? ratio(s.intent.ok, s.intent.turns) : "n/a"),
+  ],
   ["Tool selection: required navigate correct", (s) => ratio(s.toolSelection.correct, s.toolSelection.required)],
   [
     "Tool selection: missed (omissions) / invalid arguments / wrong page",
@@ -166,6 +170,10 @@ const METRICS: Array<[string, (summary: Summary, stepsUsed: number) => string]> 
       `${s.toolSelection.missed} (${s.toolSelection.omissions}) / ${s.toolSelection.invalidArguments} / ${s.toolSelection.wrongDestination}`,
   ],
   ["Unsolicited navigation", (s) => ratio(s.unsolicited.navigated, s.unsolicited.forbidden)],
+  [
+    "Unavailable pages: stayed on page (navigate tried)",
+    (s) => (s.unavailable ? `${ratio(s.unavailable.stayed, s.unavailable.turns)} (${s.unavailable.attempted})` : "n/a"),
+  ],
   ["Simulated navigation landed (required turns)", (s) => ratio(s.simulatedNavigation.landed, s.simulatedNavigation.required)],
   ["First navigate status (required turns)", (s) => counts(s.simulatedNavigation.statuses)],
   ["Academic tools correct", (s) => ratio(s.academicTools.ok, s.academicTools.required)],
@@ -186,6 +194,13 @@ const METRICS: Array<[string, (summary: Summary, stepsUsed: number) => string]> 
     (s) => `${s.limits.inputTokens} (${s.limits.cachedInputTokens}) / ${s.limits.outputTokens}`,
   ],
   ["Most output tokens in one step", (s) => String(s.limits.maxStepOutputTokens)],
+  ["Reasoning tokens", (s) => (s.limits.reasoningTokens === undefined ? "n/a" : String(s.limits.reasoningTokens))],
+  [
+    "Model steps per turn (mean)",
+    (s) => (s.limits.stepsPerTurnMean === undefined ? "n/a" : s.limits.stepsPerTurnMean.toFixed(2)),
+  ],
+  ["Latency p95", (s) => (s.limits.latencyP95Ms === undefined ? "n/a" : `${s.limits.latencyP95Ms} ms`)],
+  ["Slowest model step", (s) => (s.limits.maxStepMs === undefined ? "n/a" : `${s.limits.maxStepMs} ms`)],
 ];
 
 export function metricTable(columns: ReportColumn[]): string {

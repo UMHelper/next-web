@@ -231,6 +231,8 @@ describe("report", () => {
     const table = metricTable([{ title: "A", summary, stepsUsed: 1 }]);
     expect(table.split("\n").slice(0, 2)).toEqual(["| Metric | A |", "|---|---|"]);
     expect(table).toContain("| Task completion (turns passed) | 1/1 |");
+    expect(table).toContain("| Intent read correctly (navigation decision and lookups) |");
+    expect(table).toContain("| Reasoning tokens |");
     expect(table).toContain("| Simulated navigation landed (required turns) | 1/1 |");
     expect(table).toContain("| Model requests: steps graded / steps used | 1 / 1 |");
   });

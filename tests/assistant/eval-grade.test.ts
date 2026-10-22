@@ -4,6 +4,7 @@ import {
   gradeTurn,
   summarize,
   type CatalogFacts,
+  type ReplyLanguage,
   type StepMetrics,
   type ToolCallRecord,
   type TurnExpectation,
@@ -284,5 +285,100 @@ describe("gradeTurn reply language", () => {
       grade(trace({ reply: "Done." }), { navigate: "forbidden" }),
     ];
     expect(summarize(grades).language).toEqual({ checked: 2, ok: 1 });
+  });
+});
+
+describe("gradeTurn Korean and Japanese replies", () => {
+  const problems = (reply: string, language: ReplyLanguage) =>
+    grade(trace({ reply }), { navigate: "forbidden", replyLanguage: language }).responseProblems;
+
+  it("accepts Korean and Japanese replies that name the course", () => {
+    expect(problems("CISC3014 (Database Systems)는 데이터베이스를 배우는 3학점 과목입니다.", "korean")).toEqual([]);
+    expect(problems("CISC3014「資料庫系統」はデータベースの授業です。", "japanese")).toEqual([]);
+  });
+
+  it("tells Japanese from Chinese by kana", () => {
+    expect(problems("CISC3014 是資料庫系統課程。", "japanese")).toEqual(["reply is not in Japanese"]);
+    expect(problems("CISC3014はデータベースの授業です。", "chinese")).toEqual(["reply contains Japanese"]);
+  });
+
+  it("flags a reply in the wrong language for Korean and English students", () => {
+    expect(problems("CISC3014 covers SQL.", "korean")).toEqual(["reply is not in Korean"]);
+    expect(problems("CISC3014 데이터베이스", "english")).toEqual(["reply contains Korean"]);
+  });
+});
+
+describe("gradeTurn unavailable pages", () => {
+  const unavailable: TurnExpectation = { navigate: "unavailable", studentCodes: ["CISC9999"] };
+
+  it("passes when navigate reports not_found and the student stays", () => {
+    const result = grade(
+      trace({
+        toolCalls: [navigateTo({ destination: "course", code: "CISC9999" }, "not_found")],
+        reply: "CISC9999 is not on this site.",
+      }),
+      unavailable,
+    );
+    expect(result).toMatchObject({ selection: "attempted", stayed: true, intentOk: true, pass: true, responseProblems: [] });
+  });
+
+  it("passes when the assistant explains without calling navigate", () => {
+    expect(grade(trace({ reply: "There is no CISC9999 on this site." }), unavailable)).toMatchObject({
+      selection: "none",
+      stayed: true,
+      pass: true,
+    });
+  });
+
+  it("fails when the student ends up on another page", () => {
+    const result = grade(trace({ toolCalls: [navigateTo({ destination: "catalog" })], pathnameAfter: "/catalog" }), unavailable);
+    expect(result).toMatchObject({ stayed: false, intentOk: false, pass: false });
+  });
+
+  it("still flags course codes the student did not type", () => {
+    expect(grade(trace({ reply: "Try CISC9998 instead." }), unavailable).responseProblems).toEqual([
+      "unknown course codes: CISC9998",
+    ]);
+  });
+});
+
+describe("gradeTurn intent", () => {
+  it("credits the right decision even when the page did not load", () => {
+    const result = grade(trace({ toolCalls: [navigateTo({ destination: "course", code: "CISC3014" }, "timeout")] }), {
+      navigate: "required",
+      destination: COURSE,
+    });
+    expect(result).toMatchObject({ selection: "correct", intentOk: true, landed: false, pass: false });
+  });
+
+  it("does not credit a question answered by opening a page", () => {
+    const result = grade(
+      trace({ toolCalls: [navigateTo({ destination: "course", code: "CISC3014" })], pathnameAfter: COURSE_PATH }),
+      { navigate: "forbidden" },
+    );
+    expect(result.intentOk).toBe(false);
+  });
+
+  it("needs the lookups as well as the navigation decision", () => {
+    expect(grade(trace(), { navigate: "forbidden", tools: [{ name: "get_course", args: { code: "CISC3014" } }] }).intentOk).toBe(
+      false,
+    );
+  });
+});
+
+describe("summarize Phase 2 fields", () => {
+  it("summarises intent, unavailable pages, reasoning tokens and latency", () => {
+    const thinkingStep: StepMetrics = { ...step("stop", 300), reasoningTokens: 200, ms: 4000 };
+    const grades = [
+      grade(trace({ runs: [{ continuation: false, ms: 4000, steps: [step("tool-calls"), thinkingStep] }], ms: 5000 }), {
+        navigate: "forbidden",
+      }),
+      grade(trace({ ms: 1000 }), { navigate: "unavailable" }),
+    ];
+    expect(summarize(grades)).toMatchObject({
+      intent: { turns: 2, ok: 2 },
+      unavailable: { turns: 1, stayed: 1, attempted: 0 },
+      limits: { reasoningTokens: 200, maxStepMs: 4000, stepsPerTurnMean: 1.5, latencyP95Ms: 5000 },
+    });
   });
 });

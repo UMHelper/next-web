@@ -7,16 +7,23 @@ import type { ASSISTANT_SERVER_TOOL_NAMES } from "@/lib/assistant/tools";
 
 export type ServerToolName = (typeof ASSISTANT_SERVER_TOOL_NAMES)[number];
 
+export type ReplyLanguage = "chinese" | "english" | "korean" | "japanese";
+
 export type TurnExpectation = {
-  /** optional: either answering or navigating is fine, but navigation must land on `destination`. */
-  navigate: "required" | "forbidden" | "optional";
+  /**
+   * optional: either answering or navigating is fine, but navigation must land on `destination`.
+   * unavailable: the student asked for a page this site cannot open; trying navigate is fine, but the turn must end where it started.
+   */
+  navigate: "required" | "forbidden" | "optional" | "unavailable";
   /** Raw navigate input; compared after parseDestination on both sides. */
   destination?: Record<string, string>;
   /** Must be called, each before the navigate call that lands. Not checked for an optional turn that navigated. */
   tools?: Array<{ name: ServerToolName; args?: Record<string, string> }>;
   /** Each group needs one of its strings in the reply, case-insensitively. */
   mustMention?: string[][];
-  replyLanguage?: "chinese" | "english";
+  replyLanguage?: ReplyLanguage;
+  /** Course codes the student typed that are not in the catalog; the reply may repeat them. */
+  studentCodes?: string[];
 };
 
 /** What the fixture catalog knows: codes the reply may mention, and titles it may quote in their original language. */
@@ -74,7 +81,9 @@ export type SelectionOutcome =
   | "unsolicited"
   | "none"
   | "optional_taken"
-  | "optional_skipped";
+  | "optional_skipped"
+  /** unavailable turns only: navigate was tried. */
+  | "attempted";
 
 export type TurnLimits = {
   runs: number;
@@ -87,6 +96,8 @@ export type TurnLimits = {
   cachedInputTokens: number;
   outputTokens: number;
   maxStepOutputTokens: number;
+  reasoningTokens: number;
+  maxStepMs: number;
   finishes: string[];
   ms: number;
 };
@@ -103,6 +114,10 @@ export type TurnGrade = {
   landed: boolean | null;
   academicTools: boolean | null;
   compound: boolean | null;
+  /** unavailable turns: the turn ended on the page it started on; null otherwise. */
+  stayed: boolean | null;
+  /** The model read the request right (navigation decision and lookups), whether or not the page then loaded. */
+  intentOk: boolean;
   /** null when the turn has no replyLanguage expectation. */
   languageOk: boolean | null;
   responseProblems: string[];
@@ -128,6 +143,9 @@ export type Summary = {
   academicTools: { required: number; ok: number };
   compound: { turns: number; complete: number };
   language: { checked: number; ok: number };
+  /** Absent in results written before Phase 2. */
+  intent?: { turns: number; ok: number };
+  unavailable?: { turns: number; stayed: number; attempted: number };
   responses: { ok: number; total: number };
   limits: {
     runs: number;
@@ -144,12 +162,19 @@ export type Summary = {
     cachedInputTokens: number;
     outputTokens: number;
     maxStepOutputTokens: number;
+    /** Absent in results written before Phase 2. */
+    stepsPerTurnMean?: number;
+    latencyP95Ms?: number;
+    reasoningTokens?: number;
+    maxStepMs?: number;
   };
   byTurn: Record<string, { passed: number; total: number }>;
 };
 
 const COURSE_CODE_IN_TEXT = /\b[A-Z]{4}\d{4}\b/g;
 const HAN = /\p{Script=Han}/u;
+const HANGUL = /\p{Script=Hangul}/u;
+const KANA = /[\p{Script=Hiragana}\p{Script=Katakana}]/u;
 const LANDED_STATUSES: ReadonlySet<string> = new Set(["navigated", "already_here"]);
 
 const normalized = (value: unknown) =>
@@ -178,6 +203,7 @@ function selectionOf(
   wanted: NavigationDestination | null,
 ): SelectionOutcome {
   if (expectation.navigate === "forbidden") return first ? "unsolicited" : "none";
+  if (expectation.navigate === "unavailable") return first ? "attempted" : "none";
   if (!first) return expectation.navigate === "required" ? "missed" : "optional_skipped";
   const actual = parseDestination(first.args);
   if (actual === null) return "invalid_arguments";
@@ -205,6 +231,8 @@ function limitsOf(trace: TurnTrace, maxSteps: number, missed: boolean): TurnLimi
     cachedInputTokens: sum((step) => step.cachedInputTokens),
     outputTokens: sum((step) => step.outputTokens),
     maxStepOutputTokens: Math.max(0, ...steps.map((step) => step.outputTokens ?? 0)),
+    reasoningTokens: sum((step) => step.reasoningTokens),
+    maxStepMs: Math.max(0, ...steps.map((step) => step.ms)),
     finishes,
     ms: trace.ms,
   };
@@ -224,10 +252,26 @@ function languageProblem(
   officialTitles: readonly string[],
 ): string | null {
   if (language === undefined) return null;
-  const ownChinese = HAN.test(withoutOfficialTitles(reply, officialTitles));
-  if (language === "chinese" && !ownChinese) return "reply is not in Chinese";
-  if (language === "english" && ownChinese) return "reply contains Chinese";
-  return null;
+  const own = withoutOfficialTitles(reply, officialTitles);
+  const han = HAN.test(own);
+  const hangul = HANGUL.test(own);
+  const kana = KANA.test(own);
+  switch (language) {
+    case "english":
+      if (kana) return "reply contains Japanese";
+      if (hangul) return "reply contains Korean";
+      return han ? "reply contains Chinese" : null;
+    case "chinese":
+      if (!han) return "reply is not in Chinese";
+      if (kana) return "reply contains Japanese";
+      return hangul ? "reply contains Korean" : null;
+    case "korean":
+      if (!hangul) return "reply is not in Korean";
+      return kana ? "reply contains Japanese" : null;
+    case "japanese":
+      if (!kana) return "reply is not in Japanese";
+      return hangul ? "reply contains Korean" : null;
+  }
 }
 
 function responseProblems(
@@ -245,7 +289,8 @@ function responseProblems(
   for (const group of expectation.mustMention ?? []) {
     if (!group.some((text) => reply.includes(text.toLowerCase()))) problems.push(`missing: ${group.join(" | ")}`);
   }
-  const unknown = [...new Set(trace.reply.match(COURSE_CODE_IN_TEXT) ?? [])].filter((code) => !knownCodes.includes(code));
+  const allowed = [...knownCodes, ...(expectation.studentCodes ?? [])];
+  const unknown = [...new Set(trace.reply.match(COURSE_CODE_IN_TEXT) ?? [])].filter((code) => !allowed.includes(code));
   if (unknown.length > 0) problems.push(`unknown course codes: ${unknown.join(", ")}`);
   if (language !== null) problems.push(language);
   return problems;
@@ -286,6 +331,16 @@ export function gradeTurn(
       ? academicTools === true && landed === true && positions.every((index) => index < landingIndex)
       : null;
 
+  const stayed = expectation.navigate === "unavailable" ? trace.pathnameAfter === trace.pathnameBefore : null;
+  const navigationRead =
+    expectation.navigate === "required"
+      ? selection === "correct"
+      : expectation.navigate === "forbidden"
+        ? selection === "none"
+        : expectation.navigate === "optional"
+          ? selection === "optional_taken" || selection === "optional_skipped"
+          : stayed === true;
+
   const limits = limitsOf(trace, maxSteps, selection === "missed");
   const language = languageProblem(trace.reply, expectation.replyLanguage, catalog.officialTitles);
   const problems = responseProblems(trace, expectation, limits.truncated, catalog.courseCodes, language);
@@ -299,12 +354,15 @@ export function gradeTurn(
     landed,
     academicTools,
     compound,
+    stayed,
+    intentOk: navigationRead && academicTools !== false,
     languageOk: expectation.replyLanguage === undefined ? null : language === null,
     responseProblems: problems,
     limits,
     pass:
       selection !== "unsolicited" &&
       landed !== false &&
+      stayed !== false &&
       academicTools !== false &&
       compound !== false &&
       problems.length === 0,
@@ -319,6 +377,7 @@ export function summarize(grades: TurnGrade[]): Summary {
   const withTools = where((grade) => grade.academicTools !== null);
   const compound = where((grade) => grade.compound !== null);
   const languageChecked = where((grade) => grade.languageOk !== null);
+  const unavailable = where((grade) => grade.expectation === "unavailable");
   const latencies = grades.map((grade) => grade.limits.ms).sort((a, b) => a - b);
   const percentile = (p: number) =>
     latencies.length === 0 ? 0 : latencies[Math.min(latencies.length - 1, Math.floor(p * latencies.length))];
@@ -370,6 +429,12 @@ export function summarize(grades: TurnGrade[]): Summary {
     academicTools: { required: withTools.length, ok: withTools.filter((grade) => grade.academicTools).length },
     compound: { turns: compound.length, complete: compound.filter((grade) => grade.compound).length },
     language: { checked: languageChecked.length, ok: languageChecked.filter((grade) => grade.languageOk).length },
+    intent: { turns: grades.length, ok: where((grade) => grade.intentOk).length },
+    unavailable: {
+      turns: unavailable.length,
+      stayed: unavailable.filter((grade) => grade.stayed === true).length,
+      attempted: unavailable.filter((grade) => grade.selection === "attempted").length,
+    },
     responses: { ok: where((grade) => grade.responseProblems.length === 0).length, total: grades.length },
     limits: {
       runs: total((limits) => limits.runs),
@@ -386,6 +451,10 @@ export function summarize(grades: TurnGrade[]): Summary {
       cachedInputTokens: total((limits) => limits.cachedInputTokens),
       outputTokens: total((limits) => limits.outputTokens),
       maxStepOutputTokens: highest((limits) => limits.maxStepOutputTokens),
+      stepsPerTurnMean: grades.length === 0 ? 0 : total((limits) => limits.steps) / grades.length,
+      latencyP95Ms: percentile(0.95),
+      reasoningTokens: total((limits) => limits.reasoningTokens),
+      maxStepMs: highest((limits) => limits.maxStepMs),
     },
     byTurn,
   };
