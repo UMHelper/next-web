@@ -176,6 +176,7 @@ Keep production `maxSteps` at 5 for Phase 2; no run hit the step cap.
 | 89cb638 | docs(assistant): design the V1-E phase 2 output-budget experiment |
 | d8d5cbc | fix(assistant): type the phase 2 overview tool list |
 | d1048fd | docs(assistant): recommend the full phase 2 token-budget design |
+| 053738c | docs(assistant): record V1-E phase 1 closure verification |
 
 ## 11. Remaining risks
 
