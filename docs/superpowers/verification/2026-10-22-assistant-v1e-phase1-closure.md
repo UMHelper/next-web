@@ -122,7 +122,23 @@ One line per failing live turn from `failures` in `.eval-results/assistant/2026-
 
 ## 7. Phase 2 recommendation
 
-Written in Task 5.
+Run **arm A only** of the token suite first (`ASSISTANT_EVAL_SUITE=tokens`, `ASSISTANT_EVAL_MAX_OUTPUT_TOKENS=400`, 5 repeats); run arms B (800) and C (1,200) only if arm A shows `finish: length` on answer steps. Do not run all three arms up front: the 2026-10-22 live closure run had no truncation, while regraded Phase 1 traces still show the historical hit on the comparison case.
+
+Evidence (from Task 4 JSON, not edited):
+
+| Run | `truncatedTurns` | `finishCounts.length` | `maxStepOutputTokens` | Truncation detail |
+|---|---:|---:|---:|---|
+| Regraded baseline (`2026-10-22T13-18-26-419Z-regrade-baseline.json`) | 1/42 | 1 | 400 | `info-compare-zh-hant` repeat 2 (`grades[].limits.truncated`) |
+| Regraded revised (`2026-10-22T13-18-26-422Z-regrade-revised.json`) | 1/42 | 1 | 400 | same case and repeat |
+| Live closure (`2026-10-22T13-21-34-233Z-closure.json`) | 0/45 | 0 | 286 | none |
+
+The three live verification runs also had no `finish: length`: `2026-10-22T13-21-20-859Z-closure-smoke.json` (`truncatedTurns` 0, finishCounts `tool-calls`/`stop` only, `maxStepOutputTokens` 147), `2026-10-22T13-21-34-233Z-closure.json` (above), and `2026-10-22T13-24-45-361Z-closure-show-me.json` (`truncatedTurns` 0/10, finishCounts `tool-calls`/`stop` only, `maxStepOutputTokens` 176).
+
+Required-navigation misses (`toolSelection.omissions` 3 on closure, 1 on closure-show-me) did not coincide with `maxStepsHit` or truncation: all live runs had `maxStepsHits` 0 and no graded turn with both `toolSelection.missed` and `limits.truncated`.
+
+Keep production `maxSteps` at 5 for Phase 2; no run hit the step cap.
+
+Full experiment design: [Phase 2 design](../specs/2026-10-22-assistant-v1e-phase2-token-budget-design.md).
 
 ## 8. Automated checks
 
