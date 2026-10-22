@@ -53,3 +53,17 @@ ASSISTANT_REPORT=.eval-results/assistant/<regrade>.json,.eval-results/assistant/
 ```
 
 Regrading reads the saved traces and grades them under the current rules without calling the model. It writes a `kind: "regraded"` file that keeps the source's settings and lists turns the source never ran (`missing`). Report columns are titled `Regraded:` or `Live:`.
+
+## Suites
+
+`ASSISTANT_EVAL_SUITE=navigation` (default) runs `cases.ts`. `ASSISTANT_EVAL_SUITE=tokens` runs `token-cases.ts`, the Phase 2 output-budget suite. Each suite has its own `settings.eval` fingerprint.
+
+## Output-budget comparison
+
+```bash
+ASSISTANT_COMPARE=.eval-results/assistant/A.json,.eval-results/assistant/B.json,.eval-results/assistant/C.json \
+ASSISTANT_EVAL_PRICE_INPUT_MISS=<usd> ASSISTANT_EVAL_PRICE_INPUT_HIT=<usd> ASSISTANT_EVAL_PRICE_OUTPUT=<usd> \
+npm run eval:assistant -- evals/assistant/compare.eval.ts
+```
+
+The comparison fails unless every file is a complete live run, and the files share the same suite, cases, repeats, model, thinking mode, `maxSteps`, prompt fingerprint and eval fingerprint, with a different `maxOutputTokens` each. Prices are optional and are in USD per million tokens. Without them, `costUsd` is `null`.

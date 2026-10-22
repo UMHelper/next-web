@@ -21,6 +21,7 @@ import { EVAL_CATALOG_FACTS } from "./catalog";
 import { gradeTurn, summarize, type TurnGrade, type TurnTrace } from "./grade";
 import { BudgetExhausted, PROMPT_FINGERPRINT, runCase, type EvalBudget, type HarnessOptions } from "./harness";
 import { evalFingerprint, expectedTurns, failureLines, isComplete, positiveInt, resultFileName } from "./results";
+import { TOKEN_CASES } from "./token-cases";
 
 const env = process.env;
 const enabled = env.ASSISTANT_EVAL === "1";
@@ -47,6 +48,8 @@ const stepBudget = positiveInt("ASSISTANT_EVAL_MAX_STEPS", env.ASSISTANT_EVAL_MA
 const delayMs = Number(env.ASSISTANT_EVAL_DELAY_MS ?? "500");
 const label = env.ASSISTANT_EVAL_LABEL ?? "run";
 const only = env.ASSISTANT_EVAL_CASES?.split(",").map((id) => id.trim());
+const SUITES: Record<string, EvalCase[]> = { navigation: EVAL_CASES, tokens: TOKEN_CASES };
+const suite = env.ASSISTANT_EVAL_SUITE ?? "navigation";
 
 async function runAll(cases: EvalCase[], budget: EvalBudget, traces: TurnTrace[], grades: TurnGrade[]) {
   for (let repeat = 0; repeat < repeats; repeat++) {
@@ -71,8 +74,8 @@ async function runAll(cases: EvalCase[], budget: EvalBudget, traces: TurnTrace[]
 
 describe.skipIf(!enabled)("assistant navigation behaviour against the real model", () => {
   it("runs the eval cases and writes the results", async () => {
-    const suite = "navigation";
-    const suiteCases = EVAL_CASES;
+    const suiteCases = SUITES[suite];
+    expect(suiteCases, `unknown ASSISTANT_EVAL_SUITE "${suite}"`).toBeDefined();
     const unknown = (only ?? []).filter((id) => !suiteCases.some((evalCase) => evalCase.id === id));
     expect(unknown, "ASSISTANT_EVAL_CASES names cases that are not in the suite").toEqual([]);
     expect(config.apiKey, "AI_API_KEY is not set").toBeDefined();
