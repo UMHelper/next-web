@@ -62,7 +62,8 @@ describe("CopilotKit BuiltInAgent and thinking-mode history", () => {
     await agent.runAgent({ runId: "run-2", tools: [NAVIGATE], context: [] });
 
     const assistant = prompts[0].find((message) => message.role === "assistant");
-    expect(assistant?.content.map((part) => part.type)).toEqual(["tool-call"]);
+    const content = assistant?.content;
+    expect(Array.isArray(content) ? content.map((part) => part.type) : content).toEqual(["tool-call"]);
     expect(JSON.stringify(prompts[0])).not.toContain("Earlier plan.");
   });
 });
