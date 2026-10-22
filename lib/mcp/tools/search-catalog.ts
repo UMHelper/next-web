@@ -24,8 +24,10 @@ export const SEARCH_CATALOG_ANNOTATIONS = {
 } as const;
 
 export const SEARCH_CATALOG_DESCRIPTION =
-  "Read-only search of the What2REG@UM 澳大選咩課 catalog by course code, course title or " +
-  "instructor name, optionally filtered by faculty or department. Returns one page of matching " +
+  "Read-only search of the What2REG@UM 澳大選咩課 catalog by course code/prefix, course title or " +
+  "instructor name, optionally filtered by faculty or department. Use the code prefix (e.g. ACCT) " +
+  "for a subject's full course list; the department filter takes an offering department (e.g. AIM), " +
+  "not a course-code prefix. Returns one page of matching " +
   "courses (courseCode, titles, faculty, department, credits, offering flag) or instructors " +
   "(name, course count) together with `page`, `totalCount` and `hasMore`. When `hasMore` is " +
   "true, call the tool again with `page` + 1 to read the next page rather than reporting that " +

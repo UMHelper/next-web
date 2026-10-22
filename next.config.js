@@ -18,9 +18,9 @@ const nextConfig = {
         ],
     },
     webpack(config, { webpack }) {
-        // CopilotKit v2 imports precompiled Tailwind v4 CSS that the Tailwind 3 PostCSS plugin rejects.
-        // The assistant panel loads the copy in public/ instead. Turbopack (next dev) skips this hook
-        // and compiles the original file without errors.
+        // CopilotKit's provider entry imports precompiled Tailwind v4 CSS that the Tailwind 3 PostCSS
+        // plugin rejects. The assistant renders its own AI Elements UI, so the import is stubbed.
+        // Turbopack (next dev) skips this hook and compiles the original file without errors.
         config.plugins.push(
             new webpack.NormalModuleReplacementPlugin(/^\.\/index\.css$/, (resource) => {
                 if (resource.context && resource.context.includes(COPILOTKIT_V2_DIST)) {
@@ -28,8 +28,9 @@ const nextConfig = {
                 }
             }),
         )
-        // streamdown lazy-loads every Shiki grammar and Mermaid diagram, and the webpack runtime that every page
-        // ships maps all of those chunks. The stubs keep pages without the assistant at their baseline size.
+        // streamdown (pulled in by CopilotKit's UI bundle) lazy-loads every Shiki grammar and Mermaid
+        // diagram, and the webpack runtime that every page ships maps all of those chunks. The stubs
+        // keep pages without the assistant at their baseline size.
         config.resolve.alias = {
             ...config.resolve.alias,
             shiki$: path.join(ASSISTANT_BUILD_STUBS, 'shiki.mjs'),

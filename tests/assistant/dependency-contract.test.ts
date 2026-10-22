@@ -16,10 +16,9 @@ describe("assistant dependency contract", () => {
     expect(JSON.parse(read("node_modules/ai/package.json")).version).toBe("6.0.309");
   });
 
-  it("serves an unmodified copy of the CopilotKit v2 stylesheet", () => {
-    expect(read("public/assistant/copilotkit-v2.css")).toBe(
-      read("node_modules/@copilotkit/react-core/dist/v2/index.css"),
-    );
+  it("renders assistant replies with react-markdown", () => {
+    const pkg = JSON.parse(read("package.json"));
+    expect(pkg.dependencies["react-markdown"]).toMatch(/^\^?8\./);
   });
 
   it("keeps CopilotKit telemetry off in the Worker config", () => {

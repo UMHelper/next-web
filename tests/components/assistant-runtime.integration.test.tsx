@@ -1,7 +1,7 @@
-import type { ComponentType } from "react";
 import type { LanguageModelV3Prompt, LanguageModelV3StreamPart } from "@ai-sdk/provider";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { MockLanguageModelV3, simulateReadableStream } from "ai/test";
+import { Request as NativeRequest } from "undici";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { AgentRateLimitOutcome } from "@/lib/assistant/rate-limit";
@@ -111,14 +111,12 @@ vi.mock("@/lib/timetable/catalog-client", () => ({
 vi.mock("@/components/timetable/planner-provider", () => ({
   useTimetablePlanner: () => ({ activePlan: h.plan }),
 }));
-vi.mock("@copilotkit/react-core/v2", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@copilotkit/react-core/v2")>();
+vi.mock("@/components/assistant/assistant-chat", async () => {
+  const { useCopilotKit } = await import("@copilotkit/react-core/v2/headless");
   return {
-    ...actual,
-    CopilotSidebar: (props: { input: { disclaimer: ComponentType } }) => {
-      h.core = actual.useCopilotKit().copilotkit;
-      const Disclaimer = props.input.disclaimer;
-      return <Disclaimer />;
+    default: function MockAssistantChat(props: { notice: string | null }) {
+      h.core = useCopilotKit().copilotkit;
+      return props.notice ? <div role="alert">{props.notice}</div> : null;
     },
   };
 });
@@ -213,11 +211,15 @@ async function routeFetch(input: RequestInfo | URL, init?: RequestInit) {
   const url = new URL(input instanceof Request ? input.url : String(input), "http://localhost:3000");
   if (!url.pathname.startsWith("/api/copilotkit")) throw new Error(`unexpected fetch ${url}`);
   const { signal: _signal, ...rest } = init ?? {};
-  const request = new Request(url, rest);
+  const request = new NativeRequest(url, rest as never);
   if (request.method === "POST" && url.pathname.endsWith("/run")) {
-    h.runs.push({ body: await request.clone().json(), modelCalls: [] } satisfies RunRecord);
+    h.runs.push({
+      body: (await request.clone().json()) as RunRecord["body"],
+      modelCalls: [],
+    } satisfies RunRecord);
   }
-  return request.method === "GET" ? route.GET(request) : route.POST(request);
+  const webRequest = request as unknown as Request;
+  return request.method === "GET" ? route.GET(webRequest) : route.POST(webRequest);
 }
 
 async function mountAssistant(pathname: string) {
@@ -243,6 +245,8 @@ beforeAll(() => {
 
 beforeEach(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = false;
+  // jsdom's Request carries a jsdom AbortSignal, which Node's RequestInit rejects.
+  vi.stubGlobal("Request", NativeRequest);
   vi.stubGlobal("fetch", routeFetch);
   h.runs = [];
   h.serverToolCodes = [];
@@ -397,7 +401,7 @@ describe("assistant runtime integration (scripted model)", () => {
     h.rateLimit = { allowed: false, window: "hour", retryAfter: 60 };
     const rejected = await ask("hello");
     expect(rejected[0].modelCalls).toHaveLength(0);
-    expect(await screen.findByRole("alert")).toHaveProperty("textContent", "提問次數已達上限，請稍後再試。");
+    expect(await screen.findByRole("alert")).toHaveProperty("textContent", "Too many requests. Please try again later.");
 
     h.rateLimit = { allowed: true };
     const retried = await ask("hello again");
@@ -416,7 +420,7 @@ describe("assistant runtime integration (scripted model)", () => {
 
     h.failNextModelCall = true;
     await ask("first");
-    expect(await screen.findByRole("alert")).toHaveProperty("textContent", "助手暫時不可用，頁面其它功能不受影響。");
+    expect(await screen.findByRole("alert")).toHaveProperty("textContent", "The assistant is temporarily unavailable. Please try again.");
 
     await ask("second");
     expect(textOf(core().getAgent("default")!.messages.at(-1)?.content)).toBe("back");

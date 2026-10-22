@@ -166,13 +166,13 @@ export const searchCatalogInputSchema = z
       "Search the course catalog (`course`) or the instructor catalog (`instructor`).",
     ),
     query: optionalFilter(80).describe(
-      "Course code, course title or instructor name to search for. Optional, but at least one of query, faculty or department is required.",
+      "Course code or prefix (for example `ACCT`), course title or instructor name. For a subject's full course list use the code prefix. Optional, but at least one of query, faculty or department is required.",
     ),
     faculty: optionalFilter(40).describe(
       "Faculty / offering unit filter, for example `FBA`. Optional.",
     ),
     department: optionalFilter(80).describe(
-      "Department / offering department filter, for example `ACCT`. Optional.",
+      "Offering department filter, for example `AIM` (Accounting and Information Management). This is not the course-code prefix. Optional.",
     ),
     limit: z
       .number()
