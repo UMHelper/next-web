@@ -198,7 +198,7 @@ Conclusion: The 400-token and 5-step limits did not cause any Phase 1 failure. N
 | `npx tsc --noEmit` | exit 0 |
 | `npm test -- --run` | exit 0 — 208 files, 1512 tests |
 | `npm run build` | exit 0 (CopilotKit `channel-manager` critical-dependency; browserslist age notice on first compile) |
-| `npm run build:pages` | exit 0 (unsupported Next.js version; CopilotKit `channel-manager` critical-dependency) |
+| `npm run build:pages` | exit 0 (unsupported Next.js version; CopilotKit `channel-manager` critical-dependency; sandbox wrangler log EPERM) |
 
 | Preserved | Covered by |
 |---|---|
@@ -223,6 +223,7 @@ Conclusion: The 400-token and 5-step limits did not cause any Phase 1 failure. N
 | `69665de` | before/after record |
 | `8a49f08` | limits record |
 | `f903ec5` | correct the V1-E baseline navigation wording |
+| `97ba372` | automated checks, preserved-behaviour table, commit list, remaining risks, excluded paths |
 
 ## 10. Remaining risks
 
