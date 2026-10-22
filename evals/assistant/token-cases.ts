@@ -1,12 +1,13 @@
 import { EVAL_CASES, type EvalCase } from "./cases";
+import type { TurnExpectation } from "./grade";
 
 const infoCompare = EVAL_CASES.find((evalCase) => evalCase.id === "info-compare-zh-hant");
 if (!infoCompare) throw new Error("info-compare-zh-hant is missing from EVAL_CASES");
 
-const CISC3014_OVERVIEW_TOOLS = [
-  { name: "get_course" as const, args: { code: "CISC3014" } },
-  { name: "get_course_reviews" as const, args: { code: "CISC3014", instructor: "CHAN TAI MAN" } },
-  { name: "get_course_sections" as const, args: { code: "CISC3014", instructor: "CHAN TAI MAN" } },
+const CISC3014_OVERVIEW_TOOLS: NonNullable<TurnExpectation["tools"]> = [
+  { name: "get_course", args: { code: "CISC3014" } },
+  { name: "get_course_reviews", args: { code: "CISC3014", instructor: "CHAN TAI MAN" } },
+  { name: "get_course_sections", args: { code: "CISC3014", instructor: "CHAN TAI MAN" } },
 ];
 
 /** Phase 2 output-budget suite: long Traditional Chinese comparisons and explanations, plus one English control. */
