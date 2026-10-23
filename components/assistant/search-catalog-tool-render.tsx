@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import * as CopilotV2 from "@copilotkit/react-core/v2";
+import { useRenderTool } from "@copilotkit/react-core/v2";
 import { z } from "zod/v4";
 
 import { CatalogCourseCard } from "@/components/assistant/catalog-course-card";
@@ -131,9 +131,7 @@ export function SearchCatalogToolResult({
 }
 
 export function useSearchCatalogToolRender(): void {
-  if (!("useRenderTool" in CopilotV2)) return;
-
-  CopilotV2.useRenderTool(
+  useRenderTool(
     {
       name: SEARCH_CATALOG_TOOL_NAME,
       parameters: z.object({}).passthrough(),

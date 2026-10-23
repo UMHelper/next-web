@@ -67,6 +67,7 @@ vi.mock("@copilotkit/react-core/v2", () => ({
     frontendToolSpy(definition, deps);
   },
   useConfigureSuggestions: () => {},
+  useRenderTool: vi.fn(),
 }));
 vi.mock("@/lib/timetable/catalog-client", () => ({
   getSections: vi.fn(),
