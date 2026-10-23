@@ -330,8 +330,8 @@ describe("assistant search_catalog integration (scripted model)", () => {
     await typeAndSend("Find course ACCT1000");
     await waitFor(
       () => {
-        expect(screen.getByRole("article")).toBeTruthy();
-        expect(screen.getByRole("heading", { name: "ACCT1000" })).toBeTruthy();
+        expect(screen.getByRole("list", { name: "Loaded courses" })).toBeTruthy();
+        expect(screen.getByRole("link", { name: /ACCT1000/ })).toBeTruthy();
         expect(screen.getByText("會計學原理")).toBeTruthy();
       },
       { timeout: 10000 },
@@ -339,7 +339,7 @@ describe("assistant search_catalog integration (scripted model)", () => {
     expect(screen.queryByText("Searched courses")).toBeNull();
 
     const runsBeforeNav = runs().length;
-    fireEvent.click(screen.getByRole("link", { name: "View course ACCT1000" }));
+    fireEvent.click(screen.getByRole("link", { name: /ACCT1000/ }));
     expect(nav.pushes).toEqual(["/course/ACCT1000"]);
     expect(runs().length).toBe(runsBeforeNav);
 
@@ -360,7 +360,7 @@ describe("assistant search_catalog integration (scripted model)", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "New chat" }));
     await waitFor(() => {
-      expect(screen.queryByRole("article")).toBeNull();
+      expect(screen.queryByRole("list", { name: "Loaded courses" })).toBeNull();
       expect(screen.queryByText("ACCT1000")).toBeNull();
       expect(screen.queryByRole("link", { name: "CHAN TAI MAN" })).toBeNull();
       expect(screen.getByText("How can I help?")).toBeTruthy();
@@ -370,12 +370,12 @@ describe("assistant search_catalog integration (scripted model)", () => {
   it("shows no prior conversation after remounting the panel", async () => {
     await mountAssistant();
     await typeAndSend("Find course ACCT1000");
-    await waitFor(() => expect(screen.getByRole("article")).toBeTruthy(), { timeout: 10000 });
+    await waitFor(() => expect(screen.getByRole("link", { name: /ACCT1000/ })).toBeTruthy(), { timeout: 10000 });
 
     cleanup();
     await mountAssistant();
 
-    expect(screen.queryByRole("article")).toBeNull();
+    expect(screen.queryByRole("link", { name: /ACCT1000/ })).toBeNull();
     expect(screen.getByText("How can I help?")).toBeTruthy();
   });
 });

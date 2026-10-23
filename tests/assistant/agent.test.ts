@@ -205,10 +205,20 @@ describe("ASSISTANT_PROMPT", () => {
   });
 
   it("tells the model not to repeat search_catalog rows when clients show cards", () => {
-    expect(ASSISTANT_PROMPT).toContain("interactive cards in the chat");
-    expect(ASSISTANT_PROMPT).toContain("Do not repeat every row in Markdown");
+    expect(ASSISTANT_PROMPT).toContain("interactive list in the chat");
+    expect(ASSISTANT_PROMPT).toContain(
+      "Do not repeat every course code and title in a Markdown list or table",
+    );
     expect(ASSISTANT_PROMPT).toContain("Do not assume every client renders cards");
     expect(ASSISTANT_PROMPT).toContain("explicitly asks for a full textual list");
+    expect(ASSISTANT_PROMPT).toContain(
+      "answer in one or two sentences and add caveats instead of restating every field, section or meeting time",
+    );
+    expect(ASSISTANT_PROMPT).toContain(
+      "do not repeat every instructor name unless the student asks for the list",
+    );
+    expect(ASSISTANT_PROMPT).not.toMatch(/\b[A-Z]{4}\d{4}\b/);
+    expect(ASSISTANT_PROMPT).not.toMatch(/[\p{Script=Han}]/u);
   });
 
   it("formats replies for the narrow sidebar", () => {

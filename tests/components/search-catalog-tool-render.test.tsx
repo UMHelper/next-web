@@ -82,15 +82,24 @@ describe("SearchCatalogToolResult", () => {
 
       expect(screen.getByRole("status").textContent).toContain("Searching the catalog…");
       expect(screen.queryByRole("article")).toBeNull();
+      expect(screen.queryByRole("listitem")).toBeNull();
     },
   );
 
-  it("renders course cards with found and showing summaries", () => {
+  it("renders a compact loaded list and one truthful count", () => {
     render(<SearchCatalogToolResult status="complete" result={coursesResult(10, 58)} />);
 
-    expect(screen.getAllByRole("article")).toHaveLength(10);
-    expect(screen.getByText("58 courses found")).toBeTruthy();
-    expect(screen.getByText("Showing 10 of 58")).toBeTruthy();
+    expect(screen.getByRole("list", { name: "Loaded courses" })).toBeTruthy();
+    expect(screen.getAllByRole("listitem")).toHaveLength(10);
+    expect(screen.getAllByRole("listitem")[0].textContent).toContain("1.");
+    expect(screen.getAllByRole("listitem")[9].textContent).toContain("10.");
+    expect(screen.getByText("58 matches · 10 loaded")).toBeTruthy();
+    expect(screen.queryByText("58 courses found")).toBeNull();
+    expect(screen.queryByText("Showing 10 of 58")).toBeNull();
+    expect(screen.queryByRole("article")).toBeNull();
+    expect(screen.getByRole("link", { name: /\bCOURSE1\b/ }).getAttribute("href")).toBe(
+      "/course/COURSE1",
+    );
   });
 
   it("links instructors with course counts", () => {
@@ -184,19 +193,23 @@ describe("SearchCatalogToolResult", () => {
     );
     const group = screen.getByRole("group", { name: "Filter loaded courses" });
     const offered = within(group).getByRole("button", { name: "Offered only" });
-    expect(within(group).getByRole("button", { name: "All" }).getAttribute("aria-pressed")).toBe(
+    expect(within(group).getByRole("button", { name: "All loaded" }).getAttribute("aria-pressed")).toBe(
       "true",
     );
     fireEvent.click(offered);
     expect(offered.getAttribute("aria-pressed")).toBe("true");
-    expect(screen.getAllByRole("article")).toHaveLength(2);
-    expect(
-      screen.getByText(
-        "Showing 2 offered courses among the 10 currently loaded results. There are 127 total matches. Other pages may include more offered courses.",
-      ),
-    ).toBeTruthy();
-    fireEvent.click(within(group).getByRole("button", { name: "All" }));
-    expect(screen.getAllByRole("article")).toHaveLength(10);
+    const offeredRows = screen.getAllByRole("listitem");
+    expect(offeredRows).toHaveLength(2);
+    expect(offeredRows[0].textContent).toContain("1.");
+    expect(offeredRows[0].textContent).toContain("COURSE2");
+    expect(offeredRows[1].textContent).toContain("2.");
+    expect(offeredRows[1].textContent).toContain("COURSE5");
+    expect(screen.getByText("2 offered among 10 loaded · 127 total matches")).toBeTruthy();
+    expect(screen.queryByText(/Other pages may include more offered courses/)).toBeNull();
+    fireEvent.click(within(group).getByRole("button", { name: "All loaded" }));
+    expect(screen.getAllByRole("listitem")).toHaveLength(10);
+    expect(screen.getAllByRole("listitem")[1].textContent).toContain("COURSE2");
+    expect(screen.getByText("127 matches · 10 loaded")).toBeTruthy();
   });
 
   it("shows an empty filtered message when no loaded course is offered", () => {
@@ -209,10 +222,8 @@ describe("SearchCatalogToolResult", () => {
     );
     const group = screen.getByRole("group", { name: "Filter loaded courses" });
     fireEvent.click(within(group).getByRole("button", { name: "Offered only" }));
-    expect(screen.queryAllByRole("article")).toHaveLength(0);
-    expect(
-      screen.getByText("None of the 10 loaded courses are marked offered this term."),
-    ).toBeTruthy();
+    expect(screen.queryByRole("listitem")).toBeNull();
+    expect(screen.getByText("None offered among 10 loaded · 10 total matches")).toBeTruthy();
   });
 
   it("exposes the result block by id", () => {

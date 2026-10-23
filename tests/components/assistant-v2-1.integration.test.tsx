@@ -630,16 +630,16 @@ describe("assistant V2.1 integration (scripted model)", () => {
       },
       { timeout: 10000 },
     );
-    expect(within(block).getAllByRole("article")).toHaveLength(10);
+    expect(within(block).getAllByRole("listitem")).toHaveLength(10);
 
     const runsBefore = runs().length;
     const calls = runs().flatMap((r) => r.modelCalls).length;
     fireEvent.click(within(block).getByRole("button", { name: "Offered only" }));
-    expect(within(block).getAllByRole("article")).toHaveLength(2);
+    expect(within(block).getAllByRole("listitem")).toHaveLength(2);
     expect(runs().length).toBe(runsBefore);
     expect(runs().flatMap((r) => r.modelCalls).length).toBe(calls);
-    fireEvent.click(within(block).getByRole("button", { name: "All" }));
-    expect(within(block).getAllByRole("article")).toHaveLength(10);
+    fireEvent.click(within(block).getByRole("button", { name: "All loaded" }));
+    expect(within(block).getAllByRole("listitem")).toHaveLength(10);
 
     await typeAndSend("Show me only those offered this semester");
     await waitFor(() => expect(screen.getByText("Filtered to offered courses.")).toBeTruthy(), { timeout: 10000 });
@@ -655,7 +655,7 @@ describe("assistant V2.1 integration (scripted model)", () => {
       scope: "loaded_results_only",
       totalCount: 127,
     });
-    expect(within(block).getAllByRole("article")).toHaveLength(2);
+    expect(within(block).getAllByRole("listitem")).toHaveLength(2);
     expect(within(block).getByRole("button", { name: "Offered only" }).getAttribute("aria-pressed")).toBe("true");
     expect(screen.getByRole("button", { name: "Show results" })).toBeTruthy();
     expect(screen.queryByText("Filtered results")).toBeNull();
@@ -679,7 +679,7 @@ describe("assistant V2.1 integration (scripted model)", () => {
       },
       { timeout: 10000 },
     );
-    expect(within(reopened).getAllByRole("article")).toHaveLength(2);
+    expect(within(reopened).getAllByRole("listitem")).toHaveLength(2);
     expect(screen.getByRole("article", { name: "Section 001" })).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "New chat" }));
@@ -706,7 +706,7 @@ describe("assistant V2.1 integration (scripted model)", () => {
       },
       { timeout: 10000 },
     );
-    expect(within(mathBlock).getAllByRole("article")).toHaveLength(10);
+    expect(within(mathBlock).getAllByRole("listitem")).toHaveLength(10);
 
     await typeAndSend("Search for ACCT courses");
     await waitFor(() => expect(document.getElementById("catalog-results-call-2")).not.toBeNull(), { timeout: 10000 });
@@ -717,7 +717,7 @@ describe("assistant V2.1 integration (scripted model)", () => {
       runs().at(-1)!.modelCalls.find((c) => c.lastTool?.name === "filter_catalog_results")!.lastTool!.output,
     );
     expect(filterOut.resultSetId).toBe("call-2");
-    expect(within(mathBlock).getAllByRole("article")).toHaveLength(10);
+    expect(within(mathBlock).getAllByRole("listitem")).toHaveLength(10);
   }, 60_000);
 
   function stubbornOrdinalBrain(call: ModelCall): Step {
@@ -767,7 +767,13 @@ describe("assistant V2.1 integration (scripted model)", () => {
     const runsBefore = runs().length;
     fireEvent.click(within(block).getByRole("button", { name: "Offered only" }));
     expect(runs().length).toBe(runsBefore);
-    expect(within(block).getAllByRole("article")).toHaveLength(2);
+    expect(within(block).getAllByRole("listitem")).toHaveLength(2);
+    const offeredRows = within(block).getAllByRole("listitem");
+    expect(offeredRows[0].textContent).toContain("MATH1002");
+    expect(offeredRows[0].textContent).toContain("1.");
+    expect(offeredRows[1].textContent).toContain("MATH1005");
+    expect(offeredRows[1].textContent).toContain("2.");
+    expect(within(block).getByText("2 offered among 10 loaded · 127 total matches")).toBeTruthy();
 
     await typeAndSend("Tell me about the second course in those results");
     const offeredCall = runs().at(-1)!.modelCalls[0];
@@ -787,7 +793,7 @@ describe("assistant V2.1 integration (scripted model)", () => {
     expect(offeredCourse).not.toContain("MATH1002");
 
     const runsBeforeAll = runs().length;
-    fireEvent.click(within(block).getByRole("button", { name: "All" }));
+    fireEvent.click(within(block).getByRole("button", { name: "All loaded" }));
     expect(runs().length).toBe(runsBeforeAll);
     await typeAndSend("Tell me about the second course in those results");
     expect(runs().at(-1)!.modelCalls[0].catalog?.resultSets[0].courses?.[1]).toMatchObject({

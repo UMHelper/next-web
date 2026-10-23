@@ -8,11 +8,11 @@ import {
   catalogResultsElementId,
   useCatalogFilter,
 } from "@/components/assistant/catalog-filter-store";
-import { CatalogCourseCard } from "@/components/assistant/catalog-course-card";
+import { CatalogCourseRow } from "@/components/assistant/catalog-course-row";
 import { ToolFailureAlert } from "@/components/assistant/tool-failure-alert";
 import {
   applyCatalogFilter,
-  describeFilterScope,
+  describeLoadedResultSummary,
   type CatalogFilter,
 } from "@/lib/assistant/catalog-result-sets";
 import {
@@ -20,7 +20,7 @@ import {
   parseSearchCatalogResult,
   type SearchCatalogFailure,
 } from "@/lib/assistant/search-catalog-ui";
-import type { CatalogInstructor } from "@/lib/mcp/schemas";
+import type { CatalogCourse, CatalogInstructor } from "@/lib/mcp/schemas";
 import { buildProfessorPath } from "@/lib/site";
 
 const FAILURE_COPY: Record<
@@ -79,7 +79,7 @@ function CatalogCourseFilterControls({
         aria-pressed={filter === "all"}
         onClick={() => onFilterChange("all")}
       >
-        All
+        All loaded
       </button>
       <button
         type="button"
@@ -100,36 +100,37 @@ function SearchCatalogCoursesResult({
   view: {
     totalCount: number;
     hasMore: boolean;
-    courses: Parameters<typeof CatalogCourseCard>[0]["course"][];
+    courses: CatalogCourse[];
   };
   resultSetId?: string;
 }) {
   const [filter, setFilter] = useCatalogFilter(resultSetId);
   const displayedCourses = applyCatalogFilter(view.courses, filter);
-  const scopeText = describeFilterScope({
+  const summary = describeLoadedResultSummary({
     filter,
     shown: displayedCourses.length,
     loaded: view.courses.length,
     totalCount: view.totalCount,
-    hasMore: view.hasMore,
   });
 
   return (
     <div
       id={resultSetId ? catalogResultsElementId(resultSetId) : undefined}
-      className="space-y-2"
+      className="min-w-0 space-y-1.5 overflow-x-hidden"
     >
       <CatalogCourseFilterControls filter={filter} onFilterChange={setFilter} />
-      <p className="text-xs text-muted-foreground">{`${view.totalCount} courses found`}</p>
-      {filter === "all" && view.courses.length < view.totalCount ? (
-        <p className="text-xs text-muted-foreground">{`Showing ${view.courses.length} of ${view.totalCount}`}</p>
+      <p className="text-xs text-muted-foreground">{summary}</p>
+      {displayedCourses.length > 0 ? (
+        <ol aria-label="Loaded courses" className="m-0 list-none overflow-x-hidden p-0">
+          {displayedCourses.map((course, index) => (
+            <CatalogCourseRow
+              key={course.courseCode}
+              course={course}
+              position={index + 1}
+            />
+          ))}
+        </ol>
       ) : null}
-      {scopeText ? <p className="text-xs text-muted-foreground">{scopeText}</p> : null}
-      <div className="space-y-2">
-        {displayedCourses.map((course) => (
-          <CatalogCourseCard key={course.courseCode} course={course} />
-        ))}
-      </div>
     </div>
   );
 }
