@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRenderTool } from "@copilotkit/react-core/v2";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { z } from "zod/v4";
 
 import { ToolFailureAlert } from "@/components/assistant/tool-failure-alert";
@@ -13,6 +14,7 @@ import {
 import type { ToolResultFailure } from "@/lib/assistant/tool-result";
 import type { CourseInstructorSummary } from "@/lib/mcp/schemas";
 import { buildCoursePath, buildReviewPath } from "@/lib/site";
+import { cn } from "@/lib/utils";
 
 const FAILURE_MESSAGE: Record<ToolResultFailure, string> = {
   not_found: "That course isn't on this site.",
@@ -31,6 +33,56 @@ function CourseDetailLoading() {
   return (
     <div className="text-xs text-muted-foreground" role="status">
       Loading course details…
+    </div>
+  );
+}
+
+function CourseDescription({ description }: { description: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const [canExpand, setCanExpand] = useState(false);
+  const textRef = useRef<HTMLParagraphElement>(null);
+
+  const measure = useCallback(() => {
+    const el = textRef.current;
+    if (!el || expanded) return;
+    setCanExpand(el.scrollHeight > el.clientHeight + 1);
+  }, [expanded]);
+
+  useEffect(() => {
+    measure();
+  }, [description, measure]);
+
+  useEffect(() => {
+    const el = textRef.current;
+    if (!el || expanded || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(() => measure());
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [description, expanded, measure]);
+
+  const showToggle = canExpand || expanded;
+
+  return (
+    <div className="space-y-1">
+      <p
+        ref={textRef}
+        className={cn(
+          "break-words text-sm leading-snug",
+          !expanded && "line-clamp-4",
+        )}
+      >
+        {description}
+      </p>
+      {showToggle ? (
+        <button
+          type="button"
+          aria-expanded={expanded}
+          onClick={() => setExpanded((value) => !value)}
+          className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          {expanded ? "less" : "more"}
+        </button>
+      ) : null}
     </div>
   );
 }
@@ -132,9 +184,7 @@ export function CourseDetailToolResult({
 
         <p className="text-xs text-muted-foreground">{offering}</p>
 
-        {course.description ? (
-          <p className="line-clamp-4 break-words text-sm leading-snug">{course.description}</p>
-        ) : null}
+        {course.description ? <CourseDescription description={course.description} /> : null}
 
         <div className="space-y-2 pt-1">
           <h4 className="text-xs font-medium text-muted-foreground">Instructors</h4>

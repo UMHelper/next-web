@@ -1,6 +1,6 @@
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { CourseDetailToolResult } from "@/components/assistant/course-detail-tool-render";
 import { SITE_URL, buildReviewPath } from "@/lib/site";
@@ -74,9 +74,61 @@ function instructorRow(name: string, index: number) {
   };
 }
 
+let mockScrollHeight = 0;
+let mockClientHeight = 0;
+
+beforeEach(() => {
+  class ResizeObserverMock {
+    private callback: ResizeObserverCallback;
+
+    constructor(callback: ResizeObserverCallback) {
+      this.callback = callback;
+    }
+
+    observe() {
+      this.callback([], this as unknown as ResizeObserver);
+    }
+
+    unobserve() {}
+    disconnect() {}
+  }
+  globalThis.ResizeObserver = ResizeObserverMock as unknown as typeof ResizeObserver;
+
+  mockScrollHeight = 0;
+  mockClientHeight = 0;
+  Object.defineProperty(HTMLElement.prototype, "scrollHeight", {
+    configurable: true,
+    get() {
+      return mockScrollHeight || (this as HTMLElement).textContent?.length || 0;
+    },
+  });
+  Object.defineProperty(HTMLElement.prototype, "clientHeight", {
+    configurable: true,
+    get() {
+      return mockClientHeight || (mockScrollHeight || (this as HTMLElement).textContent?.length || 0);
+    },
+  });
+});
+
 afterEach(() => {
   cleanup();
 });
+
+function renderCourseDetail(description: string) {
+  const payload = {
+    ...fixture,
+    course: { ...fixture.course, description },
+  };
+  render(<CourseDetailToolResult status="complete" result={JSON.stringify(payload)} />);
+  return screen.getByRole("article", { name: "APAC1000" });
+}
+
+function descriptionParagraph(card: HTMLElement) {
+  const toggle = within(card).queryByRole("button", { name: /^(more|less)$/ });
+  const paragraph = toggle?.previousElementSibling;
+  expect(paragraph?.tagName).toBe("P");
+  return paragraph as HTMLParagraphElement;
+}
 
 describe("CourseDetailToolResult", () => {
   it.each(["inProgress", "executing"] as const)("shows loading while %s", (status) => {
@@ -156,5 +208,38 @@ describe("CourseDetailToolResult", () => {
     expect(screen.getByRole("link", { name: "View course APAC1000" }).getAttribute("href")).toBe(
       "/course/APAC1000",
     );
+  });
+
+  it("keeps a short description clamped without a more button", () => {
+    mockScrollHeight = 40;
+    mockClientHeight = 40;
+    const card = renderCourseDetail("Basics.");
+    const description = within(card).getByText("Basics.");
+    expect(description.className).toContain("line-clamp-4");
+    expect(within(card).queryByRole("button", { name: "more" })).toBeNull();
+  });
+
+  it("shows more when the clamped description overflows", async () => {
+    mockScrollHeight = 200;
+    mockClientHeight = 80;
+    const long = "This is the first course in a three course sequence. ".repeat(8);
+    const card = renderCourseDetail(long);
+    const toggle = await waitFor(() => within(card).getByRole("button", { name: "more" }));
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+    expect(descriptionParagraph(card).className).toContain("line-clamp-4");
+  });
+
+  it("expands and collapses the description", async () => {
+    mockScrollHeight = 200;
+    mockClientHeight = 80;
+    const long = "Conceptual accounting topics. ".repeat(12);
+    const card = renderCourseDetail(long);
+    const toggle = await waitFor(() => within(card).getByRole("button", { name: "more" }));
+    fireEvent.click(toggle);
+    expect(within(card).getByRole("button", { name: "less" }).getAttribute("aria-expanded")).toBe("true");
+    expect(descriptionParagraph(card).className).not.toContain("line-clamp-4");
+    fireEvent.click(within(card).getByRole("button", { name: "less" }));
+    expect(within(card).getByRole("button", { name: "more" }).getAttribute("aria-expanded")).toBe("false");
+    expect(descriptionParagraph(card).className).toContain("line-clamp-4");
   });
 });
