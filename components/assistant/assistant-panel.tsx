@@ -27,6 +27,7 @@ import AssistantChat from "./assistant-chat";
 import { AssistantBubble } from "./assistant-bubble";
 import ResizeHandle from "./resize-handle";
 import { useCourseDetailToolRender } from "./course-detail-tool-render";
+import { useCourseSectionsToolRender } from "./course-sections-tool-render";
 import { useSearchCatalogToolRender } from "./search-catalog-tool-render";
 import { useNavigateTool } from "./use-navigate-tool";
 
@@ -68,6 +69,7 @@ function AssistantTools() {
   const navigate = useNavigateTool();
   useSearchCatalogToolRender();
   useCourseDetailToolRender();
+  useCourseSectionsToolRender();
 
   useFrontendTool(
     {
