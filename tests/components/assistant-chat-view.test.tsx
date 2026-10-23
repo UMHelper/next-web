@@ -293,17 +293,17 @@ describe("AssistantChatView", () => {
               {
                 id: "call-1",
                 type: "function",
-                function: { name: "get_course", arguments: '{"code":"ACCT1000"}' },
+                function: { name: "get_instructor", arguments: '{"name":"CHAN TAI MAN"}' },
               },
             ],
           },
           { id: "t1", role: "tool", toolCallId: "call-1", content: "{}" },
-          { id: "a2", role: "assistant", content: "Here is ACCT1000." },
+          { id: "a2", role: "assistant", content: "Here is CHAN TAI MAN." },
         ],
         toolRenderer: fakeToolRenderer(),
       });
 
-      expect(screen.getByText("Read course")).toBeTruthy();
+      expect(screen.getByText("Read instructor")).toBeTruthy();
       expect(screen.queryByTestId("rich-call-1")).toBeNull();
     });
 

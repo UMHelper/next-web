@@ -5,6 +5,7 @@ import { useRenderTool } from "@copilotkit/react-core/v2";
 import { z } from "zod/v4";
 
 import { CatalogCourseCard } from "@/components/assistant/catalog-course-card";
+import { ToolFailureAlert } from "@/components/assistant/tool-failure-alert";
 import {
   SEARCH_CATALOG_TOOL_NAME,
   parseSearchCatalogResult,
@@ -47,17 +48,6 @@ function SearchCatalogLoading() {
   );
 }
 
-function SearchCatalogFailureAlert({ reason }: { reason: SearchCatalogFailure }) {
-  const copy = FAILURE_COPY[reason];
-  return (
-    <div className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground" role="alert">
-      <p>
-        {copy.lead} {copy.tail}
-      </p>
-    </div>
-  );
-}
-
 function InstructorRow({ instructor }: { instructor: CatalogInstructor }) {
   return (
     <li className="flex items-center justify-between gap-3 rounded-lg border border-border bg-background px-3 py-2 text-sm">
@@ -88,7 +78,8 @@ export function SearchCatalogToolResult({
   const view = parseSearchCatalogResult(result ?? "");
 
   if (view.kind === "failure") {
-    return <SearchCatalogFailureAlert reason={view.reason} />;
+    const copy = FAILURE_COPY[view.reason];
+    return <ToolFailureAlert message={`${copy.lead} ${copy.tail}`} />;
   }
 
   if (view.kind === "empty") {

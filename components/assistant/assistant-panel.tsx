@@ -26,6 +26,7 @@ import { getSections } from "@/lib/timetable/catalog-client";
 import AssistantChat from "./assistant-chat";
 import { AssistantBubble } from "./assistant-bubble";
 import ResizeHandle from "./resize-handle";
+import { useCourseDetailToolRender } from "./course-detail-tool-render";
 import { useSearchCatalogToolRender } from "./search-catalog-tool-render";
 import { useNavigateTool } from "./use-navigate-tool";
 
@@ -66,6 +67,7 @@ function AssistantTools() {
 
   const navigate = useNavigateTool();
   useSearchCatalogToolRender();
+  useCourseDetailToolRender();
 
   useFrontendTool(
     {

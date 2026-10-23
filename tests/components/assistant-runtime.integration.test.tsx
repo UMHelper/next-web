@@ -88,7 +88,30 @@ vi.mock("@/lib/assistant/tools", async () => {
         parameters: z.object({ code: z.string() }),
         execute: async ({ code }: { code: string }) => {
           h.serverToolCodes.push(code);
-          return { code, title: `Fixture course ${code}`, url: `https://umeh.top/course/${code}` };
+          const courseCode = code.trim().toUpperCase();
+          return {
+            course: {
+              courseCode,
+              titleEn: `Fixture course ${courseCode}`,
+              titleZh: null,
+              credits: null,
+              faculty: null,
+              department: null,
+              programLevel: null,
+              suggestedYear: null,
+              medium: null,
+              gradingSystem: null,
+              courseType: null,
+              duration: null,
+              description: null,
+              isOffered: true,
+              url: `${SITE_URL}/course/${courseCode}`,
+            },
+            page: 1,
+            hasMore: false,
+            totalCount: 0,
+            instructors: [],
+          };
         },
       }),
     ],
@@ -124,6 +147,7 @@ vi.mock("@/components/assistant/assistant-chat", async () => {
 import * as route from "@/app/api/copilotkit/[[...slug]]/route";
 import AssistantPanel from "@/components/assistant/assistant-panel";
 import { PAGE_CONTEXT_DESCRIPTION } from "@/lib/assistant/page-context";
+import { SITE_URL } from "@/lib/site";
 
 type Core = {
   getAgent(id: string): { messages: Array<{ role: string; content?: unknown }>; addMessage(message: unknown): void } | undefined;
@@ -268,7 +292,10 @@ afterEach(() => {
 /** Stand-in for the model: follows the prompt's rules for the phrasings used in these tests. */
 function courseBrain(call: ModelCall): Step {
   const page = call.page as { courseCode?: string };
-  if (call.lastTool?.name === "get_course") return { text: `About ${parsed(call.lastTool.output).code}` };
+  if (call.lastTool?.name === "get_course") {
+    const output = parsed(call.lastTool.output) as { course: { courseCode: string } };
+    return { text: `About ${output.course.courseCode}` };
+  }
   if (call.lastTool?.name === "navigate") return { text: `navigate said ${parsed(call.lastTool.output).status}` };
   if (call.lastTool?.name === "check_plan_conflicts") return { text: "conflict checked" };
 
@@ -318,8 +345,8 @@ describe("assistant runtime integration (scripted model)", () => {
       "What about this course?",
       "Compare it with CISC2001.",
     ]);
-    expect(compare.toolResults.some((result) => result.includes('"code":"CISC2001"'))).toBe(true);
-    expect(compare.toolResults.some((result) => result.includes('"code":"CISC3014"'))).toBe(true);
+    expect(compare.toolResults.some((result) => result.includes('"courseCode":"CISC2001"'))).toBe(true);
+    expect(compare.toolResults.some((result) => result.includes('"courseCode":"CISC3014"'))).toBe(true);
 
     expect(core()).toBe(firstCore);
     expect(h.rateLimitCalls).toBe(5);
