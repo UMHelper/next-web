@@ -17,6 +17,7 @@ import { describeAssistantError } from "@/lib/assistant/error-message";
 import { PANEL_WIDTH_DEFAULT } from "@/lib/assistant/panel-width";
 import { RICH_TOOL_NAMES } from "@/lib/assistant/rich-tools";
 
+import { useCatalogFilterStore } from "./catalog-filter-store";
 import { AssistantChatView, type ChatSuggestion } from "./assistant-chat-view";
 import { PANEL_WIDTH_VAR } from "./resize-handle";
 
@@ -40,6 +41,7 @@ export default function AssistantChat({
 }) {
   const { agent, isReady } = useAgent();
   const { copilotkit } = useCopilotKit();
+  const catalogFilterStore = useCatalogFilterStore();
   const { suggestions } = useSuggestions();
   const renderToolCall = useRenderToolCall();
 
@@ -91,10 +93,11 @@ export default function AssistantChat({
   const startNewChat = useCallback(() => {
     if (agent.isRunning) copilotkit.stopAgent({ agent });
     agent.setMessages([]);
+    catalogFilterStore?.reset();
     setDraft("");
     setError(null);
     onClearNotice();
-  }, [agent, copilotkit, onClearNotice]);
+  }, [agent, catalogFilterStore, copilotkit, onClearNotice]);
 
   const clearAlert = () => {
     setError(null);

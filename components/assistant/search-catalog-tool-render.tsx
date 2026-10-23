@@ -4,8 +4,17 @@ import Link from "next/link";
 import { useRenderTool } from "@copilotkit/react-core/v2";
 import { z } from "zod/v4";
 
+import {
+  catalogResultsElementId,
+  useCatalogFilter,
+} from "@/components/assistant/catalog-filter-store";
 import { CatalogCourseCard } from "@/components/assistant/catalog-course-card";
 import { ToolFailureAlert } from "@/components/assistant/tool-failure-alert";
+import {
+  applyCatalogFilter,
+  describeFilterScope,
+  type CatalogFilter,
+} from "@/lib/assistant/catalog-result-sets";
 import {
   SEARCH_CATALOG_TOOL_NAME,
   parseSearchCatalogResult,
@@ -36,6 +45,9 @@ const FAILURE_COPY: Record<
   },
 };
 
+const FILTER_BUTTON_CLASS =
+  "inline-flex min-h-8 items-center rounded-md px-2.5 py-1.5 text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+
 function formatCourseCount(count: number) {
   return count === 1 ? "1 course" : `${count} courses`;
 }
@@ -44,6 +56,80 @@ function SearchCatalogLoading() {
   return (
     <div className="text-xs text-muted-foreground" role="status">
       Searching the catalog…
+    </div>
+  );
+}
+
+function CatalogCourseFilterControls({
+  filter,
+  onFilterChange,
+}: {
+  filter: CatalogFilter;
+  onFilterChange: (next: CatalogFilter) => void;
+}) {
+  const base =
+    "text-muted-foreground hover:bg-surface-subtle hover:text-foreground";
+  const active = "bg-surface-subtle text-foreground";
+
+  return (
+    <div role="group" aria-label="Filter loaded courses" className="flex flex-wrap gap-2">
+      <button
+        type="button"
+        className={`${FILTER_BUTTON_CLASS} ${filter === "all" ? active : base}`}
+        aria-pressed={filter === "all"}
+        onClick={() => onFilterChange("all")}
+      >
+        All
+      </button>
+      <button
+        type="button"
+        className={`${FILTER_BUTTON_CLASS} ${filter === "offered" ? active : base}`}
+        aria-pressed={filter === "offered"}
+        onClick={() => onFilterChange("offered")}
+      >
+        Offered only
+      </button>
+    </div>
+  );
+}
+
+function SearchCatalogCoursesResult({
+  view,
+  resultSetId,
+}: {
+  view: {
+    totalCount: number;
+    hasMore: boolean;
+    courses: Parameters<typeof CatalogCourseCard>[0]["course"][];
+  };
+  resultSetId?: string;
+}) {
+  const [filter, setFilter] = useCatalogFilter(resultSetId);
+  const displayedCourses = applyCatalogFilter(view.courses, filter);
+  const scopeText = describeFilterScope({
+    filter,
+    shown: displayedCourses.length,
+    loaded: view.courses.length,
+    totalCount: view.totalCount,
+    hasMore: view.hasMore,
+  });
+
+  return (
+    <div
+      id={resultSetId ? catalogResultsElementId(resultSetId) : undefined}
+      className="space-y-2"
+    >
+      <CatalogCourseFilterControls filter={filter} onFilterChange={setFilter} />
+      <p className="text-xs text-muted-foreground">{`${view.totalCount} courses found`}</p>
+      {filter === "all" && view.courses.length < view.totalCount ? (
+        <p className="text-xs text-muted-foreground">{`Showing ${view.courses.length} of ${view.totalCount}`}</p>
+      ) : null}
+      {scopeText ? <p className="text-xs text-muted-foreground">{scopeText}</p> : null}
+      <div className="space-y-2">
+        {displayedCourses.map((course) => (
+          <CatalogCourseCard key={course.courseCode} course={course} />
+        ))}
+      </div>
     </div>
   );
 }
@@ -67,9 +153,11 @@ function InstructorRow({ instructor }: { instructor: CatalogInstructor }) {
 export function SearchCatalogToolResult({
   status,
   result,
+  resultSetId,
 }: {
   status: "inProgress" | "executing" | "complete";
   result?: string;
+  resultSetId?: string;
 }) {
   if (status === "inProgress" || status === "executing") {
     return <SearchCatalogLoading />;
@@ -106,19 +194,7 @@ export function SearchCatalogToolResult({
     );
   }
 
-  return (
-    <div className="space-y-2">
-      <p className="text-xs text-muted-foreground">{`${view.totalCount} courses found`}</p>
-      {view.courses.length < view.totalCount ? (
-        <p className="text-xs text-muted-foreground">{`Showing ${view.courses.length} of ${view.totalCount}`}</p>
-      ) : null}
-      <div className="space-y-2">
-        {view.courses.map((course) => (
-          <CatalogCourseCard key={course.courseCode} course={course} />
-        ))}
-      </div>
-    </div>
-  );
+  return <SearchCatalogCoursesResult view={view} resultSetId={resultSetId} />;
 }
 
 export function useSearchCatalogToolRender(): void {
@@ -126,8 +202,12 @@ export function useSearchCatalogToolRender(): void {
     {
       name: SEARCH_CATALOG_TOOL_NAME,
       parameters: z.object({}).passthrough(),
-      render: ({ status, result }) => (
-        <SearchCatalogToolResult status={status} result={result} />
+      render: ({ status, result, toolCallId }) => (
+        <SearchCatalogToolResult
+          status={status}
+          result={result}
+          resultSetId={toolCallId}
+        />
       ),
     },
     [],

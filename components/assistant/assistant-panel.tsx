@@ -23,6 +23,7 @@ import { PAGE_CONTEXT_DESCRIPTION, describePage } from "@/lib/assistant/page-con
 import { PLAN_CONTEXT_DESCRIPTION, summarizePlan } from "@/lib/assistant/plan-summary";
 import { getSections } from "@/lib/timetable/catalog-client";
 
+import { CatalogFilterProvider } from "./catalog-filter-store";
 import AssistantChat from "./assistant-chat";
 import { AssistantBubble } from "./assistant-bubble";
 import ResizeHandle from "./resize-handle";
@@ -118,18 +119,20 @@ export default function AssistantPanel({ suppressed }: { suppressed: boolean }) 
         enableInspector={false}
         onError={({ error }) => setNotice(describeAssistantError(error.message))}
       >
-        <AssistantTools />
-        {shown ? (
-          <AssistantChat
-            panelRef={attachPanel}
-            onClose={() => {
-              setNotice(null);
-              setOpen(false);
-            }}
-            notice={notice}
-            onClearNotice={() => setNotice(null)}
-          />
-        ) : null}
+        <CatalogFilterProvider>
+          <AssistantTools />
+          {shown ? (
+            <AssistantChat
+              panelRef={attachPanel}
+              onClose={() => {
+                setNotice(null);
+                setOpen(false);
+              }}
+              notice={notice}
+              onClearNotice={() => setNotice(null)}
+            />
+          ) : null}
+        </CatalogFilterProvider>
       </CopilotKitProvider>
       <ResizeHandle visible={shown} panelRef={panelRef} />
       {open || suppressed ? null : <AssistantBubble onClick={() => setOpen(true)} />}

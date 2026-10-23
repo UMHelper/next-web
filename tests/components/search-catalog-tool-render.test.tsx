@@ -1,4 +1,4 @@
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -38,6 +38,34 @@ function coursesResult(count: number, totalCount: number) {
     page: 1,
     hasMore: totalCount > count,
     totalCount,
+    results,
+  });
+}
+
+function mixedOfferedCoursesResult() {
+  const results = Array.from({ length: 10 }, (_, index) => ({
+    ...courseRow(`COURSE${index + 1}`),
+    isOffered: index === 1 || index === 4,
+  }));
+  return JSON.stringify({
+    type: "course",
+    page: 1,
+    hasMore: true,
+    totalCount: 127,
+    results,
+  });
+}
+
+function noOfferedCoursesResult() {
+  const results = Array.from({ length: 10 }, (_, index) => ({
+    ...courseRow(`COURSE${index + 1}`),
+    isOffered: false,
+  }));
+  return JSON.stringify({
+    type: "course",
+    page: 1,
+    hasMore: false,
+    totalCount: 10,
     results,
   });
 }
@@ -144,6 +172,70 @@ describe("SearchCatalogToolResult", () => {
   it("renders at most one alert for a failure", () => {
     render(<SearchCatalogToolResult status="complete" result="Error: boom" />);
     expect(screen.getAllByRole("alert")).toHaveLength(1);
+  });
+
+  it("filters loaded courses to offered only and back without leaving the component", () => {
+    render(
+      <SearchCatalogToolResult
+        status="complete"
+        result={mixedOfferedCoursesResult()}
+        resultSetId="call-1"
+      />,
+    );
+    const group = screen.getByRole("group", { name: "Filter loaded courses" });
+    const offered = within(group).getByRole("button", { name: "Offered only" });
+    expect(within(group).getByRole("button", { name: "All" }).getAttribute("aria-pressed")).toBe(
+      "true",
+    );
+    fireEvent.click(offered);
+    expect(offered.getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getAllByRole("article")).toHaveLength(2);
+    expect(
+      screen.getByText(
+        "Showing 2 offered courses among the 10 currently loaded results. There are 127 total matches. Other pages may include more offered courses.",
+      ),
+    ).toBeTruthy();
+    fireEvent.click(within(group).getByRole("button", { name: "All" }));
+    expect(screen.getAllByRole("article")).toHaveLength(10);
+  });
+
+  it("shows an empty filtered message when no loaded course is offered", () => {
+    render(
+      <SearchCatalogToolResult
+        status="complete"
+        result={noOfferedCoursesResult()}
+        resultSetId="call-2"
+      />,
+    );
+    const group = screen.getByRole("group", { name: "Filter loaded courses" });
+    fireEvent.click(within(group).getByRole("button", { name: "Offered only" }));
+    expect(screen.queryAllByRole("article")).toHaveLength(0);
+    expect(
+      screen.getByText("None of the 10 loaded courses are marked offered this term."),
+    ).toBeTruthy();
+  });
+
+  it("exposes the result block by id", () => {
+    const { container } = render(
+      <SearchCatalogToolResult
+        status="complete"
+        result={mixedOfferedCoursesResult()}
+        resultSetId="call-1"
+      />,
+    );
+    expect(container.querySelector("#catalog-results-call-1")).not.toBeNull();
+  });
+
+  it("shows no filter controls for instructor results", () => {
+    const result = JSON.stringify({
+      type: "instructor",
+      page: 1,
+      hasMore: false,
+      totalCount: 1,
+      results: [{ name: "CHAN TAI MAN", courseCount: 4, url: instructorUrl }],
+    });
+    render(<SearchCatalogToolResult status="complete" result={result} resultSetId="call-3" />);
+    expect(screen.queryByRole("group", { name: "Filter loaded courses" })).toBeNull();
   });
 
   it("does not put external urls on instructor links", () => {
