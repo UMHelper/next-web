@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import {
   SEARCH_CATALOG_TOOL_NAME,
@@ -8,6 +8,7 @@ import {
   collectCatalogResultSets,
   describeFilterScope,
   findCatalogResultSet,
+  runFilterCatalogResults,
   summarizeCatalogResultSets,
   type CatalogResultSet,
 } from "@/lib/assistant/catalog-result-sets";
@@ -257,6 +258,46 @@ describe("summarizeCatalogResultSets", () => {
 
   it("summarises no sets as a fixed sentence", () => {
     expect(summarizeCatalogResultSets([], {})).toBe("No course search results in this conversation");
+  });
+});
+
+const filterMsgs: Message[] = [
+  user,
+  assistantMsg(call("c1", { query: "MATH" })),
+  result("c1", courses(10, [1, 4])),
+];
+
+describe("runFilterCatalogResults", () => {
+  it("applies a filter to a known result set and reports loaded-only scope", () => {
+    const apply = vi.fn();
+    expect(
+      runFilterCatalogResults({ resultSetId: "c1", filter: "offered" }, filterMsgs, apply),
+    ).toEqual({
+      status: "applied",
+      resultSetId: "c1",
+      filter: "offered",
+      shownCount: 2,
+      loadedCount: 10,
+      totalCount: 127,
+      hasMore: true,
+      shownCourseCodes: ["MATH1002", "MATH1005"],
+      scope: "loaded_results_only",
+    });
+    expect(apply).toHaveBeenCalledWith("c1", "offered");
+  });
+
+  it("returns unknown_result_set for an id not in the current messages", () => {
+    const apply = vi.fn();
+    expect(
+      runFilterCatalogResults({ resultSetId: "gone", filter: "offered" }, filterMsgs, apply),
+    ).toEqual({ status: "unknown_result_set" });
+    expect(apply).not.toHaveBeenCalled();
+  });
+
+  it("rejects invalid input", () => {
+    expect(
+      runFilterCatalogResults({ resultSetId: "", filter: "open" }, filterMsgs, vi.fn()),
+    ).toEqual({ status: "invalid_request" });
   });
 });
 

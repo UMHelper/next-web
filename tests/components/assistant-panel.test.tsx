@@ -2,6 +2,7 @@ import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ReactNode } from "react";
 
+import { CATALOG_RESULTS_CONTEXT_DESCRIPTION } from "@/lib/assistant/catalog-result-sets";
 import { RICH_TOOL_NAMES } from "@/lib/assistant/rich-tools";
 import { installFakeStorage } from "@/tests/helpers/fake-storage";
 
@@ -32,6 +33,7 @@ vi.mock("@copilotkit/react-core/v2", () => ({
     providerSpy(props);
     return <>{props.children}</>;
   },
+  useAgent: () => ({ agent: { messages: [] } }),
   useAgentContext: (context: unknown) => contextSpy(context),
   useConfigureSuggestions: (config: unknown) => suggestionsSpy(config),
   useFrontendTool: (definition: unknown, deps: unknown) => toolSpy(definition, deps),
@@ -105,9 +107,13 @@ describe("AssistantPanel", () => {
     expect(screen.getByRole("separator", { name: "Resize assistant" })).toBeTruthy();
     expect(document.documentElement.hasAttribute("data-assistant-open")).toBe(true);
     expect(tools().map((tool) => tool.name)).toEqual(
-      expect.arrayContaining(["check_plan_conflicts", "navigate"]),
+      expect.arrayContaining(["check_plan_conflicts", "navigate", "filter_catalog_results"]),
     );
+    expect(
+      contexts().some((context) => context.description === CATALOG_RESULTS_CONTEXT_DESCRIPTION),
+    ).toBe(true);
     expect(RICH_TOOL_NAMES.has("search_catalog")).toBe(true);
+    expect(RICH_TOOL_NAMES.has("filter_catalog_results")).toBe(true);
     expect(renderToolSpy).toHaveBeenCalledWith(
       expect.objectContaining({ name: "search_catalog" }),
       [],

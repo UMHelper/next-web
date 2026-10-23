@@ -62,6 +62,7 @@ vi.mock("@copilotkit/react-core/v2", () => ({
     }, []);
     return <>{children}</>;
   },
+  useAgent: () => ({ agent: { messages: [] } }),
   useAgentContext: agentContextSpy,
   useFrontendTool: (definition: unknown, deps: unknown) => {
     frontendToolSpy(definition, deps);

@@ -17,6 +17,7 @@ const TOOL_LABELS: Record<string, { running: string; done: string }> = {
   get_course_reviews: { running: "Reading reviews", done: "Read reviews" },
   get_course_sections: { running: "Reading class times", done: "Read class times" },
   check_plan_conflicts: { running: "Checking timetable", done: "Checked timetable" },
+  filter_catalog_results: { running: "Filtering results", done: "Filtered results" },
 };
 
 type ToolStatus = "running" | "done" | "error" | "pending";
