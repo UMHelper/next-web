@@ -16,7 +16,7 @@ ASSISTANT_EVAL=1 ASSISTANT_EVAL_LABEL=closure npm run eval:assistant -- evals/as
 | `ASSISTANT_EVAL_CASES` | all | Comma-separated case ids. An unknown id fails the run before any model call. |
 | `ASSISTANT_EVAL_MAX_STEPS` | `200` | Global model-step budget for the whole invocation. |
 | `ASSISTANT_EVAL_DELAY_MS` | `500` | Pause between cases. |
-| `ASSISTANT_EVAL_MAX_OUTPUT_TOKENS` | production default (400) | Output budget per step. A positive integer, or the run fails before any model call. |
+| `ASSISTANT_EVAL_MAX_OUTPUT_TOKENS` | production default (1200) | Output budget per step. A positive integer, or the run fails before any model call. |
 | `ASSISTANT_EVAL_THINKING` | `off` | `off` or `low`. Anything else fails the run before any model call. |
 
 `AI_API_KEY` and `AI_BASE_URL` come from the environment or `.env.local`. Model and `maxSteps` are always the production defaults.

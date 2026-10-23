@@ -9,13 +9,13 @@ vi.mock("@/lib/assistant/tools", () => ({ createAssistantTools: () => [] }));
 import { ASSISTANT_MAX_STEPS } from "@/lib/assistant/agent";
 import { readAssistantConfig } from "@/lib/assistant/config";
 
-const PREVIEW_MAX_OUTPUT_TOKENS = "400";
+const PREVIEW_MAX_OUTPUT_TOKENS = "1200";
 const wrangler = readFileSync(path.join(process.cwd(), "wrangler.jsonc"), "utf8");
 const previewStart = wrangler.indexOf('"preview"');
 
 describe("assistant inference defaults", () => {
-  it("keeps the production default at thinking off, 400 output tokens and 5 steps", () => {
-    expect(readAssistantConfig({})).toMatchObject({ thinking: "off", maxOutputTokens: 400, model: "deepseek-flash" });
+  it("keeps the production default at thinking off, 1200 output tokens and 5 steps", () => {
+    expect(readAssistantConfig({})).toMatchObject({ thinking: "off", maxOutputTokens: 1_200, model: "deepseek-flash" });
     expect(ASSISTANT_MAX_STEPS).toBe(5);
   });
 

@@ -75,7 +75,7 @@
         "AI_BASE_URL": "https://api.deepseek.com",
         "AI_MODEL": "deepseek-flash",
         "AI_THINKING": "off",
-        "AI_MAX_OUTPUT_TOKENS": "400",
+        "AI_MAX_OUTPUT_TOKENS": "1200",
         "AI_TIMEOUT_MS": "30000",
         "AGENT_RATE_LIMIT_PER_HOUR": "30",
         "AGENT_RATE_LIMIT_PER_DAY": "80",

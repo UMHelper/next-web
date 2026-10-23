@@ -9,7 +9,7 @@ describe("readAssistantConfig", () => {
       baseURL: "https://api.deepseek.com",
       model: "deepseek-flash",
       thinking: "off",
-      maxOutputTokens: 400,
+      maxOutputTokens: 1_200,
       timeoutMs: 30_000,
       ratePerHour: 30,
       ratePerDay: 80,
