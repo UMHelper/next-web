@@ -16,6 +16,7 @@ import type { AgentRateLimitOutcome } from "@/lib/assistant/rate-limit";
 type Step = { text: string } | { tool: string; input: Record<string, unknown> };
 type ModelCall = {
   page: unknown;
+  referent?: { kind: string; courseCode?: string; reason?: string; ask?: string };
   lastUser: string;
   lastTool?: { name: string; output: string };
   userMessages: string[];
@@ -80,13 +81,18 @@ vi.mock("@/lib/assistant/navigation", async (importOriginal) => ({
 vi.mock("@/lib/assistant/tools", async () => {
   const { defineTool } = await import("@copilotkit/runtime/v2");
   const { z } = await import("zod");
+  const { bindCourseToolArgs } = await import("@/lib/assistant/course-referent");
+  type CourseReferent = import("@/lib/assistant/course-referent").CourseReferent;
   return {
-    createAssistantTools: () => [
+    createAssistantTools: (slot?: { current: CourseReferent }) => [
       defineTool({
         name: "get_course",
         description: "Get a course",
         parameters: z.object({ code: z.string() }),
-        execute: async ({ code }: { code: string }) => {
+        execute: async (args: { code: string }) => {
+          const bound = bindCourseToolArgs(slot?.current ?? { kind: "none" }, "get_course", args);
+          if (bound.action === "clarify") return bound.result;
+          const code = (bound.args as { code: string }).code;
           h.serverToolCodes.push(code);
           const courseCode = code.trim().toUpperCase();
           return {
@@ -146,6 +152,7 @@ vi.mock("@/components/assistant/assistant-chat", async () => {
 
 import * as route from "@/app/api/copilotkit/[[...slug]]/route";
 import AssistantPanel from "@/components/assistant/assistant-panel";
+import { COURSE_REFERENT_DESCRIPTION } from "@/lib/assistant/course-referent";
 import { PAGE_CONTEXT_DESCRIPTION } from "@/lib/assistant/page-context";
 import { SITE_URL } from "@/lib/site";
 
@@ -196,6 +203,17 @@ function describeCall(prompt: LanguageModelV3Prompt): ModelCall {
   const marker = `${PAGE_CONTEXT_DESCRIPTION}:\n`;
   const at = system.indexOf(marker);
   const page = at < 0 ? undefined : JSON.parse(system.slice(at + marker.length).split("\n")[0]);
+
+  let referent: ModelCall["referent"];
+  const referentMarker = `${COURSE_REFERENT_DESCRIPTION}:\n`;
+  const referentAt = system.indexOf(referentMarker);
+  if (referentAt >= 0) {
+    const valueLine = system.slice(referentAt + referentMarker.length).split("\n")[0];
+    if (valueLine.startsWith("{")) {
+      referent = JSON.parse(valueLine);
+    }
+  }
+
   const userMessages = prompt.filter((message) => message.role === "user").map((message) => textOf(message.content));
   const toolResults = prompt.flatMap((message) =>
     message.role === "tool"
@@ -206,6 +224,7 @@ function describeCall(prompt: LanguageModelV3Prompt): ModelCall {
   const lastResult = last.role === "tool" ? last.content.find((part) => part.type === "tool-result") : undefined;
   return {
     page,
+    referent,
     lastUser: userMessages.at(-1) ?? "",
     lastTool:
       lastResult && lastResult.type === "tool-result"
@@ -307,6 +326,15 @@ function courseBrain(call: ModelCall): Step {
   return { tool: "get_course", input: { code: named ?? page.courseCode } };
 }
 
+function staleChatBrain(call: ModelCall): Step {
+  if (call.lastTool?.name === "get_course") {
+    const output = JSON.parse(call.lastTool.output) as { course?: { courseCode?: string }; status?: string };
+    if (output.status === "needs_clarification") return { text: output.status };
+    return { text: `About ${output.course?.courseCode}` };
+  }
+  return { tool: "get_course", input: { code: "APAC2000" } };
+}
+
 describe("assistant runtime integration (scripted model)", () => {
   it("keeps page context, navigation and history consistent across the CISC2001 → CISC3014 conversation", async () => {
     h.brain = courseBrain as never;
@@ -351,6 +379,40 @@ describe("assistant runtime integration (scripted model)", () => {
     expect(core()).toBe(firstCore);
     expect(h.rateLimitCalls).toBe(5);
     expect(runs().map((run) => run.modelCalls.length)).toEqual([2, 1, 1, 2, 2]);
+  });
+
+  it("uses the manually opened page for this course and keeps an explicit code", async () => {
+    h.brain = staleChatBrain as never;
+    await mountAssistant("/course/CISC2001");
+
+    const discussed = await ask("Tell me about APAC2000.");
+    expect(discussed[0].modelCalls[0].referent).toMatchObject({ kind: "explicit", courseCode: "APAC2000" });
+    expect(h.serverToolCodes).toEqual(["APAC2000"]);
+
+    nav.set("/course/CISC3014");
+    const onPage = await ask("What sections does this course offer?");
+    expect(onPage[0].modelCalls[0].page).toEqual({ page: "course", courseCode: "CISC3014" });
+    expect(onPage[0].modelCalls[0].referent).toEqual({ kind: "page", courseCode: "CISC3014" });
+    expect(h.serverToolCodes).toEqual(["APAC2000", "CISC3014"]);
+
+    const named = await ask("What sections does APAC2000 have?");
+    expect(named[0].modelCalls[0].referent).toEqual({ kind: "explicit", courseCode: "APAC2000" });
+    expect(h.serverToolCodes).toEqual(["APAC2000", "CISC3014", "APAC2000"]);
+
+    const pronoun = await ask("When are its classes?");
+    expect(pronoun[0].modelCalls[0].referent).toEqual({ kind: "conversation", courseCode: "APAC2000" });
+    expect(h.serverToolCodes.at(-1)).toBe("APAC2000");
+
+    nav.set("/catalog");
+    const ambiguous = await ask("What sections does this course offer?");
+    expect(ambiguous[0].modelCalls[0].referent).toMatchObject({ kind: "ambiguous", reason: "no_page_course" });
+    expect(h.serverToolCodes).toHaveLength(4);
+
+    const agent = core().getAgent("default") as { setMessages(messages: unknown[]): void };
+    agent.setMessages([]);
+    const cleared = await ask("When are its classes?");
+    expect(cleared[0].modelCalls[0].referent).toMatchObject({ kind: "ambiguous", reason: "no_prior_course" });
+    expect(h.serverToolCodes).toHaveLength(4);
   });
 
   it("runs a follow-up after check_plan_conflicts, which has no followUp option set", async () => {

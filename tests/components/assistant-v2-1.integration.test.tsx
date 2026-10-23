@@ -16,7 +16,16 @@ import { absoluteUrl, buildCoursePath, buildProfessorPath, buildReviewPath } fro
 type Step = { text: string } | { tool: string; input: Record<string, unknown> };
 type ModelCall = {
   page: unknown;
-  catalog?: { resultSets: Array<{ resultSetId: string; newest: boolean }> };
+  catalog?: {
+    resultSets: Array<{
+      resultSetId: string;
+      newest: boolean;
+      filter?: string;
+      shownCount?: number;
+      courses?: Array<{ position: number; courseCode: string }>;
+    }>;
+  };
+  referent?: { kind: string; courseCode?: string; reason?: string; ask?: string };
   toolNames: string[];
   lastUser: string;
   lastTool?: { name: string; output: string };
@@ -116,6 +125,24 @@ async function fixtureSearchCatalog(
   }
   if (input.query === "ACCT") {
     return acctSearchFixture;
+  }
+  if (input.query === "EMPTY") {
+    return {
+      type: "course" as const,
+      page: 1,
+      hasMore: false,
+      totalCount: 3,
+      results: ["MATH1001", "MATH1002", "MATH1003"].map((courseCode) => ({
+        courseCode,
+        titleEn: courseCode,
+        titleZh: null,
+        faculty: null,
+        department: null,
+        credits: null,
+        isOffered: false,
+        url: absoluteUrl(buildCoursePath(courseCode)),
+      })),
+    };
   }
   return mathSearchFixture();
 }
@@ -229,6 +256,8 @@ vi.mock("@/lib/assistant/tools", async (importOriginal) => {
     getCourseSectionsInputSchema,
     getCourseSectionsOutputSchema,
   } = await import("@/lib/mcp/schemas");
+  const { bindCourseToolArgs } = await import("@/lib/assistant/course-referent");
+  type CourseReferent = import("@/lib/assistant/course-referent").CourseReferent;
 
   const pageParam = z.number().int().min(1).max(50).optional().describe("Page number, default 1");
   const codeParam = z.string().min(1).max(20).describe("Course code, e.g. ACCT1000");
@@ -240,7 +269,7 @@ vi.mock("@/lib/assistant/tools", async (importOriginal) => {
 
   return {
     runReadOnlyTool,
-    createAssistantTools: () => [
+    createAssistantTools: (slot?: { current: CourseReferent }) => [
       defineTool({
         name: "search_catalog",
         description: "Search the site catalog",
@@ -264,21 +293,29 @@ vi.mock("@/lib/assistant/tools", async (importOriginal) => {
         name: "get_course",
         description: "Get a course",
         parameters: z.object({ code: codeParam, page: pageParam }),
-        execute: (args) =>
-          runReadOnlyTool("get_course", args, getCourseInputSchema, getCourseOutputSchema, fixtureGetCourse),
+        execute: (args) => {
+          const bound = bindCourseToolArgs(slot?.current ?? { kind: "none" }, "get_course", args);
+          if (bound.action === "clarify") return bound.result;
+          const nextArgs = bound.args;
+          return runReadOnlyTool("get_course", nextArgs, getCourseInputSchema, getCourseOutputSchema, fixtureGetCourse);
+        },
       }),
       defineTool({
         name: "get_course_sections",
         description: "Get course sections",
         parameters: z.object({ code: codeParam, instructor: instructorParam }),
-        execute: (args) =>
-          runReadOnlyTool(
+        execute: (args) => {
+          const bound = bindCourseToolArgs(slot?.current ?? { kind: "none" }, "get_course_sections", args);
+          if (bound.action === "clarify") return bound.result;
+          const nextArgs = bound.args;
+          return runReadOnlyTool(
             "get_course_sections",
-            args,
+            nextArgs,
             getCourseSectionsInputSchema,
             getCourseSectionsOutputSchema,
             fixtureGetCourseSections,
-          ),
+          );
+        },
       }),
     ],
   };
@@ -299,6 +336,7 @@ vi.mock("@/components/timetable/planner-provider", () => ({
 import * as route from "@/app/api/copilotkit/[[...slug]]/route";
 import AssistantPanel from "@/components/assistant/assistant-panel";
 import { CATALOG_RESULTS_CONTEXT_DESCRIPTION } from "@/lib/assistant/catalog-result-sets";
+import { COURSE_REFERENT_DESCRIPTION } from "@/lib/assistant/course-referent";
 import { PAGE_CONTEXT_DESCRIPTION } from "@/lib/assistant/page-context";
 
 const runs = () => h.runs as RunRecord[];
@@ -309,6 +347,7 @@ const usage = {
 };
 
 let toolCallCount = 0;
+let searchCallCount = 0;
 let inflightRunPosts = 0;
 function streamFor(step: Step): LanguageModelV3StreamPart[] {
   if ("text" in step) {
@@ -321,9 +360,10 @@ function streamFor(step: Step): LanguageModelV3StreamPart[] {
     ];
   }
   toolCallCount++;
+  const toolCallId = step.tool === "search_catalog" ? `call-${++searchCallCount}` : `tool-${toolCallCount}`;
   return [
     { type: "stream-start", warnings: [] },
-    { type: "tool-call", toolCallId: `call-${toolCallCount}`, toolName: step.tool, input: JSON.stringify(step.input) },
+    { type: "tool-call", toolCallId, toolName: step.tool, input: JSON.stringify(step.input) },
     { type: "finish", finishReason: { unified: "tool-calls", raw: undefined }, usage },
   ];
 }
@@ -373,6 +413,16 @@ function describeCall(prompt: LanguageModelV3Prompt): ModelCall {
     }
   }
 
+  let referent: ModelCall["referent"];
+  const referentMarker = `${COURSE_REFERENT_DESCRIPTION}:\n`;
+  const referentAt = system.indexOf(referentMarker);
+  if (referentAt >= 0) {
+    const valueLine = system.slice(referentAt + referentMarker.length).split("\n")[0];
+    if (valueLine.startsWith("{")) {
+      referent = JSON.parse(valueLine);
+    }
+  }
+
   const userMessages = prompt.filter((message) => message.role === "user").map((message) => textOf(message.content));
   const toolResults = prompt.flatMap((message) =>
     message.role === "tool"
@@ -384,6 +434,7 @@ function describeCall(prompt: LanguageModelV3Prompt): ModelCall {
   return {
     page,
     catalog,
+    referent,
     toolNames: toolNamesFrom(prompt),
     lastUser: userMessages.at(-1) ?? "",
     lastTool:
@@ -558,6 +609,7 @@ beforeEach(() => {
   nav.landOnPush = true;
   nav.pushes = [];
   toolCallCount = 0;
+  searchCallCount = 0;
   inflightRunPosts = 0;
 });
 
@@ -666,5 +718,139 @@ describe("assistant V2.1 integration (scripted model)", () => {
     );
     expect(filterOut.resultSetId).toBe("call-2");
     expect(within(mathBlock).getAllByRole("article")).toHaveLength(10);
+  }, 60_000);
+
+  function stubbornOrdinalBrain(call: ModelCall): Step {
+    if (call.lastTool?.name === "get_course") {
+      return { text: "ok" };
+    }
+    if (call.lastTool?.name === "search_catalog") {
+      return { text: "Here are MATH courses." };
+    }
+    if (call.lastTool?.name === "filter_catalog_results") {
+      return { text: "Filtered to offered courses." };
+    }
+    if (/Search for MATH/i.test(call.lastUser)) {
+      return { tool: "search_catalog", input: { type: "course", query: "MATH" } };
+    }
+    if (/Search for ACCT/i.test(call.lastUser)) {
+      return { tool: "search_catalog", input: { type: "course", query: "ACCT" } };
+    }
+    if (/Search for EMPTY/i.test(call.lastUser)) {
+      return { tool: "search_catalog", input: { type: "course", query: "EMPTY" } };
+    }
+    if (/only those offered/i.test(call.lastUser)) {
+      return {
+        tool: "filter_catalog_results",
+        input: {
+          resultSetId: call.catalog?.resultSets.find((set) => set.newest)?.resultSetId ?? "call-1",
+          filter: "offered",
+        },
+      };
+    }
+    if (/second course/i.test(call.lastUser)) {
+      return { tool: "get_course", input: { code: "MATH1002" } };
+    }
+    return { text: "ok" };
+  }
+
+  it("resolves the second visible course after manual and agent filters", async () => {
+    h.brain = stubbornOrdinalBrain as never;
+    await mountAssistant();
+    await typeAndSend("Search for MATH courses");
+    const block = await waitFor(() => {
+      const el = document.getElementById("catalog-results-call-1");
+      expect(el).not.toBeNull();
+      return el!;
+    });
+
+    const runsBefore = runs().length;
+    fireEvent.click(within(block).getByRole("button", { name: "Offered only" }));
+    expect(runs().length).toBe(runsBefore);
+    expect(within(block).getAllByRole("article")).toHaveLength(2);
+
+    await typeAndSend("Tell me about the second course in those results");
+    const offeredCall = runs().at(-1)!.modelCalls[0];
+    expect(offeredCall.catalog?.resultSets[0]).toMatchObject({
+      filter: "offered",
+      shownCount: 2,
+      courses: [
+        { position: 1, courseCode: "MATH1002" },
+        { position: 2, courseCode: "MATH1005" },
+      ],
+    });
+    expect(offeredCall.referent).toMatchObject({ kind: "ordinal", courseCode: "MATH1005", position: 2 });
+    const offeredCourse = runs()
+      .at(-1)!
+      .modelCalls.find((call) => call.lastTool?.name === "get_course")!.lastTool!.output;
+    expect(offeredCourse).toContain("MATH1005");
+    expect(offeredCourse).not.toContain("MATH1002");
+
+    const runsBeforeAll = runs().length;
+    fireEvent.click(within(block).getByRole("button", { name: "All" }));
+    expect(runs().length).toBe(runsBeforeAll);
+    await typeAndSend("Tell me about the second course in those results");
+    expect(runs().at(-1)!.modelCalls[0].catalog?.resultSets[0].courses?.[1]).toMatchObject({
+      position: 2,
+      courseCode: "MATH1002",
+    });
+    expect(runs().at(-1)!.modelCalls.find((call) => call.lastTool?.name === "get_course")!.lastTool!.output).toContain(
+      "MATH1002",
+    );
+
+    await typeAndSend("Search for ACCT courses");
+    await typeAndSend("Tell me about the second course in those results");
+    expect(runs().at(-1)!.modelCalls[0].referent).toMatchObject({
+      kind: "ordinal",
+      courseCode: "ACCT2000",
+      resultSetId: "call-2",
+    });
+    expect(runs().at(-1)!.modelCalls.find((call) => call.lastTool?.name === "get_course")!.lastTool!.output).toContain(
+      "ACCT2000",
+    );
+  }, 90_000);
+
+  it("does not invent a course when Offered only hides every loaded row", async () => {
+    h.brain = stubbornOrdinalBrain as never;
+    await mountAssistant();
+    await typeAndSend("Search for EMPTY courses");
+    const block = await waitFor(() => {
+      const el = document.getElementById("catalog-results-call-1");
+      expect(el).not.toBeNull();
+      return el!;
+    });
+    fireEvent.click(within(block).getByRole("button", { name: "Offered only" }));
+    await typeAndSend("Tell me about the second course in those results");
+    expect(runs().at(-1)!.modelCalls[0].referent).toMatchObject({ kind: "ambiguous", reason: "missing_ordinal" });
+    expect(runs().at(-1)!.modelCalls.find((call) => call.lastTool?.name === "get_course")!.lastTool!.output).toContain(
+      "needs_clarification",
+    );
+    expect(screen.queryByRole("article", { name: "MATH1002" })).toBeNull();
+  }, 60_000);
+
+  it("resolves the second visible course after the agent applies Offered only", async () => {
+    h.brain = stubbornOrdinalBrain as never;
+    await mountAssistant();
+    await typeAndSend("Search for MATH courses");
+    await typeAndSend("Show me only those offered this semester");
+    await waitFor(() => expect(screen.getByText("Filtered to offered courses.")).toBeTruthy(), { timeout: 10000 });
+    const runsBefore = runs().length;
+    await typeAndSend("Tell me about the second course in those results");
+    expect(runs().length).toBeGreaterThan(runsBefore);
+    expect(runs().at(-1)!.modelCalls[0].referent).toMatchObject({
+      kind: "ordinal",
+      courseCode: "MATH1005",
+      position: 2,
+    });
+    expect(runs().at(-1)!.modelCalls[0].catalog?.resultSets[0]).toMatchObject({
+      filter: "offered",
+      courses: [
+        { position: 1, courseCode: "MATH1002" },
+        { position: 2, courseCode: "MATH1005" },
+      ],
+    });
+    expect(
+      runs().at(-1)!.modelCalls.find((call) => call.lastTool?.name === "get_course")!.lastTool!.output,
+    ).toContain("MATH1005");
   }, 60_000);
 });
