@@ -7,6 +7,7 @@ import {
   resolveCourseReferent,
   COURSE_REFERENT_DESCRIPTION,
 } from "@/lib/assistant/course-referent";
+import { shapeConversation } from "@/lib/assistant/conversation";
 import { CATALOG_RESULTS_CONTEXT_DESCRIPTION } from "@/lib/assistant/catalog-result-sets";
 import { PAGE_CONTEXT_DESCRIPTION } from "@/lib/assistant/page-context";
 import type { PageContext } from "@/lib/assistant/page-context";
@@ -222,6 +223,31 @@ describe("courseReferentFromRun", () => {
     });
     expect(referent).toEqual({ kind: "conversation", courseCode: "APAC2000" });
     expect(COURSE_REFERENT_DESCRIPTION.length).toBeGreaterThan(0);
+  });
+
+  it("keeps the corrected course after shapeConversation shortens tool results", () => {
+    const longTail = "x".repeat(250);
+    const toolPayload = JSON.stringify({
+      course: { courseCode: "ECON1002", title: longTail },
+    });
+    const messages = shapeConversation(
+      [
+        { role: "user", content: "the second course" },
+        {
+          role: "assistant",
+          toolCalls: [
+            { id: "g1", function: { name: "get_course", arguments: JSON.stringify({ code: "MATH1002" }) } },
+          ],
+        },
+        { role: "tool", toolCallId: "g1", content: toolPayload },
+        { role: "user", content: "When are its classes?" },
+      ],
+      8,
+    );
+    expect(courseReferentFromRun({ messages })).toEqual({
+      kind: "conversation",
+      courseCode: "ECON1002",
+    });
   });
 
   it("prefers a corrected tool result over the model's original arguments", () => {

@@ -271,12 +271,22 @@ function codeFromArguments(argumentsJson: string): string | null {
   return COURSE_CODE_PATTERN.test(normalized) ? normalized.match(COURSE_CODE_PATTERN)![0] : null;
 }
 
+function courseCodeFromCourseCodeField(content: string): string | null {
+  const pattern = /"courseCode"\s*:\s*"([^"]*)"/g;
+  for (const match of content.matchAll(pattern)) {
+    const normalized = match[1].trim().toUpperCase();
+    const hit = normalized.match(COURSE_CODE_PATTERN);
+    if (hit) return hit[0];
+  }
+  return null;
+}
+
 function codeFromToolContent(content: string): string | null {
   let raw: unknown;
   try {
     raw = JSON.parse(content);
   } catch {
-    return null;
+    return courseCodeFromCourseCodeField(content);
   }
   if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return null;
   const record = raw as Record<string, unknown>;
