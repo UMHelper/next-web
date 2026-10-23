@@ -36,7 +36,7 @@ function result(id: string, payload: unknown): Message {
 }
 
 function assistantMsg(...toolCalls: ToolCall[]): Message {
-  return { role: "assistant", toolCalls };
+  return { id: `a-${toolCalls[0]?.id ?? "none"}`, role: "assistant", toolCalls };
 }
 
 function courses(n: number, offeredIndices: number[]) {
@@ -93,7 +93,7 @@ function coursePayload(
   };
 }
 
-const user: Message = { role: "user", content: "find courses" };
+const user: Message = { id: "user-1", role: "user", content: "find courses" };
 
 const math = coursePayload({
   results: [
