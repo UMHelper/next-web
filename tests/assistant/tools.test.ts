@@ -15,14 +15,15 @@ vi.mock("@/lib/mcp/data/get-instructor", () => ({ getInstructor: data.getInstruc
 vi.mock("@/lib/mcp/data/get-course-reviews", () => ({ getCourseReviews: data.getCourseReviews }));
 vi.mock("@/lib/mcp/data/get-course-sections", () => ({ getCourseSections: data.getCourseSections }));
 
+import { type CourseReferentSlot } from "@/lib/assistant/course-referent";
 import { ASSISTANT_SERVER_TOOL_NAMES, createAssistantTools } from "@/lib/assistant/tools";
 import { McpToolError } from "@/lib/mcp/errors";
 
 const COURSE_URL = "https://umeh.top/course/ACCT1000";
 const REVIEW_URL = "https://umeh.top/reviews/ACCT1000/CHAN%20TAI%20MAN";
 
-async function call(name: string, args: Record<string, unknown>) {
-  const tool = createAssistantTools().find((entry) => entry.name === name);
+async function call(name: string, args: Record<string, unknown>, slot?: CourseReferentSlot) {
+  const tool = createAssistantTools(slot).find((entry) => entry.name === name);
   if (!tool?.execute) throw new Error(`missing tool ${name}`);
   return (tool.execute as (input: unknown) => Promise<unknown>)(args);
 }
@@ -161,5 +162,62 @@ describe("assistant server tools", () => {
     await expect(
       call("get_course_sections", { code: "ACCT1000", instructor: "CHAN TAI MAN" }),
     ).resolves.toEqual({ error: "temporarily_unavailable" });
+  });
+
+  it("fetches the page course when the model passes a stale code", async () => {
+    data.getCourse.mockResolvedValue({
+      course: {
+        courseCode: "CISC3014",
+        titleEn: "Fixture",
+        titleZh: null,
+        credits: null,
+        faculty: null,
+        department: null,
+        programLevel: null,
+        suggestedYear: null,
+        medium: null,
+        gradingSystem: null,
+        courseType: null,
+        duration: null,
+        description: null,
+        isOffered: true,
+        url: COURSE_URL,
+      },
+      page: 1,
+      hasMore: false,
+      totalCount: 0,
+      instructors: [],
+    });
+    const slot: CourseReferentSlot = { current: { kind: "page", courseCode: "CISC3014" } };
+
+    await call("get_course", { code: "APAC2000" }, slot);
+
+    expect(data.getCourse).toHaveBeenCalledWith(expect.objectContaining({ code: "CISC3014" }));
+  });
+
+  it("fetches the named course when the model passes the page course", async () => {
+    data.getCourseSections.mockResolvedValue({
+      courseCode: "APAC2000",
+      instructor: "CHAN TAI MAN",
+      courseUrl: COURSE_URL,
+      sections: [],
+    });
+    const slot: CourseReferentSlot = { current: { kind: "explicit", courseCode: "APAC2000" } };
+
+    await call("get_course_sections", { code: "CISC3014", instructor: "CHAN TAI MAN" }, slot);
+
+    expect(data.getCourseSections).toHaveBeenCalledWith({ code: "APAC2000", instructor: "CHAN TAI MAN" });
+  });
+
+  it("does not fetch a course when the referent is ambiguous", async () => {
+    const slot: CourseReferentSlot = {
+      current: { kind: "ambiguous", reason: "no_page_course", ask: "Which course do you mean?" },
+    };
+
+    await expect(call("get_course", { code: "APAC2000" }, slot)).resolves.toEqual({
+      status: "needs_clarification",
+      ask: "Which course do you mean?",
+    });
+    expect(data.getCourse).not.toHaveBeenCalled();
   });
 });

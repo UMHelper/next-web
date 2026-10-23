@@ -20,7 +20,9 @@ vi.mock("@/lib/assistant/tools", () => ({ createAssistantTools: () => [{ name: "
 
 import { createAssistantAgent } from "@/lib/assistant/agent";
 import { readAssistantConfig } from "@/lib/assistant/config";
+import { COURSE_REFERENT_DESCRIPTION } from "@/lib/assistant/course-referent";
 import { MAX_NAVIGATIONS_PER_MESSAGE } from "@/lib/assistant/navigation";
+import { PAGE_CONTEXT_DESCRIPTION } from "@/lib/assistant/page-context";
 import { ASSISTANT_PROMPT } from "@/lib/assistant/prompt";
 
 describe("createAssistantAgent", () => {
@@ -86,6 +88,48 @@ describe("createAssistantAgent", () => {
     ) as { context: Array<{ value: string }> };
 
     expect(korean.context.some((entry) => entry.value.includes("Korean"))).toBe(true);
+  });
+
+  it("recomputes the course referent from each run and appends it after the script hints", () => {
+    createAssistantAgent(readAssistantConfig({ AI_API_KEY: "sk-test" }));
+    const middleware = use.mock.lastCall?.[0] as (
+      input: {
+        context: Array<{ description: string; value: string }>;
+        messages: Array<{ role: string; content: string }>;
+      },
+      next: { run: (input: unknown) => unknown },
+    ) => { context: Array<{ description: string; value: string }> };
+    const run = vi.fn((input: unknown) => input);
+    const pageEntry = {
+      description: PAGE_CONTEXT_DESCRIPTION,
+      value: JSON.stringify({ page: "course", courseCode: "CISC3014" }),
+    };
+
+    const first = middleware(
+      {
+        context: [pageEntry],
+        messages: [{ role: "user", content: "What sections does this course offer?" }],
+      },
+      { run },
+    );
+    const second = middleware(
+      {
+        context: [
+          {
+            description: PAGE_CONTEXT_DESCRIPTION,
+            value: JSON.stringify({ page: "course", courseCode: "APAC2000" }),
+          },
+        ],
+        messages: [{ role: "user", content: "What sections does this course offer?" }],
+      },
+      { run },
+    );
+
+    const firstReferent = first.context.find((entry) => entry.description === COURSE_REFERENT_DESCRIPTION);
+    const secondReferent = second.context.find((entry) => entry.description === COURSE_REFERENT_DESCRIPTION);
+    expect(JSON.parse(firstReferent!.value)).toEqual({ kind: "page", courseCode: "CISC3014" });
+    expect(JSON.parse(secondReferent!.value)).toEqual({ kind: "page", courseCode: "APAC2000" });
+    expect(first.context.at(-1)?.description).toBe(COURSE_REFERENT_DESCRIPTION);
   });
 });
 
@@ -198,7 +242,13 @@ describe("ASSISTANT_PROMPT", () => {
       "Each course position is its place in the list the student currently sees",
     );
     expect(ASSISTANT_PROMPT).toContain("When shownCount is 0, no course is visible; do not name one");
+    expect(ASSISTANT_PROMPT).toContain(
+      "courseReferent in the context is the course reference for the student's latest message",
+    );
+    expect(ASSISTANT_PROMPT).toContain("never replace a code the student wrote with the page course");
+    expect(ASSISTANT_PROMPT).toContain("When kind is ambiguous, ask the ask text and do not call a course tool");
     expect(ASSISTANT_PROMPT).not.toMatch(/\b[A-Z]{4}\d{4}\b/);
+    expect(ASSISTANT_PROMPT).not.toMatch(/[\p{Script=Han}]/u);
   });
 
   it("routes class-time questions through get_course then get_course_sections", () => {
