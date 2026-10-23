@@ -90,14 +90,13 @@ export function useCatalogResultsTool(): void {
   const storeRef = useRef(store);
   storeRef.current = store;
 
-  const messages = agent?.messages ?? [];
   const contextValue = useMemo(
     () =>
       summarizeCatalogResultSets(
-        collectCatalogResultSets(messages),
+        collectCatalogResultSets(agent?.messages ?? []),
         store?.filters ?? {},
       ),
-    [messages, store?.filters],
+    [agent?.messages, store?.filters],
   );
 
   useAgentContext({ description: CATALOG_RESULTS_CONTEXT_DESCRIPTION, value: contextValue });
