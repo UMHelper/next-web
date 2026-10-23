@@ -87,3 +87,13 @@ npm run eval:assistant -- evals/assistant/compare.eval.ts
 ```
 
 List the files in arm order. With `ASSISTANT_COMPARE_VARY=inference` (default) each file must change exactly one of thinking mode and `maxOutputTokens` from the file before it (for example 400/off → 1200/off → 1200/low → 2000/low). With `ASSISTANT_COMPARE_VARY=prompt` each file must change only the prompt fingerprint, for before/after comparisons of a prompt change. Every file must be a complete live run of the same suite, cases, repeats, model, `maxSteps` and eval fingerprint. It also prints one intent × language pass table per arm. Prices are optional, in USD per million tokens; reasoning tokens are priced as output. It prints the JSON and a markdown table.
+
+## Thinking mode (experimental)
+
+Production and the preview worker run with `AI_THINKING=off`. `ASSISTANT_EVAL_THINKING=low` exists only to measure thinking in eval arms. Thinking mode is not supported for students:
+
+- CopilotKit 1.79.1 drops `reasoning` messages from model history, so every frontend-tool follow-up run and every new turn sends `reasoning_content: ""` for earlier assistant messages. DeepSeek accepted this in the V1-E Phase 2 runs, but its documentation asks for full replay when tools are present. There is no replay code, on purpose.
+- Phase 2 found no lift from low-effort thinking large enough to justify about 50% more cost, and English replies drifted into Chinese under it.
+- Reconsider thinking, and only then build reasoning replay, if a controlled comparison on the semantic and multilingual suites shows thinking beating thinking-off by a margin fixed before the runs.
+
+Safeguards that stay in place while thinking is off: the sidebar hides reasoning messages (`reasoningMessage` slot in `components/assistant/assistant-panel.tsx`, `tests/components/assistant-reasoning-hidden.test.tsx`), reasoning tokens are logged per step (`lib/assistant/metrics.ts`), and the provider and history contracts are pinned (`tests/assistant/thinking-provider-contract.test.ts`, `tests/assistant/thinking-history-contract.test.ts`).
