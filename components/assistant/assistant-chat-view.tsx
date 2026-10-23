@@ -100,6 +100,28 @@ function ThinkingRow() {
   );
 }
 
+function assistantTextUsesMarkdown(text: string): boolean {
+  return /```|^#{1,6}\s|^\s*[-*+]\s|\|[^\n]+\||\[[^\]]+\]\([^)]+\)/m.test(text);
+}
+
+function splitAssistantProse(content: string): string[] {
+  return content
+    .split(/(?<=\.)(?=[A-Z])/)
+    .map((segment) => segment.trim())
+    .filter(Boolean);
+}
+
+function AssistantText({ content }: { content: string }) {
+  if (assistantTextUsesMarkdown(content)) {
+    return <Response>{content}</Response>;
+  }
+  return (
+    <div className="min-w-0 text-sm leading-relaxed text-foreground whitespace-pre-wrap break-words">
+      {content}
+    </div>
+  );
+}
+
 function CopyAction({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
 
@@ -209,7 +231,11 @@ function AssistantTurn({
 
         return (
           <div key={part.id} className="space-y-2">
-            {text ? <Response>{part.content ?? ""}</Response> : null}
+            {text
+              ? splitAssistantProse(part.content ?? "").map((segment, index) => (
+                  <AssistantText key={`${part.id}-${index}`} content={segment} />
+                ))
+              : null}
             {richBlocks}
           </div>
         );

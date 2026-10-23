@@ -36,7 +36,12 @@ function getHandler(): Handler {
     agents: ({ request }: { request: Request }) => ({
       default: createAssistantAgent(readAssistantConfig(), request.signal),
     }),
-    runner: new InMemoryAgentRunner({ maxThreads: 16, maxRunsPerThread: 1, maxBytes: 2 * 1024 * 1024 }),
+    runner: new InMemoryAgentRunner({
+      maxThreads: 16,
+      // Frontend tools with followUp=true (e.g. filter_catalog_results) need a second run on the same thread.
+      maxRunsPerThread: 8,
+      maxBytes: 2 * 1024 * 1024,
+    }),
   });
 
   cachedHandler = createCopilotRuntimeHandler({ runtime, basePath: BASE_PATH });

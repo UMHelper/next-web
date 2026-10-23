@@ -151,7 +151,7 @@ describe("/api/copilotkit", () => {
     expect(mocks.createCopilotRuntimeHandler).toHaveBeenCalledTimes(1);
     expect(mocks.InMemoryAgentRunner).toHaveBeenCalledWith({
       maxThreads: 16,
-      maxRunsPerThread: 1,
+      maxRunsPerThread: 8,
       maxBytes: 2 * 1024 * 1024,
     });
 

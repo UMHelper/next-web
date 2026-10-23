@@ -184,15 +184,30 @@ describe("AssistantLauncher", () => {
 
   it("re-checks access and drops the panel when the signed-in user changes", async () => {
     useAuthMock.mockReturnValue({ isLoaded: true, isSignedIn: true, userId: "user_a" });
-    const fetchMock = stubFetch(respond(true, { enabled: true }));
+    let resolveUserBAccess!: (value: FakeResponse) => void;
+    const fetchMock = vi.fn(async () => {
+      if (fetchMock.mock.calls.length === 1) {
+        return respond(true, { enabled: true });
+      }
+      return new Promise<FakeResponse>((resolve) => {
+        resolveUserBAccess = resolve;
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
     const { rerender } = render(<AssistantLauncher />);
     fireEvent.click(await screen.findByRole("button", { name: "AI Course Helper" }));
 
     useAuthMock.mockReturnValue({ isLoaded: true, isSignedIn: true, userId: "user_b" });
     rerender(<AssistantLauncher />);
     expect(screen.queryByTestId("assistant-panel")).toBeNull();
-    expect(await screen.findByRole("button", { name: "AI Course Helper" })).toBeTruthy();
     expect(fetchMock).toHaveBeenCalledTimes(2);
+
+    await act(async () => {
+      resolveUserBAccess(respond(true, { enabled: true }));
+    });
+    expect(await screen.findByRole("button", { name: "AI Course Helper" })).toBeTruthy();
+    expect(screen.queryByTestId("assistant-panel")).toBeNull();
   });
 });
 
