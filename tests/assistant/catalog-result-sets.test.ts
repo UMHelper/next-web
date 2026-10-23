@@ -7,6 +7,7 @@ import {
   applyCatalogFilter,
   collectCatalogResultSets,
   describeFilterScope,
+  describeLoadedResultSummary,
   findCatalogResultSet,
   runFilterCatalogResults,
   summarizeCatalogResultSets,
@@ -383,5 +384,67 @@ describe("findCatalogResultSet", () => {
   it("finds a set by id only within the given messages", () => {
     expect(findCatalogResultSet(msgs, "c1")?.id).toBe("c1");
     expect(findCatalogResultSet(msgs, "other-conversation-id")).toBeUndefined();
+  });
+});
+
+describe("describeLoadedResultSummary", () => {
+  it("counts a full loaded page without calling it the whole catalog", () => {
+    expect(
+      describeLoadedResultSummary({
+        filter: "all",
+        shown: 10,
+        loaded: 10,
+        totalCount: 127,
+      }),
+    ).toBe("127 matches · 10 loaded");
+  });
+
+  it("uses a singular match when every result is loaded", () => {
+    expect(
+      describeLoadedResultSummary({
+        filter: "all",
+        shown: 1,
+        loaded: 1,
+        totalCount: 1,
+      }),
+    ).toBe("1 match");
+    expect(
+      describeLoadedResultSummary({
+        filter: "all",
+        shown: 10,
+        loaded: 10,
+        totalCount: 10,
+      }),
+    ).toBe("10 matches");
+  });
+
+  it("says offered counts are among the loaded rows", () => {
+    expect(
+      describeLoadedResultSummary({
+        filter: "offered",
+        shown: 2,
+        loaded: 10,
+        totalCount: 127,
+      }),
+    ).toBe("2 offered among 10 loaded · 127 total matches");
+    expect(
+      describeLoadedResultSummary({
+        filter: "offered",
+        shown: 1,
+        loaded: 3,
+        totalCount: 3,
+      }),
+    ).toBe("1 offered among 3 loaded · 3 total matches");
+  });
+
+  it("does not claim the catalog has no offered courses when the loaded page has none", () => {
+    expect(
+      describeLoadedResultSummary({
+        filter: "offered",
+        shown: 0,
+        loaded: 10,
+        totalCount: 127,
+      }),
+    ).toBe("None offered among 10 loaded · 127 total matches");
   });
 });

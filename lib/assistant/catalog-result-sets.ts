@@ -190,6 +190,29 @@ export function describeFilterScope(input: {
   return text;
 }
 
+export function describeLoadedResultSummary(input: {
+  filter: CatalogFilter;
+  shown: number;
+  loaded: number;
+  totalCount: number;
+}): string {
+  const { filter, shown, loaded, totalCount } = input;
+
+  if (filter === "offered") {
+    if (shown === 0) {
+      return `None offered among ${loaded} loaded · ${totalCount} total matches`;
+    }
+    const offered = shown === 1 ? "1 offered" : `${shown} offered`;
+    return `${offered} among ${loaded} loaded · ${totalCount} total matches`;
+  }
+
+  if (loaded < totalCount) {
+    return `${totalCount} matches · ${loaded} loaded`;
+  }
+
+  return totalCount === 1 ? "1 match" : `${totalCount} matches`;
+}
+
 export function summarizeCatalogResultSets(
   sets: CatalogResultSet[],
   filters: Readonly<Record<string, CatalogFilter>>,
