@@ -188,4 +188,16 @@ describe("ASSISTANT_PROMPT", () => {
     expect(ASSISTANT_PROMPT).toContain("timeout means the page has not finished opening yet");
     expect(ASSISTANT_PROMPT).toContain("do not call navigate again after timeout or limit_reached");
   });
+
+  it("routes follow-ups about earlier results to filter_catalog_results", () => {
+    expect(ASSISTANT_PROMPT).toContain("call filter_catalog_results with that resultSetId instead of searching again");
+    expect(ASSISTANT_PROMPT).toContain("the filter covers only the loaded results");
+    expect(ASSISTANT_PROMPT).toContain("it does not mean seats are open");
+    expect(ASSISTANT_PROMPT).toContain("ask one short question");
+  });
+
+  it("routes class-time questions through get_course then get_course_sections", () => {
+    expect(ASSISTANT_PROMPT).toContain("call get_course first, then call get_course_sections");
+    expect(ASSISTANT_PROMPT).toContain("Never state meeting times, locations or instructors the tools did not return");
+  });
 });
