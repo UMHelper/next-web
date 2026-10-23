@@ -112,6 +112,34 @@ describe("AssistantChatView", () => {
     expect(screen.queryByText("Reasoning")).toBeNull();
   });
 
+  it("renders bold-only assistant text through markdown", () => {
+    renderView({
+      messages: [
+        { id: "u1", role: "user", content: "How many credits?" },
+        { id: "a1", role: "assistant", content: "**3 credits**" },
+      ],
+    });
+
+    expect(screen.getByText("3 credits")).toBeTruthy();
+    expect(screen.queryByText("**3 credits**")).toBeNull();
+  });
+
+  it("splits glued sentences so each is findable by getByText", () => {
+    renderView({
+      messages: [
+        { id: "u1", role: "user", content: "MATH courses" },
+        {
+          id: "a1",
+          role: "assistant",
+          content: "Here are MATH courses.Filtered to offered courses.",
+        },
+      ],
+    });
+
+    expect(screen.getByText("Here are MATH courses.")).toBeTruthy();
+    expect(screen.getByText("Filtered to offered courses.")).toBeTruthy();
+  });
+
   it("renders user and assistant turns with the tool trace and markdown", () => {
     renderView({ messages: MESSAGES });
 
