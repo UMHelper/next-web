@@ -36,7 +36,7 @@ import {
 import { Message as ChatMessage, MessageContent } from "@/components/ai-elements/message";
 import { PromptInput } from "@/components/ai-elements/prompt-input";
 import { Response } from "@/components/ai-elements/response";
-import { dedupeCalls, ToolTrace } from "@/components/ai-elements/tool";
+import { dedupeCalls, ToolRow, ToolTrace } from "@/components/ai-elements/tool";
 import { EXAMPLE_QUESTIONS } from "@/lib/assistant/example-questions";
 import { cn } from "@/lib/utils";
 
@@ -166,6 +166,11 @@ function AssistantTurn({
     [dedupedCalls],
   );
 
+  const dedupedById = useMemo(
+    () => new Map(dedupedCalls.map((call) => [call.id, call])),
+    [dedupedCalls],
+  );
+
   const turnActive = isRunning && isLast;
 
   const isRichCall = useCallback(
@@ -192,6 +197,7 @@ function AssistantTurn({
   }, [parts]);
 
   const streamingHere = isRunning && isLast;
+  const seenRichIds = new Set<string>();
 
   return (
     <div className="space-y-2 animate-in fade-in duration-200">
@@ -203,10 +209,20 @@ function AssistantTurn({
 
         const text = part.content?.trim() ?? "";
         const richBlocks =
-          part.toolCalls?.flatMap((call) => {
-            if (!dedupedIds.has(call.id) || !isRichCall(call) || !toolRenderer) return [];
+          part.toolCalls?.flatMap((rawCall) => {
+            const call = dedupedById.get(rawCall.id) ?? rawCall;
+            if (!dedupedIds.has(call.id) || seenRichIds.has(call.id) || !isRichCall(call) || !toolRenderer) {
+              return [];
+            }
+            seenRichIds.add(call.id);
             return [
-              <div key={`rich-${call.id}`}>
+              <div key={`rich-${call.id}`} className="space-y-1.5">
+                <ToolRow
+                  call={call}
+                  result={results.get(call.id)}
+                  isRunning={turnActive}
+                  announce
+                />
                 {toolRenderer.render(call, results.get(call.id))}
               </div>,
             ];

@@ -13,7 +13,10 @@ export default defineConfig({
   },
   test: {
     environment: "node",
-    environmentMatchGlobs: [["tests/components/**", "jsdom"]],
+    environmentMatchGlobs: [
+      ["tests/components/**", "jsdom"],
+      ["tests/ai-elements/**", "jsdom"],
+    ],
     include: ["tests/**/*.test.ts", "tests/**/*.test.tsx"],
     globals: true,
     // CopilotKit's React build imports its own CSS, which only Vite (not Node) can load.

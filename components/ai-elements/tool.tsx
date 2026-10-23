@@ -8,6 +8,7 @@ import {
 
 import type { ToolCall, ToolMessage } from "@copilotkit/react-core/v2";
 
+import { toolActivityStatus, type ToolActivityStatus } from "@/lib/assistant/tool-activity";
 import { cn } from "@/lib/utils";
 
 const TOOL_LABELS: Record<string, { running: string; done: string }> = {
@@ -20,7 +21,19 @@ const TOOL_LABELS: Record<string, { running: string; done: string }> = {
   filter_catalog_results: { running: "Filtering results", done: "Filtered results" },
 };
 
-type ToolStatus = "running" | "done" | "error" | "pending";
+const TOOL_FAILED: Record<string, string> = {
+  search_catalog: "Couldn't search courses",
+  get_course: "Couldn't read course",
+  get_instructor: "Couldn't read instructor",
+  get_course_reviews: "Couldn't read reviews",
+  get_course_sections: "Couldn't read class times",
+  check_plan_conflicts: "Couldn't check timetable",
+  filter_catalog_results: "Couldn't filter results",
+};
+
+function failedLabel(name: string) {
+  return TOOL_FAILED[name] ?? "Lookup failed";
+}
 
 function toolLabel(name: string) {
   return TOOL_LABELS[name] ?? { running: `使用 ${name}`, done: `已使用 ${name}` };
@@ -29,7 +42,7 @@ function toolLabel(name: string) {
 function toolDetail(call: ToolCall): string | null {
   try {
     const args = JSON.parse(call.function.arguments) as Record<string, unknown>;
-    for (const key of ["query", "code", "courseCode", "course", "instructor"]) {
+    for (const key of ["query", "code", "courseCode", "course", "name", "instructor"]) {
       const value = args[key];
       if (typeof value === "string" && value.trim()) return value.trim();
     }
@@ -39,28 +52,25 @@ function toolDetail(call: ToolCall): string | null {
   return null;
 }
 
-function statusOf(result: ToolMessage | undefined, isRunning: boolean): ToolStatus {
-  if (result) return result.error ? "error" : "done";
-  return isRunning ? "running" : "pending";
-}
-
-const STATUS_ICON: Record<ToolStatus, LucideIcon> = {
+const STATUS_ICON: Record<ToolActivityStatus, LucideIcon> = {
   running: Loader2,
   done: Check,
   error: AlertCircle,
   pending: Clock,
 };
 
-function ToolRow({
+export function ToolRow({
   call,
   result,
   isRunning,
+  announce = false,
 }: {
   call: ToolCall;
   result: ToolMessage | undefined;
   isRunning: boolean;
+  announce?: boolean;
 }) {
-  const status = statusOf(result, isRunning);
+  const status = toolActivityStatus(call.function.name, result, isRunning);
   const Icon = STATUS_ICON[status];
   const label = toolLabel(call.function.name);
   const detail = toolDetail(call);
@@ -68,13 +78,17 @@ function ToolRow({
     status === "running"
       ? `${label.running}…`
       : status === "error"
-        ? "Lookup failed"
+        ? failedLabel(call.function.name)
         : status === "pending"
           ? "Not completed"
           : label.done;
 
   return (
-    <div className="flex min-w-0 items-center gap-2 text-xs">
+    <div
+      role={announce ? "status" : undefined}
+      data-status={status}
+      className="flex min-w-0 max-w-full items-center gap-2 overflow-hidden text-xs"
+    >
       <span
         className={cn(
           "flex h-4 w-4 shrink-0 items-center justify-center",
@@ -86,7 +100,7 @@ function ToolRow({
         )}
       >
         <Icon
-          className={cn("h-3.5 w-3.5", status === "running" && "animate-spin")}
+          className={cn("h-3.5 w-3.5", status === "running" && "motion-safe:animate-spin")}
           aria-hidden
         />
       </span>
@@ -99,7 +113,7 @@ function ToolRow({
         {text}
       </span>
       {detail ? (
-        <span className="min-w-0 truncate text-xs text-muted-foreground">{detail}</span>
+        <span className="min-w-0 truncate text-xs text-muted-foreground">· {detail}</span>
       ) : null}
     </div>
   );

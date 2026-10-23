@@ -192,6 +192,8 @@ describe("AssistantChat", () => {
   });
 
   it("renders search_catalog through useRenderToolCall", () => {
+    const catalogBody =
+      '{"type":"course","page":1,"hasMore":false,"totalCount":0,"results":[]}';
     mocks.agent.messages = [
       { id: "u1", role: "user", content: "Find ACCT courses" },
       {
@@ -206,12 +208,15 @@ describe("AssistantChat", () => {
           },
         ],
       },
-      { id: "t1", role: "tool", toolCallId: "call-sc", content: "catalog-hit" },
+      { id: "t1", role: "tool", toolCallId: "call-sc", content: catalogBody },
       { id: "a2", role: "assistant", content: "Here are matches." },
     ];
     renderChat();
 
-    expect(screen.getByTestId("rich-call-sc").textContent).toBe("catalog-hit");
-    expect(screen.queryByText("Searched courses")).toBeNull();
+    expect(screen.getByTestId("rich-call-sc").textContent).toBe(catalogBody);
+    expect(screen.getAllByText("Searched courses")).toHaveLength(1);
+    const statuses = screen.getAllByRole("status");
+    expect(statuses).toHaveLength(1);
+    expect(statuses[0].getAttribute("data-status")).toBe("done");
   });
 });

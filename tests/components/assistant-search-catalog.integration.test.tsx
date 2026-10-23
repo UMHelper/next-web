@@ -336,7 +336,9 @@ describe("assistant search_catalog integration (scripted model)", () => {
       },
       { timeout: 10000 },
     );
-    expect(screen.queryByText("Searched courses")).toBeNull();
+    expect(screen.getAllByText("Searched courses")).toHaveLength(1);
+    expect(screen.getAllByRole("listitem").length).toBeGreaterThan(0);
+    expect(screen.getByRole("link", { name: /ACCT1000/ })).toBeTruthy();
 
     const runsBeforeNav = runs().length;
     fireEvent.click(screen.getByRole("link", { name: /ACCT1000/ }));

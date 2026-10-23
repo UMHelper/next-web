@@ -39,3 +39,16 @@ export function parseToolResult<T>(
 
   return { ok: false, reason: "malformed" };
 }
+
+/** Classifies only the shared `{ error }` envelope. Other JSON is `"none"`. */
+export function readToolFailure(content: string): ToolResultFailure | "none" | "malformed" {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(content);
+  } catch {
+    return "malformed";
+  }
+  const failure = toolFailureSchema.safeParse(parsed);
+  if (failure.success) return failure.data.error;
+  return "none";
+}

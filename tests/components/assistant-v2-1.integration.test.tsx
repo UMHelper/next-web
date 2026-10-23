@@ -658,16 +658,21 @@ describe("assistant V2.1 integration (scripted model)", () => {
     expect(within(block).getAllByRole("listitem")).toHaveLength(2);
     expect(within(block).getByRole("button", { name: "Offered only" }).getAttribute("aria-pressed")).toBe("true");
     expect(screen.getByRole("button", { name: "Show results" })).toBeTruthy();
-    expect(screen.queryByText("Filtered results")).toBeNull();
+    expect(screen.getAllByText("Filtered results")).toHaveLength(1);
+    expect(screen.queryByText("Filtering results…")).toBeNull();
 
     await typeAndSend("Tell me more about MATH1002");
     await waitFor(() => expect(screen.getByRole("article", { name: "MATH1002" })).toBeTruthy(), { timeout: 10000 });
+    expect(screen.getAllByText("Read course")).toHaveLength(1);
 
     await typeAndSend("When is MATH1002 taught?");
     await waitFor(() => expect(screen.getByRole("article", { name: "Section 001" })).toBeTruthy(), { timeout: 10000 });
     expect(screen.getByText("Mon 09:00–10:15")).toBeTruthy();
     expect(screen.getByText("Location not listed")).toBeTruthy();
-    expect(screen.queryByText("Read class times")).toBeNull();
+    expect(screen.getAllByText("Read course")).toHaveLength(2);
+    expect(screen.getAllByText("Read class times")).toHaveLength(1);
+    expect(screen.getByRole("article", { name: "Section 001" })).toBeTruthy();
+    expect(screen.getByText("Mon 09:00–10:15")).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "Close" }));
     fireEvent.click(screen.getByRole("button", { name: "AI Course Helper" }));
@@ -681,9 +686,15 @@ describe("assistant V2.1 integration (scripted model)", () => {
     );
     expect(within(reopened).getAllByRole("listitem")).toHaveLength(2);
     expect(screen.getByRole("article", { name: "Section 001" })).toBeTruthy();
+    expect(screen.getAllByText("Searched courses")).toHaveLength(1);
+    expect(screen.queryByText("Searching courses…")).toBeNull();
+    expect(screen.getByRole("article", { name: "Section 001" })).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "New chat" }));
     await waitFor(() => expect(document.getElementById("catalog-results-call-1")).toBeNull());
+    expect(screen.queryByText("Searched courses")).toBeNull();
+    expect(screen.queryByText("Filtered results")).toBeNull();
+    expect(screen.queryByText("Read class times")).toBeNull();
     await typeAndSend("stale filter");
     await waitFor(
       () =>
@@ -692,6 +703,8 @@ describe("assistant V2.1 integration (scripted model)", () => {
         ).toBeTruthy(),
       { timeout: 10000 },
     );
+    expect(screen.getByText("Couldn't filter results")).toBeTruthy();
+    expect(screen.queryByText("Filtered results")).toBeNull();
     expect(runs().at(-1)!.modelCalls[0].catalog).toBeUndefined();
   }, 120_000);
 
