@@ -10,7 +10,14 @@ import {
   RotateCcw,
   X,
 } from "lucide-react";
-import { useEffect, useMemo, useState, type ReactNode, type RefCallback } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+  type RefCallback,
+} from "react";
 
 import type {
   AssistantMessage,
@@ -152,15 +159,18 @@ function AssistantTurn({
     [dedupedCalls],
   );
 
-  const isRichCall = (call: ToolCall) =>
-    Boolean(
-      toolRenderer?.names.has(call.function.name) &&
-        (results.get(call.id) || isRunning),
-    );
+  const isRichCall = useCallback(
+    (call: ToolCall) =>
+      Boolean(
+        toolRenderer?.names.has(call.function.name) &&
+          (results.get(call.id) || isRunning),
+      ),
+    [toolRenderer, results, isRunning],
+  );
 
   const traceCalls = useMemo(
     () => dedupedCalls.filter((call) => !isRichCall(call)),
-    [dedupedCalls, toolRenderer, results, isRunning],
+    [dedupedCalls, isRichCall],
   );
 
   // One action row per turn, not one under every assistant fragment.
