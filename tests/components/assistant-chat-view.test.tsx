@@ -2,12 +2,25 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ReactNode } from "react";
 
-import type { Message } from "@copilotkit/react-core/v2";
+import type { Message, ToolCall, ToolMessage } from "@copilotkit/react-core/v2";
 
 import {
   AssistantChatView,
   type AssistantChatViewProps,
 } from "@/components/assistant/assistant-chat-view";
+
+const RICH_TOOL_NAMES = new Set(["search_catalog"]);
+
+function fakeToolRenderer() {
+  return {
+    names: RICH_TOOL_NAMES,
+    render: (call: ToolCall, result: ToolMessage | undefined) => (
+      <div data-testid={`rich-${call.id}`}>
+        {typeof result?.content === "string" ? result.content : "loading"}
+      </div>
+    ),
+  };
+}
 
 vi.mock("next/link", () => ({
   default: ({ href, children, ...props }: { href: string; children: ReactNode }) => (
@@ -240,5 +253,244 @@ describe("AssistantChatView", () => {
     expect(screen.getByText("Connecting…")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Q1" }).hasAttribute("disabled")).toBe(true);
     expect(screen.getByRole("button", { name: "Send" }).hasAttribute("disabled")).toBe(true);
+  });
+
+  describe("toolRenderer", () => {
+    it("renders a rich search_catalog block instead of the trace row", () => {
+      renderView({
+        messages: [
+          { id: "u1", role: "user", content: "ACCT" },
+          {
+            id: "a1",
+            role: "assistant",
+            content: "",
+            toolCalls: [
+              {
+                id: "call-1",
+                type: "function",
+                function: { name: "search_catalog", arguments: '{"query":"ACCT"}' },
+              },
+            ],
+          },
+          { id: "t1", role: "tool", toolCallId: "call-1", content: "catalog-json" },
+          { id: "a2", role: "assistant", content: "Found courses." },
+        ],
+        toolRenderer: fakeToolRenderer(),
+      });
+
+      expect(screen.getByTestId("rich-call-1").textContent).toBe("catalog-json");
+      expect(screen.queryByText("Searched courses")).toBeNull();
+    });
+
+    it("keeps non-rich tools in ToolTrace", () => {
+      renderView({
+        messages: [
+          { id: "u1", role: "user", content: "course" },
+          {
+            id: "a1",
+            role: "assistant",
+            content: "",
+            toolCalls: [
+              {
+                id: "call-1",
+                type: "function",
+                function: { name: "get_course", arguments: '{"code":"ACCT1000"}' },
+              },
+            ],
+          },
+          { id: "t1", role: "tool", toolCallId: "call-1", content: "{}" },
+          { id: "a2", role: "assistant", content: "Here is ACCT1000." },
+        ],
+        toolRenderer: fakeToolRenderer(),
+      });
+
+      expect(screen.getByText("Read course")).toBeTruthy();
+      expect(screen.queryByTestId("rich-call-1")).toBeNull();
+    });
+
+    it("pairs tool results by toolCallId only", () => {
+      renderView({
+        messages: [
+          { id: "u1", role: "user", content: "search" },
+          {
+            id: "a1",
+            role: "assistant",
+            content: "",
+            toolCalls: [
+              {
+                id: "call-1",
+                type: "function",
+                function: { name: "search_catalog", arguments: '{"query":"A"}' },
+              },
+              {
+                id: "call-x",
+                type: "function",
+                function: { name: "search_catalog", arguments: '{"query":"B"}' },
+              },
+            ],
+          },
+          { id: "t1", role: "tool", toolCallId: "call-1", content: "for-call-1" },
+          { id: "t2", role: "tool", toolCallId: "call-x", content: "for-call-x" },
+          { id: "a2", role: "assistant", content: "Done." },
+        ],
+        toolRenderer: fakeToolRenderer(),
+      });
+
+      expect(screen.getByTestId("rich-call-1").textContent).toBe("for-call-1");
+      expect(screen.getByTestId("rich-call-x").textContent).toBe("for-call-x");
+    });
+
+    it("pairs a late tool message with the earlier call", () => {
+      renderView({
+        messages: [
+          { id: "u1", role: "user", content: "search" },
+          {
+            id: "a1",
+            role: "assistant",
+            content: "",
+            toolCalls: [
+              {
+                id: "call-1",
+                type: "function",
+                function: { name: "search_catalog", arguments: '{"query":"ACCT"}' },
+              },
+            ],
+          },
+          { id: "a2", role: "assistant", content: "Still working on it." },
+          { id: "t1", role: "tool", toolCallId: "call-1", content: "late-result" },
+          { id: "a3", role: "assistant", content: "All set." },
+        ],
+        toolRenderer: fakeToolRenderer(),
+      });
+
+      expect(screen.getByTestId("rich-call-1").textContent).toBe("late-result");
+    });
+
+    it("renders two rich search blocks in call order", () => {
+      renderView({
+        messages: [
+          { id: "u1", role: "user", content: "two searches" },
+          {
+            id: "a1",
+            role: "assistant",
+            content: "First pass.",
+            toolCalls: [
+              {
+                id: "call-1",
+                type: "function",
+                function: { name: "search_catalog", arguments: '{"query":"ACCT"}' },
+              },
+            ],
+          },
+          { id: "t1", role: "tool", toolCallId: "call-1", content: "first" },
+          {
+            id: "a2",
+            role: "assistant",
+            content: "Second pass.",
+            toolCalls: [
+              {
+                id: "call-2",
+                type: "function",
+                function: { name: "search_catalog", arguments: '{"query":"CISC"}' },
+              },
+            ],
+          },
+          { id: "t2", role: "tool", toolCallId: "call-2", content: "second" },
+        ],
+        toolRenderer: fakeToolRenderer(),
+      });
+
+      const rich = screen.getAllByTestId(/^rich-call-/);
+      expect(rich.map((node) => node.textContent)).toEqual(["first", "second"]);
+    });
+
+    it("shows Not completed in trace when interrupted without a result", () => {
+      renderView({
+        messages: [
+          { id: "u1", role: "user", content: "search" },
+          {
+            id: "a1",
+            role: "assistant",
+            content: "",
+            toolCalls: [
+              {
+                id: "call-1",
+                type: "function",
+                function: { name: "search_catalog", arguments: '{"query":"ACCT"}' },
+              },
+            ],
+          },
+          { id: "a2", role: "assistant", content: "Stopped early." },
+        ],
+        isRunning: false,
+        toolRenderer: fakeToolRenderer(),
+      });
+
+      expect(screen.getByText("Not completed")).toBeTruthy();
+      expect(screen.queryByTestId("rich-call-1")).toBeNull();
+    });
+
+    it("shows loading in the rich block while running without a result", () => {
+      renderView({
+        messages: [
+          { id: "u1", role: "user", content: "search" },
+          {
+            id: "a1",
+            role: "assistant",
+            content: "",
+            toolCalls: [
+              {
+                id: "call-1",
+                type: "function",
+                function: { name: "search_catalog", arguments: '{"query":"ACCT"}' },
+              },
+            ],
+          },
+        ],
+        isRunning: true,
+        toolRenderer: fakeToolRenderer(),
+      });
+
+      expect(screen.getByTestId("rich-call-1").textContent).toBe("loading");
+      expect(screen.queryByText("Searched courses")).toBeNull();
+    });
+
+    it("dedupes a replayed empty-arg search_catalog call", () => {
+      renderView({
+        messages: [
+          { id: "u1", role: "user", content: "search" },
+          {
+            id: "a1",
+            role: "assistant",
+            content: "",
+            toolCalls: [
+              {
+                id: "call-1",
+                type: "function",
+                function: { name: "search_catalog", arguments: '{"query":"ACCT"}' },
+              },
+            ],
+          },
+          { id: "t1", role: "tool", toolCallId: "call-1", content: "ok" },
+          {
+            id: "a2",
+            role: "assistant",
+            content: "Looking again.",
+            toolCalls: [
+              {
+                id: "call-2",
+                type: "function",
+                function: { name: "search_catalog", arguments: "{}" },
+              },
+            ],
+          },
+          { id: "a3", role: "assistant", content: "Done." },
+        ],
+        toolRenderer: fakeToolRenderer(),
+      });
+
+      expect(screen.getAllByTestId(/^rich-call-/).length).toBe(1);
+      expect(screen.queryByText("Searched courses")).toBeNull();
+    });
   });
 });

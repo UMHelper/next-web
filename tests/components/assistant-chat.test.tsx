@@ -28,6 +28,16 @@ vi.mock("next/link", () => ({
 
 vi.mock("@copilotkit/react-core/v2", () => ({
   isAbortError: (error: unknown) => error instanceof Error && /abort/i.test(error.message),
+  useRenderToolCall: () =>
+    ({
+      toolCall,
+      toolMessage,
+    }: {
+      toolCall: { id: string };
+      toolMessage?: { content?: string };
+    }) => (
+      <div data-testid={`rich-${toolCall.id}`}>{toolMessage?.content ?? "loading"}</div>
+    ),
 }));
 
 vi.mock("@copilotkit/react-core/v2/headless", () => ({
@@ -179,5 +189,29 @@ describe("AssistantChat", () => {
     expect(screen.getByRole("button", { name: "Send" }).hasAttribute("disabled")).toBe(true);
     await act(async () => {});
     expect(mocks.agent.addMessage).not.toHaveBeenCalled();
+  });
+
+  it("renders search_catalog through useRenderToolCall", () => {
+    mocks.agent.messages = [
+      { id: "u1", role: "user", content: "Find ACCT courses" },
+      {
+        id: "a1",
+        role: "assistant",
+        content: "",
+        toolCalls: [
+          {
+            id: "call-sc",
+            type: "function",
+            function: { name: "search_catalog", arguments: '{"query":"ACCT"}' },
+          },
+        ],
+      },
+      { id: "t1", role: "tool", toolCallId: "call-sc", content: "catalog-hit" },
+      { id: "a2", role: "assistant", content: "Here are matches." },
+    ];
+    renderChat();
+
+    expect(screen.getByTestId("rich-call-sc").textContent).toBe("catalog-hit");
+    expect(screen.queryByText("Searched courses")).toBeNull();
   });
 });

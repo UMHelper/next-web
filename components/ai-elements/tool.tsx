@@ -104,7 +104,7 @@ function ToolRow({
   );
 }
 
-function dedupeCalls(calls: ToolCall[]): ToolCall[] {
+export function dedupeCalls(calls: ToolCall[]): ToolCall[] {
   const seenIds = new Set<string>();
   const seenDetail = new Set<string>();
   const seenEmpty = new Set<string>();

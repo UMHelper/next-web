@@ -1,6 +1,11 @@
 "use client";
 
-import { isAbortError } from "@copilotkit/react-core/v2";
+import {
+  isAbortError,
+  useRenderToolCall,
+  type ToolCall,
+  type ToolMessage,
+} from "@copilotkit/react-core/v2";
 import {
   useAgent,
   useCopilotKit,
@@ -9,10 +14,13 @@ import {
 import { useCallback, useEffect, useMemo, useState, type RefCallback } from "react";
 
 import { describeAssistantError } from "@/lib/assistant/error-message";
+import { SEARCH_CATALOG_TOOL_NAME } from "@/lib/assistant/search-catalog-ui";
 import { PANEL_WIDTH_DEFAULT } from "@/lib/assistant/panel-width";
 
 import { AssistantChatView, type ChatSuggestion } from "./assistant-chat-view";
 import { PANEL_WIDTH_VAR } from "./resize-handle";
+
+const RICH_TOOL_NAMES = new Set([SEARCH_CATALOG_TOOL_NAME]);
 
 function newMessageId() {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
@@ -35,6 +43,16 @@ export default function AssistantChat({
   const { agent, isReady } = useAgent();
   const { copilotkit } = useCopilotKit();
   const { suggestions } = useSuggestions();
+  const renderToolCall = useRenderToolCall();
+
+  const toolRenderer = useMemo(
+    () => ({
+      names: RICH_TOOL_NAMES,
+      render: (call: ToolCall, result: ToolMessage | undefined) =>
+        renderToolCall({ toolCall: call, toolMessage: result }),
+    }),
+    [renderToolCall],
+  );
 
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -131,6 +149,7 @@ export default function AssistantChat({
       onNewChat={startNewChat}
       onClose={onClose}
       onClearAlert={clearAlert}
+      toolRenderer={toolRenderer}
     />
   );
 }

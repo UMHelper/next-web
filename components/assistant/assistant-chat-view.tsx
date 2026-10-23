@@ -10,7 +10,7 @@ import {
   RotateCcw,
   X,
 } from "lucide-react";
-import { useEffect, useMemo, useState, type RefCallback } from "react";
+import { useEffect, useMemo, useState, type ReactNode, type RefCallback } from "react";
 
 import type {
   AssistantMessage,
@@ -29,7 +29,7 @@ import {
 import { Message as ChatMessage, MessageContent } from "@/components/ai-elements/message";
 import { PromptInput } from "@/components/ai-elements/prompt-input";
 import { Response } from "@/components/ai-elements/response";
-import { ToolTrace } from "@/components/ai-elements/tool";
+import { dedupeCalls, ToolTrace } from "@/components/ai-elements/tool";
 import { EXAMPLE_QUESTIONS } from "@/lib/assistant/example-questions";
 import { cn } from "@/lib/utils";
 
@@ -56,6 +56,10 @@ export type AssistantChatViewProps = {
   onClose: () => void;
   onClearAlert: () => void;
   panelRef?: RefCallback<HTMLElement>;
+  toolRenderer?: {
+    names: ReadonlySet<string>;
+    render: (call: ToolCall, result: ToolMessage | undefined) => ReactNode;
+  };
 };
 
 function buildTurns(messages: Message[]): Turn[] {
@@ -126,25 +130,38 @@ function AssistantTurn({
   results,
   isRunning,
   isLast,
+  toolRenderer,
 }: {
   parts: AssistantPart[];
   results: Map<string, ToolMessage>;
   isRunning: boolean;
   isLast: boolean;
+  toolRenderer?: AssistantChatViewProps["toolRenderer"];
 }) {
-  const calls = useMemo(() => {
-    const seen = new Set<string>();
+  const dedupedCalls = useMemo(() => {
     const collected: ToolCall[] = [];
     for (const part of parts) {
       if (part.role !== "assistant") continue;
-      for (const call of part.toolCalls ?? []) {
-        if (seen.has(call.id)) continue;
-        seen.add(call.id);
-        collected.push(call);
-      }
+      for (const call of part.toolCalls ?? []) collected.push(call);
     }
-    return collected;
+    return dedupeCalls(collected);
   }, [parts]);
+
+  const dedupedIds = useMemo(
+    () => new Set(dedupedCalls.map((call) => call.id)),
+    [dedupedCalls],
+  );
+
+  const isRichCall = (call: ToolCall) =>
+    Boolean(
+      toolRenderer?.names.has(call.function.name) &&
+        (results.get(call.id) || isRunning),
+    );
+
+  const traceCalls = useMemo(
+    () => dedupedCalls.filter((call) => !isRichCall(call)),
+    [dedupedCalls, toolRenderer, results, isRunning],
+  );
 
   // One action row per turn, not one under every assistant fragment.
   const lastText = useMemo(() => {
@@ -159,14 +176,31 @@ function AssistantTurn({
 
   return (
     <div className="space-y-2 animate-in fade-in duration-200">
-      {calls.length > 0 ? (
-        <ToolTrace calls={calls} results={results} isRunning={isRunning} />
+      {traceCalls.length > 0 ? (
+        <ToolTrace calls={traceCalls} results={results} isRunning={isRunning} />
       ) : null}
       {parts.map((part) => {
         if (part.role === "reasoning") return null;
 
         const text = part.content?.trim() ?? "";
-        return text ? <Response key={part.id}>{part.content ?? ""}</Response> : null;
+        const richBlocks =
+          part.toolCalls?.flatMap((call) => {
+            if (!dedupedIds.has(call.id) || !isRichCall(call) || !toolRenderer) return [];
+            return [
+              <div key={`rich-${call.id}`}>
+                {toolRenderer.render(call, results.get(call.id))}
+              </div>,
+            ];
+          }) ?? [];
+
+        if (!text && richBlocks.length === 0) return null;
+
+        return (
+          <div key={part.id} className="space-y-2">
+            {text ? <Response>{part.content ?? ""}</Response> : null}
+            {richBlocks}
+          </div>
+        );
       })}
       {lastText && !streamingHere ? <CopyAction text={lastText} /> : null}
     </div>
@@ -244,6 +278,7 @@ export function AssistantChatView({
   onClose,
   onClearAlert,
   panelRef,
+  toolRenderer,
 }: AssistantChatViewProps) {
   const { viewportRef, contentRef, showScrollButton, onScroll, scrollToBottom } =
     useConversationScroll();
@@ -345,6 +380,7 @@ export function AssistantChatView({
                           results={toolResults}
                           isRunning={isRunning}
                           isLast={isLast}
+                          toolRenderer={toolRenderer}
                         />
                       ) : null}
                     </div>
