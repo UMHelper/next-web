@@ -69,9 +69,9 @@ function runCourseTool(
   toolName: string,
   args: unknown,
   run: (boundArgs: unknown) => Promise<unknown>,
-) {
+): Promise<unknown> {
   const bound = bindCourseToolArgs(slot.current, toolName, args);
-  if (bound.action === "clarify") return bound.result;
+  if (bound.action === "clarify") return Promise.resolve(bound.result);
   return run(bound.args);
 }
 

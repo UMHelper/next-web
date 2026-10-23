@@ -293,7 +293,7 @@ vi.mock("@/lib/assistant/tools", async (importOriginal) => {
         name: "get_course",
         description: "Get a course",
         parameters: z.object({ code: codeParam, page: pageParam }),
-        execute: (args) => {
+        execute: async (args) => {
           const bound = bindCourseToolArgs(slot?.current ?? { kind: "none" }, "get_course", args);
           if (bound.action === "clarify") return bound.result;
           const nextArgs = bound.args;
@@ -304,7 +304,7 @@ vi.mock("@/lib/assistant/tools", async (importOriginal) => {
         name: "get_course_sections",
         description: "Get course sections",
         parameters: z.object({ code: codeParam, instructor: instructorParam }),
-        execute: (args) => {
+        execute: async (args) => {
           const bound = bindCourseToolArgs(slot?.current ?? { kind: "none" }, "get_course_sections", args);
           if (bound.action === "clarify") return bound.result;
           const nextArgs = bound.args;

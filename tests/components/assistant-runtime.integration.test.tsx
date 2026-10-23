@@ -408,7 +408,7 @@ describe("assistant runtime integration (scripted model)", () => {
     expect(ambiguous[0].modelCalls[0].referent).toMatchObject({ kind: "ambiguous", reason: "no_page_course" });
     expect(h.serverToolCodes).toHaveLength(4);
 
-    const agent = core().getAgent("default") as { setMessages(messages: unknown[]): void };
+    const agent = core().getAgent("default") as unknown as { setMessages(messages: unknown[]): void };
     agent.setMessages([]);
     const cleared = await ask("When are its classes?");
     expect(cleared[0].modelCalls[0].referent).toMatchObject({ kind: "ambiguous", reason: "no_prior_course" });
