@@ -194,6 +194,11 @@ describe("ASSISTANT_PROMPT", () => {
     expect(ASSISTANT_PROMPT).toContain("the filter covers only the loaded results");
     expect(ASSISTANT_PROMPT).toContain("it does not mean seats are open");
     expect(ASSISTANT_PROMPT).toContain("ask one short question");
+    expect(ASSISTANT_PROMPT).toContain(
+      "Each course position is its place in the list the student currently sees",
+    );
+    expect(ASSISTANT_PROMPT).toContain("When shownCount is 0, no course is visible; do not name one");
+    expect(ASSISTANT_PROMPT).not.toMatch(/\b[A-Z]{4}\d{4}\b/);
   });
 
   it("routes class-time questions through get_course then get_course_sections", () => {

@@ -247,17 +247,87 @@ describe("summarizeCatalogResultSets", () => {
       hasMore: true,
     });
     expect(json.resultSets[1].newest).toBe(false);
-    expect(json.resultSets[0].courses[1]).toEqual({
-      position: 2,
-      courseCode: "MATH1002",
-      isOffered: true,
-    });
+    expect(json.resultSets[0].shownCount).toBe(2);
+    expect(json.resultSets[0].courses).toEqual([
+      { position: 1, courseCode: "MATH1002", isOffered: true },
+      { position: 2, courseCode: "MATH1005", isOffered: true },
+    ]);
+    expect(json.resultSets[0].courses.map((course: { courseCode: string }) => course.courseCode)).not.toContain(
+      "MATH1001",
+    );
     expect(summarizeCatalogResultSets(fourSets, {})).not.toContain("\n");
     expect(summarizeCatalogResultSets(fourSets, {})).not.toContain("titleEn");
   });
 
   it("summarises no sets as a fixed sentence", () => {
     expect(summarizeCatalogResultSets([], {})).toBe("No course search results in this conversation");
+  });
+
+  it("numbers positions in the visible offered order from the audit example", () => {
+    const codes = [
+      ["APAC1000", true],
+      ["APAC2000", false],
+      ["MATH1003", false],
+      ["MATH1004", false],
+      ["MATH1005", false],
+      ["MATH1006", false],
+      ["MATH1007", false],
+      ["MATH1008", false],
+      ["MATH1009", false],
+      ["ECON1002", true],
+    ] as const;
+    const set: CatalogResultSet = {
+      id: "math",
+      search: { query: "MATH" },
+      totalCount: 127,
+      hasMore: true,
+      courses: codes.map(([courseCode, isOffered]) => ({
+        courseCode,
+        titleEn: courseCode,
+        titleZh: null,
+        faculty: null,
+        department: null,
+        credits: null,
+        isOffered,
+        url: courseUrl(courseCode),
+      })),
+    };
+
+    const offered = JSON.parse(summarizeCatalogResultSets([set], { math: "offered" }));
+    expect(offered.resultSets[0]).toMatchObject({
+      filter: "offered",
+      shownCount: 2,
+      loadedCount: 10,
+      totalCount: 127,
+      hasMore: true,
+    });
+    expect(offered.resultSets[0].courses).toEqual([
+      { position: 1, courseCode: "APAC1000", isOffered: true },
+      { position: 2, courseCode: "ECON1002", isOffered: true },
+    ]);
+
+    const restored = JSON.parse(summarizeCatalogResultSets([set], { math: "all" }));
+    expect(restored.resultSets[0].shownCount).toBe(10);
+    expect(restored.resultSets[0].courses[1]).toEqual({
+      position: 2,
+      courseCode: "APAC2000",
+      isOffered: false,
+    });
+  });
+
+  it("emits no courses when the offered filter hides every loaded row", () => {
+    const hidden: CatalogResultSet = {
+      ...filterSet,
+      id: "hidden",
+      courses: filterSet.courses.map((course) => ({ ...course, isOffered: false })),
+    };
+    const json = JSON.parse(summarizeCatalogResultSets([hidden], { hidden: "offered" }));
+    expect(json.resultSets[0]).toMatchObject({
+      filter: "offered",
+      shownCount: 0,
+      loadedCount: 10,
+      courses: [],
+    });
   });
 });
 
