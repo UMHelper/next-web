@@ -5,6 +5,7 @@ import { useRenderTool } from "@copilotkit/react-core/v2";
 import { z } from "zod/v4";
 
 import { ToolFailureAlert } from "@/components/assistant/tool-failure-alert";
+import { clarificationAsk } from "@/lib/assistant/course-referent";
 import {
   GET_COURSE_SECTIONS_TOOL_NAME,
   formatWeekday,
@@ -69,6 +70,11 @@ export function CourseSectionsToolResult({
 }) {
   if (status === "inProgress" || status === "executing") {
     return <CourseSectionsLoading />;
+  }
+
+  const ask = clarificationAsk(result ?? "");
+  if (ask) {
+    return <p className="text-sm text-muted-foreground">{ask}</p>;
   }
 
   const view = parseCourseSectionsResult(result ?? "");

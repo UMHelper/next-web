@@ -82,6 +82,20 @@ describe("CourseSectionsToolResult", () => {
     ).toBeTruthy();
   });
 
+  it("shows a clarification instead of a course-sections failure", () => {
+    render(
+      <CourseSectionsToolResult
+        status="complete"
+        result={JSON.stringify({
+          status: "needs_clarification",
+          ask: "None of the visible results is in that position.",
+        })}
+      />,
+    );
+    expect(screen.getByText("None of the visible results is in that position.")).toBeTruthy();
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
   it.each([
     ["not_found", "No sections for that course and instructor on this site."],
     ["temporarily_unavailable", "Class sections are temporarily unavailable. Try again in a moment."],

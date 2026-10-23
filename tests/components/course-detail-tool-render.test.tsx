@@ -136,6 +136,17 @@ describe("CourseDetailToolResult", () => {
     expect(screen.getByRole("alert").textContent).toBe(text);
   });
 
+  it("shows a clarification instead of a course-detail failure", () => {
+    render(
+      <CourseDetailToolResult
+        status="complete"
+        result={JSON.stringify({ status: "needs_clarification", ask: "Which course do you mean?" })}
+      />,
+    );
+    expect(screen.getByText("Which course do you mean?")).toBeTruthy();
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
   it("normalises a lower-case code before building links", () => {
     const lowered = {
       ...fixture,
