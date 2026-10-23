@@ -8,8 +8,7 @@ import {
   AssistantChatView,
   type AssistantChatViewProps,
 } from "@/components/assistant/assistant-chat-view";
-
-const RICH_TOOL_NAMES = new Set(["search_catalog"]);
+import { RICH_TOOL_NAMES } from "@/lib/assistant/rich-tools";
 
 function fakeToolRenderer() {
   return {
@@ -453,6 +452,95 @@ describe("AssistantChatView", () => {
 
       expect(screen.getByTestId("rich-call-1").textContent).toBe("loading");
       expect(screen.queryByText("Searched courses")).toBeNull();
+    });
+
+    it("renders two rich blocks for identical args with different ids and results", () => {
+      renderView({
+        messages: [
+          { id: "u1", role: "user", content: "two searches" },
+          {
+            id: "a1",
+            role: "assistant",
+            content: "",
+            toolCalls: [
+              {
+                id: "call-1",
+                type: "function",
+                function: { name: "search_catalog", arguments: '{"query":"ACCT"}' },
+              },
+              {
+                id: "call-2",
+                type: "function",
+                function: { name: "search_catalog", arguments: '{"query":"ACCT"}' },
+              },
+            ],
+          },
+          { id: "t1", role: "tool", toolCallId: "call-1", content: "first" },
+          { id: "t2", role: "tool", toolCallId: "call-2", content: "second" },
+          { id: "a2", role: "assistant", content: "Done." },
+        ],
+        toolRenderer: fakeToolRenderer(),
+      });
+
+      expect(screen.getByTestId("rich-call-1").textContent).toBe("first");
+      expect(screen.getByTestId("rich-call-2").textContent).toBe("second");
+      expect(screen.queryByText("Searched courses")).toBeNull();
+    });
+
+    it("does not restart loading on an incomplete call from a previous turn", () => {
+      renderView({
+        messages: [
+          { id: "u1", role: "user", content: "first" },
+          {
+            id: "a1",
+            role: "assistant",
+            content: "",
+            toolCalls: [
+              {
+                id: "call-old",
+                type: "function",
+                function: { name: "search_catalog", arguments: '{"query":"ACCT"}' },
+              },
+            ],
+          },
+          { id: "a2", role: "assistant", content: "Stopped." },
+          { id: "u2", role: "user", content: "second" },
+        ],
+        isRunning: true,
+        toolRenderer: fakeToolRenderer(),
+      });
+
+      expect(screen.getByText("Not completed")).toBeTruthy();
+      expect(screen.queryByText("Searching courses…")).toBeNull();
+      expect(screen.queryByTestId("rich-call-old")).toBeNull();
+    });
+
+    it("keeps completed rich results visible while a new turn runs", () => {
+      renderView({
+        messages: [
+          { id: "u1", role: "user", content: "first" },
+          {
+            id: "a1",
+            role: "assistant",
+            content: "",
+            toolCalls: [
+              {
+                id: "call-1",
+                type: "function",
+                function: { name: "search_catalog", arguments: '{"query":"ACCT"}' },
+              },
+            ],
+          },
+          { id: "t1", role: "tool", toolCallId: "call-1", content: "kept" },
+          { id: "a2", role: "assistant", content: "Found some." },
+          { id: "u2", role: "user", content: "follow up" },
+        ],
+        isRunning: true,
+        toolRenderer: fakeToolRenderer(),
+      });
+
+      expect(screen.getByTestId("rich-call-1").textContent).toBe("kept");
+      expect(screen.getByText("Thinking…")).toBeTruthy();
     });
 
     it("dedupes a replayed empty-arg search_catalog call", () => {

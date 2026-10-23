@@ -104,36 +104,45 @@ function ToolRow({
   );
 }
 
-export function dedupeCalls(calls: ToolCall[]): ToolCall[] {
-  const seenIds = new Set<string>();
-  const seenDetail = new Set<string>();
-  const seenEmpty = new Set<string>();
-  const unique: ToolCall[] = [];
+export function dedupeCalls(
+  calls: ToolCall[],
+  results?: Map<string, ToolMessage>,
+): ToolCall[] {
+  const bestById = new Map<string, ToolCall>();
+  const idOrder: string[] = [];
 
   for (const call of calls) {
-    if (seenIds.has(call.id)) continue;
-    seenIds.add(call.id);
-
-    const name = call.function.name;
-    const detail = toolDetail(call);
-    if (detail) {
-      const key = `${name}\u0000${detail}`;
-      if (seenDetail.has(key)) continue;
-      seenDetail.add(key);
-      unique.push(call);
-    } else {
-      if (seenEmpty.has(name)) continue;
-      seenEmpty.add(name);
-      unique.push(call);
+    if (!bestById.has(call.id)) {
+      idOrder.push(call.id);
+      bestById.set(call.id, call);
+      continue;
+    }
+    const existing = bestById.get(call.id)!;
+    if (!toolDetail(existing) && toolDetail(call)) {
+      bestById.set(call.id, call);
     }
   }
 
-  // A call replayed without arguments should not sit next to the same call that
-  // did carry the query. Keep the informative row.
+  const unique = idOrder.map((id) => bestById.get(id)!);
+
   const namesWithDetail = new Set(
     unique.filter((call) => toolDetail(call)).map((call) => call.function.name),
   );
-  return unique.filter((call) => toolDetail(call) || !namesWithDetail.has(call.function.name));
+
+  const afterReplayFilter = unique.filter((call) => {
+    if (toolDetail(call)) return true;
+    if (results?.has(call.id)) return true;
+    return !namesWithDetail.has(call.function.name);
+  });
+
+  const seenEmpty = new Set<string>();
+  return afterReplayFilter.filter((call) => {
+    if (toolDetail(call) || results?.has(call.id)) return true;
+    const name = call.function.name;
+    if (seenEmpty.has(name)) return false;
+    seenEmpty.add(name);
+    return true;
+  });
 }
 
 export function ToolTrace({
@@ -145,7 +154,7 @@ export function ToolTrace({
   results: Map<string, ToolMessage>;
   isRunning: boolean;
 }) {
-  const rows = dedupeCalls(calls);
+  const rows = dedupeCalls(calls, results);
   if (rows.length === 0) return null;
 
   return (

@@ -160,6 +160,13 @@ describe("ASSISTANT_PROMPT", () => {
     expect(ASSISTANT_PROMPT).toContain("and requests to open pages on this site. Politely decline anything else");
   });
 
+  it("tells the model not to repeat search_catalog rows when clients show cards", () => {
+    expect(ASSISTANT_PROMPT).toContain("interactive cards in the chat");
+    expect(ASSISTANT_PROMPT).toContain("Do not repeat every row in Markdown");
+    expect(ASSISTANT_PROMPT).toContain("Do not assume every client renders cards");
+    expect(ASSISTANT_PROMPT).toContain("explicitly asks for a full textual list");
+  });
+
   it("formats replies for the narrow sidebar", () => {
     expect(ASSISTANT_PROMPT).toContain("The chat is a narrow sidebar");
     expect(ASSISTANT_PROMPT).toContain("Use a Markdown table only when it has at most three short columns");

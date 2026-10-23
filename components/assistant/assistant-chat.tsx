@@ -14,13 +14,11 @@ import {
 import { useCallback, useEffect, useMemo, useState, type RefCallback } from "react";
 
 import { describeAssistantError } from "@/lib/assistant/error-message";
-import { SEARCH_CATALOG_TOOL_NAME } from "@/lib/assistant/search-catalog-ui";
 import { PANEL_WIDTH_DEFAULT } from "@/lib/assistant/panel-width";
+import { RICH_TOOL_NAMES } from "@/lib/assistant/rich-tools";
 
 import { AssistantChatView, type ChatSuggestion } from "./assistant-chat-view";
 import { PANEL_WIDTH_VAR } from "./resize-handle";
-
-const RICH_TOOL_NAMES = new Set([SEARCH_CATALOG_TOOL_NAME]);
 
 function newMessageId() {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {

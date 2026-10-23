@@ -2,6 +2,7 @@ import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ReactNode } from "react";
 
+import { RICH_TOOL_NAMES } from "@/lib/assistant/rich-tools";
 import { installFakeStorage } from "@/tests/helpers/fake-storage";
 
 const {
@@ -106,8 +107,10 @@ describe("AssistantPanel", () => {
     expect(tools().map((tool) => tool.name)).toEqual(
       expect.arrayContaining(["check_plan_conflicts", "navigate"]),
     );
+    const registered = renderToolSpy.mock.calls[0]?.[0] as { name: string };
+    expect(RICH_TOOL_NAMES.has(registered.name)).toBe(true);
     expect(renderToolSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ name: "search_catalog" }),
+      expect.objectContaining({ name: registered.name }),
       [],
     );
   });

@@ -80,10 +80,10 @@ describe("CatalogCourseCard", () => {
       />,
     );
 
-    expect(screen.getByRole("link", { name: "View course acct1000" }).getAttribute("href")).toBe(
+    expect(screen.getByRole("link", { name: "View course ACCT1000" }).getAttribute("href")).toBe(
       "/course/ACCT1000",
     );
-    expect(screen.getByRole("heading", { name: "acct1000" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "ACCT1000" })).toBeTruthy();
   });
 
   it("encodes course code in the link path", () => {

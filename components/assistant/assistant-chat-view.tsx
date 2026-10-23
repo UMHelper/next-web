@@ -151,21 +151,23 @@ function AssistantTurn({
       if (part.role !== "assistant") continue;
       for (const call of part.toolCalls ?? []) collected.push(call);
     }
-    return dedupeCalls(collected);
-  }, [parts]);
+    return dedupeCalls(collected, results);
+  }, [parts, results]);
 
   const dedupedIds = useMemo(
     () => new Set(dedupedCalls.map((call) => call.id)),
     [dedupedCalls],
   );
 
+  const turnActive = isRunning && isLast;
+
   const isRichCall = useCallback(
     (call: ToolCall) =>
       Boolean(
         toolRenderer?.names.has(call.function.name) &&
-          (results.get(call.id) || isRunning),
+          (results.get(call.id) || turnActive),
       ),
-    [toolRenderer, results, isRunning],
+    [toolRenderer, results, turnActive],
   );
 
   const traceCalls = useMemo(
@@ -187,7 +189,7 @@ function AssistantTurn({
   return (
     <div className="space-y-2 animate-in fade-in duration-200">
       {traceCalls.length > 0 ? (
-        <ToolTrace calls={traceCalls} results={results} isRunning={isRunning} />
+        <ToolTrace calls={traceCalls} results={results} isRunning={turnActive} />
       ) : null}
       {parts.map((part) => {
         if (part.role === "reasoning") return null;
