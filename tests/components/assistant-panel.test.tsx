@@ -107,10 +107,9 @@ describe("AssistantPanel", () => {
     expect(tools().map((tool) => tool.name)).toEqual(
       expect.arrayContaining(["check_plan_conflicts", "navigate"]),
     );
-    const registered = renderToolSpy.mock.calls[0]?.[0] as { name: string };
-    expect(RICH_TOOL_NAMES.has(registered.name)).toBe(true);
+    expect(RICH_TOOL_NAMES.has("search_catalog")).toBe(true);
     expect(renderToolSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ name: registered.name }),
+      expect.objectContaining({ name: "search_catalog" }),
       [],
     );
   });

@@ -11,7 +11,6 @@ import { readAssistantConfig } from "@/lib/assistant/config";
 
 const PREVIEW_MAX_OUTPUT_TOKENS = "1200";
 const wrangler = readFileSync(path.join(process.cwd(), "wrangler.jsonc"), "utf8");
-const envStart = wrangler.indexOf('"env"');
 const previewStart = wrangler.indexOf('"preview"');
 
 describe("assistant inference defaults", () => {
@@ -20,11 +19,12 @@ describe("assistant inference defaults", () => {
     expect(ASSISTANT_MAX_STEPS).toBe(5);
   });
 
-  it("sets inference variables only in non-production environments", () => {
-    expect(envStart).toBeGreaterThan(0);
+  it("sets inference variables only for the preview worker", () => {
+    expect(previewStart).toBeGreaterThan(0);
     for (const name of ["AI_THINKING", "AI_MAX_OUTPUT_TOKENS", "AI_MODEL"]) {
       const at = wrangler.indexOf(`"${name}"`);
-      expect(at, name).toBeGreaterThan(envStart);
+      expect(at, name).toBeGreaterThan(previewStart);
+      expect(wrangler.indexOf(`"${name}"`, at + 1), name).toBe(-1);
     }
   });
 
