@@ -207,4 +207,12 @@ describe("NAVIGATE_DESCRIPTION", () => {
     expect(NAVIGATE_DESCRIPTION).toContain("Do not call it to answer a question about a course or instructor");
     expect(NAVIGATE_DESCRIPTION).toContain("It cannot open other sites and never changes the timetable");
   });
+
+  it("only opens a page whose values are known, never a substitute, and reports the status", () => {
+    expect(NAVIGATE_DESCRIPTION).toContain("and you already know every value the page needs");
+    expect(NAVIGATE_DESCRIPTION).toContain("A reviews page needs the course code and exactly one instructor who taught it");
+    expect(NAVIGATE_DESCRIPTION).toContain("ask the student instead of choosing");
+    expect(NAVIGATE_DESCRIPTION).toContain("never open the course page in its place");
+    expect(NAVIGATE_DESCRIPTION).toContain("report that status");
+  });
 });

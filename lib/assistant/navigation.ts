@@ -18,7 +18,7 @@ type CatalogLookups = {
 };
 
 export const NAVIGATE_DESCRIPTION =
-  "Open a page on this site for the student: a course, an instructor, an instructor's reviews for a course, the catalog, or their timetable. Call it when the student's latest message asks to be taken to, open, see or look at one of these pages, in any language. Do not call it to answer a question about a course or instructor. It cannot open other sites and never changes the timetable.";
+  "Open a page on this site for the student: a course, an instructor, an instructor's reviews for a course, the catalog, or their timetable. Call it when the student's latest message asks to be taken to, open, see or look at one of these pages, in any language, and you already know every value the page needs. A reviews page needs the course code and exactly one instructor who taught it, named as a tool returned it; when several instructors are possible, ask the student instead of choosing, and never open the course page in its place. Do not call it to answer a question about a course or instructor. It checks that the page exists and returns a status; report that status. It cannot open other sites and never changes the timetable.";
 
 export const navigateParameters = z.object({
   destination: z
