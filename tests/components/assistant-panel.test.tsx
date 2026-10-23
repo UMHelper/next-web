@@ -9,6 +9,7 @@ const {
   contextSpy,
   suggestionsSpy,
   toolSpy,
+  renderToolSpy,
   plannerMock,
   pathnameMock,
   pushMock,
@@ -18,6 +19,7 @@ const {
   contextSpy: vi.fn(),
   suggestionsSpy: vi.fn(),
   toolSpy: vi.fn(),
+  renderToolSpy: vi.fn(),
   plannerMock: vi.fn(),
   pathnameMock: vi.fn(() => "/"),
   pushMock: vi.fn(),
@@ -32,6 +34,7 @@ vi.mock("@copilotkit/react-core/v2", () => ({
   useAgentContext: (context: unknown) => contextSpy(context),
   useConfigureSuggestions: (config: unknown) => suggestionsSpy(config),
   useFrontendTool: (definition: unknown, deps: unknown) => toolSpy(definition, deps),
+  useRenderTool: (definition: unknown, deps: unknown) => renderToolSpy(definition, deps),
 }));
 
 vi.mock("@/components/timetable/planner-provider", () => ({
@@ -102,6 +105,10 @@ describe("AssistantPanel", () => {
     expect(document.documentElement.hasAttribute("data-assistant-open")).toBe(true);
     expect(tools().map((tool) => tool.name)).toEqual(
       expect.arrayContaining(["check_plan_conflicts", "navigate"]),
+    );
+    expect(renderToolSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ name: "search_catalog" }),
+      [],
     );
   });
 

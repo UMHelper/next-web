@@ -26,6 +26,7 @@ import { getSections } from "@/lib/timetable/catalog-client";
 import AssistantChat from "./assistant-chat";
 import { AssistantBubble } from "./assistant-bubble";
 import ResizeHandle from "./resize-handle";
+import { useSearchCatalogToolRender } from "./search-catalog-tool-render";
 import { useNavigateTool } from "./use-navigate-tool";
 
 // FloatingPlanner keys its offset off this attribute; the name is repeated literally in its Tailwind classes.
@@ -64,6 +65,8 @@ function AssistantTools() {
   );
 
   const navigate = useNavigateTool();
+  useSearchCatalogToolRender();
+
   useFrontendTool(
     {
       name: "navigate",
