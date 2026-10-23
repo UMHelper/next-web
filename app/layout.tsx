@@ -65,6 +65,9 @@ export default function RootLayout({
 
                     <AdsenseScript />
 
+                    {/* Tells the Dark Reader extension to leave the DOM alone; the site manages
+                        its own dark mode and Dark Reader's injected attributes break hydration. */}
+                    <meta name='darkreader-lock' />
                     <meta name='theme-color' content='#FFFFFF' />
                     <meta name='apple-mobile-web-app-status-bar-style' content='default' />
                     {/* Next injects the web app manifest link from app/manifest.ts. */}

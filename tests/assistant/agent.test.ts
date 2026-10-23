@@ -63,11 +63,29 @@ describe("createAssistantAgent", () => {
     const bare = middleware(
       { context: [plan], messages: [{ role: "user", content: "ACCT1000" }] },
       { run },
-    ) as { context: unknown[] };
+    ) as { context: Array<{ value: string }> };
 
     expect(simplified.context[0]).toBe(plan);
     expect(simplified.context[1]?.value).toContain("Simplified Chinese");
-    expect(bare.context).toEqual([plan]);
+    expect(bare.context[0]).toBe(plan);
+    expect(bare.context.some((entry) => entry.value.includes("English"))).toBe(true);
+  });
+
+  it("tells the model to answer in Korean when the latest message uses Hangul", () => {
+    createAssistantAgent(readAssistantConfig({ AI_API_KEY: "sk-test" }));
+    const middleware = use.mock.lastCall?.[0] as (
+      input: { context: Array<{ description: string; value: string }>; messages: Array<{ role: string; content: string }> },
+      next: { run: (input: unknown) => unknown },
+    ) => unknown;
+    const run = vi.fn((input: unknown) => input);
+    const plan = { description: "plan", value: "No timetable plan" };
+
+    const korean = middleware(
+      { context: [plan], messages: [{ role: "user", content: "CISC3014 과목 알려줘" }] },
+      { run },
+    ) as { context: Array<{ value: string }> };
+
+    expect(korean.context.some((entry) => entry.value.includes("Korean"))).toBe(true);
   });
 });
 
