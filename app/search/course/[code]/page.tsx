@@ -4,6 +4,7 @@ import CourseFilter from "@/components/course-filter";
 import { CatalogGridSkeleton } from "@/components/loading-skeletons";
 import { createAdConfig } from "@/lib/ads/ad-config-server";
 import { fetchCourseFuzzySearch } from "@/lib/database/get-fuzzy-search";
+import { sortCourseSearchResults } from "@/lib/search-course-order";
 
 type CourseSearchPageProps = {
     params: Promise<{ code: string }>;
@@ -22,7 +23,7 @@ export async function generateMetadata(
 }
 
 async function CourseSearchResults({ code }: { code: string }) {
-    const courseList:any[] = await fetchCourseFuzzySearch(code)
+    const courseList:any[] = sortCourseSearchResults(await fetchCourseFuzzySearch(code), code)
     const ads = createAdConfig()
     return(
         <div>

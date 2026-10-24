@@ -37,7 +37,7 @@ export function CourseAlias({ codes, variant = "card", className }: CourseAliasP
           className,
         )}
       >
-        <span className="text-[11px] font-medium tracking-wide text-white/60">
+        <span className="text-[11px] font-medium tracking-wide text-white opacity-60">
           a.k.a.
         </span>
         <span className="font-mono text-sm font-medium tracking-wide">
@@ -51,16 +51,16 @@ export function CourseAlias({ codes, variant = "card", className }: CourseAliasP
     return (
       <div
         className={cn(
-          "inline-flex flex-wrap items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1 text-xs text-white/90 ring-1 ring-inset ring-white/20",
+          "inline-flex flex-wrap items-center gap-1.5 rounded-full bg-white/20 px-2.5 py-1 text-xs text-white",
           className,
         )}
       >
-        <span className="text-[10px] font-medium tracking-wide text-white/60">
+        <span className="text-[10px] font-medium tracking-wide text-white opacity-60">
           a.k.a.
         </span>
         {normalized.map((code, index) => (
           <span key={code} className="inline-flex items-center">
-            {index > 0 ? <span className="mr-1.5 text-white/40">·</span> : null}
+            {index > 0 ? <span className="mr-1.5 text-white opacity-40">·</span> : null}
             <span className="font-mono font-semibold tracking-wide">{code}</span>
           </span>
         ))}

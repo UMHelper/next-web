@@ -158,10 +158,81 @@ export const fetchCatalogList = unstable_cache(
         const { data, error } = await query;
         if (error) {
             console.error("[fetchCatalogList] query failed:", error.message);
+            return [];
         }
 
         const courseList = (data ?? []) as unknown as CourseRow[];
-        return courseList.sort((a: any, b: any) => a.New_code.localeCompare(b.New_code));
+        if (unit === GE_COURSE_SLUG) {
+            return courseList.sort((a: any, b: any) => a.New_code.localeCompare(b.New_code));
+        }
+
+        // A renamed course keeps its new primary row (and its new faculty), so
+        // browsing the old faculty/department would otherwise lose it. Include
+        // primaries whose historical row still belongs to this catalog, but sort
+        // them by the historical code so they appear where users expect.
+        const directCodes = new Set(courseList.map((course) => String(course.New_code)));
+        const sortKeyByPrimary = new Map<string, string>();
+        for (const code of directCodes) sortKeyByPrimary.set(code, code);
+
+        let historicalQuery = supabaseServer
+            .from("course_noporf")
+            .select("New_code");
+
+        if (departments.length === 1) {
+            historicalQuery = historicalQuery.eq("Offering_Unit", unit);
+        } else {
+            historicalQuery = historicalQuery
+                .eq("Offering_Unit", unit)
+                .eq("Offering_Department", departments[1].toUpperCase());
+        }
+
+        const [{ data: historicalRows }, { data: equivalenceRows }] = await Promise.all([
+            historicalQuery,
+            supabaseServer
+                .from("course_equivalences")
+                .select("primary_code,equivalent_code"),
+        ]);
+
+        const primaryByEquivalent = new Map<string, string>();
+        for (const row of equivalenceRows ?? []) {
+            if (row.equivalent_code && row.primary_code) {
+                primaryByEquivalent.set(String(row.equivalent_code), String(row.primary_code));
+            }
+        }
+
+        const missingPrimaries = new Set<string>();
+        for (const row of historicalRows ?? []) {
+            const code = String(row.New_code ?? "");
+            const primary = primaryByEquivalent.get(code);
+            if (!primary || directCodes.has(primary)) continue;
+
+            const previous = sortKeyByPrimary.get(primary);
+            if (!previous || code.localeCompare(previous) < 0) {
+                sortKeyByPrimary.set(primary, code);
+            }
+            missingPrimaries.add(primary);
+        }
+
+        if (missingPrimaries.size > 0) {
+            const { data: extraRows, error: extraError } = await supabaseServer
+                .from("course_catalog")
+                .select("*")
+                .in("New_code", [...missingPrimaries]);
+
+            if (extraError) {
+                console.error("[fetchCatalogList] equivalence query failed:", extraError.message);
+            } else {
+                courseList.push(...((extraRows ?? []) as unknown as CourseRow[]));
+            }
+        }
+
+        return courseList.sort((a: any, b: any) => {
+            const codeA = String(a.New_code);
+            const codeB = String(b.New_code);
+            const keyA = sortKeyByPrimary.get(codeA) ?? codeA;
+            const keyB = sortKeyByPrimary.get(codeB) ?? codeB;
+            return keyA.localeCompare(keyB) || codeA.localeCompare(codeB);
+        });
     },
     ["catalog-list"],
     { revalidate: 3600, tags: [CACHE_TAGS.catalog, CACHE_TAGS.course] },

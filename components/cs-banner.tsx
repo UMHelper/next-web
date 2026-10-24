@@ -33,10 +33,13 @@ const CsBanner = () => {
             setIsCS(false)
         }
     }, [pathname])
+    // Temporarily always show the banner; re-enable the CS-only condition with:
     // if (!isCS) return null
+    const showBanner = true || isCS
+    if (!showBanner) return null
     return (
         <div className='w-full px-1 py-2 flex justify-center items-center bg-muted text-foreground text-xs break-words flex-wrap'>
-            如果你有興趣參與 <span className="font-semibold bg-gradient-to-r from-wordmark-from to-wordmark-to bg-clip-text text-transparent">What2Reg @ UM</span> 项目，歡迎 <Link href="https://github.com/UMHelper/Feedback-and-Join-Us" className=" underline">加入UMHelper Dev Group！</Link>我們使用 Next.js 和 Agent 進行全棧開發。
+            如果你有興趣參與 <span className="font-semibold bg-gradient-to-r from-wordmark-from to-wordmark-to bg-clip-text text-transparent">What2Reg@UM</span> 项目，歡迎 <Link href="https://github.com/UMHelper/Feedback-and-Join-Us" className=" underline">加入UMHelper Dev Group！</Link>我們使用 Next.js 和 Agent 進行全棧開發。
         </div>
     )
 }

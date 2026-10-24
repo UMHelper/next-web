@@ -40,7 +40,7 @@ export function normalizeFacultySlug(value: string) {
 
 export const faculty=[
     'FBA',           'FAH',
-    'ICI',           'FST',
+    'ICI',           
     'FIC',           'FSC',
     'FMD',           'FEG',
     'IAPME',         
@@ -57,7 +57,7 @@ export const faculty_dept:any = {
     'FBA': ['AIM', 'DRTM', 'FBE', 'IIRM', 'MMI'] ,
     'FLL': ['MLS'] ,
     'FSS': ['DCOM', 'DECO', 'DGPA', 'DPSY', 'DSOC'] ,
-    'FST': ['CEE', 'CIS', 'CSG', 'DPC', 'ECE', 'EME', 'MAT'] ,
+    // 'FST': ['CEE', 'CIS', 'CSG', 'DPC', 'ECE', 'EME', 'MAT'] ,
     'FIC': ['CSC'],
     'FSC': ['BIO', 'CHM', 'PHY'],
     'FMD': ['BMS', 'PPS'],
