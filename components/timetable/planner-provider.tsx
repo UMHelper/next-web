@@ -276,6 +276,7 @@ export const TimetablePlannerProvider = ({
       storeRef.current = empty;
       setStore(empty);
       setLoadedFor(null);
+      setServerLoad("pending");
       return;
     }
 

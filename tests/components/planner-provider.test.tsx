@@ -195,6 +195,7 @@ describe("TimetablePlannerProvider", () => {
     await waitFor(() => {
       expect(screen.getByTestId("plan-name").textContent).toBe("none");
       expect(screen.getByTestId("load-state").textContent).toBe("signed_out");
+      expect(screen.getByTestId("server-load").textContent).toBe("pending");
     });
 
     const persisted = window.localStorage.getItem(storageKey("user_1"));
