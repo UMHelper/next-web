@@ -19,6 +19,7 @@ const TOOL_LABELS: Record<string, { running: string; done: string }> = {
   get_course_sections: { running: "Reading class times", done: "Read class times" },
   check_plan_conflicts: { running: "Checking timetable", done: "Checked timetable" },
   filter_catalog_results: { running: "Filtering results", done: "Filtered results" },
+  present_response: { running: "Choosing a layout", done: "Chose a layout" },
 };
 
 const TOOL_FAILED: Record<string, string> = {
@@ -29,6 +30,7 @@ const TOOL_FAILED: Record<string, string> = {
   get_course_sections: "Couldn't read class times",
   check_plan_conflicts: "Couldn't check timetable",
   filter_catalog_results: "Couldn't filter results",
+  present_response: "Couldn't choose a layout",
 };
 
 function failedLabel(name: string) {

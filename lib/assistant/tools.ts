@@ -8,6 +8,7 @@ import { getCourseSections } from "@/lib/mcp/data/get-course-sections";
 import { getInstructor } from "@/lib/mcp/data/get-instructor";
 import { searchCatalog } from "@/lib/mcp/data/search-catalog";
 import { bindCourseToolArgs, type CourseReferentSlot } from "@/lib/assistant/course-referent";
+import { executePresentResponse, PRESENT_RESPONSE_TOOL_NAME } from "@/lib/assistant/presentation";
 import { McpToolError } from "@/lib/mcp/errors";
 import {
   getCourseInputSchema,
@@ -28,6 +29,7 @@ export const ASSISTANT_SERVER_TOOL_NAMES = [
   "get_instructor",
   "get_course_reviews",
   "get_course_sections",
+  PRESENT_RESPONSE_TOOL_NAME,
 ] as const;
 
 export type ToolFailure = { error: "invalid_request" | "not_found" | "temporarily_unavailable" };
@@ -137,6 +139,23 @@ export function createAssistantTools(slot?: CourseReferentSlot) {
             (input) => getCourseSections(input),
           ),
         ),
+    }),
+    defineTool({
+      name: PRESENT_RESPONSE_TOOL_NAME,
+      description:
+        "Opt in to an existing rich card for this user turn. Call it in the same user turn as the academic lookups. Prefer the same model step when the intent is already clear. A later model step in that turn is valid. Do not wait for another student message. Omit this tool for an ordinary explanation, a comparison, a Markdown table, or a short factual answer. show is a list of existing components only: component course_detail with a course code shows the existing course card for that get_course result; component course_sections with a course code shows the existing class-time cards for that get_course_sections result. This tool does not look anything up. Pass the codes the lookup tools use. If binding rewrites a course code, the rendered course is the tool result.",
+      parameters: z.object({
+        show: z
+          .array(
+            z.object({
+              component: z.string().max(40),
+              course: z.string().max(40),
+            }),
+          )
+          .max(6)
+          .optional(),
+      }),
+      execute: (args) => Promise.resolve(executePresentResponse(args)),
     }),
   ];
 }

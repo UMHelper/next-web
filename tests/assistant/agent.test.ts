@@ -224,11 +224,22 @@ describe("ASSISTANT_PROMPT", () => {
   it("formats replies for the narrow sidebar", () => {
     expect(ASSISTANT_PROMPT).toContain("The chat is a narrow sidebar");
     expect(ASSISTANT_PROMPT).toContain("Use a Markdown table only when it has at most three short columns");
-    expect(ASSISTANT_PROMPT).toContain("To compare courses or instructors, give each one a bold line");
+    expect(ASSISTANT_PROMPT).toContain("call present_response in the same user turn as the lookup tools");
+    expect(ASSISTANT_PROMPT).toContain("A later model step in that turn is valid");
+    expect(ASSISTANT_PROMPT).toContain("component course_detail");
+    expect(ASSISTANT_PROMPT).toContain("component course_sections");
+    expect(ASSISTANT_PROMPT).toContain("Do not call present_response for an ordinary explanation, a comparison, or a short scheduling answer");
+    expect(ASSISTANT_PROMPT).toContain("If you omit present_response, no course or section card is shown");
+    expect(ASSISTANT_PROMPT).toContain("Search lists still appear on their own");
+    expect(ASSISTANT_PROMPT).not.toContain("give each one a bold line");
+    expect(ASSISTANT_PROMPT).not.toContain("course_comparison");
+    expect(ASSISTANT_PROMPT).not.toContain("instructor_comparison");
     expect(ASSISTANT_PROMPT).toContain("rating numbers with their scale");
     expect(ASSISTANT_PROMPT).toContain("Put your own recommendation after the facts");
     expect(ASSISTANT_PROMPT).toContain("Write links as Markdown links with short text");
     expect(ASSISTANT_PROMPT).toContain("Do not repeat facts you already gave");
+    expect(ASSISTANT_PROMPT).not.toMatch(/\b[A-Z]{4}\d{4}\b/);
+    expect(ASSISTANT_PROMPT).not.toMatch(/[\p{Script=Han}]/u);
   });
 
   it("states the same one-page limit the navigate tool enforces", () => {
