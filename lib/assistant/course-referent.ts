@@ -34,7 +34,7 @@ export type CourseToolBinding =
   | { action: "clarify"; result: { status: "needs_clarification"; ask: string } };
 
 const THIS_COURSE =
-  /\bthis course\b|\bthe course on this page\b|这门课|這門課|这门课程|這門課程|这个课程|這個課程/i;
+  /\bthis course\b|\bcompare this with\b|\bthe course on this page\b|这门课|這門課|这门课程|這門課程|这个课程|這個課程/i;
 const ANAPHORA = /\bthat course\b|\bthe one we discussed\b|\bits\b|\bit\b|那门课|那門課|它的/i;
 
 const ENGLISH_ORDINAL_GATE = /\b(course|one|result)s?\b/i;

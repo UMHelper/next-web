@@ -168,6 +168,14 @@ describe("resolveCourseReferent", () => {
     });
   });
 
+  it("binds compare this with to the page course and the named code", () => {
+    expect(resolve("Compare this with CISC2003.", { page: page("CISC2001") })).toEqual({
+      kind: "multiple",
+      explicitCodes: ["CISC2003"],
+      pageCourseCode: "CISC2001",
+    });
+  });
+
   it("does not collapse it and a named course", () => {
     expect(resolve("Compare it with CISC2001.", { page: page("CISC3014"), priorCourseCodes: ["APAC2000"] })).toEqual({
       kind: "multiple",

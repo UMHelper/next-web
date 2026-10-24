@@ -857,7 +857,7 @@ describe("assistant V2.2 integration (scripted model)", () => {
       nav.set("/course/CISC2001");
     });
     await waitFor(() => expect(nav.get()).toBe("/course/CISC2001"));
-    await typeAndSend("Compare this course with CISC2003.");
+    await typeAndSend("Compare this with CISC2003.");
     await waitFor(() => expect(screen.getByText("Here is the interpretation.")).toBeTruthy(), { timeout: 10000 });
     const firstCall = runs().at(-1)!.modelCalls[0];
     expect(firstCall.page).toMatchObject({ page: "course", courseCode: "CISC2001" });
