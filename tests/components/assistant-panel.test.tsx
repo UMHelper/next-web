@@ -112,9 +112,7 @@ describe("AssistantPanel", () => {
     expect(screen.getByTestId("assistant-chat")).toBeTruthy();
     expect(screen.getByRole("separator", { name: "Resize assistant" })).toBeTruthy();
     expect(document.documentElement.hasAttribute("data-assistant-open")).toBe(true);
-    expect(tools().map((tool) => tool.name)).toEqual(
-      expect.arrayContaining(["check_plan_conflicts", "navigate", "filter_catalog_results"]),
-    );
+    expect(tools().map((tool) => tool.name).sort()).toEqual(["filter_catalog_results", "navigate"]);
     expect(
       contexts().some((context) => context.description === CATALOG_RESULTS_CONTEXT_DESCRIPTION),
     ).toBe(true);

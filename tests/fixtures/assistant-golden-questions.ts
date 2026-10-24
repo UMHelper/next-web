@@ -3,7 +3,8 @@ type ServerToolName =
   | "get_course"
   | "get_instructor"
   | "get_course_reviews"
-  | "get_course_sections";
+  | "get_course_sections"
+  | "check_plan_conflicts";
 
 export type GoldenQuestion = {
   id: string;
@@ -11,7 +12,7 @@ export type GoldenQuestion = {
   pathname?: string;
   expected:
     | { kind: "server_tool"; tool: ServerToolName; input: Record<string, unknown> }
-    | { kind: "frontend_tool"; tool: "check_plan_conflicts"; input: { code: string; instructor: string; section: string } }
+    | { kind: "timetable_tool"; tool: "check_plan_conflicts"; input: { code: string; instructor: string; section: string } }
     | { kind: "frontend_tool"; tool: "navigate"; input: Record<string, unknown> }
     | { kind: "no_tool"; behaviour: string };
 };
@@ -60,7 +61,7 @@ export const ASSISTANT_GOLDEN_QUESTIONS: GoldenQuestion[] = [
     id: "conflict",
     question: "ACCT1000 CHAN TAI MAN 的 001 会和我现在的课表冲突吗？",
     expected: {
-      kind: "frontend_tool",
+      kind: "timetable_tool",
       tool: "check_plan_conflicts",
       input: { code: "ACCT1000", instructor: "CHAN TAI MAN", section: "001" },
     },

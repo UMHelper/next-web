@@ -10,7 +10,6 @@ vi.mock("@/lib/mcp/data/get-course-sections", () => ({ getCourseSections: vi.fn(
 
 import { buildNavigationPath, parseDestination } from "@/lib/assistant/navigation";
 import { describePage } from "@/lib/assistant/page-context";
-import { checkPlanConflictsParameters } from "@/lib/assistant/check-plan-conflicts";
 import { createAssistantTools } from "@/lib/assistant/tools";
 import {
   getCourseInputSchema,
@@ -51,11 +50,13 @@ describe("assistant golden questions", () => {
       const expected = question.expected;
       if (expected.kind === "no_tool") return;
 
+      if (expected.kind === "timetable_tool") {
+        const tool = tools.find((entry) => entry.name === expected.tool);
+        expect(tool?.parameters.safeParse(expected.input).success).toBe(true);
+        return;
+      }
+
       if (expected.kind === "frontend_tool") {
-        if (expected.tool === "check_plan_conflicts") {
-          expect(checkPlanConflictsParameters.safeParse(expected.input).success).toBe(true);
-          return;
-        }
         const parsed = parseDestination(expected.input);
         expect(parsed).not.toBeNull();
         expect(describePage(buildNavigationPath(parsed!)).page).toBe(NAVIGATE_PAGE_KIND[parsed!.destination]);

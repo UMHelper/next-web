@@ -1,6 +1,6 @@
 import type { ToolMessage } from "@copilotkit/react-core/v2";
-import { z } from "zod/v4";
 
+import { checkPlanConflictsResultSchema } from "@/lib/assistant/check-plan-conflicts";
 import {
   FILTER_CATALOG_RESULTS_TOOL_NAME,
   parseFilterCatalogResult,
@@ -23,23 +23,6 @@ import { getCourseReviewsOutputSchema, getInstructorOutputSchema } from "@/lib/m
 export type ToolContentClass = "success" | "domain_error" | "malformed";
 export type ToolActivityStatus = "pending" | "running" | "done" | "error";
 
-const planConflictFailureSchema = z
-  .object({
-    found: z.literal(false),
-    error: z.literal("request_failed"),
-  })
-  .strict();
-
-const planConflictSuccessSchema = z.union([
-  z.object({ found: z.literal(false) }).strict(),
-  z
-    .object({
-      found: z.literal(true),
-      conflicts: z.array(z.object({ with: z.string(), day: z.string() }).strict()),
-    })
-    .strict(),
-]);
-
 function fromParser(reason: ToolResultFailure): ToolContentClass {
   return reason === "malformed" ? "malformed" : "domain_error";
 }
@@ -51,12 +34,9 @@ function classifyPlanConflict(content: string): ToolContentClass {
   } catch {
     return "malformed";
   }
-  if (planConflictFailureSchema.safeParse(parsed).success) return "domain_error";
-  if (planConflictSuccessSchema.safeParse(parsed).success) return "success";
-  const envelope = readToolFailure(content);
-  if (envelope === "malformed") return "malformed";
-  if (envelope === "none") return "malformed";
-  return "domain_error";
+  const result = checkPlanConflictsResultSchema.safeParse(parsed);
+  if (!result.success) return "malformed";
+  return result.data.status === "checked" ? "success" : "domain_error";
 }
 
 function classifyUnknown(content: string): ToolContentClass {

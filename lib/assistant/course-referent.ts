@@ -55,7 +55,12 @@ const ORDINALS: ReadonlyArray<[RegExp, number]> = [
 ];
 
 const COURSE_CODE_PATTERN = /[A-Z]{4}\d{4}/;
-const COURSE_TOOL_NAMES = new Set(["get_course", "get_course_sections", "get_course_reviews"]);
+const COURSE_TOOL_NAMES = new Set([
+  "get_course",
+  "get_course_sections",
+  "get_course_reviews",
+  "check_plan_conflicts",
+]);
 
 type ContextEntry = { description: string; value: string };
 type RunMessage = {

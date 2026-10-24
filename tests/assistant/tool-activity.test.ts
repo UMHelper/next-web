@@ -47,6 +47,16 @@ const appliedEmptyFilter = JSON.stringify({
   scope: "loaded_results_only",
 });
 
+const checkedConflict = JSON.stringify({
+  status: "checked",
+  courseCode: "MATH1010",
+  instructor: "HO SIU MING",
+  plan: { name: "My plan", term: "2026/2027 AY Sem 1" },
+  planComplete: true,
+  unscheduled: [],
+  sections: [{ section: "001", meetings: ["MON 09:00-10:15 E22-3001"], conflicts: [], complete: true }],
+});
+
 describe("classifyToolContent", () => {
   it.each([
     ["search_catalog", '{"error":"not_found"}'],
@@ -58,7 +68,12 @@ describe("classifyToolContent", () => {
     ["get_course", '{"error":"invalid_request"}'],
     ["filter_catalog_results", '{"status":"unknown_result_set"}'],
     ["filter_catalog_results", '{"status":"invalid_request"}'],
-    ["check_plan_conflicts", '{"found":false,"error":"request_failed"}'],
+    ["check_plan_conflicts", '{"status":"no_timetable","timetable":"loading"}'],
+    ["check_plan_conflicts", '{"status":"term_mismatch","planTerm":"a","catalogTerm":"b"}'],
+    ["check_plan_conflicts", '{"status":"not_found"}'],
+    ["check_plan_conflicts", '{"status":"invalid_request"}'],
+    ["check_plan_conflicts", '{"status":"temporarily_unavailable"}'],
+    ["check_plan_conflicts", '{"status":"needs_clarification","ask":"Which course?"}'],
   ] as const)("classifies %s domain failure %s", (name, content) => {
     expect(classifyToolContent(name, content)).toBe("domain_error");
   });
@@ -69,8 +84,7 @@ describe("classifyToolContent", () => {
     ["get_instructor", emptyInstructor],
     ["get_course_reviews", emptyReviews],
     ["filter_catalog_results", appliedEmptyFilter],
-    ["check_plan_conflicts", '{"found":false}'],
-    ["check_plan_conflicts", '{"found":true,"conflicts":[]}'],
+    ["check_plan_conflicts", checkedConflict],
     ["unknown_tool", '{"ok":true}'],
   ] as const)("classifies %s success %s", (name, content) => {
     expect(classifyToolContent(name, content)).toBe("success");
@@ -80,7 +94,7 @@ describe("classifyToolContent", () => {
     ["search_catalog", "{not json"],
     ["get_course", '{"unexpected":1}'],
     ["filter_catalog_results", "{}"],
-    ["check_plan_conflicts", '{"found":false,"error":"request_failed","extra":1}'],
+    ["check_plan_conflicts", '{"status":"checked","extra":1}'],
     ["get_instructor", ""],
   ] as const)("classifies %s malformed %s", (name, content) => {
     expect(classifyToolContent(name, content)).toBe("malformed");

@@ -10,18 +10,11 @@ import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
-import { useTimetablePlanner } from "@/components/timetable/planner-provider";
-import {
-  CHECK_PLAN_CONFLICTS_DESCRIPTION,
-  checkPlanConflictsParameters,
-  runCheckPlanConflicts,
-} from "@/lib/assistant/check-plan-conflicts";
 import { describeAssistantError } from "@/lib/assistant/error-message";
 import { EXAMPLE_QUESTIONS } from "@/lib/assistant/example-questions";
 import { NAVIGATE_DESCRIPTION, navigateParameters } from "@/lib/assistant/navigation";
 import { PAGE_CONTEXT_DESCRIPTION, describePage } from "@/lib/assistant/page-context";
 import { useTimetableContext } from "./use-timetable-context";
-import { getSections } from "@/lib/timetable/catalog-client";
 
 import { CatalogFilterProvider } from "./catalog-filter-store";
 import AssistantChat from "./assistant-chat";
@@ -47,27 +40,12 @@ const SUGGESTIONS = {
  * AssistantChat so closing the panel does not unregister anything.
  */
 function AssistantTools() {
-  const { activePlan } = useTimetablePlanner();
-  const planRef = useRef(activePlan);
-  planRef.current = activePlan;
-
   const pathname = usePathname();
   const page = useMemo(() => JSON.stringify(describePage(pathname)), [pathname]);
 
   useTimetableContext();
   useAgentContext({ description: PAGE_CONTEXT_DESCRIPTION, value: page });
   useConfigureSuggestions(SUGGESTIONS);
-
-  useFrontendTool(
-    {
-      name: "check_plan_conflicts",
-      description: CHECK_PLAN_CONFLICTS_DESCRIPTION,
-      parameters: checkPlanConflictsParameters,
-      handler: async (input) =>
-        runCheckPlanConflicts(planRef.current?.payload.sections ?? [], input, getSections),
-    },
-    [],
-  );
 
   const navigate = useNavigateTool();
   useCatalogResultsTool();

@@ -6,11 +6,6 @@ import type { ZodTypeAny } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
 
 import { createAssistantAgent } from "@/lib/assistant/agent";
-import {
-  CHECK_PLAN_CONFLICTS_DESCRIPTION,
-  checkPlanConflictsParameters,
-  runCheckPlanConflicts,
-} from "@/lib/assistant/check-plan-conflicts";
 import type { AssistantConfig } from "@/lib/assistant/config";
 import { shapeConversation, type RunMessage } from "@/lib/assistant/conversation";
 import {
@@ -32,7 +27,7 @@ import {
 import { ASSISTANT_PROMPT } from "@/lib/assistant/prompt";
 
 import type { EvalCase } from "./cases";
-import { evalNavigationLookups, getPlanSections } from "./catalog";
+import { evalNavigationLookups } from "./catalog";
 import type { RunTrace, StepMetrics, ToolCallRecord, TurnTrace } from "./grade";
 import { captureRequests, type RequestAudit } from "./request-audit";
 
@@ -75,11 +70,6 @@ function frontendToolSchema(parameters: ZodTypeAny): Record<string, unknown> {
 }
 
 const FRONTEND_TOOLS: Tool[] = [
-  {
-    name: "check_plan_conflicts",
-    description: CHECK_PLAN_CONFLICTS_DESCRIPTION,
-    parameters: frontendToolSchema(checkPlanConflictsParameters),
-  },
   { name: "navigate", description: NAVIGATE_DESCRIPTION, parameters: frontendToolSchema(navigateParameters) },
 ];
 const FRONTEND_TOOL_NAMES = new Set(FRONTEND_TOOLS.map((tool) => tool.name));
@@ -127,9 +117,7 @@ async function simulateNavigate(input: unknown, session: Session): Promise<Navig
 
 async function runFrontendTool(call: PendingCall, session: Session): Promise<unknown> {
   if (call.name === "navigate") return simulateNavigate(call.args, session);
-  const parsed = checkPlanConflictsParameters.safeParse(call.args);
-  if (!parsed.success) return { found: false, error: "request_failed" };
-  return runCheckPlanConflicts([], parsed.data, getPlanSections as Parameters<typeof runCheckPlanConflicts>[2]);
+  return { status: "invalid_request" };
 }
 
 async function runOnce(session: Session, options: HarnessOptions, continuation: boolean) {

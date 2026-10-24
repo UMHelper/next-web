@@ -9,6 +9,8 @@ import { getInstructor } from "@/lib/mcp/data/get-instructor";
 import { searchCatalog } from "@/lib/mcp/data/search-catalog";
 import { bindCourseToolArgs, type CourseReferentSlot } from "@/lib/assistant/course-referent";
 import type { TimetableSlot } from "@/lib/assistant/timetable-context";
+import { CHECK_PLAN_CONFLICTS_TOOL_NAME } from "@/lib/assistant/check-plan-conflicts";
+import { createTimetableTools, unavailableTimetableSlot } from "@/lib/assistant/timetable-tools";
 import {
   executePresentResponse,
   MAX_PRESENT_SHOW_ITEMS,
@@ -35,6 +37,7 @@ export const ASSISTANT_SERVER_TOOL_NAMES = [
   "get_course_reviews",
   "get_course_sections",
   PRESENT_RESPONSE_TOOL_NAME,
+  CHECK_PLAN_CONFLICTS_TOOL_NAME,
 ] as const;
 
 export type ToolFailure = { error: "invalid_request" | "not_found" | "temporarily_unavailable" };
@@ -82,8 +85,9 @@ function runCourseTool(
   return run(bound.args);
 }
 
-export function createAssistantTools(slot?: CourseReferentSlot, _timetable?: TimetableSlot) {
+export function createAssistantTools(slot?: CourseReferentSlot, timetable?: TimetableSlot) {
   const referentSlot: CourseReferentSlot = slot ?? { current: { kind: "none" } };
+  const timetableSlot = timetable ?? unavailableTimetableSlot;
   return [
     defineTool({
       name: "search_catalog",
@@ -162,5 +166,6 @@ export function createAssistantTools(slot?: CourseReferentSlot, _timetable?: Tim
       }),
       execute: (args) => Promise.resolve(executePresentResponse(args)),
     }),
+    ...createTimetableTools(timetableSlot, referentSlot),
   ];
 }

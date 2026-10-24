@@ -373,6 +373,7 @@ describe("ASSISTANT_PROMPT", () => {
   it("routes class-time questions through get_course then get_course_sections", () => {
     expect(ASSISTANT_PROMPT).toContain("call get_course first, then call get_course_sections");
     expect(ASSISTANT_PROMPT).toContain("Never state meeting times, locations or instructors the tools did not return");
+    expect(ASSISTANT_PROMPT).toContain("call get_course first when you do not know who teaches it");
   });
 
   it("grounds timetable answers in the computed digest", () => {

@@ -418,34 +418,6 @@ describe("assistant runtime integration (scripted model)", () => {
     expect(h.serverToolCodes).toHaveLength(4);
   });
 
-  it("runs a follow-up after check_plan_conflicts, which has no followUp option set", async () => {
-    h.brain = courseBrain as never;
-    h.plan = {
-      payload: {
-        sections: [
-          {
-            key: "ACCT1000|CHAN|A01",
-            courseCode: "ACCT1000",
-            prof: "CHAN",
-            section: "A01",
-            color: "#2563eb",
-            schedules: [{ date: "MON", time: "09:00-10:00", location: "E4" }],
-          },
-        ],
-      },
-    };
-    await mountAssistant("/timetable");
-
-    const turn = await ask("Does ECON1001 section 001 clash with my plan?");
-
-    expect(turn).toHaveLength(2);
-    expect(parsed(turn[1].modelCalls[0].lastTool!.output)).toEqual({
-      found: true,
-      conflicts: [{ with: "ACCT1000-A01", day: "MON" }],
-    });
-    expect(h.rateLimitCalls).toBe(2);
-  });
-
   it("reports a course that does not exist without leaving the page", async () => {
     h.brain = courseBrain as never;
     await mountAssistant("/course/CISC2001");

@@ -1,132 +1,239 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { bindCourseToolArgs } from "@/lib/assistant/course-referent";
 import {
-  checkPlanConflicts,
   checkPlanConflictsParameters,
   runCheckPlanConflicts,
-  type CatalogSection,
 } from "@/lib/assistant/check-plan-conflicts";
-import { normalizePlanSection } from "@/lib/timetable/schema";
+import type { TimetableToolDeps } from "@/lib/assistant/timetable-tools";
+import type { TimetableState } from "@/lib/assistant/timetable-context";
+import { timetableVersion } from "@/lib/timetable/analysis";
+import { McpToolError } from "@/lib/mcp/errors";
+import type { GetCourseSectionsOutput } from "@/lib/mcp/schemas";
+import { FIXTURE_CATALOG_SECTIONS, FIXTURE_PLAN } from "@/tests/fixtures/timetable-plan";
 
-const plan = [
-  normalizePlanSection({
-    code: "EDUC1001",
-    prof: "CHAN TAI MAN",
-    section: "001",
-    schedules: [
-      { date: "MON", time: "09:00-10:15", location: "E22-1001" },
-      { date: "WED", time: "09:00-10:15", location: "E22-1001" },
-    ],
-  }),
-  normalizePlanSection({
-    code: "MATH1000",
-    prof: "WONG",
-    section: "002",
-    schedules: [{ date: "MON", time: "10:00-11:00", location: "" }],
-  }),
-];
+const fixtureLookup = (code: string, instructor: string): GetCourseSectionsOutput | undefined =>
+  FIXTURE_CATALOG_SECTIONS.find(
+    (entry) => entry.courseCode === code.toUpperCase() && entry.instructor === instructor,
+  );
 
-const sections: CatalogSection[] = [
-  { section: "001", schedules: [{ date: "TUE", time: "10:00-11:15", location: "" }] },
-  { section: "002", schedules: [{ date: "MON", time: "08:00-09:00", location: "" }] },
-  { section: "003", schedules: [{ date: "MON", time: "09:30-10:30", location: "" }] },
-  {
-    section: "004",
-    schedules: [
-      { date: "MON", time: "09:00-09:30", location: "" },
-      { date: "WED", time: "09:00-09:30", location: "" },
-    ],
+const readyState = (planSections = FIXTURE_PLAN.payload.sections, planTerm = { year: 2026, sem: 1 }): TimetableState => ({
+  status: "ready",
+  plan: {
+    name: FIXTURE_PLAN.name,
+    year: planTerm.year,
+    sem: planTerm.sem,
+    sections: planSections,
   },
-];
+  currentTerm: { year: 2026, sem: 1 },
+  otherPlansThisTerm: 0,
+  localOnly: false,
+  truncated: false,
+  version: timetableVersion(planSections),
+});
 
-const input = (section: string) => ({ code: "econ1001", instructor: "LEE", section });
-
-describe("checkPlanConflicts", () => {
-  it("returns no conflicts for a free slot", () => {
-    expect(checkPlanConflicts(plan, input("001"), sections)).toEqual({ found: true, conflicts: [] });
-  });
-
-  it("does not count end-to-start as a conflict", () => {
-    expect(checkPlanConflicts(plan, input("002"), sections)).toEqual({ found: true, conflicts: [] });
-  });
-
-  it("reports every plan section that overlaps", () => {
-    expect(checkPlanConflicts(plan, input("003"), sections)).toEqual({
-      found: true,
-      conflicts: [
-        { with: "EDUC1001-001", day: "MON" },
-        { with: "MATH1000-002", day: "MON" },
-      ],
-    });
-  });
-
-  it("reports a clash once per day", () => {
-    expect(checkPlanConflicts(plan, input("004"), sections)).toEqual({
-      found: true,
-      conflicts: [
-        { with: "EDUC1001-001", day: "MON" },
-        { with: "EDUC1001-001", day: "WED" },
-      ],
-    });
-  });
-
-  it("ignores other sections of the same course, whatever their stored case", () => {
-    const withSameCourse = [
-      ...plan,
-      {
-        ...normalizePlanSection({
-          code: "ECON1001",
-          prof: "LEE",
-          section: "009",
-          schedules: [{ date: "TUE", time: "10:00-11:00", location: "" }],
-        }),
-        courseCode: "econ1001",
-      },
-    ];
-    expect(checkPlanConflicts(withSameCourse, input("001"), sections)).toEqual({
-      found: true,
-      conflicts: [],
-    });
-  });
-
-  it("matches the section id ignoring case and surrounding spaces", () => {
-    const lettered: CatalogSection[] = [
-      { section: "D01", schedules: [{ date: "TUE", time: "10:00-11:00", location: "" }] },
-    ];
-    expect(checkPlanConflicts(plan, input(" d01 "), lettered)).toEqual({ found: true, conflicts: [] });
-  });
-
-  it("returns found false when the section does not exist", () => {
-    expect(checkPlanConflicts(plan, input("099"), sections)).toEqual({ found: false });
-  });
+const deps = (overrides?: Partial<TimetableToolDeps>): TimetableToolDeps => ({
+  loadSections: async (input) => {
+    const match = fixtureLookup(input.code, input.instructor);
+    if (!match) throw new McpToolError("not_found", "missing");
+    return match;
+  },
+  loadCatalogTerm: async () => ({ year: 2026, sem: 1 }),
+  ...overrides,
 });
 
 describe("runCheckPlanConflicts", () => {
-  it("loads the sections for the asked course and instructor", async () => {
-    const loadSections = vi.fn(async () => ({ sections }));
-    await expect(runCheckPlanConflicts(plan, input("001"), loadSections)).resolves.toEqual({
-      found: true,
-      conflicts: [],
+  it("checks a named section and reports the overlap", async () => {
+    const result = await runCheckPlanConflicts(
+      readyState(),
+      { code: "MATH1010", instructor: "HO SIU MING", section: "001" },
+      deps(),
+    );
+    expect(result).toMatchObject({
+      status: "checked",
+      courseCode: "MATH1010",
+      instructor: "HO SIU MING",
+      planComplete: false,
+      sections: [
+        {
+          section: "001",
+          replaces: "MATH1010-002",
+          complete: true,
+          conflicts: [{ with: "CISC3014-001", day: "MON", overlap: "10:00-10:15" }],
+        },
+      ],
     });
-    expect(loadSections).toHaveBeenCalledWith("econ1001", "LEE");
   });
 
-  it("reports a failed request instead of throwing", async () => {
-    const loadSections = vi.fn(async () => {
-      throw new Error("HTTP 401");
+  it("does not count end-to-start as a conflict", async () => {
+    const result = await runCheckPlanConflicts(
+      readyState(),
+      { code: "ECON1001", instructor: "CHEUNG WAI", section: "002" },
+      deps(),
+    );
+    expect(result).toMatchObject({
+      status: "checked",
+      sections: [{ section: "002", conflicts: [], complete: true }],
     });
-    await expect(runCheckPlanConflicts(plan, input("001"), loadSections)).resolves.toEqual({
-      found: false,
-      error: "request_failed",
+  });
+
+  it("checks every section when section is omitted", async () => {
+    const result = await runCheckPlanConflicts(
+      readyState(),
+      { code: "MATH1010", instructor: "HO SIU MING" },
+      deps(),
+    );
+    expect(result).toMatchObject({ status: "checked" });
+    if (result.status !== "checked") return;
+    expect(result.sections.map((entry) => entry.section)).toEqual(["001", "002", "003"]);
+  });
+
+  it("never calls a weekend-only section conflict-free", async () => {
+    const result = await runCheckPlanConflicts(
+      readyState(),
+      { code: "MATH1010", instructor: "HO SIU MING", section: "003" },
+      deps(),
+    );
+    expect(result).toMatchObject({
+      status: "checked",
+      sections: [
+        {
+          section: "003",
+          complete: false,
+          meetings: ["SAT 09:00-12:00 E22-3001"],
+          conflicts: [],
+        },
+      ],
+    });
+  });
+
+  it("marks a section with no catalog times incomplete", async () => {
+    const result = await runCheckPlanConflicts(
+      readyState(),
+      { code: "MATH1010", instructor: "HO SIU MING", section: "001" },
+      deps({
+        loadSections: async () => ({
+          courseCode: "MATH1010",
+          instructor: "HO SIU MING",
+          courseUrl: "https://umeh.top/course/MATH1010",
+          sections: [{ section: "001", courseUrl: "https://umeh.top/course/MATH1010", schedules: [] }],
+        }),
+      }),
+    );
+    expect(result).toMatchObject({
+      status: "checked",
+      sections: [{ section: "001", complete: false, meetings: [], conflicts: [] }],
+    });
+  });
+
+  it("reports planComplete false and the unscheduled saved sections", async () => {
+    const result = await runCheckPlanConflicts(
+      readyState(),
+      { code: "MATH1010", instructor: "HO SIU MING", section: "001" },
+      deps(),
+    );
+    expect(result).toMatchObject({
+      status: "checked",
+      planComplete: false,
+      unscheduled: ["GEND1001-001"],
+    });
+  });
+
+  it.each(["no_plan", "loading", "unavailable"] as const)("returns no_timetable for %s", async (timetable) => {
+    const state: TimetableState =
+      timetable === "no_plan"
+        ? { status: "no_plan", currentTerm: { year: 2026, sem: 1 } }
+        : { status: timetable };
+    const result = await runCheckPlanConflicts(
+      state,
+      { code: "MATH1010", instructor: "HO SIU MING", section: "001" },
+      deps(),
+    );
+    expect(result).toEqual({ status: "no_timetable", timetable });
+  });
+
+  it("returns term_mismatch for a plan from another term", async () => {
+    const result = await runCheckPlanConflicts(
+      readyState(FIXTURE_PLAN.payload.sections, { year: 2025, sem: 2 }),
+      { code: "MATH1010", instructor: "HO SIU MING", section: "001" },
+      deps(),
+    );
+    expect(result).toEqual({
+      status: "term_mismatch",
+      planTerm: "2025/2026 AY Sem 2",
+      catalogTerm: "2026/2027 AY Sem 1",
+    });
+  });
+
+  it("returns not_found for an unknown section or offering", async () => {
+    await expect(
+      runCheckPlanConflicts(
+        readyState(),
+        { code: "MATH1010", instructor: "HO SIU MING", section: "099" },
+        deps(),
+      ),
+    ).resolves.toEqual({ status: "not_found" });
+
+    await expect(
+      runCheckPlanConflicts(
+        readyState(),
+        { code: "MATH1010", instructor: "NOBODY", section: "001" },
+        deps(),
+      ),
+    ).resolves.toEqual({ status: "not_found" });
+  });
+
+  it("returns temporarily_unavailable when loading throws", async () => {
+    const result = await runCheckPlanConflicts(
+      readyState(),
+      { code: "MATH1010", instructor: "HO SIU MING", section: "001" },
+      deps({
+        loadSections: async () => {
+          throw new Error("HTTP 500");
+        },
+      }),
+    );
+    expect(result).toEqual({ status: "temporarily_unavailable" });
+  });
+
+  it("returns invalid_request for bad arguments", async () => {
+    const result = await runCheckPlanConflicts(readyState(), { code: "" }, deps());
+    expect(result).toEqual({ status: "invalid_request" });
+  });
+
+  it("binds the page course like the other course tools", async () => {
+    const loadSections = vi.fn(async () => fixtureLookup("MATH1010", "HO SIU MING")!);
+    const bound = bindCourseToolArgs(
+      { kind: "page", courseCode: "MATH1010" },
+      "check_plan_conflicts",
+      { code: "CISC2001", instructor: "HO SIU MING", section: "001" },
+    );
+    expect(bound.action).toBe("rewrite");
+    if (bound.action !== "rewrite") return;
+    await runCheckPlanConflicts(readyState(), bound.args, deps({ loadSections }));
+    expect(loadSections).toHaveBeenCalledWith({ code: "MATH1010", instructor: "HO SIU MING" });
+  });
+
+  it("checks an empty saved plan without claiming completeness it lacks", async () => {
+    const result = await runCheckPlanConflicts(
+      readyState([]),
+      { code: "MATH1010", instructor: "HO SIU MING", section: "001" },
+      deps(),
+    );
+    expect(result).toMatchObject({
+      status: "checked",
+      planComplete: true,
+      sections: [{ section: "001", conflicts: [] }],
     });
   });
 });
 
 describe("checkPlanConflictsParameters", () => {
-  it("requires code, instructor and section", () => {
-    expect(checkPlanConflictsParameters.safeParse({ code: "ECON1001", instructor: "LEE" }).success).toBe(false);
-    expect(
-      checkPlanConflictsParameters.safeParse({ code: "ECON1001", instructor: "LEE", section: "001" }).success,
-    ).toBe(true);
+  it("requires code and instructor; section is optional", () => {
+    expect(checkPlanConflictsParameters.safeParse({ code: "MATH1010", instructor: "HO" }).success).toBe(true);
+    expect(checkPlanConflictsParameters.safeParse({ code: "MATH1010", instructor: "HO", section: "001" }).success).toBe(
+      true,
+    );
+    expect(checkPlanConflictsParameters.safeParse({ code: "MATH1010" }).success).toBe(false);
   });
 });
