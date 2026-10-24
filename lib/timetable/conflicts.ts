@@ -1,10 +1,22 @@
 import type { PlanSection } from "./schema";
 
-export type ScheduleConflict = { a: PlanSection; b: PlanSection; date: string };
+export type ScheduleConflict = {
+  a: PlanSection;
+  b: PlanSection;
+  date: string;
+  aTime: string;
+  bTime: string;
+};
 
 export const timeToMinutes = (value: string) => {
   const [hours, minutes] = value.split(":").map(Number);
   return hours * 60 + minutes;
+};
+
+export const minutesToTime = (value: number) => {
+  const hours = Math.floor(value / 60);
+  const minutes = value % 60;
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
 };
 
 export const schedulesOverlap = (
@@ -29,7 +41,13 @@ export const detectScheduleConflicts = (
       for (const scheduleA of a.schedules) {
         for (const scheduleB of b.schedules) {
           if (schedulesOverlap(scheduleA, scheduleB)) {
-            conflicts.push({ a, b, date: scheduleA.date });
+            conflicts.push({
+              a,
+              b,
+              date: scheduleA.date,
+              aTime: scheduleA.time,
+              bTime: scheduleB.time,
+            });
           }
         }
       }

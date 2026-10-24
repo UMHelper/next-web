@@ -1,4 +1,4 @@
-import { timeToMinutes } from "@/lib/timetable/conflicts";
+import { minutesToTime, timeToMinutes } from "@/lib/timetable/conflicts";
 import type { PlanSection } from "@/lib/timetable/schema";
 
 const DAYS = ["MON", "TUE", "WED", "THU", "FRI"] as const;
@@ -36,12 +36,6 @@ const busyForDay = (sections: PlanSection[], date: string) => {
     }
   }
   return merge(busy.filter((interval) => interval.start < interval.end));
-};
-
-const minutesToTime = (value: number) => {
-  const hours = Math.floor(value / 60);
-  const minutes = value % 60;
-  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
 };
 
 export const computeCommonFree = (

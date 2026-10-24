@@ -33,6 +33,17 @@ describe("timetable conflicts", () => {
     expect(detectScheduleConflicts([a, b, c])).toHaveLength(0);
   });
 
+  it("includes both meeting times", () => {
+    const a = section("A", "ACCT1000", "MON", "09:00-10:30");
+    const b = section("B", "CISC1000", "MON", "10:00-11:00");
+    expect(detectScheduleConflicts([a, b])).toEqual([
+      expect.objectContaining({
+        aTime: "09:00-10:30",
+        bTime: "10:00-11:00",
+      }),
+    ]);
+  });
+
   it("finds same-course different sections", () => {
     const a = section("A", "ACCT1000", "MON", "09:00-10:00");
     const b = section("B", "ACCT1000", "TUE", "09:00-10:00");
