@@ -85,7 +85,7 @@ const previewDeps = (): TimetableToolDeps => ({
     const match = FIXTURE_CATALOG_SECTIONS.find(
       (entry) => entry.courseCode === input.code.toUpperCase() && entry.instructor === input.instructor,
     );
-    if (!match) throw new McpToolError("not_found", "missing");
+    if (!match) throw new McpToolError("not_found");
     return match;
   },
   loadCatalogTerm: async () => ({ year: 2026, sem: 1 }),

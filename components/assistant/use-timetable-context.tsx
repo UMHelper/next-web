@@ -24,7 +24,7 @@ export function useTimetableContext() {
       serializeTimetableContext(
         buildTimetableContextPayload({ store, activePlan, loadState, serverLoad }, plannerCurrentTerm()),
       ),
-    [activePlan, store.plans, loadState, serverLoad],
+    [activePlan, store, loadState, serverLoad],
   );
 
   const currentVersion = useMemo(

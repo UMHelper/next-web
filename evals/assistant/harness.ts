@@ -258,8 +258,14 @@ async function runTurn(
   };
 }
 
+export type HarnessEvalCase = {
+  id: string;
+  pathname: string;
+  turns: Array<{ message: string }>;
+};
+
 export async function runCase(
-  evalCase: Pick<EvalCase, "id" | "pathname" | "turns">,
+  evalCase: HarnessEvalCase,
   options: HarnessOptions,
   extras?: RunCaseExtras,
 ): Promise<TurnTrace[]> {

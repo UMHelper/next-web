@@ -44,7 +44,7 @@ vi.mock("@/lib/assistant/agent", async (importOriginal) => {
       const agent = original.createAssistantAgent(...args);
       const runAgent = agent.runAgent.bind(agent);
       agent.runAgent = async (input) => {
-        const timetable = input.context?.find((entry) => entry.description.includes("timetable"));
+        const timetable = input?.context?.find((entry) => entry.description.includes("timetable"));
         if (timetable) script.capturedContexts.push(timetable.value);
         return runAgent(input);
       };

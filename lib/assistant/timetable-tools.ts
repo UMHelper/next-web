@@ -15,7 +15,6 @@ import {
 import { bindCourseToolArgs, type CourseReferentSlot } from "@/lib/assistant/course-referent";
 import type { TimetableSlot, TimetableState } from "@/lib/assistant/timetable-context";
 import { resolveCandidate, type LoadSections } from "@/lib/assistant/timetable-candidates";
-import { MCP_TOOL_TIMEOUT_MS } from "@/lib/mcp/constants";
 import { getCourseSections } from "@/lib/mcp/data/get-course-sections";
 import {
   getCourseSectionsInputSchema,
@@ -34,9 +33,7 @@ export const defaultTimetableToolDeps: TimetableToolDeps = {
   loadSections: async (input) => {
     const parsed = getCourseSectionsInputSchema.safeParse(input);
     if (!parsed.success) throw new Error("invalid_request");
-    return getCourseSectionsOutputSchema.parse(
-      await getCourseSections(parsed.data, AbortSignal.timeout(MCP_TOOL_TIMEOUT_MS)),
-    );
+    return getCourseSectionsOutputSchema.parse(await getCourseSections(parsed.data));
   },
   loadCatalogTerm: async () => {
     const { getAppConfig } = await import("@/lib/config/app-config");

@@ -12,14 +12,14 @@ const FIXTURE_SECTIONS_BY_CODE = new Map(
   FIXTURE_CATALOG_SECTIONS.map((entry) => [entry.courseCode.toUpperCase(), entry]),
 );
 
-export function getCourseSections(input: GetCourseSectionsInput): GetCourseSectionsOutput {
+export async function getCourseSections(input: GetCourseSectionsInput): Promise<GetCourseSectionsOutput> {
   const code = input.code.trim().toUpperCase();
   const fixture = FIXTURE_SECTIONS_BY_CODE.get(code);
   if (fixture) return fixture;
   return catalog.getCourseSections(input);
 }
 
-export function getCourse(input: GetCourseInput): GetCourseOutput {
+export async function getCourse(input: GetCourseInput): Promise<GetCourseOutput> {
   return catalog.getCourse(input);
 }
 

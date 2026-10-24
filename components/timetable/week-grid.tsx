@@ -113,7 +113,7 @@ export default function WeekGrid({
                       className={[
                         "absolute left-1 right-1 overflow-hidden rounded px-1 py-0.5 text-left text-white shadow-sm",
                         conflict ? "border-2 border-destructive-strong" : "",
-                        emphasized ? "border border-dashed border-white/80" : "",
+                        emphasized ? "border border-dashed border-foreground/70" : "",
                       ].join(" ")}
                       style={{
                         top,

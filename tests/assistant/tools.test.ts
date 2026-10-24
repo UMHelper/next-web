@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { z } from "zod";
 
 const data = vi.hoisted(() => ({
   searchCatalog: vi.fn(),
@@ -47,8 +48,8 @@ describe("assistant server tools", () => {
 
   it("rejects present_response show lists longer than MAX_PRESENT_SHOW_ITEMS at the schema", () => {
     const tool = createAssistantTools().find((entry) => entry.name === "present_response");
-    const schema = (tool as { parameters?: { safeParse: (v: unknown) => { success: boolean } } }).parameters;
-    expect(schema).toBeDefined();
+    expect(tool?.parameters).toBeInstanceOf(z.ZodType);
+    const schema = tool!.parameters as z.ZodType;
     const four = {
       show: [
         { component: "course_detail", course: "CISC2001" },

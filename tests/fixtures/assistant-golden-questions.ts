@@ -3,8 +3,7 @@ type ServerToolName =
   | "get_course"
   | "get_instructor"
   | "get_course_reviews"
-  | "get_course_sections"
-  | "check_plan_conflicts";
+  | "get_course_sections";
 
 export type GoldenQuestion = {
   id: string;

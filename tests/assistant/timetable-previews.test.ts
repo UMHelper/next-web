@@ -41,7 +41,7 @@ const readyState = (planSections = FIXTURE_PLAN.payload.sections): TimetableStat
 const deps = (): TimetableToolDeps => ({
   loadSections: async (input) => {
     const match = fixtureLookup(input.code, input.instructor);
-    if (!match) throw new McpToolError("not_found", "missing");
+    if (!match) throw new McpToolError("not_found");
     return match;
   },
   loadCatalogTerm: async () => ({ year: 2026, sem: 1 }),
