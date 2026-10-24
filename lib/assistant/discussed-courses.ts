@@ -1,0 +1,176 @@
+import { GET_COURSE_TOOL_NAME, parseCourseDetailResult } from "@/lib/assistant/course-detail-ui";
+import { SEARCH_CATALOG_TOOL_NAME } from "@/lib/assistant/search-catalog-ui";
+
+export const DISCUSSED_COURSES_CONTEXT_DESCRIPTION =
+  "Courses already retrieved in this chat, newest turn first. order is the student's mention order when the message named two or more codes; otherwise tool-result order. Use for follow-up ordinals when no catalog result set is newer";
+
+export const MAX_DISCUSSED_CONTEXT_CHARS = 1200;
+
+export type DiscussedCoursesPayload = {
+  active: null | { id: string; order: string[]; newerThanCatalog: true };
+  turns: Array<{ id: string; order: string[] }>;
+};
+
+type DiscussedMessage = {
+  role: string;
+  content?: unknown;
+  toolCalls?: Array<{ id?: string; function?: { name?: string; arguments?: string } }>;
+  toolCallId?: string;
+};
+
+const COURSE_CODE_PATTERN = /[A-Z]{4}\d{4}/;
+
+function textOf(content: unknown): string {
+  if (typeof content === "string") return content;
+  if (Array.isArray(content)) {
+    return content
+      .map((part) => {
+        if (part !== null && typeof part === "object" && typeof (part as { text?: unknown }).text === "string") {
+          return (part as { text: string }).text;
+        }
+        return "";
+      })
+      .join("");
+  }
+  return "";
+}
+
+function explicitCodes(text: string): string[] {
+  return text.toUpperCase().match(/[A-Z]{4}\d{4}/g) ?? [];
+}
+
+function userMessageIndices(messages: readonly DiscussedMessage[]): number[] {
+  const indices: number[] = [];
+  for (let index = 0; index < messages.length; index++) {
+    if (messages[index].role === "user") {
+      indices.push(index);
+    }
+  }
+  return indices;
+}
+
+function lastSearchCatalogIndex(messages: readonly DiscussedMessage[]): number {
+  let last = -1;
+  for (let index = 0; index < messages.length; index++) {
+    const message = messages[index];
+    if (message.role !== "assistant" || !message.toolCalls?.length) {
+      continue;
+    }
+    for (const call of message.toolCalls) {
+      if (call.function?.name === SEARCH_CATALOG_TOOL_NAME) {
+        last = index;
+      }
+    }
+  }
+  return last;
+}
+
+function validatedCodesForTurn(
+  messages: readonly DiscussedMessage[],
+  startIndex: number,
+  endIndex: number,
+): string[] {
+  const toolResultById = new Map<string, string>();
+  for (let index = startIndex + 1; index < endIndex; index++) {
+    const message = messages[index];
+    if (message.role === "tool" && typeof message.toolCallId === "string") {
+      toolResultById.set(message.toolCallId, typeof message.content === "string" ? message.content : "");
+    }
+  }
+
+  const codes: string[] = [];
+  for (let index = startIndex + 1; index < endIndex; index++) {
+    const message = messages[index];
+    if (message.role !== "assistant" || !message.toolCalls?.length) {
+      continue;
+    }
+    for (const call of message.toolCalls) {
+      if (call.function?.name !== GET_COURSE_TOOL_NAME || typeof call.id !== "string") {
+        continue;
+      }
+      const content = toolResultById.get(call.id);
+      if (content === undefined) {
+        continue;
+      }
+      const parsed = parseCourseDetailResult(content);
+      if (parsed.kind !== "course") {
+        continue;
+      }
+      const normalized = parsed.data.course.courseCode.trim().toUpperCase();
+      if (COURSE_CODE_PATTERN.test(normalized)) {
+        codes.push(normalized.match(COURSE_CODE_PATTERN)![0]);
+      }
+    }
+  }
+  return codes;
+}
+
+function buildTurnOrder(userText: string, validatedInCallOrder: string[]): string[] {
+  const validatedSet = new Set(validatedInCallOrder);
+  const mentioned = explicitCodes(userText).filter((code) => validatedSet.has(code));
+
+  if (mentioned.length >= 2) {
+    const order = [...mentioned];
+    for (const code of validatedInCallOrder) {
+      if (!order.includes(code)) {
+        order.push(code);
+      }
+    }
+    return order.slice(0, 3);
+  }
+
+  if (
+    mentioned.length === 1 &&
+    validatedInCallOrder.length === 2 &&
+    validatedInCallOrder.includes(mentioned[0])
+  ) {
+    const other = validatedInCallOrder.find((code) => code !== mentioned[0])!;
+    return [other, mentioned[0]].slice(0, 3);
+  }
+
+  return validatedInCallOrder.slice(0, 3);
+}
+
+export function summarizeDiscussedCourses(messages: readonly DiscussedMessage[]): string {
+  const userIndices = userMessageIndices(messages);
+  const lastCatalogIndex = lastSearchCatalogIndex(messages);
+  const turns: DiscussedCoursesPayload["turns"] = [];
+
+  for (let turnIndex = userIndices.length - 1; turnIndex >= 0; turnIndex--) {
+    const startIndex = userIndices[turnIndex];
+    const endIndex = turnIndex + 1 < userIndices.length ? userIndices[turnIndex + 1] : messages.length;
+    const validated = validatedCodesForTurn(messages, startIndex, endIndex);
+    if (validated.length < 2) {
+      continue;
+    }
+    const userText = textOf(messages[startIndex].content);
+    turns.push({
+      id: `turn-${startIndex}`,
+      order: buildTurnOrder(userText, validated),
+    });
+    if (turns.length >= 2) {
+      break;
+    }
+  }
+
+  let active: DiscussedCoursesPayload["active"] = null;
+  if (turns.length > 0) {
+    const newest = turns[0];
+    const newestUserIndex = Number.parseInt(newest.id.slice("turn-".length), 10);
+    if (newestUserIndex > lastCatalogIndex) {
+      active = { id: newest.id, order: newest.order, newerThanCatalog: true };
+    }
+  }
+
+  const payload: DiscussedCoursesPayload = { active, turns };
+  let serialized = JSON.stringify(payload);
+  while (serialized.length > MAX_DISCUSSED_CONTEXT_CHARS && payload.turns.length > 1) {
+    payload.turns.pop();
+    if (payload.active && payload.turns.every((turn) => turn.id !== payload.active!.id)) {
+      payload.active = null;
+    }
+    serialized = JSON.stringify(payload);
+  }
+
+  return serialized;
+}

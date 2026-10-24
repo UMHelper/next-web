@@ -268,6 +268,12 @@ describe("ASSISTANT_PROMPT", () => {
     );
     expect(ASSISTANT_PROMPT).toContain("never replace a code the student wrote with the page course");
     expect(ASSISTANT_PROMPT).toContain("When kind is ambiguous, ask the ask text and do not call a course tool");
+    expect(ASSISTANT_PROMPT).toContain(
+      "When kind is multiple, call each named code and the page code separately",
+    );
+    expect(ASSISTANT_PROMPT).toContain(
+      "When its kind is ordinal and its resultSetId is a discussed-courses id, that code is the discussed course at that position",
+    );
     expect(ASSISTANT_PROMPT).not.toMatch(/\b[A-Z]{4}\d{4}\b/);
     expect(ASSISTANT_PROMPT).not.toMatch(/[\p{Script=Han}]/u);
   });

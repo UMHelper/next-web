@@ -31,6 +31,7 @@ import { useCourseDetailToolRender } from "./course-detail-tool-render";
 import { useCourseSectionsToolRender } from "./course-sections-tool-render";
 import { useSearchCatalogToolRender } from "./search-catalog-tool-render";
 import { useCatalogResultsTool } from "./use-catalog-results-tool";
+import { useDiscussedCourses } from "./use-discussed-courses";
 import { useNavigateTool } from "./use-navigate-tool";
 
 // FloatingPlanner keys its offset off this attribute; the name is repeated literally in its Tailwind classes.
@@ -70,6 +71,7 @@ function AssistantTools() {
 
   const navigate = useNavigateTool();
   useCatalogResultsTool();
+  useDiscussedCourses();
   useSearchCatalogToolRender();
   useCourseDetailToolRender();
   useCourseSectionsToolRender();

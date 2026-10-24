@@ -1,4 +1,8 @@
 import { CATALOG_RESULTS_CONTEXT_DESCRIPTION } from "@/lib/assistant/catalog-result-sets";
+import {
+  DISCUSSED_COURSES_CONTEXT_DESCRIPTION,
+  type DiscussedCoursesPayload,
+} from "@/lib/assistant/discussed-courses";
 import { PAGE_CONTEXT_DESCRIPTION, type PageContext } from "@/lib/assistant/page-context";
 
 export const COURSE_REFERENT_DESCRIPTION =
@@ -117,6 +121,7 @@ export function resolveCourseReferent(input: {
   page: PageContext;
   resultSets: VisibleResultSet[];
   priorCourseCodes: string[];
+  discussed?: { id: string; order: string[]; newerThanCatalog: boolean };
 }): CourseReferent {
   const text = input.latestUserText;
   const codes = explicitCodes(text);
@@ -148,6 +153,27 @@ export function resolveCourseReferent(input: {
 
   if (ordinals.length === 1) {
     const position = ordinals[0];
+    const discussed = input.discussed;
+    if (
+      discussed?.newerThanCatalog &&
+      !namedResultSetId(text, input.resultSets) &&
+      discussed.order.length > 0
+    ) {
+      const courseCode = discussed.order[position - 1];
+      if (!courseCode) {
+        return {
+          kind: "ambiguous",
+          reason: "missing_ordinal",
+          ask: "None of the discussed courses is in that position.",
+        };
+      }
+      return {
+        kind: "ordinal",
+        courseCode,
+        position,
+        resultSetId: discussed.id,
+      };
+    }
     if (input.resultSets.length === 0) {
       return { kind: "none" };
     }
@@ -219,6 +245,34 @@ function parsePageContext(value: string): PageContext {
     /* fall through */
   }
   return { page: "other" };
+}
+
+function parseDiscussedCourses(value: string): DiscussedCoursesPayload["active"] {
+  let raw: unknown;
+  try {
+    raw = JSON.parse(value);
+  } catch {
+    return null;
+  }
+  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
+    return null;
+  }
+  const active = (raw as DiscussedCoursesPayload).active;
+  if (active === null) {
+    return null;
+  }
+  if (
+    active !== undefined &&
+    typeof active === "object" &&
+    !Array.isArray(active) &&
+    typeof active.id === "string" &&
+    Array.isArray(active.order) &&
+    active.order.every((code) => typeof code === "string") &&
+    active.newerThanCatalog === true
+  ) {
+    return active;
+  }
+  return null;
 }
 
 function parseVisibleResultSets(value: string): VisibleResultSet[] {
@@ -345,9 +399,11 @@ export function courseReferentFromRun(input: ReferentRunInput): CourseReferent {
   const context = input.context ?? [];
   const pageEntry = context.find((entry) => entry.description === PAGE_CONTEXT_DESCRIPTION);
   const catalogEntry = context.find((entry) => entry.description === CATALOG_RESULTS_CONTEXT_DESCRIPTION);
+  const discussedEntry = context.find((entry) => entry.description === DISCUSSED_COURSES_CONTEXT_DESCRIPTION);
 
   const page = pageEntry ? parsePageContext(pageEntry.value) : { page: "other" as const };
   const resultSets = catalogEntry ? parseVisibleResultSets(catalogEntry.value) : [];
+  const discussedActive = discussedEntry ? parseDiscussedCourses(discussedEntry.value) : null;
 
   let latestUserIndex = -1;
   for (let i = input.messages.length - 1; i >= 0; i--) {
@@ -368,6 +424,7 @@ export function courseReferentFromRun(input: ReferentRunInput): CourseReferent {
     page,
     resultSets,
     priorCourseCodes,
+    discussed: discussedActive ?? undefined,
   });
 }
 
@@ -387,7 +444,27 @@ export function bindCourseToolArgs(
     };
   }
 
-  if (referent.kind === "none" || referent.kind === "multiple") {
+  if (referent.kind === "multiple") {
+    const allowed = new Set(referent.explicitCodes);
+    if (referent.pageCourseCode) allowed.add(referent.pageCourseCode);
+    if (
+      args !== null &&
+      typeof args === "object" &&
+      !Array.isArray(args) &&
+      typeof (args as { code?: unknown }).code === "string"
+    ) {
+      const code = (args as { code: string }).code.trim().toUpperCase();
+      if (!allowed.has(code)) {
+        return {
+          action: "clarify",
+          result: { status: "needs_clarification", ask: "Which course do you mean?" },
+        };
+      }
+    }
+    return { action: "passthrough", args };
+  }
+
+  if (referent.kind === "none") {
     return { action: "passthrough", args };
   }
 

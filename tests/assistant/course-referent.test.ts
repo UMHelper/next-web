@@ -9,6 +9,7 @@ import {
 } from "@/lib/assistant/course-referent";
 import { shapeConversation } from "@/lib/assistant/conversation";
 import { CATALOG_RESULTS_CONTEXT_DESCRIPTION } from "@/lib/assistant/catalog-result-sets";
+import { DISCUSSED_COURSES_CONTEXT_DESCRIPTION } from "@/lib/assistant/discussed-courses";
 import { PAGE_CONTEXT_DESCRIPTION } from "@/lib/assistant/page-context";
 import type { PageContext } from "@/lib/assistant/page-context";
 
@@ -197,6 +198,29 @@ describe("resolveCourseReferent", () => {
       kind: "none",
     });
   });
+
+  it("binds a follow-up ordinal to discussed courses when newer than catalog", () => {
+    expect(
+      resolve("Tell me more about the first one", {
+        discussed: { id: "d1", order: ["CISC2001", "CISC2003"], newerThanCatalog: true },
+        resultSets: [offered],
+      }),
+    ).toEqual({
+      kind: "ordinal",
+      courseCode: "CISC2001",
+      position: 1,
+      resultSetId: "d1",
+    });
+  });
+
+  it("prefers catalog ordinals when discussed courses are not newer", () => {
+    expect(
+      resolve("Tell me more about the first one", {
+        discussed: { id: "d1", order: ["CISC2001", "CISC2003"], newerThanCatalog: false },
+        resultSets: [offered],
+      }),
+    ).toMatchObject({ kind: "ordinal", courseCode: "APAC1000", resultSetId: "call-1" });
+  });
 });
 
 describe("courseReferentFromRun", () => {
@@ -267,6 +291,35 @@ describe("courseReferentFromRun", () => {
     expect(referent).toEqual({ kind: "conversation", courseCode: "ECON1002" });
   });
 
+  it("uses discussed courses for ordinals when catalog context is absent", () => {
+    const discussedValue = JSON.stringify({
+      active: { id: "turn-0", order: ["CISC2001", "CISC2003"], newerThanCatalog: true },
+      turns: [{ id: "turn-0", order: ["CISC2001", "CISC2003"] }],
+    });
+    const referent = courseReferentFromRun({
+      context: [{ description: DISCUSSED_COURSES_CONTEXT_DESCRIPTION, value: discussedValue }],
+      messages: [
+        { role: "user", content: "CISC2001 vs CISC2003?" },
+        {
+          role: "assistant",
+          toolCalls: [
+            { id: "g1", function: { name: "get_course", arguments: JSON.stringify({ code: "CISC2001" }) } },
+            { id: "g2", function: { name: "get_course", arguments: JSON.stringify({ code: "CISC2003" }) } },
+          ],
+        },
+        { role: "tool", toolCallId: "g1", content: JSON.stringify({ course: { courseCode: "CISC2001" } }) },
+        { role: "tool", toolCallId: "g2", content: JSON.stringify({ course: { courseCode: "CISC2003" } }) },
+        { role: "user", content: "the first one" },
+      ],
+    });
+    expect(referent).toEqual({
+      kind: "ordinal",
+      courseCode: "CISC2001",
+      position: 1,
+      resultSetId: "turn-0",
+    });
+  });
+
   it("does not treat a search row as the prior course", () => {
     const referent = courseReferentFromRun({
       messages: [
@@ -319,13 +372,23 @@ describe("bindCourseToolArgs", () => {
   });
 
   it("does not rewrite a comparison", () => {
-    expect(
-      bindCourseToolArgs(
-        { kind: "multiple", explicitCodes: ["CISC2001"], pageCourseCode: "CISC3014" },
-        "get_course",
-        { code: "CISC2001" },
-      ),
-    ).toEqual({ action: "passthrough", args: { code: "CISC2001" } });
+    const referent = { kind: "multiple" as const, explicitCodes: ["CISC2001"], pageCourseCode: "CISC3014" };
+    expect(bindCourseToolArgs(referent, "get_course", { code: "CISC2001" })).toEqual({
+      action: "passthrough",
+      args: { code: "CISC2001" },
+    });
+    expect(bindCourseToolArgs(referent, "get_course", { code: "CISC3014" })).toEqual({
+      action: "passthrough",
+      args: { code: "CISC3014" },
+    });
+    expect(bindCourseToolArgs(referent, "get_course", { code: "APAC2000" })).toEqual({
+      action: "clarify",
+      result: { status: "needs_clarification", ask: "Which course do you mean?" },
+    });
+    expect(bindCourseToolArgs(referent, "present_response", { show: [] })).toEqual({
+      action: "passthrough",
+      args: { show: [] },
+    });
   });
 
   it("does not call through when the referent is ambiguous", () => {
