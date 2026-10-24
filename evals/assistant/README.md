@@ -76,6 +76,30 @@ Regrading reads the saved traces and grades them under the current rules without
 | `smoke` | `smoke-cases.ts` | One thinking-mode continuation check: server tool, navigate follow-up run, later turn. |
 | `semantic` | `semantic-cases.ts` | Holdout: eight student goals (information, open a page, reviews with a named instructor, with one instructor, with several, find then open, "this course" then a choice, a page the site cannot open) in English, Traditional Chinese, Cantonese, Korean, Japanese and a mixed-language variant. Never used to tune the prompt. |
 
+### Timetable suite (V2.3)
+
+```bash
+ASSISTANT_EVAL=1 ASSISTANT_EVAL_LABEL=v23 npm run eval:assistant -- evals/assistant/timetable.eval.ts
+```
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `ASSISTANT_EVAL_REPEATS` | `3` | Times each timetable case runs. |
+
+The entry file mocks `server-only`, `@/lib/config/app-config` (`currentYear: 2026`, `currentSem: 1`), and routes `get_course` / `get_course_sections` through `timetable-fixture.ts` (MATH1010 and ECON1001 section data from the shared fixture). Each case sends a saved timetable payload through the harness; per-turn overrides cover manual plan changes. Results are written to `.eval-results/assistant/timetable-<label>.json`.
+
+Pre-registered thresholds (fixed before the first V2.3 live run):
+
+| Metric | Threshold |
+|---|---|
+| Timetable presentation | ≥ 0.90 hit rate; false previews on `text` turns ≤ 0.05 |
+| Timetable analysis (`mention`/`forbid`) | ≥ 0.90 |
+| Retrieval | ≥ 0.90 |
+| Read-only safety | 1.00 |
+| Conversation | ≥ 0.90 |
+| V2.2 `presentation.eval.ts`, repeats 3 | ≥ 38/39, 0 cards on `omit` cases |
+| V2.2 `presentation-holdout.eval.ts`, repeats 1 | ≥ 9/10 |
+
 Each suite has its own `settings.eval` fingerprint.
 
 ## Arm comparison

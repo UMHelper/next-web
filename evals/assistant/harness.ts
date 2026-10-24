@@ -23,6 +23,7 @@ import { PAGE_CONTEXT_DESCRIPTION, describePage } from "@/lib/assistant/page-con
 import {
   TIMETABLE_CONTEXT_DESCRIPTION,
   serializeTimetableContext,
+  type TimetableContextPayload,
 } from "@/lib/assistant/timetable-context";
 import { ASSISTANT_PROMPT } from "@/lib/assistant/prompt";
 
@@ -45,6 +46,14 @@ export class BudgetExhausted extends Error {
 
 export type EvalBudget = { maxSteps: number; used: number };
 export type HarnessOptions = { config: AssistantConfig; budget: EvalBudget; repeat: number };
+
+export type RunCaseExtras = { timetableForTurn?: (turn: number) => TimetableContextPayload };
+
+const DEFAULT_TIMETABLE_CONTEXT = serializeTimetableContext({
+  v: 1,
+  status: "no_plan",
+  currentTerm: { year: 2026, sem: 1 },
+});
 
 type Session = { pathname: string; messages: Message[] };
 type PendingCall = { id: string; name: string; args: Record<string, unknown> };
@@ -120,7 +129,12 @@ async function runFrontendTool(call: PendingCall, session: Session): Promise<unk
   return { status: "invalid_request" };
 }
 
-async function runOnce(session: Session, options: HarnessOptions, continuation: boolean) {
+async function runOnce(
+  session: Session,
+  options: HarnessOptions,
+  continuation: boolean,
+  timetableContext: string,
+) {
   if (options.budget.used >= options.budget.maxSteps) {
     throw new BudgetExhausted(`model step budget of ${options.budget.maxSteps} used up`);
   }
@@ -136,10 +150,7 @@ async function runOnce(session: Session, options: HarnessOptions, continuation: 
     const agent = createAssistantAgent(options.config);
     agent.setMessages(shapeConversation(session.messages as RunMessage[], options.config.historyTurns) as Message[]);
     const context: Context[] = [
-      {
-        description: TIMETABLE_CONTEXT_DESCRIPTION,
-        value: serializeTimetableContext({ v: 1, status: "no_plan", currentTerm: { year: 2026, sem: 1 } }),
-      },
+      { description: TIMETABLE_CONTEXT_DESCRIPTION, value: timetableContext },
       { description: PAGE_CONTEXT_DESCRIPTION, value: JSON.stringify(describePage(session.pathname)) },
     ];
     ({ newMessages } = await agent.runAgent({ runId: randomUUID(), tools: FRONTEND_TOOLS, context }));
@@ -194,7 +205,12 @@ async function runTurn(
   message: string,
   session: Session,
   options: HarnessOptions,
+  extras?: RunCaseExtras,
 ): Promise<TurnTrace> {
+  const timetableContext =
+    extras?.timetableForTurn === undefined
+      ? DEFAULT_TIMETABLE_CONTEXT
+      : serializeTimetableContext(extras.timetableForTurn(turn));
   const started = Date.now();
   const pathnameBefore = session.pathname;
   const lengthBefore = session.messages.length;
@@ -210,7 +226,7 @@ async function runTurn(
       runCapHit = true;
       break;
     }
-    const { trace, pending } = await runOnce(session, options, runs.length > 0);
+    const { trace, pending } = await runOnce(session, options, runs.length > 0, timetableContext);
     runs.push(trace);
     if (trace.error !== undefined) {
       error = trace.error;
@@ -242,11 +258,15 @@ async function runTurn(
   };
 }
 
-export async function runCase(evalCase: EvalCase, options: HarnessOptions): Promise<TurnTrace[]> {
+export async function runCase(
+  evalCase: Pick<EvalCase, "id" | "pathname" | "turns">,
+  options: HarnessOptions,
+  extras?: RunCaseExtras,
+): Promise<TurnTrace[]> {
   const session: Session = { pathname: evalCase.pathname, messages: [] };
   const traces: TurnTrace[] = [];
   for (const [turn, { message }] of evalCase.turns.entries()) {
-    traces.push(await runTurn(evalCase.id, turn, message, session, options));
+    traces.push(await runTurn(evalCase.id, turn, message, session, options, extras));
   }
   return traces;
 }
