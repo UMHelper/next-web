@@ -200,7 +200,12 @@ export async function runPreviewTimetable(
   if (!parsed.success) return { status: "invalid_request" };
 
   const additions = parsed.data.add ?? [];
-  const catalogTerm = await deps.loadCatalogTerm();
+  let catalogTerm: { year: number; sem: number };
+  try {
+    catalogTerm = await deps.loadCatalogTerm();
+  } catch {
+    return { status: "temporarily_unavailable" };
+  }
   const catalogTermLabel = formatAcademicYear(catalogTerm.year, catalogTerm.sem);
 
   if (additions.length === 0) {

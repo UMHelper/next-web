@@ -365,10 +365,10 @@ const shrinkReadyDigest = (state: ReadyTimetableState, now: Date): string => {
       ];
     }),
   );
-  current = { ...current, days: compactDays };
+  current = { ...current, days: compactDays, complete: false };
   if (fits(current)) return JSON.stringify(current);
 
-  current = { ...current, sections: current.sections.slice(0, 12) };
+  current = { ...current, sections: current.sections.slice(0, 12), complete: false };
   if (fits(current)) return JSON.stringify(current);
 
   const minimalDays = Object.fromEntries(
@@ -388,11 +388,12 @@ const shrinkReadyDigest = (state: ReadyTimetableState, now: Date): string => {
       ];
     }),
   );
-  current = { ...current, days: minimalDays, sections: current.sections.slice(0, 8) };
+  current = { ...current, days: minimalDays, sections: current.sections.slice(0, 8), complete: false };
   if (fits(current)) return JSON.stringify(current);
 
   let fallback: ReadyDigest = {
     ...current,
+    complete: false,
     sections: current.sections.slice(0, 4),
     conflicts: current.conflicts.slice(0, 3),
     days: Object.fromEntries(

@@ -262,6 +262,44 @@ describe("timetableDigest", () => {
     const digest = timetableDigest(state, new Date());
     expect(digest.length).toBeLessThanOrEqual(TIMETABLE_DIGEST_MAX_CHARS);
     expect(digest).not.toContain("\n");
+    const parsed = JSON.parse(digest);
+    expect(parsed.complete).toBe(false);
+    expect(parsed.truncated).toBe(true);
+  });
+
+  it("marks complete false when size compaction drops meetings or conflicts", () => {
+    const sections = Array.from({ length: 18 }, (_, index) =>
+      normalizePlanSection({
+        courseCode: `CISC${5000 + index}`,
+        courseTitle: `Long course title for digest size ${index} padding text`,
+        prof: "PROFESSOR WITH A LONG NAME FOR BYTES",
+        section: "001",
+        schedules: [
+          { date: "MON", time: "09:00-10:00", location: "E11-1001" },
+          { date: "MON", time: "09:30-10:30", location: "E11-1002" },
+          { date: "TUE", time: "10:00-11:00", location: "E11-2001" },
+          { date: "WED", time: "11:00-12:00", location: "E11-3001" },
+          { date: "THU", time: "14:00-15:00", location: "E11-4001" },
+        ],
+      }),
+    );
+    const state = parseTimetableContext(
+      serializeTimetableContext(
+        buildTimetableContextPayload(
+          plannerState({ ...FIXTURE_PLAN, payload: { schemaVersion: 1, sections } }),
+          currentTerm(),
+        ),
+      ),
+    );
+    const parsed = JSON.parse(timetableDigest(state, new Date()));
+    expect(parsed.status).toBe("ready");
+    expect(parsed.complete).toBe(false);
+    expect(JSON.stringify(parsed).length).toBeLessThanOrEqual(TIMETABLE_DIGEST_MAX_CHARS);
+    const monMeetings =
+      parsed.days.MON && typeof parsed.days.MON === "object" && "meetings" in parsed.days.MON
+        ? (parsed.days.MON as { meetings: string[] }).meetings.length
+        : 0;
+    expect(monMeetings).toBeLessThan(sections.length * 2);
   });
 });
 

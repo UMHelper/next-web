@@ -196,6 +196,19 @@ describe("runCheckPlanConflicts", () => {
     expect(result).toEqual({ status: "temporarily_unavailable" });
   });
 
+  it("returns temporarily_unavailable when catalog term loading throws", async () => {
+    const result = await runCheckPlanConflicts(
+      readyState(),
+      { code: "MATH1010", instructor: "HO SIU MING", section: "001" },
+      deps({
+        loadCatalogTerm: async () => {
+          throw new Error("catalog down");
+        },
+      }),
+    );
+    expect(result).toEqual({ status: "temporarily_unavailable" });
+  });
+
   it("returns invalid_request for bad arguments", async () => {
     const result = await runCheckPlanConflicts(readyState(), { code: "" }, deps());
     expect(result).toEqual({ status: "invalid_request" });

@@ -142,7 +142,12 @@ export async function runCheckPlanConflicts(
     return { status: "no_timetable", timetable: state.status };
   }
 
-  const catalogTerm = await deps.loadCatalogTerm();
+  let catalogTerm: { year: number; sem: number };
+  try {
+    catalogTerm = await deps.loadCatalogTerm();
+  } catch {
+    return { status: "temporarily_unavailable" };
+  }
   if (state.plan.year !== catalogTerm.year || state.plan.sem !== catalogTerm.sem) {
     return {
       status: "term_mismatch",

@@ -205,6 +205,19 @@ describe("runPreviewTimetable", () => {
     expect(result).toEqual({ status: "invalid_request" });
   });
 
+  it("returns temporarily_unavailable when catalog term loading throws", async () => {
+    const result = await runPreviewTimetable(
+      readyState(),
+      {},
+      deps({
+        loadCatalogTerm: async () => {
+          throw new Error("catalog down");
+        },
+      }),
+    );
+    expect(result).toEqual({ status: "temporarily_unavailable" });
+  });
+
   it("round-trips every result through timetablePreviewResultSchema", async () => {
     const cases = [
       await runPreviewTimetable(readyState(), {}, deps()),
