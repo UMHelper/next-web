@@ -81,7 +81,7 @@ const previewSectionSchema = planSectionSchema
   })
   .strict();
 
-export const timetablePreviewResultSchema = z.union([
+export const timetablePreviewResultSchema: z.ZodType<TimetablePreviewResult> = z.union([
   z
     .object({
       status: z.literal("ready"),
