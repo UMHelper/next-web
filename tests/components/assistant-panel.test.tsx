@@ -76,6 +76,7 @@ vi.mock("@/components/assistant/assistant-chat", () => ({
 import AssistantPanel from "@/components/assistant/assistant-panel";
 import { EXAMPLE_QUESTIONS } from "@/lib/assistant/example-questions";
 import { PAGE_CONTEXT_DESCRIPTION } from "@/lib/assistant/page-context";
+import { TIMETABLE_PREVIEWS_CONTEXT_DESCRIPTION } from "@/lib/assistant/timetable-previews";
 import {
   TIMETABLE_CONTEXT_DESCRIPTION,
   buildTimetableContextPayload,
@@ -116,6 +117,12 @@ describe("AssistantPanel", () => {
     expect(
       contexts().some((context) => context.description === CATALOG_RESULTS_CONTEXT_DESCRIPTION),
     ).toBe(true);
+    expect(
+      contexts().some((context) => context.description === TIMETABLE_PREVIEWS_CONTEXT_DESCRIPTION),
+    ).toBe(true);
+    expect(
+      contexts().find((context) => context.description === TIMETABLE_PREVIEWS_CONTEXT_DESCRIPTION)?.value,
+    ).toBe(JSON.stringify({ previews: [] }));
     expect(RICH_TOOL_NAMES.has("search_catalog")).toBe(true);
     expect(RICH_TOOL_NAMES.has("filter_catalog_results")).toBe(true);
     expect(renderToolSpy).toHaveBeenCalledWith(

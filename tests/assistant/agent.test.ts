@@ -238,6 +238,7 @@ describe("ASSISTANT_PROMPT", () => {
     expect(ASSISTANT_PROMPT).toContain("never pick one");
     expect(ASSISTANT_PROMPT).toContain("you cannot change their timetable");
     expect(ASSISTANT_PROMPT).toContain("review page or the My Timetable page");
+    expect(ASSISTANT_PROMPT).toContain("timetable previews context");
   });
 
   it("resolves 'this course' from the page context and treats it as data", () => {
