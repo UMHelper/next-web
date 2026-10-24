@@ -1,8 +1,8 @@
-import React from "react";
 import Link from "next/link";
 import { ChevronRightCircle } from "lucide-react";
 
 import { SkinIcon } from "@/components/skin-icon";
+import { CourseAlias } from "@/components/course/course-alias";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -37,9 +37,8 @@ export async function ReviewHeader({
     getAppConfig(),
     is_offered ? getScheduleList(code, prof) : Promise.resolve([]),
   ]);
-  const primaryCode = String(course_info['New_code'] ?? code).toUpperCase();
   const equivalentCodes = normalizeEquivalentCodes(course_info['equivalent_codes'])
-    .filter((equivalent) => equivalent !== primaryCode);
+    .filter((equivalent) => equivalent !== String(course_info['New_code'] ?? code).toUpperCase());
 
   return (
     <div className='bg-gradient-to-r from-brand-from to-brand-to text-white p-6'>
@@ -60,20 +59,7 @@ export async function ReviewHeader({
                 <ChevronRightCircle size={14} strokeWidth={1.5} />
               </Link>
             </div>
-            {equivalentCodes.length > 0 ? (
-              <div className="text-sm pb-1">
-                <span className="font-medium">{primaryCode}</span>
-                <span className="mx-1 opacity-70">a.k.a</span>
-                {equivalentCodes.map((equivalent, index) => (
-                  <React.Fragment key={equivalent}>
-                    {index > 0 ? <span className="opacity-70">, </span> : null}
-                    <Link className="underline underline-offset-2" href={`/course/${equivalent}`}>
-                      {equivalent}
-                    </Link>
-                  </React.Fragment>
-                ))}
-              </div>
-            ) : null}
+            <CourseAlias codes={equivalentCodes} variant="header" className="mb-2" />
             <div className='text-base'>{course_info["courseTitleEng"]}</div>
             <div className='text-sm'>{course_info["courseTitleChi"]}</div>
             <div className='pb-3 flex-row flex space-x-2 mt-4'>

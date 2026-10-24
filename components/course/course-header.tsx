@@ -1,4 +1,3 @@
-import React from "react";
 import Link from "next/link";
 import { ArrowUpRightSquare } from "lucide-react";
 
@@ -11,6 +10,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { CourseAlias } from "@/components/course/course-alias";
 import { CourseJsonLd } from "@/components/seo/course-json-ld";
 import { getProfListByCourse } from "@/lib/database/get-prof-info";
 import { getCourseInfo, normalizeLocalCourseInfo } from "@/lib/database/get-course-info";
@@ -52,20 +52,11 @@ export default async function CourseHeader({ code }: { code: string }) {
                     : null)
                 }
               </div>
-              {course.equivalentCodes.length > 0 ? (
-                <div className="text-sm pb-2">
-                  <span className="font-medium">{course.courseCode}</span>
-                  <span className="mx-1 opacity-70">a.k.a</span>
-                  {course.equivalentCodes.map((equivalent, index) => (
-                    <React.Fragment key={equivalent}>
-                      {index > 0 ? <span className="opacity-70">, </span> : null}
-                      <Link className="underline underline-offset-2" href={`/course/${equivalent}`}>
-                        {equivalent}
-                      </Link>
-                    </React.Fragment>
-                  ))}
-                </div>
-              ) : null}
+              <CourseAlias
+                codes={course.equivalentCodes}
+                variant="plain"
+                className="mb-2"
+              />
               <div className='text-xl font-semibold'>{course["courseTitle"]}</div>
               <div className='text-sm'>{course['offeringProgLevel'] + ' Course, Year ' + parseInt(course['suggestedYearOfStudy'])}</div>
             </div>
