@@ -89,18 +89,6 @@ function ThinkingRow() {
   );
 }
 
-function ReasoningBlock({ content, running }: { content: string; running: boolean }) {
-  if (!content.trim()) return null;
-  return (
-    <details className="rounded-md border border-border bg-surface-subtle px-3 py-2 text-xs text-muted-foreground">
-      <summary className="flex cursor-pointer list-none items-center gap-1.5 font-medium [&::-webkit-details-marker]:hidden">
-        {running ? "Thinking…" : "Reasoning"}
-      </summary>
-      <div className="mt-2 whitespace-pre-wrap leading-relaxed">{content}</div>
-    </details>
-  );
-}
-
 function CopyAction({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
 
@@ -174,16 +162,8 @@ function AssistantTurn({
       {calls.length > 0 ? (
         <ToolTrace calls={calls} results={results} isRunning={isRunning} />
       ) : null}
-      {parts.map((part, index) => {
-        if (part.role === "reasoning") {
-          return (
-            <ReasoningBlock
-              key={part.id}
-              content={part.content}
-              running={streamingHere && index === parts.length - 1}
-            />
-          );
-        }
+      {parts.map((part) => {
+        if (part.role === "reasoning") return null;
 
         const text = part.content?.trim() ?? "";
         return text ? <Response key={part.id}>{part.content ?? ""}</Response> : null;

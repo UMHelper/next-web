@@ -12,14 +12,15 @@ import { createPortal } from "react-dom";
 
 import { useTimetablePlanner } from "@/components/timetable/planner-provider";
 import {
+  CHECK_PLAN_CONFLICTS_DESCRIPTION,
   checkPlanConflictsParameters,
   runCheckPlanConflicts,
 } from "@/lib/assistant/check-plan-conflicts";
 import { describeAssistantError } from "@/lib/assistant/error-message";
 import { EXAMPLE_QUESTIONS } from "@/lib/assistant/example-questions";
-import { navigateParameters } from "@/lib/assistant/navigation";
+import { NAVIGATE_DESCRIPTION, navigateParameters } from "@/lib/assistant/navigation";
 import { PAGE_CONTEXT_DESCRIPTION, describePage } from "@/lib/assistant/page-context";
-import { summarizePlan } from "@/lib/assistant/plan-summary";
+import { PLAN_CONTEXT_DESCRIPTION, summarizePlan } from "@/lib/assistant/plan-summary";
 import { getSections } from "@/lib/timetable/catalog-client";
 
 import AssistantChat from "./assistant-chat";
@@ -47,18 +48,14 @@ function AssistantTools() {
   const pathname = usePathname();
   const page = useMemo(() => JSON.stringify(describePage(pathname)), [pathname]);
 
-  useAgentContext({
-    description: "The student's active timetable plan (read-only)",
-    value: summarizePlan(activePlan),
-  });
+  useAgentContext({ description: PLAN_CONTEXT_DESCRIPTION, value: summarizePlan(activePlan) });
   useAgentContext({ description: PAGE_CONTEXT_DESCRIPTION, value: page });
   useConfigureSuggestions(SUGGESTIONS);
 
   useFrontendTool(
     {
       name: "check_plan_conflicts",
-      description:
-        "Check whether one section of a course taught by an instructor clashes with the student's current timetable. Read-only; never changes the timetable.",
+      description: CHECK_PLAN_CONFLICTS_DESCRIPTION,
       parameters: checkPlanConflictsParameters,
       handler: async (input) =>
         runCheckPlanConflicts(planRef.current?.payload.sections ?? [], input, getSections),
@@ -70,8 +67,7 @@ function AssistantTools() {
   useFrontendTool(
     {
       name: "navigate",
-      description:
-        "Open a page on this site for the student: a course, an instructor, an instructor's reviews for a course, the catalog, or their timetable. Only call it when the student asks to open or go to a page. It cannot open other sites and never changes the timetable.",
+      description: NAVIGATE_DESCRIPTION,
       parameters: navigateParameters,
       handler: (input, context) =>
         navigate(input, { signal: context?.signal, agent: context?.agent }),

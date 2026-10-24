@@ -86,6 +86,20 @@ describe("AssistantChatView", () => {
     expect(screen.getByText("What is ACCT1000? How many credits?")).toBeTruthy();
   });
 
+  it("does not show model reasoning text in the sidebar", () => {
+    renderView({
+      messages: [
+        { id: "u1", role: "user", content: "Show me CISC3014" },
+        { id: "r1", role: "reasoning", content: "PRIVATE-CHAIN-OF-THOUGHT" },
+        { id: "a1", role: "assistant", content: "Opened CISC3014." },
+      ],
+    });
+
+    expect(screen.getByText("Opened CISC3014.")).toBeTruthy();
+    expect(screen.queryByText("PRIVATE-CHAIN-OF-THOUGHT")).toBeNull();
+    expect(screen.queryByText("Reasoning")).toBeNull();
+  });
+
   it("renders user and assistant turns with the tool trace and markdown", () => {
     renderView({ messages: MESSAGES });
 

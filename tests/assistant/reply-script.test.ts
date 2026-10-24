@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { CHINESE_SCRIPT_PAIRS, detectChineseScript, replyScriptContext } from "@/lib/assistant/reply-script";
+import {
+  CHINESE_SCRIPT_PAIRS,
+  detectChineseScript,
+  replyLanguageContext,
+  replyScriptContext,
+} from "@/lib/assistant/reply-script";
 
 describe("detectChineseScript", () => {
   it.each([
@@ -68,6 +73,43 @@ describe("replyScriptContext", () => {
         user("From now on please answer in Japanese."),
         assistant("承知しました。"),
         user("ACCT1000 难不难？"),
+      ]),
+    ).toBeNull();
+  });
+});
+
+describe("replyLanguageContext", () => {
+  it("names Korean when the latest user message uses Hangul", () => {
+    const entry = replyLanguageContext([user("CISC3014 과목 알려줘")]);
+
+    expect(entry?.value).toContain("Korean");
+    expect(entry?.value).not.toMatch(/[\p{Script=Hangul}]/u);
+  });
+
+  it("names Japanese when the latest user message uses kana", () => {
+    const entry = replyLanguageContext([user("CISC3014の授業ページが見たいです")]);
+
+    expect(entry?.value).toContain("Japanese");
+    expect(entry?.value).not.toMatch(/[\p{Script=Hiragana}\p{Script=Katakana}]/u);
+  });
+
+  it("names English when the latest user message is English", () => {
+    const entry = replyLanguageContext([user("Open the reviews page for this course")]);
+
+    expect(entry?.value).toContain("English");
+  });
+
+  it("adds nothing when the latest message has no script or language cue", () => {
+    expect(replyLanguageContext([user("1000")])).toBeNull();
+    expect(replyLanguageContext([user("這門課難嗎？")])).toBeNull();
+  });
+
+  it("adds nothing when the student asked for another language earlier", () => {
+    expect(
+      replyLanguageContext([
+        user("Please answer in English from now on."),
+        assistant("Sure."),
+        user("CISC3014 과목 알려줘"),
       ]),
     ).toBeNull();
   });

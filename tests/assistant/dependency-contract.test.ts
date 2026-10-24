@@ -12,6 +12,10 @@ describe("assistant dependency contract", () => {
     expect(pkg.dependencies["@ai-sdk/deepseek"]).toBe("2.0.76");
   });
 
+  it("runs on the AI SDK version the thinking-mode findings were checked against", () => {
+    expect(JSON.parse(read("node_modules/ai/package.json")).version).toBe("6.0.309");
+  });
+
   it("renders assistant replies with react-markdown", () => {
     const pkg = JSON.parse(read("package.json"));
     expect(pkg.dependencies["react-markdown"]).toMatch(/^\^?8\./);

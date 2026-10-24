@@ -42,6 +42,11 @@ describe("createAssistantAgent", () => {
     });
   });
 
+  it("leaves the choice of tool to the model", () => {
+    createAssistantAgent(readAssistantConfig({ AI_API_KEY: "sk-test" }));
+    expect(BuiltInAgent).toHaveBeenLastCalledWith(expect.not.objectContaining({ toolChoice: expect.anything() }));
+  });
+
   it("tells the model which Chinese script the student's latest message uses", () => {
     createAssistantAgent(readAssistantConfig({ AI_API_KEY: "sk-test" }));
     const middleware = use.mock.lastCall?.[0] as (
@@ -58,11 +63,29 @@ describe("createAssistantAgent", () => {
     const bare = middleware(
       { context: [plan], messages: [{ role: "user", content: "ACCT1000" }] },
       { run },
-    ) as { context: unknown[] };
+    ) as { context: Array<{ value: string }> };
 
     expect(simplified.context[0]).toBe(plan);
     expect(simplified.context[1]?.value).toContain("Simplified Chinese");
-    expect(bare.context).toEqual([plan]);
+    expect(bare.context[0]).toBe(plan);
+    expect(bare.context.some((entry) => entry.value.includes("English"))).toBe(true);
+  });
+
+  it("tells the model to answer in Korean when the latest message uses Hangul", () => {
+    createAssistantAgent(readAssistantConfig({ AI_API_KEY: "sk-test" }));
+    const middleware = use.mock.lastCall?.[0] as (
+      input: { context: Array<{ description: string; value: string }>; messages: Array<{ role: string; content: string }> },
+      next: { run: (input: unknown) => unknown },
+    ) => unknown;
+    const run = vi.fn((input: unknown) => input);
+    const plan = { description: "plan", value: "No timetable plan" };
+
+    const korean = middleware(
+      { context: [plan], messages: [{ role: "user", content: "CISC3014 과목 알려줘" }] },
+      { run },
+    ) as { context: Array<{ value: string }> };
+
+    expect(korean.context.some((entry) => entry.value.includes("Korean"))).toBe(true);
   });
 });
 
@@ -101,9 +124,40 @@ describe("ASSISTANT_PROMPT", () => {
     expect(ASSISTANT_PROMPT).not.toMatch(/[\p{Script=Han}]/u);
   });
 
-  it("tells the model to navigate only when the student asks to open a page", () => {
-    expect(ASSISTANT_PROMPT).toContain("When the student asks to open or go to a course, instructor, reviews, catalog or timetable page, call navigate");
-    expect(ASSISTANT_PROMPT).toContain("Answering a question is not a request to navigate");
+  it("tells the model to tell questions, page requests and compound requests apart", () => {
+    expect(ASSISTANT_PROMPT).toContain("Naming a course or instructor, or comparing them, is not a request to open a page");
+    expect(ASSISTANT_PROMPT).toContain("whatever language or wording it uses");
+    expect(ASSISTANT_PROMPT).toContain("call the lookup tools first, then navigate");
+    expect(ASSISTANT_PROMPT).toContain("If you cannot tell whether they want an answer or the page, answer and include the link");
+    expect(ASSISTANT_PROMPT).toContain("is a page request, even without the word page; asking what one is about is a question");
+  });
+
+  it("acts only when the page's values are known, and asks when several remain", () => {
+    expect(ASSISTANT_PROMPT).toContain("whether you know enough to act");
+    expect(ASSISTANT_PROMPT).toContain("it needs a course code and exactly one instructor who taught that course");
+    expect(ASSISTANT_PROMPT).toContain("Look up anything else with the lookup tools before navigating");
+    expect(ASSISTANT_PROMPT).toContain("a partial name from the student counts only when it matches exactly one of them");
+    expect(ASSISTANT_PROMPT).toContain("If several remain, do not choose for the student");
+    expect(ASSISTANT_PROMPT).toContain("ask one short question about which one they want");
+    expect(ASSISTANT_PROMPT).toContain("call navigate only when every value the page needs is known and checked");
+    expect(ASSISTANT_PROMPT).toContain("Never open a different page type instead of the one they asked for");
+    expect(ASSISTANT_PROMPT).toContain("A student message that answers your question continues the request you asked about");
+    expect(ASSISTANT_PROMPT).toContain("If it returns not_found, the page is not on this site");
+  });
+
+  it("states the policy in general terms, without example data", () => {
+    expect(ASSISTANT_PROMPT).not.toMatch(/\b[A-Z]{4}\d{4}\b/);
+    expect(ASSISTANT_PROMPT).not.toMatch(/[\p{Script=Hangul}\p{Script=Hiragana}\p{Script=Katakana}]/u);
+  });
+
+  it("does not let a link stand in for a requested page", () => {
+    expect(ASSISTANT_PROMPT).toContain("A link does not replace navigate when the student asked to be taken to a page");
+    expect(ASSISTANT_PROMPT).toContain("When you answer a question, lead with a one-sentence answer, then links");
+    expect(ASSISTANT_PROMPT).not.toContain("Then lead with a one-sentence answer, then links");
+  });
+
+  it("counts opening pages on this site as in scope", () => {
+    expect(ASSISTANT_PROMPT).toContain("and requests to open pages on this site. Politely decline anything else");
   });
 
   it("formats replies for the narrow sidebar", () => {

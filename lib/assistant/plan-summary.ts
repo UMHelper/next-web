@@ -1,6 +1,7 @@
 import type { LocalPlan } from "@/lib/timetable/store";
 
 export const PLAN_SUMMARY_MAX_SECTIONS = 30;
+export const PLAN_CONTEXT_DESCRIPTION = "The student's active timetable plan (read-only)";
 
 export function summarizePlan(plan: LocalPlan | undefined): string {
   if (!plan) return "No timetable plan";

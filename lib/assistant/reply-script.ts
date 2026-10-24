@@ -28,6 +28,9 @@ for (const pair of CHINESE_SCRIPT_PAIRS.split(" ")) {
 }
 
 const KANA = /[\p{Script=Hiragana}\p{Script=Katakana}]/u;
+const HANGUL = /\p{Script=Hangul}/u;
+const HAN = /\p{Script=Han}/u;
+const LATIN = /[A-Za-z]/;
 
 export type ChineseScript = "simplified" | "traditional";
 
@@ -84,4 +87,35 @@ export function replyScriptContext(messages: readonly ChatMessage[]) {
     description: "Script of the student's latest message",
     value: `${name}. Use this script only when you answer in Chinese. If the student asked for another language earlier in the thread, that request overrides this hint entirely.`,
   };
+}
+
+/** Korean and Japanese drift toward Chinese tool data; name the reply language each turn like script hints. */
+export function replyLanguageContext(messages: readonly ChatMessage[]) {
+  if (studentRequestedNonChineseLanguage(messages)) return null;
+  const latest = messages.findLast((message) => message.role === "user");
+  const text = latest ? textOf(latest.content) : "";
+  const hangul = HANGUL.test(text);
+  const kana = KANA.test(text);
+  if (hangul && !kana) {
+    return {
+      description: "Reply language for this turn",
+      value:
+        "Korean. Write your own sentences in Korean even when tool results use Traditional Chinese or English. Keep course codes, official course titles, and instructor names exactly as the tools return them.",
+    };
+  }
+  if (kana) {
+    return {
+      description: "Reply language for this turn",
+      value:
+        "Japanese. Write your own sentences in Japanese even when tool results use Traditional Chinese or English. Keep course codes, official course titles, and instructor names exactly as the tools return them.",
+    };
+  }
+  if (LATIN.test(text) && !HAN.test(text)) {
+    return {
+      description: "Reply language for this turn",
+      value:
+        "English. Write your own sentences in English even when tool results use Traditional Chinese. Keep course codes, official course titles, and instructor names exactly as the tools return them.",
+    };
+  }
+  return null;
 }

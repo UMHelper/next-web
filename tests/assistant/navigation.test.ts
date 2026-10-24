@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import {
+  NAVIGATE_DESCRIPTION,
   buildNavigationPath,
   navigationsSinceLastUserMessage,
   parseDestination,
@@ -197,5 +198,21 @@ describe("samePage", () => {
   it("compares page descriptions by value", () => {
     expect(samePage({ page: "course", courseCode: "ACCT1000" }, { page: "course", courseCode: "ACCT1000" })).toBe(true);
     expect(samePage({ page: "course", courseCode: "ACCT1000" }, { page: "course", courseCode: "ECON1001" })).toBe(false);
+  });
+});
+
+describe("NAVIGATE_DESCRIPTION", () => {
+  it("covers natural page requests and keeps the tool's limits", () => {
+    expect(NAVIGATE_DESCRIPTION).toContain("asks to be taken to, open, see or look at one of these pages, in any language");
+    expect(NAVIGATE_DESCRIPTION).toContain("Do not call it to answer a question about a course or instructor");
+    expect(NAVIGATE_DESCRIPTION).toContain("It cannot open other sites and never changes the timetable");
+  });
+
+  it("only opens a page whose values are known, never a substitute, and reports the status", () => {
+    expect(NAVIGATE_DESCRIPTION).toContain("and you already know every value the page needs");
+    expect(NAVIGATE_DESCRIPTION).toContain("A reviews page needs the course code and exactly one instructor who taught it");
+    expect(NAVIGATE_DESCRIPTION).toContain("ask the student instead of choosing");
+    expect(NAVIGATE_DESCRIPTION).toContain("never open the course page in its place");
+    expect(NAVIGATE_DESCRIPTION).toContain("report that status");
   });
 });
