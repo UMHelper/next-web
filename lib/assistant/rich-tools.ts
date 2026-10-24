@@ -10,3 +10,8 @@ export const RICH_TOOL_NAMES: ReadonlySet<string> = new Set([
   GET_COURSE_SECTIONS_TOOL_NAME,
   FILTER_CATALOG_RESULTS_TOOL_NAME,
 ]);
+
+export const ALWAYS_RICH_TOOL_NAMES: ReadonlySet<string> = new Set([
+  SEARCH_CATALOG_TOOL_NAME,
+  FILTER_CATALOG_RESULTS_TOOL_NAME,
+]);
