@@ -13,7 +13,10 @@ import { absoluteUrl, buildCoursePath, buildProfessorPath, buildReviewPath } fro
  * scripted model. Proves the V2.1 search, filter, course detail, and sections flow end to end.
  */
 
-type Step = { text: string } | { tool: string; input: Record<string, unknown> };
+type Step =
+  | { text: string }
+  | { tool: string; input: Record<string, unknown> }
+  | { tools: { tool: string; input: Record<string, unknown> }[] };
 type ModelCall = {
   page: unknown;
   catalog?: {
@@ -257,6 +260,7 @@ vi.mock("@/lib/assistant/tools", async (importOriginal) => {
     getCourseSectionsOutputSchema,
   } = await import("@/lib/mcp/schemas");
   const { bindCourseToolArgs } = await import("@/lib/assistant/course-referent");
+  const { executePresentResponse } = await import("@/lib/assistant/presentation");
   type CourseReferent = import("@/lib/assistant/course-referent").CourseReferent;
 
   const pageParam = z.number().int().min(1).max(50).optional().describe("Page number, default 1");
@@ -317,6 +321,22 @@ vi.mock("@/lib/assistant/tools", async (importOriginal) => {
           );
         },
       }),
+      defineTool({
+        name: "present_response",
+        description: "Opt in to rich cards for this turn",
+        parameters: z.object({
+          show: z
+            .array(
+              z.object({
+                component: z.string().max(40),
+                course: z.string().max(40),
+              }),
+            )
+            .max(6)
+            .optional(),
+        }),
+        execute: (args) => Promise.resolve(executePresentResponse(args)),
+      }),
     ],
   };
 });
@@ -358,6 +378,22 @@ function streamFor(step: Step): LanguageModelV3StreamPart[] {
       { type: "text-end", id: "t" },
       { type: "finish", finishReason: { unified: "stop", raw: undefined }, usage },
     ];
+  }
+  if ("tools" in step) {
+    const chunks: LanguageModelV3StreamPart[] = [{ type: "stream-start", warnings: [] }];
+    for (const entry of step.tools) {
+      toolCallCount++;
+      const toolCallId =
+        entry.tool === "search_catalog" ? `call-${++searchCallCount}` : `tool-${toolCallCount}`;
+      chunks.push({
+        type: "tool-call",
+        toolCallId,
+        toolName: entry.tool,
+        input: JSON.stringify(entry.input),
+      });
+    }
+    chunks.push({ type: "finish", finishReason: { unified: "tool-calls", raw: undefined }, usage });
+    return chunks;
   }
   toolCallCount++;
   const toolCallId = step.tool === "search_catalog" ? `call-${++searchCallCount}` : `tool-${toolCallCount}`;
@@ -494,6 +530,9 @@ function v21Brain(call: ModelCall): Step {
   if (call.lastTool?.name === "get_course_sections") {
     return { text: "Here are the class sections." };
   }
+  if (call.lastTool?.name === "present_response") {
+    return { text: "Here are the course details." };
+  }
 
   if (/Search for MATH/i.test(call.lastUser)) {
     return { tool: "search_catalog", input: { type: "course", query: "MATH" } };
@@ -511,7 +550,15 @@ function v21Brain(call: ModelCall): Step {
     };
   }
   if (/Tell me more about MATH1002/i.test(call.lastUser)) {
-    return { tool: "get_course", input: { code: "MATH1002" } };
+    return {
+      tools: [
+        { tool: "get_course", input: { code: "MATH1002" } },
+        {
+          tool: "present_response",
+          input: { show: [{ component: "course_detail", course: "MATH1002" }] },
+        },
+      ],
+    };
   }
   if (/When is MATH1002 taught/i.test(call.lastUser)) {
     return { tool: "get_course", input: { code: "MATH1002" } };
@@ -666,13 +713,10 @@ describe("assistant V2.1 integration (scripted model)", () => {
     expect(screen.getAllByText("Read course")).toHaveLength(1);
 
     await typeAndSend("When is MATH1002 taught?");
-    await waitFor(() => expect(screen.getByRole("article", { name: "Section 001" })).toBeTruthy(), { timeout: 10000 });
-    expect(screen.getByText("Mon 09:00–10:15")).toBeTruthy();
-    expect(screen.getByText("Location not listed")).toBeTruthy();
-    expect(screen.getAllByText("Read course")).toHaveLength(2);
+    await waitFor(() => expect(screen.getByText("Here are the class sections.")).toBeTruthy(), { timeout: 10000 });
+    expect(screen.queryByRole("article", { name: "Section 001" })).toBeNull();
     expect(screen.getAllByText("Read class times")).toHaveLength(1);
-    expect(screen.getByRole("article", { name: "Section 001" })).toBeTruthy();
-    expect(screen.getByText("Mon 09:00–10:15")).toBeTruthy();
+    expect(screen.getByText("Here are the class sections.")).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "Close" }));
     fireEvent.click(screen.getByRole("button", { name: "AI Course Helper" }));
@@ -685,10 +729,10 @@ describe("assistant V2.1 integration (scripted model)", () => {
       { timeout: 10000 },
     );
     expect(within(reopened).getAllByRole("listitem")).toHaveLength(2);
-    expect(screen.getByRole("article", { name: "Section 001" })).toBeTruthy();
+    expect(screen.queryByRole("article", { name: "Section 001" })).toBeNull();
     expect(screen.getAllByText("Searched courses")).toHaveLength(1);
     expect(screen.queryByText("Searching courses…")).toBeNull();
-    expect(screen.getByRole("article", { name: "Section 001" })).toBeTruthy();
+    expect(screen.getByRole("article", { name: "MATH1002" })).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "New chat" }));
     await waitFor(() => expect(document.getElementById("catalog-results-call-1")).toBeNull());
