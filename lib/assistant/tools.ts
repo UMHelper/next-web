@@ -8,7 +8,11 @@ import { getCourseSections } from "@/lib/mcp/data/get-course-sections";
 import { getInstructor } from "@/lib/mcp/data/get-instructor";
 import { searchCatalog } from "@/lib/mcp/data/search-catalog";
 import { bindCourseToolArgs, type CourseReferentSlot } from "@/lib/assistant/course-referent";
-import { executePresentResponse, PRESENT_RESPONSE_TOOL_NAME } from "@/lib/assistant/presentation";
+import {
+  executePresentResponse,
+  MAX_PRESENT_SHOW_ITEMS,
+  PRESENT_RESPONSE_TOOL_NAME,
+} from "@/lib/assistant/presentation";
 import { McpToolError } from "@/lib/mcp/errors";
 import {
   getCourseInputSchema,
@@ -143,16 +147,16 @@ export function createAssistantTools(slot?: CourseReferentSlot) {
     defineTool({
       name: PRESENT_RESPONSE_TOOL_NAME,
       description:
-        "Opt in to an existing rich card for this user turn. Call it in the same user turn as the academic lookups. Prefer the same model step when the intent is already clear. A later model step in that turn is valid. Do not wait for another student message. Omit this tool for an ordinary explanation, a comparison, a Markdown table, or a short factual answer. show is a list of existing components only: component course_detail with a course code shows the existing course card for that get_course result; component course_sections with a course code shows the existing class-time cards for that get_course_sections result. This tool does not look anything up. Pass the codes the lookup tools use. If binding rewrites a course code, the rendered course is the tool result.",
+        "Default: omit this tool. Opt in to an existing rich card only when the student asked to see that card in the chat this turn. Call it in the same user turn as the academic lookups; a later model step in that turn is valid. Do not wait for another student message. Do call for explicit inspect or show-the-card intent: course_detail for tell me more about a course, more on a course, full details, or the course card; course_sections when they want section cards shown. Do not call for what-is questions, a bare course code, comparisons, Markdown tables, short factual answers, or when or what-time scheduling answers you already give in prose. Do not call just because get_course or get_course_sections succeeded. show is a list of existing components only: component course_detail with a course code matches a get_course result; component course_sections with a course code matches get_course_sections results. This tool does not look anything up. Pass the codes the lookup tools use. If binding rewrites a course code, the rendered course is the tool result.",
       parameters: z.object({
         show: z
           .array(
             z.object({
-              component: z.string().max(40),
+              component: z.enum(["course_detail", "course_sections"]),
               course: z.string().max(40),
             }),
           )
-          .max(6)
+          .max(MAX_PRESENT_SHOW_ITEMS)
           .optional(),
       }),
       execute: (args) => Promise.resolve(executePresentResponse(args)),

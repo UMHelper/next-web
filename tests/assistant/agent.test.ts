@@ -204,6 +204,13 @@ describe("ASSISTANT_PROMPT", () => {
     expect(ASSISTANT_PROMPT).toContain("and requests to open pages on this site. Politely decline anything else");
   });
 
+  it("separates in-chat cards from text answers and navigation", () => {
+    expect(ASSISTANT_PROMPT).toContain("Showing the in-chat course or section card is separate from navigate");
+    expect(ASSISTANT_PROMPT).toContain(
+      "Answering when or where from section data is a short prose answer; that alone does not call for present_response or section cards",
+    );
+  });
+
   it("tells the model not to repeat search_catalog rows when clients show cards", () => {
     expect(ASSISTANT_PROMPT).toContain("interactive list in the chat");
     expect(ASSISTANT_PROMPT).toContain(
@@ -229,6 +236,10 @@ describe("ASSISTANT_PROMPT", () => {
     expect(ASSISTANT_PROMPT).toContain("component course_detail");
     expect(ASSISTANT_PROMPT).toContain("component course_sections");
     expect(ASSISTANT_PROMPT).toContain("Do not call present_response for an ordinary explanation, a comparison, or a short scheduling answer");
+    expect(ASSISTANT_PROMPT).toContain("default to omitting present_response");
+    expect(ASSISTANT_PROMPT).toContain("Tell me more about a course or more on a course is an inspect request");
+    expect(ASSISTANT_PROMPT).toContain("when or what-time scheduling questions");
+    expect(ASSISTANT_PROMPT).toContain("not only because you called get_course_sections to answer when or where it meets");
     expect(ASSISTANT_PROMPT).toContain("If you omit present_response, no course or section card is shown");
     expect(ASSISTANT_PROMPT).toContain("Search lists still appear on their own");
     expect(ASSISTANT_PROMPT).not.toContain("give each one a bold line");

@@ -38,6 +38,35 @@ describe("assistant server tools", () => {
     expect(ASSISTANT_SERVER_TOOL_NAMES).toContain("present_response");
   });
 
+  it("defaults present_response to omit unless the student asked to see a card", () => {
+    const tool = createAssistantTools().find((entry) => entry.name === "present_response");
+    expect(tool?.description).toContain("Default: omit this tool");
+    expect(tool?.description).not.toContain("intent is already clear");
+  });
+
+  it("rejects present_response show lists longer than MAX_PRESENT_SHOW_ITEMS at the schema", () => {
+    const tool = createAssistantTools().find((entry) => entry.name === "present_response");
+    const schema = (tool as { parameters?: { safeParse: (v: unknown) => { success: boolean } } }).parameters;
+    expect(schema).toBeDefined();
+    const four = {
+      show: [
+        { component: "course_detail", course: "CISC2001" },
+        { component: "course_detail", course: "CISC2002" },
+        { component: "course_detail", course: "CISC2003" },
+        { component: "course_detail", course: "CISC2004" },
+      ],
+    };
+    expect(schema!.safeParse(four).success).toBe(false);
+    const three = {
+      show: [
+        { component: "course_detail", course: "CISC2001" },
+        { component: "course_detail", course: "CISC2002" },
+        { component: "course_detail", course: "CISC2003" },
+      ],
+    };
+    expect(schema!.safeParse(three).success).toBe(true);
+  });
+
   it("validates present_response without reading academic data", async () => {
     await expect(
       call("present_response", { show: [{ component: "course_detail", course: "CISC2001" }] }),

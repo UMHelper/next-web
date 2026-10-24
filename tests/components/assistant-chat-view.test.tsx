@@ -993,6 +993,75 @@ describe("AssistantChatView", () => {
       expect(screen.getByTestId("rich-g")).toBeTruthy();
     });
 
+    it("keeps a course card when a later empty present_response arrives on a running turn", () => {
+      const toolRenderer = fakeToolRenderer();
+      const sharedProps: AssistantChatViewProps = {
+        messages: [],
+        suggestions: [{ title: "Q1", message: "M1" }],
+        isRunning: true,
+        isReady: true,
+        draft: "",
+        alert: null,
+        onDraftChange: vi.fn(),
+        onSend: vi.fn(),
+        onStop: vi.fn(),
+        onNewChat: vi.fn(),
+        onClose: vi.fn(),
+        onClearAlert: vi.fn(),
+        toolRenderer,
+      };
+
+      const afterPresent: Message[] = [
+        { id: "u1", role: "user", content: "APAC1000 details" },
+        {
+          id: "a1",
+          role: "assistant",
+          content: "",
+          toolCalls: [
+            { id: "g", type: "function", function: { name: "get_course", arguments: '{"code":"APAC1000"}' } },
+            {
+              id: "p1",
+              type: "function",
+              function: {
+                name: "present_response",
+                arguments: '{"show":[{"component":"course_detail","course":"APAC1000"}]}',
+              },
+            },
+          ],
+        },
+        { id: "t1", role: "tool", toolCallId: "g", content: courseBody },
+        {
+          id: "t2",
+          role: "tool",
+          toolCallId: "p1",
+          content: '{"status":"accepted","show":[{"component":"course_detail","course":"APAC1000"}]}',
+        },
+      ];
+
+      const { rerender } = render(<AssistantChatView {...sharedProps} messages={afterPresent} />);
+      expect(screen.getByTestId("rich-g")).toBeTruthy();
+
+      const afterEmptyPresent: Message[] = [
+        ...afterPresent,
+        {
+          id: "a2",
+          role: "assistant",
+          content: "",
+          toolCalls: [
+            {
+              id: "p2",
+              type: "function",
+              function: { name: "present_response", arguments: '{"show":[]}' },
+            },
+          ],
+        },
+        { id: "t3", role: "tool", toolCallId: "p2", content: '{"status":"accepted","show":[]}' },
+      ];
+
+      rerender(<AssistantChatView {...sharedProps} messages={afterEmptyPresent} />);
+      expect(screen.getByTestId("rich-g")).toBeTruthy();
+    });
+
     it("pairs get_course and get_course_sections in call order when results arrive reversed", () => {
       renderView({
         messages: [

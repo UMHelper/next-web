@@ -13,9 +13,12 @@ vi.mock("@/lib/mcp/data/get-course-sections", async () => ({
   getCourseSections: (await import("./catalog")).getCourseSections,
 }));
 
+import { ASSISTANT_MAX_STEPS } from "@/lib/assistant/agent";
 import { readAssistantConfig } from "@/lib/assistant/config";
 
+import { EVAL_CATALOG_FACTS } from "./catalog";
 import { BudgetExhausted, runCase, type EvalBudget, type HarnessOptions } from "./harness";
+import { gradeTurn, type TurnTrace } from "./grade";
 import { PRESENTATION_CASES } from "./presentation-cases";
 import { gradePresentation, summarizePresentation, type PresentationGrade } from "./presentation-grade";
 import { positiveInt, thinkingMode } from "./results";
@@ -57,6 +60,14 @@ describe.skipIf(process.env.ASSISTANT_EVAL !== "1")("assistant presentation sele
 
     const budget: EvalBudget = { maxSteps: stepBudget, used: 0 };
     const grades: PresentationGrade[] = [];
+    const tracesOut: Array<{
+      caseId: string;
+      repeat: number;
+      presentation: PresentationGrade;
+      retrievalOk: boolean;
+      reply: string;
+      toolCalls: TurnTrace["toolCalls"];
+    }> = [];
     let stoppedEarly: string | undefined;
 
     for (let repeat = 0; repeat < repeats && stoppedEarly === undefined; repeat++) {
@@ -64,7 +75,24 @@ describe.skipIf(process.env.ASSISTANT_EVAL !== "1")("assistant presentation sele
         const options: HarnessOptions = { config, budget, repeat };
         try {
           const traces = await runCase(presentationCase.evalCase, options);
-          for (const trace of traces) grades.push(gradePresentation(trace));
+          for (const trace of traces) {
+            const presentation = gradePresentation(trace);
+            grades.push(presentation);
+            const retrieval = gradeTurn(
+              trace,
+              presentationCase.evalCase.turns[trace.turn].expect,
+              ASSISTANT_MAX_STEPS,
+              EVAL_CATALOG_FACTS,
+            );
+            tracesOut.push({
+              caseId: trace.caseId,
+              repeat: trace.repeat,
+              presentation,
+              retrievalOk: retrieval.academicTools === true,
+              reply: trace.reply,
+              toolCalls: trace.toolCalls,
+            });
+          }
         } catch (error) {
           if (error instanceof BudgetExhausted) {
             stoppedEarly = `${error.message} during ${presentationCase.id} repeat ${repeat}`;
@@ -87,6 +115,8 @@ describe.skipIf(process.env.ASSISTANT_EVAL !== "1")("assistant presentation sele
       stoppedEarly,
       summary,
       grades,
+      traces: tracesOut,
+      retrievalHits: tracesOut.filter((entry) => entry.retrievalOk).length,
       ...summary,
     };
     mkdirSync(path.dirname(file), { recursive: true });

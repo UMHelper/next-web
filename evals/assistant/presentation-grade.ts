@@ -1,4 +1,4 @@
-import { executePresentResponse, type PresentShow } from "@/lib/assistant/presentation";
+import { activePresent, type PresentShow, type ToolCallLike } from "@/lib/assistant/presentation";
 
 import type { ToolCallRecord } from "./grade";
 import { PRESENTATION_CASES, type PresentationExpected } from "./presentation-cases";
@@ -18,24 +18,17 @@ export type PresentationSummary = {
   hitRate: number;
 };
 
-function resultRejected(content: string): boolean {
-  try {
-    const body = JSON.parse(content) as unknown;
-    if (body !== null && typeof body === "object" && !Array.isArray(body)) {
-      return (body as { status?: unknown }).status === "rejected";
+function effectiveShow(toolCalls: readonly ToolCallRecord[]): PresentShow[] {
+  const calls: ToolCallLike[] = [];
+  const results = new Map<string, { content?: unknown }>();
+  for (const [index, call] of toolCalls.entries()) {
+    const id = `c${index}`;
+    calls.push({ id, function: { name: call.name, arguments: JSON.stringify(call.args) } });
+    if (call.result !== undefined) {
+      results.set(id, { content: call.result });
     }
-  } catch {
-    // not a structured rejection payload
   }
-  return false;
-}
-
-function acceptedShow(call: ToolCallRecord): PresentShow[] | null {
-  if (call.name !== "present_response") return null;
-  const parsed = executePresentResponse(call.args);
-  if (parsed.status === "rejected") return null;
-  if (call.result !== undefined && resultRejected(call.result)) return null;
-  return parsed.show;
+  return activePresent(calls, results)?.request.show ?? [];
 }
 
 function selectionFromShow(show: PresentShow[]): PresentationExpected {
@@ -53,20 +46,17 @@ function showMatchesExpected(show: PresentShow[], expected: PresentationExpected
   );
 }
 
-/** The last accepted present_response is the selection. A missing or rejected call is omit. */
-export function gradePresentation(trace: { caseId: string; toolCalls: readonly ToolCallRecord[] }): PresentationGrade {
-  const presentationCase = PRESENTATION_CASES.find((item) => item.id === trace.caseId);
+/** Effective presentation matches activePresent (sticky empty-show policy). */
+export function gradePresentation(
+  trace: { caseId: string; toolCalls: readonly ToolCallRecord[] },
+  cases: readonly (typeof PRESENTATION_CASES)[number][] = PRESENTATION_CASES,
+): PresentationGrade {
+  const presentationCase = cases.find((item) => item.id === trace.caseId);
   if (!presentationCase) throw new Error(`unknown presentation case "${trace.caseId}"`);
 
-  let show: PresentShow[] | null = null;
-  for (const call of trace.toolCalls) {
-    const accepted = acceptedShow(call);
-    if (accepted !== null) show = accepted;
-  }
-
+  const resolvedShow = effectiveShow(trace.toolCalls);
   const expected = presentationCase.expected;
   const course = presentationCase.course;
-  const resolvedShow = show ?? [];
   const selection = selectionFromShow(resolvedShow);
   const omitted = selection === "omit";
   const hit = showMatchesExpected(resolvedShow, expected, course);

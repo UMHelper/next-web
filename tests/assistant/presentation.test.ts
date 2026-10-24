@@ -171,14 +171,23 @@ describe("planRichBlocks", () => {
     expect(planRichBlocks(calls, map, always, false).map((block) => block.callId)).toEqual(["g", "sec"]);
   });
 
-  it("lets a later accepted show replace an earlier one, and ignores a later rejection", () => {
+  it("keeps cards when a later empty show follows a non-empty one, replaces on a later non-empty show, and ignores a later rejection", () => {
     const lookups = [call("g", "get_course", { code: "CISC2001" })];
-    const first = [
+    const emptyAfterNonEmpty = [
       ...lookups,
       call("p1", PRESENT_RESPONSE_TOOL_NAME, { show: [{ component: "course_detail", course: "CISC2001" }] }),
       call("p2", PRESENT_RESPONSE_TOOL_NAME, { show: [] }),
     ];
-    expect(planRichBlocks(first, results({}), always, false)).toEqual([]);
+    expect(planRichBlocks(emptyAfterNonEmpty, results({}), always, false)).toEqual([{ kind: "tool", callId: "g" }]);
+    const nonEmptyReplace = [
+      ...lookups,
+      call("p1", PRESENT_RESPONSE_TOOL_NAME, { show: [{ component: "course_detail", course: "CISC2001" }] }),
+      call("p2", PRESENT_RESPONSE_TOOL_NAME, {
+        show: [{ component: "course_sections", course: "CISC2001" }],
+      }),
+      call("sec", "get_course_sections", { code: "CISC2001", instructor: "CHAN TAI MAN" }),
+    ];
+    expect(planRichBlocks(nonEmptyReplace, results({}), always, false).map((block) => block.callId)).toEqual(["sec"]);
     const rejectedLater = [
       ...lookups,
       call("p1", PRESENT_RESPONSE_TOOL_NAME, { show: [{ component: "course_detail", course: "CISC2001" }] }),

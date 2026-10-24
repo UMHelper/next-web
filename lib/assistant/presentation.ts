@@ -6,6 +6,7 @@ import {
 } from "@/lib/assistant/course-sections-ui";
 
 export const PRESENT_RESPONSE_TOOL_NAME = "present_response";
+export const MAX_PRESENT_SHOW_ITEMS = 3;
 
 export type PresentComponent = "course_detail" | "course_sections";
 export type PresentShow = { component: PresentComponent; course: string };
@@ -75,7 +76,7 @@ export function executePresentResponse(args: unknown): PresentResponse {
   const normalized: PresentShow[] = [];
 
   for (const item of show) {
-    if (normalized.length >= 3) {
+    if (normalized.length >= MAX_PRESENT_SHOW_ITEMS) {
       return { status: "rejected", reason: "invalid_request" };
     }
     if (item === null || typeof item !== "object" || Array.isArray(item)) {
@@ -123,6 +124,10 @@ export function activePresent(
     const rawContent = results.get(call.id)?.content;
     const content = typeof rawContent === "string" ? rawContent : undefined;
     if (content !== undefined && resultRejected(content)) continue;
+
+    if (parsed.show.length === 0 && last !== null && last.request.show.length > 0) {
+      continue;
+    }
 
     last = { callId: call.id, request: parsed };
   }
