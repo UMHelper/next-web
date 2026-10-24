@@ -349,9 +349,12 @@ vi.mock("@/lib/timetable/catalog-client", () => ({
   getInstructorCourses: async () => ({ courses: [] }),
   getSections: async () => ({ sections: [] }),
 }));
-vi.mock("@/components/timetable/planner-provider", () => ({
-  useTimetablePlanner: () => ({ activePlan: h.plan }),
-}));
+vi.mock("@/components/timetable/planner-provider", async () => {
+  const { plannerState } = await import("@/tests/helpers/planner-state");
+  return {
+    useTimetablePlanner: () => (h.plan ? plannerState(h.plan) : plannerState(undefined)),
+  };
+});
 
 import * as route from "@/app/api/copilotkit/[[...slug]]/route";
 import AssistantPanel from "@/components/assistant/assistant-panel";

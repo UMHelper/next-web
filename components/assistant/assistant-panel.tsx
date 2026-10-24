@@ -20,7 +20,7 @@ import { describeAssistantError } from "@/lib/assistant/error-message";
 import { EXAMPLE_QUESTIONS } from "@/lib/assistant/example-questions";
 import { NAVIGATE_DESCRIPTION, navigateParameters } from "@/lib/assistant/navigation";
 import { PAGE_CONTEXT_DESCRIPTION, describePage } from "@/lib/assistant/page-context";
-import { PLAN_CONTEXT_DESCRIPTION, summarizePlan } from "@/lib/assistant/plan-summary";
+import { useTimetableContext } from "./use-timetable-context";
 import { getSections } from "@/lib/timetable/catalog-client";
 
 import { CatalogFilterProvider } from "./catalog-filter-store";
@@ -54,7 +54,7 @@ function AssistantTools() {
   const pathname = usePathname();
   const page = useMemo(() => JSON.stringify(describePage(pathname)), [pathname]);
 
-  useAgentContext({ description: PLAN_CONTEXT_DESCRIPTION, value: summarizePlan(activePlan) });
+  useTimetableContext();
   useAgentContext({ description: PAGE_CONTEXT_DESCRIPTION, value: page });
   useConfigureSuggestions(SUGGESTIONS);
 

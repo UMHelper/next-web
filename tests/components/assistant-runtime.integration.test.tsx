@@ -137,9 +137,12 @@ vi.mock("@/lib/timetable/catalog-client", () => ({
     sections: [{ section: "001", schedules: [{ date: "MON", time: "09:30-10:30", location: "E11" }] }],
   }),
 }));
-vi.mock("@/components/timetable/planner-provider", () => ({
-  useTimetablePlanner: () => ({ activePlan: h.plan }),
-}));
+vi.mock("@/components/timetable/planner-provider", async () => {
+  const { plannerState } = await import("@/tests/helpers/planner-state");
+  return {
+    useTimetablePlanner: () => (h.plan ? plannerState(h.plan) : plannerState(undefined)),
+  };
+});
 vi.mock("@/components/assistant/assistant-chat", async () => {
   const { useCopilotKit } = await import("@copilotkit/react-core/v2/headless");
   return {

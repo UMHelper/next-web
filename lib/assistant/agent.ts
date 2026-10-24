@@ -10,16 +10,23 @@ import { withStepMetrics } from "./metrics";
 import { createAssistantModel, thinkingProviderOptions } from "./model";
 import { ASSISTANT_PROMPT } from "./prompt";
 import { replyLanguageContext, replyScriptContext } from "./reply-script";
+import {
+  TIMETABLE_CONTEXT_DESCRIPTION,
+  parseTimetableContext,
+  timetableDigest,
+  type TimetableSlot,
+} from "./timetable-context";
 import { createAssistantTools } from "./tools";
 
 export const ASSISTANT_MAX_STEPS = 5;
 
 export function createAssistantAgent(config: AssistantConfig, signal?: AbortSignal) {
   const slot: CourseReferentSlot = { current: { kind: "none" } };
+  const timetable: TimetableSlot = { current: { status: "unavailable" } };
   const agent = new BuiltInAgent({
     model: withStepMetrics(createAssistantModel(config, signal)),
     prompt: ASSISTANT_PROMPT,
-    tools: createAssistantTools(slot),
+    tools: createAssistantTools(slot, timetable),
     maxSteps: ASSISTANT_MAX_STEPS,
     maxOutputTokens: config.maxOutputTokens,
     providerOptions: thinkingProviderOptions(config.thinking),
@@ -27,12 +34,30 @@ export function createAssistantAgent(config: AssistantConfig, signal?: AbortSign
   });
   agent.use((input, next) => {
     slot.current = courseReferentFromRun(input);
+    const context = [...input.context];
+    const timetableIndex = context.findIndex(
+      (entry) => entry.description === TIMETABLE_CONTEXT_DESCRIPTION,
+    );
+    const now = new Date();
+    if (timetableIndex >= 0) {
+      timetable.current = parseTimetableContext(context[timetableIndex]?.value);
+      context[timetableIndex] = {
+        ...context[timetableIndex]!,
+        value: timetableDigest(timetable.current, now),
+      };
+    } else {
+      timetable.current = { status: "unavailable" };
+      context.push({
+        description: TIMETABLE_CONTEXT_DESCRIPTION,
+        value: timetableDigest(timetable.current, now),
+      });
+    }
     const extra = [
       replyScriptContext(input.messages),
       replyLanguageContext(input.messages),
       { description: COURSE_REFERENT_DESCRIPTION, value: JSON.stringify(slot.current) },
     ].filter((entry): entry is NonNullable<typeof entry> => entry !== null);
-    return next.run({ ...input, context: [...input.context, ...extra] });
+    return next.run({ ...input, context: [...context, ...extra] });
   });
   return agent;
 }

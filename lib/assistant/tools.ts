@@ -8,6 +8,7 @@ import { getCourseSections } from "@/lib/mcp/data/get-course-sections";
 import { getInstructor } from "@/lib/mcp/data/get-instructor";
 import { searchCatalog } from "@/lib/mcp/data/search-catalog";
 import { bindCourseToolArgs, type CourseReferentSlot } from "@/lib/assistant/course-referent";
+import type { TimetableSlot } from "@/lib/assistant/timetable-context";
 import {
   executePresentResponse,
   MAX_PRESENT_SHOW_ITEMS,
@@ -81,7 +82,7 @@ function runCourseTool(
   return run(bound.args);
 }
 
-export function createAssistantTools(slot?: CourseReferentSlot) {
+export function createAssistantTools(slot?: CourseReferentSlot, _timetable?: TimetableSlot) {
   const referentSlot: CourseReferentSlot = slot ?? { current: { kind: "none" } };
   return [
     defineTool({

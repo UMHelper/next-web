@@ -25,7 +25,10 @@ import {
   type NavigateResult,
 } from "@/lib/assistant/navigation";
 import { PAGE_CONTEXT_DESCRIPTION, describePage } from "@/lib/assistant/page-context";
-import { PLAN_CONTEXT_DESCRIPTION, summarizePlan } from "@/lib/assistant/plan-summary";
+import {
+  TIMETABLE_CONTEXT_DESCRIPTION,
+  serializeTimetableContext,
+} from "@/lib/assistant/timetable-context";
 import { ASSISTANT_PROMPT } from "@/lib/assistant/prompt";
 
 import type { EvalCase } from "./cases";
@@ -145,7 +148,10 @@ async function runOnce(session: Session, options: HarnessOptions, continuation: 
     const agent = createAssistantAgent(options.config);
     agent.setMessages(shapeConversation(session.messages as RunMessage[], options.config.historyTurns) as Message[]);
     const context: Context[] = [
-      { description: PLAN_CONTEXT_DESCRIPTION, value: summarizePlan(undefined) },
+      {
+        description: TIMETABLE_CONTEXT_DESCRIPTION,
+        value: serializeTimetableContext({ v: 1, status: "no_plan", currentTerm: { year: 2026, sem: 1 } }),
+      },
       { description: PAGE_CONTEXT_DESCRIPTION, value: JSON.stringify(describePage(session.pathname)) },
     ];
     ({ newMessages } = await agent.runAgent({ runId: randomUUID(), tools: FRONTEND_TOOLS, context }));

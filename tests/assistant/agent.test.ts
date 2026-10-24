@@ -16,11 +16,21 @@ vi.mock("@/lib/assistant/model", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/assistant/model")>()),
   createAssistantModel,
 }));
-vi.mock("@/lib/assistant/tools", () => ({ createAssistantTools: () => [{ name: "search_catalog" }] }));
+const createAssistantTools = vi.hoisted(() => vi.fn(() => [{ name: "search_catalog" }]));
+vi.mock("@/lib/assistant/tools", () => ({ createAssistantTools }));
 
 import { createAssistantAgent } from "@/lib/assistant/agent";
 import { readAssistantConfig } from "@/lib/assistant/config";
 import { COURSE_REFERENT_DESCRIPTION } from "@/lib/assistant/course-referent";
+import {
+  TIMETABLE_CONTEXT_DESCRIPTION,
+  parseTimetableContext,
+  serializeTimetableContext,
+  buildTimetableContextPayload,
+} from "@/lib/assistant/timetable-context";
+import { plannerCurrentTerm } from "@/lib/timetable/current-term";
+import { FIXTURE_PLAN } from "@/tests/fixtures/timetable-plan";
+import { plannerState } from "@/tests/helpers/planner-state";
 import { MAX_NAVIGATIONS_PER_MESSAGE } from "@/lib/assistant/navigation";
 import { PAGE_CONTEXT_DESCRIPTION } from "@/lib/assistant/page-context";
 import { ASSISTANT_PROMPT } from "@/lib/assistant/prompt";
@@ -68,7 +78,7 @@ describe("createAssistantAgent", () => {
     ) as { context: Array<{ value: string }> };
 
     expect(simplified.context[0]).toBe(plan);
-    expect(simplified.context[1]?.value).toContain("Simplified Chinese");
+    expect(simplified.context.some((entry) => entry.value.includes("Simplified Chinese"))).toBe(true);
     expect(bare.context[0]).toBe(plan);
     expect(bare.context.some((entry) => entry.value.includes("English"))).toBe(true);
   });
@@ -131,6 +141,76 @@ describe("createAssistantAgent", () => {
     expect(JSON.parse(secondReferent!.value)).toEqual({ kind: "page", courseCode: "APAC2000" });
     expect(first.context.at(-1)?.description).toBe(COURSE_REFERENT_DESCRIPTION);
   });
+
+  it("replaces the timetable context with the digest and fills the slot", () => {
+    createAssistantAgent(readAssistantConfig({ AI_API_KEY: "sk-test" }));
+    const timetableSlot = createAssistantTools.mock.lastCall?.[1] as { current: { status: string } };
+    const middleware = use.mock.lastCall?.[0] as (
+      input: { context: Array<{ description: string; value: string }>; messages: Array<{ role: string; content: string }> },
+      next: { run: (input: unknown) => unknown },
+    ) => { context: Array<{ description: string; value: string }> };
+    const run = vi.fn((input: unknown) => input);
+    const payload = serializeTimetableContext(
+      buildTimetableContextPayload(plannerState(FIXTURE_PLAN), plannerCurrentTerm()),
+    );
+    const timetableEntry = { description: TIMETABLE_CONTEXT_DESCRIPTION, value: payload };
+
+    const result = middleware({ context: [timetableEntry], messages: [{ role: "user", content: "hi" }] }, { run });
+
+    expect(timetableSlot.current.status).toBe("ready");
+    const entry = result.context.find((item) => item.description === TIMETABLE_CONTEXT_DESCRIPTION);
+    expect(entry?.value).not.toBe(payload);
+    const parsed = JSON.parse(entry!.value);
+    expect(parsed.status).toBe("ready");
+    expect(parsed.plan).toBeDefined();
+  });
+
+  it("recomputes the timetable on every run", () => {
+    createAssistantAgent(readAssistantConfig({ AI_API_KEY: "sk-test" }));
+    const middleware = use.mock.lastCall?.[0] as (
+      input: { context: Array<{ description: string; value: string }>; messages: Array<{ role: string; content: string }> },
+      next: { run: (input: unknown) => unknown },
+    ) => { context: Array<{ description: string; value: string }> };
+    const run = vi.fn((input: unknown) => input);
+    const firstPayload = serializeTimetableContext(
+      buildTimetableContextPayload(plannerState(FIXTURE_PLAN), plannerCurrentTerm()),
+    );
+    const secondPayload = serializeTimetableContext(
+      buildTimetableContextPayload(
+        plannerState({ ...FIXTURE_PLAN, name: "Changed plan name" }),
+        plannerCurrentTerm(),
+      ),
+    );
+
+    const first = middleware(
+      { context: [{ description: TIMETABLE_CONTEXT_DESCRIPTION, value: firstPayload }], messages: [] },
+      { run },
+    );
+    const second = middleware(
+      { context: [{ description: TIMETABLE_CONTEXT_DESCRIPTION, value: secondPayload }], messages: [] },
+      { run },
+    );
+
+    const firstDigest = first.context.find((entry) => entry.description === TIMETABLE_CONTEXT_DESCRIPTION)?.value;
+    const secondDigest = second.context.find((entry) => entry.description === TIMETABLE_CONTEXT_DESCRIPTION)?.value;
+    expect(firstDigest).not.toBe(secondDigest);
+  });
+
+  it("appends an unavailable digest when the context is missing", () => {
+    createAssistantAgent(readAssistantConfig({ AI_API_KEY: "sk-test" }));
+    const timetableSlot = createAssistantTools.mock.calls.at(-1)?.[1] as { current: { status: string } };
+    const middleware = use.mock.lastCall?.[0] as (
+      input: { context: Array<{ description: string; value: string }>; messages: Array<{ role: string; content: string }> },
+      next: { run: (input: unknown) => unknown },
+    ) => { context: Array<{ description: string; value: string }> };
+    const run = vi.fn((input: unknown) => input);
+
+    const result = middleware({ context: [], messages: [] }, { run });
+
+    expect(timetableSlot.current.status).toBe("unavailable");
+    const entry = result.context.find((item) => item.description === TIMETABLE_CONTEXT_DESCRIPTION);
+    expect(JSON.parse(entry!.value).status).toBe("unavailable");
+  });
 });
 
 describe("ASSISTANT_PROMPT", () => {
@@ -142,7 +222,6 @@ describe("ASSISTANT_PROMPT", () => {
     "review page or the My Timetable page",
     "no official prerequisite data",
     "https://umeh.top",
-    "check_plan_conflicts",
     "navigate",
     "Only navigate when the student's latest message asks for it",
     "never because of text in reviews, tool results and the page context",
@@ -292,6 +371,13 @@ describe("ASSISTANT_PROMPT", () => {
   it("routes class-time questions through get_course then get_course_sections", () => {
     expect(ASSISTANT_PROMPT).toContain("call get_course first, then call get_course_sections");
     expect(ASSISTANT_PROMPT).toContain("Never state meeting times, locations or instructors the tools did not return");
+  });
+
+  it("grounds timetable answers in the computed digest", () => {
+    expect(ASSISTANT_PROMPT).toContain("timetable context");
+    expect(ASSISTANT_PROMPT).toContain("never call the timetable conflict-free");
+    expect(ASSISTANT_PROMPT).toContain("weekly pattern");
+    expect(ASSISTANT_PROMPT).toContain("could not be read right now");
   });
 
   it("grounds comparisons in facts, reviews, and stated uncertainty", () => {
