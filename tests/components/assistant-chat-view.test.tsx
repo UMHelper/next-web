@@ -8,8 +8,15 @@ import {
   AssistantChatView,
   type AssistantChatViewProps,
 } from "@/components/assistant/assistant-chat-view";
+import { TimetablePreviewToolResult } from "@/components/assistant/timetable-preview-tool-render";
+import { PREVIEW_TIMETABLE_TOOL_NAME, runPreviewTimetable } from "@/lib/assistant/timetable-preview";
+import type { TimetableToolDeps } from "@/lib/assistant/timetable-tools";
+import type { TimetableState } from "@/lib/assistant/timetable-context";
+import { timetableVersion } from "@/lib/timetable/analysis";
+import { McpToolError } from "@/lib/mcp/errors";
 import { RICH_TOOL_NAMES } from "@/lib/assistant/rich-tools";
 import { SITE_URL } from "@/lib/site";
+import { FIXTURE_CATALOG_SECTIONS, FIXTURE_PLAN } from "@/tests/fixtures/timetable-plan";
 
 function catalogBody(totalCount = 0) {
   return JSON.stringify({
@@ -55,17 +62,57 @@ const sectionsBody = JSON.stringify({
 function fakeToolRenderer() {
   return {
     names: RICH_TOOL_NAMES,
-    render: (call: ToolCall, result: ToolMessage | undefined) => (
-      <div data-testid={`rich-${call.id}`}>
-        {typeof result?.content === "string" ? result.content : "loading"}
-      </div>
-    ),
+    render: (call: ToolCall, result: ToolMessage | undefined) => {
+      if (call.function.name === PREVIEW_TIMETABLE_TOOL_NAME) {
+        return (
+          <TimetablePreviewToolResult
+            status={result ? "complete" : "inProgress"}
+            result={typeof result?.content === "string" ? result.content : undefined}
+          />
+        );
+      }
+      return (
+        <div data-testid={`rich-${call.id}`}>
+          {typeof result?.content === "string" ? result.content : "loading"}
+        </div>
+      );
+    },
   };
 }
+
+const previewDeps = (): TimetableToolDeps => ({
+  loadSections: async (input) => {
+    const match = FIXTURE_CATALOG_SECTIONS.find(
+      (entry) => entry.courseCode === input.code.toUpperCase() && entry.instructor === input.instructor,
+    );
+    if (!match) throw new McpToolError("not_found", "missing");
+    return match;
+  },
+  loadCatalogTerm: async () => ({ year: 2026, sem: 1 }),
+});
+
+const previewReadyState = (): TimetableState => ({
+  status: "ready",
+  plan: {
+    name: FIXTURE_PLAN.name,
+    year: FIXTURE_PLAN.year,
+    sem: FIXTURE_PLAN.sem,
+    sections: FIXTURE_PLAN.payload.sections,
+  },
+  currentTerm: { year: 2026, sem: 1 },
+  otherPlansThisTerm: 0,
+  localOnly: false,
+  truncated: false,
+  version: timetableVersion(FIXTURE_PLAN.payload.sections),
+});
 
 function activityRows() {
   return Array.from(document.querySelectorAll<HTMLElement>("[data-status]"));
 }
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn() }),
+}));
 
 vi.mock("next/link", () => ({
   default: ({ href, children, ...props }: { href: string; children: ReactNode }) => (
@@ -1175,6 +1222,58 @@ describe("AssistantChatView", () => {
       expect(screen.getAllByTestId("rich-call-1")).toHaveLength(1);
       expect(screen.getAllByText("Searched courses")).toHaveLength(1);
       expect(activityRows()[0].textContent).toContain("MATH");
+    });
+
+    it("mounts a preview_timetable result automatically", async () => {
+      const previewBody = JSON.stringify(await runPreviewTimetable(previewReadyState(), {}, previewDeps()));
+      renderView({
+        messages: [
+          { id: "u1", role: "user", content: "Show my timetable" },
+          {
+            id: "a1",
+            role: "assistant",
+            content: "",
+            toolCalls: [
+              {
+                id: "call-preview",
+                type: "function",
+                function: { name: PREVIEW_TIMETABLE_TOOL_NAME, arguments: "{}" },
+              },
+            ],
+          },
+          { id: "t1", role: "tool", toolCallId: "call-preview", content: previewBody },
+        ],
+        toolRenderer: fakeToolRenderer(),
+      });
+
+      expect(screen.getByRole("region", { name: "Saved timetable preview" })).toBeTruthy();
+      expect(screen.queryByText("Choosing a layout")).toBeNull();
+    });
+
+    it("drops an unanswered preview call once the run stops", () => {
+      renderView({
+        messages: [
+          { id: "u1", role: "user", content: "Show my timetable" },
+          {
+            id: "a1",
+            role: "assistant",
+            content: "",
+            toolCalls: [
+              {
+                id: "call-preview",
+                type: "function",
+                function: { name: PREVIEW_TIMETABLE_TOOL_NAME, arguments: "{}" },
+              },
+            ],
+          },
+          { id: "a2", role: "assistant", content: "Stopped early." },
+        ],
+        isRunning: false,
+        toolRenderer: fakeToolRenderer(),
+      });
+
+      expect(screen.queryByText("Building timetable preview")).toBeNull();
+      expect(screen.queryByRole("region", { name: /timetable preview/i })).toBeNull();
     });
 
     it("keeps a non-rich trace and a rich row as two different calls", () => {

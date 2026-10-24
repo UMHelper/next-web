@@ -3,6 +3,7 @@
 import React, { useMemo } from "react";
 import { useRouter } from "next/navigation";
 
+import { buildReviewPath } from "@/lib/site";
 import { detectScheduleConflicts, timeToMinutes } from "@/lib/timetable/conflicts";
 import type { PlanSection } from "@/lib/timetable/schema";
 
@@ -13,9 +14,13 @@ const TOTAL_MINUTES = 12 * 60;
 export default function WeekGrid({
   sections,
   compact = false,
+  mini = false,
+  emphasizeKeys,
 }: {
   sections: PlanSection[];
   compact?: boolean;
+  mini?: boolean;
+  emphasizeKeys?: ReadonlySet<string>;
 }) {
   const router = useRouter();
   const conflictKeys = useMemo(() => {
@@ -27,21 +32,38 @@ export default function WeekGrid({
     return keys;
   }, [sections]);
 
-  const pixelsPerHour = compact ? 40 : 60;
+  const pixelsPerHour = mini ? 12 : compact ? 40 : 60;
   const gridHeight = (TOTAL_MINUTES / 60) * pixelsPerHour;
 
+  const openReviews = (courseCode: string, prof: string) => {
+    router.push(buildReviewPath(courseCode, prof));
+  };
+
+  const activateBlock = (courseCode: string, prof: string) => {
+    openReviews(courseCode, prof);
+  };
+
   return (
-    <div className={compact ? "min-w-[560px]" : "min-w-[720px]"}>
+    <div
+      className={mini ? "w-full min-w-0" : compact ? "min-w-[560px]" : "min-w-[720px]"}
+      aria-hidden={mini ? true : undefined}
+    >
       <div className="grid grid-cols-5 border-b border-border text-center text-xs font-semibold text-muted-foreground">
         {DAYS.map((day) => (
-          <div key={day} className="py-2">
+          <div key={day} className={mini ? "overflow-hidden py-1" : "py-2"}>
             {day}
           </div>
         ))}
       </div>
       <div className="grid grid-cols-5" style={{ height: gridHeight }}>
         {DAYS.map((day) => (
-          <div key={day} className="relative border-l border-border-subtle">
+          <div
+            key={day}
+            className={[
+              "relative border-l border-border-subtle",
+              mini ? "overflow-hidden" : "",
+            ].join(" ")}
+          >
             {sections.flatMap((section) =>
               section.schedules
                 .filter((schedule) => schedule.date === day)
@@ -52,21 +74,46 @@ export default function WeekGrid({
                   const top = (startMinutes / 60) * pixelsPerHour;
                   const height = Math.max(
                     ((endMinutes - startMinutes) / 60) * pixelsPerHour,
-                    compact ? 18 : 28,
+                    mini ? 6 : compact ? 18 : 28,
                   );
                   const conflict = conflictKeys.has(section.key);
+                  const emphasized = emphasizeKeys?.has(section.key) ?? false;
+
+                  if (mini) {
+                    return (
+                      <div
+                        key={`${section.key}-${schedule.date}-${schedule.time}-${index}`}
+                        aria-hidden
+                        className={[
+                          "absolute left-0.5 right-0.5 rounded",
+                          conflict ? "border border-destructive-strong" : "",
+                          emphasized ? "border border-dashed border-foreground/70" : "",
+                        ].join(" ")}
+                        style={{
+                          top,
+                          height,
+                          backgroundColor: section.color,
+                        }}
+                      />
+                    );
+                  }
 
                   return (
                     <div
                       key={`${section.key}-${schedule.date}-${schedule.time}-${index}`}
                       role="button"
                       tabIndex={0}
-                      onClick={() =>
-                        router.push(`/reviews/${section.courseCode}/${section.prof}`)
-                      }
+                      onClick={() => openReviews(section.courseCode, section.prof)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          activateBlock(section.courseCode, section.prof);
+                        }
+                      }}
                       className={[
                         "absolute left-1 right-1 overflow-hidden rounded px-1 py-0.5 text-left text-white shadow-sm",
                         conflict ? "border-2 border-destructive-strong" : "",
+                        emphasized ? "border border-dashed border-white/80" : "",
                       ].join(" ")}
                       style={{
                         top,

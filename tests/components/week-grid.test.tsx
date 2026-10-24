@@ -1,9 +1,11 @@
 import React from "react";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+const push = vi.fn();
+
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: vi.fn() }),
+  useRouter: () => ({ push }),
 }));
 
 import WeekGrid from "@/components/timetable/week-grid";
@@ -33,6 +35,7 @@ const sections = [
 
 afterEach(() => {
   cleanup();
+  push.mockClear();
 });
 
 describe("WeekGrid", () => {
@@ -54,5 +57,19 @@ describe("WeekGrid", () => {
   it("hides location in compact mode", () => {
     render(<WeekGrid sections={sections} compact />);
     expect(screen.queryByText(/E11-1001/)).toBeNull();
+  });
+
+  it("hides the mini grid from assistive tech and makes it inert", () => {
+    const view = render(<WeekGrid sections={sections} mini />);
+    expect(view.container.querySelector('[aria-hidden="true"]')).toBeTruthy();
+    expect(view.container.querySelector('[role="button"]')).toBeNull();
+  });
+
+  it("opens a block's reviews with Enter", () => {
+    render(<WeekGrid sections={sections} />);
+    const block = screen.getByText("ACCT1000-A01").closest('[role="button"]');
+    expect(block).toBeTruthy();
+    fireEvent.keyDown(block!, { key: "Enter" });
+    expect(push).toHaveBeenCalledWith("/reviews/ACCT1000/CHAN");
   });
 });

@@ -22,6 +22,7 @@ import { AssistantBubble } from "./assistant-bubble";
 import ResizeHandle from "./resize-handle";
 import { useCourseDetailToolRender } from "./course-detail-tool-render";
 import { useCourseSectionsToolRender } from "./course-sections-tool-render";
+import { useTimetablePreviewToolRender } from "./timetable-preview-tool-render";
 import { useSearchCatalogToolRender } from "./search-catalog-tool-render";
 import { useCatalogResultsTool } from "./use-catalog-results-tool";
 import { useDiscussedCourses } from "./use-discussed-courses";
@@ -53,6 +54,7 @@ function AssistantTools() {
   useSearchCatalogToolRender();
   useCourseDetailToolRender();
   useCourseSectionsToolRender();
+  useTimetablePreviewToolRender();
 
   useFrontendTool(
     {
