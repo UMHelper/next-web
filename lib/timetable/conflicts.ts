@@ -1,9 +1,9 @@
-import type { PlanSection } from "./schema";
+import type { PlanSection, Weekday } from "./schema";
 
 export type ScheduleConflict = {
   a: PlanSection;
   b: PlanSection;
-  date: string;
+  date: Weekday;
   aTime: string;
   bTime: string;
 };

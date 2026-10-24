@@ -16,7 +16,9 @@ vi.mock("@/lib/assistant/model", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/assistant/model")>()),
   createAssistantModel,
 }));
-const createAssistantTools = vi.hoisted(() => vi.fn(() => [{ name: "search_catalog" }]));
+const createAssistantTools = vi.hoisted(() =>
+  vi.fn((_slot?: unknown, _timetable?: unknown) => [{ name: "search_catalog" }]),
+);
 vi.mock("@/lib/assistant/tools", () => ({ createAssistantTools }));
 
 import { createAssistantAgent } from "@/lib/assistant/agent";

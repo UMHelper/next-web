@@ -12,7 +12,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createEmptyStore, upsertPlanLocal } from "@/lib/timetable/store";
 
 const { useUserMock } = vi.hoisted(() => ({
-  useUserMock: vi.fn(() => ({
+  useUserMock: vi.fn((): { user: { id: string } | null; isLoaded: boolean } => ({
     user: { id: "user_1" },
     isLoaded: true,
   })),
