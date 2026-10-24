@@ -31,6 +31,8 @@ import {
   termKey,
   upsertPlanLocal,
   type LocalPlan,
+  type PlannerLoadState,
+  type PlannerServerLoad,
   type TimetableStore,
 } from "@/lib/timetable/store";
 import type { PlanSection } from "@/lib/timetable/schema";
@@ -40,9 +42,11 @@ type AddResult =
   | { ok: true }
   | { ok: false; error: "missing" | "duplicate" | "same-course" };
 
-type PlannerContextValue = {
+export type PlannerContextValue = {
   store: TimetableStore;
   activePlan?: LocalPlan;
+  loadState: PlannerLoadState;
+  serverLoad: PlannerServerLoad;
   syncState: "idle" | "saving" | "offline" | "error" | "conflict";
   addSection: (clientRef: string, section: PlanSection) => AddResult;
   replaceSection: (
@@ -105,6 +109,8 @@ export const TimetablePlannerProvider = ({
   const userId = user?.id;
   const [store, setStore] = useState<TimetableStore>(() => createEmptyStore());
   const [hydrated, setHydrated] = useState(false);
+  const [loadedFor, setLoadedFor] = useState<string | null>(null);
+  const [serverLoad, setServerLoad] = useState<PlannerServerLoad>("pending");
   const storeRef = useRef(store);
   const flushTimer = useRef<ReturnType<typeof setTimeout>>();
   const flushingRef = useRef(false);
@@ -259,13 +265,30 @@ export const TimetablePlannerProvider = ({
   );
 
   useEffect(() => {
-    if (!isLoaded || !userId) {
+    if (!isLoaded) {
       setHydrated(false);
       return;
     }
 
+    if (!userId) {
+      setHydrated(false);
+      const empty = createEmptyStore();
+      storeRef.current = empty;
+      setStore(empty);
+      setLoadedFor(null);
+      return;
+    }
+
     let cancelled = false;
+    setServerLoad("pending");
+    setLoadedFor(null);
     const local = readStore(userId);
+
+    const markStoreLoaded = (next: TimetableStore) => {
+      if (cancelled) return;
+      updateStore(next);
+      setLoadedFor(userId);
+    };
 
     const migrate = async () => {
       if (
@@ -303,7 +326,7 @@ export const TimetablePlannerProvider = ({
                 baseRevision: 0,
               });
               window.localStorage.removeItem("timetableCart");
-              if (!cancelled) updateStore(queued);
+              if (!cancelled) markStoreLoaded(queued);
               return;
             }
           } catch {
@@ -311,7 +334,7 @@ export const TimetablePlannerProvider = ({
           }
         }
       }
-      if (!cancelled) updateStore(local);
+      markStoreLoaded(local);
     };
 
     void migrate();
@@ -330,8 +353,9 @@ export const TimetablePlannerProvider = ({
           if (!pending) next = upsertPlanLocal(next, serverToLocal(serverPlan), false);
         }
         updateStore(next);
+        setServerLoad("ok");
       } catch {
-        // Local cache remains usable when the server is unavailable.
+        if (!cancelled) setServerLoad("failed");
       }
     };
 
@@ -487,6 +511,13 @@ export const TimetablePlannerProvider = ({
     return activeRef ? store.plans[activeRef] : undefined;
   }, [store]);
 
+  const loadState = useMemo((): PlannerLoadState => {
+    if (!isLoaded) return "loading";
+    if (!userId) return "signed_out";
+    if (loadedFor !== userId) return "loading";
+    return "ready";
+  }, [isLoaded, loadedFor, userId]);
+
   const syncState = useMemo(() => {
     if (!hydrated) return "idle" as const;
     if (Object.values(store.plans).some((plan) => plan.syncState === "conflict")) {
@@ -503,6 +534,8 @@ export const TimetablePlannerProvider = ({
     () => ({
       store,
       activePlan,
+      loadState,
+      serverLoad,
       syncState,
       addSection,
       replaceSection,
@@ -518,10 +551,12 @@ export const TimetablePlannerProvider = ({
       addSection,
       createPlan,
       deletePlan,
+      loadState,
       removeSection,
       renamePlan,
       replaceSection,
       resolveConflict,
+      serverLoad,
       setActivePlan,
       store,
       syncState,
