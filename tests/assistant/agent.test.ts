@@ -276,4 +276,22 @@ describe("ASSISTANT_PROMPT", () => {
     expect(ASSISTANT_PROMPT).toContain("call get_course first, then call get_course_sections");
     expect(ASSISTANT_PROMPT).toContain("Never state meeting times, locations or instructors the tools did not return");
   });
+
+  it("grounds comparisons in facts, reviews, and stated uncertainty", () => {
+    expect(ASSISTANT_PROMPT).toContain("Separate verified catalog facts from student review scores and from your own interpretation");
+    expect(ASSISTANT_PROMPT).toContain("1 Very hard");
+    expect(ASSISTANT_PROMPT).toContain("5 Very easy");
+    expect(ASSISTANT_PROMPT).toContain("higher difficulty number is easier");
+    expect(ASSISTANT_PROMPT).toContain("1 is F and 5 is A");
+    expect(ASSISTANT_PROMPT).toContain("not a stricter grader");
+    expect(ASSISTANT_PROMPT).toContain("Always name the review count");
+    expect(ASSISTANT_PROMPT).toContain("A score on one course does not describe that instructor's other courses");
+    expect(ASSISTANT_PROMPT).toContain("If a preference that would change the suggestion is missing, give a conditional suggestion or ask one question");
+    expect(ASSISTANT_PROMPT).toContain("Do not call a course or instructor definitively better");
+    expect(ASSISTANT_PROMPT).toContain("Use the discussed-courses context for follow-ups");
+    expect(ASSISTANT_PROMPT).toContain("Do not call get_course_reviews unless the student asks what the reviews say");
+    expect(ASSISTANT_PROMPT).toContain("Do not stack course cards to compare");
+    expect(ASSISTANT_PROMPT).not.toMatch(/\b[A-Z]{4}\d{4}\b/);
+    expect(ASSISTANT_PROMPT).not.toMatch(/[\p{Script=Han}]/u);
+  });
 });
