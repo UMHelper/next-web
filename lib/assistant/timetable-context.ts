@@ -6,7 +6,7 @@ import {
   sectionLabel,
   timetableVersion,
 } from "@/lib/timetable/analysis";
-import { planSectionSchema, type PlanSection } from "@/lib/timetable/schema";
+import { planSectionSchema, TIMETABLE_LIMITS, type PlanSection } from "@/lib/timetable/schema";
 import type { LocalPlan, PlannerLoadState, PlannerServerLoad, TimetableStore } from "@/lib/timetable/store";
 
 export const TIMETABLE_CONTEXT_DESCRIPTION =
@@ -83,6 +83,10 @@ const truncateSections = (sections: PlanSection[]) => {
   const kept: PlanSection[] = [];
   let truncated = false;
   for (const section of sections) {
+    if (kept.length >= TIMETABLE_LIMITS.maxSections) {
+      truncated = true;
+      break;
+    }
     const count = section.schedules.length;
     if (meetings + count > TIMETABLE_CONTEXT_MAX_MEETINGS) {
       truncated = true;
@@ -91,6 +95,7 @@ const truncateSections = (sections: PlanSection[]) => {
     kept.push(section);
     meetings += count;
   }
+  if (sections.length > kept.length) truncated = true;
   return { sections: kept, truncated };
 };
 
@@ -425,6 +430,7 @@ const shrinkReadyDigest = (state: ReadyTimetableState, now: Date): string => {
         busiest: [],
         earliest: null,
         latestEnd: null,
+        complete: false,
       };
       break;
     }
@@ -448,7 +454,7 @@ const shrinkReadyDigest = (state: ReadyTimetableState, now: Date): string => {
       days: {},
       conflicts: [],
       unscheduled: [],
-      complete: fallback.complete,
+      complete: false,
       earliest: null,
       latestEnd: null,
       busiest: [],

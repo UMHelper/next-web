@@ -11,7 +11,7 @@ import {
   timetableContextPayloadSchema,
 } from "@/lib/assistant/timetable-context";
 import { plannerCurrentTerm } from "@/lib/timetable/current-term";
-import { normalizePlanSection } from "@/lib/timetable/schema";
+import { normalizePlanSection, TIMETABLE_LIMITS } from "@/lib/timetable/schema";
 import { FIXTURE_PLAN } from "@/tests/fixtures/timetable-plan";
 import { plannerState } from "@/tests/helpers/planner-state";
 
@@ -70,6 +70,24 @@ describe("buildTimetableContextPayload", () => {
     expect(payload.truncated).toBe(true);
     const meetings = payload.plan!.sections.reduce((sum, section) => sum + section.schedules.length, 0);
     expect(meetings).toBeLessThanOrEqual(TIMETABLE_CONTEXT_MAX_MEETINGS);
+  });
+
+  it("truncates after 30 sections so the payload still parses", () => {
+    const sections = Array.from({ length: 31 }, (_, index) =>
+      normalizePlanSection({
+        courseCode: `CISC${4000 + index}`,
+        prof: "PROF",
+        section: "001",
+        schedules: [{ date: "MON", time: "09:00-10:00", location: "E11" }],
+      }),
+    );
+    const payload = buildTimetableContextPayload(
+      plannerState({ ...FIXTURE_PLAN, payload: { schemaVersion: 1, sections } }),
+      currentTerm(),
+    );
+    expect(payload.truncated).toBe(true);
+    expect(payload.plan!.sections).toHaveLength(TIMETABLE_LIMITS.maxSections);
+    expect(parseTimetableContext(serializeTimetableContext(payload)).status).toBe("ready");
   });
 });
 
