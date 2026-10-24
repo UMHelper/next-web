@@ -21,7 +21,7 @@ export const metadata: Metadata = {
  * 正文沿用 `lib/terms-of-service.ts` 的既有章節，這裡只追加 MCP 服務的使用規則、
  * 撤銷授權／刪除帳戶與第三方平台條款段落。
  */
-const PLUGIN_UPDATED_DATE = '2026-10-05'
+const PLUGIN_UPDATED_DATE = '2026-10-24'
 
 const pluginSections: LegalSection[] = [
     {

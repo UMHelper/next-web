@@ -4,9 +4,9 @@ export const termsOfService: Record<LegalLanguage, LegalContent> = {
     en: {
         title: 'Terms of Service',
         updatedLabel: 'Last updated: ',
-        updatedDate: '2025-08-22',
+        updatedDate: '2026-10-24',
         intro:
-            'Welcome to What2Reg @ UM 澳大選咩課 ("the Website"). By accessing or using the Website, you agree to be bound by these Terms of Service ("Terms"). If you do not agree with these Terms, please do not use the Website.',
+            'Welcome to What2Reg @ UM 澳大選咩課 ("the Website"), including the What2Reg@UM iOS application ("the App"). By accessing or using the Website or the App, you agree to be bound by these Terms of Service ("Terms"). If you do not agree with these Terms, please do not use the Website or the App.',
         sections: [
             {
                 heading: '1. About the Website',
@@ -17,7 +17,8 @@ export const termsOfService: Record<LegalLanguage, LegalContent> = {
             {
                 heading: '2. Eligibility',
                 paragraphs: [
-                    'By using the Website, you represent that you have the legal capacity to enter into these Terms. If you are a minor, you may use the Website only with the consent and supervision of a parent or legal guardian.',
+                    'By using the Website or the App, you represent that you have the legal capacity to enter into these Terms. If you are a minor, you may use the Website or the App only with the consent and supervision of a parent or legal guardian.',
+                    'If you download the App from Apple\'s App Store, your use of the App is also subject to Apple\'s applicable App Store terms, including Apple\'s Standard End User License Agreement unless a custom licence is provided.',
                 ],
             },
             {
@@ -59,7 +60,7 @@ export const termsOfService: Record<LegalLanguage, LegalContent> = {
             {
                 heading: '7. Third-Party Services and Links',
                 paragraphs: [
-                    'The Website may use third-party services such as Clerk, Supabase, Google Tag Manager, Google Analytics and Google Forms, and may contain links to third-party websites. We are not responsible for the content, privacy practices or availability of any third-party service or website.',
+                    'The Website may use third-party services such as Clerk, Supabase, Google Tag Manager, Google Analytics, Google AdSense and Google Forms, and may contain links to third-party websites. We are not responsible for the content, privacy practices or availability of any third-party service or website.',
                 ],
             },
             {
@@ -89,7 +90,7 @@ export const termsOfService: Record<LegalLanguage, LegalContent> = {
             {
                 heading: '12. Changes to These Terms',
                 paragraphs: [
-                    'We may update these Terms from time to time. The updated version will be posted on this page. Your continued use of the Website after any changes takes effect constitutes acceptance of the revised Terms.',
+                    'We may update these Terms from time to time. The updated version will be posted on this page. Your continued use of the Website or the App after any changes takes effect constitutes acceptance of the revised Terms.',
                 ],
             },
         ],
@@ -101,9 +102,9 @@ export const termsOfService: Record<LegalLanguage, LegalContent> = {
     zh: {
         title: '服務條款',
         updatedLabel: '最後更新日期：',
-        updatedDate: '2025-08-22',
+        updatedDate: '2026-10-24',
         intro:
-            '歡迎使用 What2Reg @ UM 澳大選咩課（以下簡稱「本網站」）。當您存取或使用本網站，即表示您同意受本服務條款（以下簡稱「本條款」）約束。如您不同意本條款，請勿使用本網站。',
+            '歡迎使用 What2Reg @ UM 澳大選咩課（以下簡稱「本網站」），包括 What2Reg@UM iOS 應用程式（以下簡稱「本應用程式」）。當您存取或使用本網站或本應用程式，即表示您同意受本服務條款（以下簡稱「本條款」）約束。如您不同意本條款，請勿使用本網站或本應用程式。',
         sections: [
             {
                 heading: '1. 關於本網站',
@@ -114,7 +115,8 @@ export const termsOfService: Record<LegalLanguage, LegalContent> = {
             {
                 heading: '2. 使用資格',
                 paragraphs: [
-                    '使用本網站即表示您聲明具有訂立本條款所需的法律行為能力。如您為未成年人，僅可在父母或法定監護人同意及監督下使用本網站。',
+                    '使用本網站或本應用程式即表示您聲明具有訂立本條款所需的法律行為能力。如您為未成年人，僅可在父母或法定監護人同意及監督下使用本網站或本應用程式。',
+                    '如您從 Apple App Store 下載本應用程式，您使用本應用程式亦須遵守 Apple 適用的 App Store 條款，包括 Apple 標準最終使用者授權合約（除非另有提供自訂授權合約）。',
                 ],
             },
             {
@@ -156,7 +158,7 @@ export const termsOfService: Record<LegalLanguage, LegalContent> = {
             {
                 heading: '7. 第三方服務及連結',
                 paragraphs: [
-                    '本網站可能使用 Clerk、Supabase、Google Tag Manager、Google Analytics 及 Google Forms 等第三方服務，並可能包含第三方網站連結。我們不對任何第三方服務或網站的內容、私隱處理方式或可用性負責。',
+                    '本網站可能使用 Clerk、Supabase、Google Tag Manager、Google Analytics、Google AdSense 及 Google Forms 等第三方服務，並可能包含第三方網站連結。我們不對任何第三方服務或網站的內容、私隱處理方式或可用性負責。',
                 ],
             },
             {
@@ -186,7 +188,7 @@ export const termsOfService: Record<LegalLanguage, LegalContent> = {
             {
                 heading: '12. 條款變更',
                 paragraphs: [
-                    '我們可能不時更新本條款，更新版本將於本頁面公佈。任何變更生效後，您繼續使用本網站即構成接受修訂後的條款。',
+                    '我們可能不時更新本條款，更新版本將於本頁面公佈。任何變更生效後，您繼續使用本網站或本應用程式即構成接受修訂後的條款。',
                 ],
             },
         ],
