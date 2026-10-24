@@ -41,7 +41,7 @@ export const normalizeSchedule = (schedule: {
 export const scheduleSchema = z.object({
   date: z.enum(WEEK_DAYS),
   time: z.string().regex(/^\d{2}:\d{2}-\d{2}:\d{2}$/),
-  location: z.string(),
+  location: z.string().optional().default(""),
 });
 
 export const planSectionSchema = z.object({
