@@ -177,7 +177,13 @@ export function ToolTrace({
   return (
     <div className="flex flex-col gap-1.5" aria-live="polite">
       {rows.map((call) => (
-        <ToolRow key={call.id} call={call} result={results.get(call.id)} isRunning={isRunning} />
+        <ToolRow
+          key={call.id}
+          call={call}
+          result={results.get(call.id)}
+          isRunning={isRunning}
+          announce
+        />
       ))}
     </div>
   );

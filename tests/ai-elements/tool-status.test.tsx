@@ -166,7 +166,7 @@ describe("ToolRow status", () => {
       }))],
     ]);
     render(<ToolTrace calls={calls} results={results} isRunning={false} />);
-    expect(screen.queryByRole("status")).toBeNull();
+    expect(screen.getByRole("status")).toBeTruthy();
     expect(screen.getByText("Read instructor")).toBeTruthy();
     expect(screen.getByText(/CHAN TAI MAN/)).toBeTruthy();
     expect(document.querySelector("[aria-live='polite']")).toBeTruthy();

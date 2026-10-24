@@ -11,7 +11,7 @@ export type DiscussedCoursesPayload = {
   turns: Array<{ id: string; order: string[] }>;
 };
 
-type DiscussedMessage = {
+export type DiscussedMessage = {
   role: string;
   content?: unknown;
   toolCalls?: Array<{ id?: string; function?: { name?: string; arguments?: string } }>;

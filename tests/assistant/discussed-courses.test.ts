@@ -4,6 +4,7 @@ import {
   DISCUSSED_COURSES_CONTEXT_DESCRIPTION,
   MAX_DISCUSSED_CONTEXT_CHARS,
   summarizeDiscussedCourses,
+  type DiscussedMessage,
 } from "@/lib/assistant/discussed-courses";
 import { GET_COURSE_TOOL_NAME } from "@/lib/assistant/course-detail-ui";
 import { SITE_URL } from "@/lib/site";
@@ -35,7 +36,7 @@ function coursePayload(courseCode: string) {
 }
 
 function getCourseTurn(userText: string, codes: string[], callPrefix = "g") {
-  const messages: Array<Record<string, unknown>> = [{ role: "user", content: userText }];
+  const messages: DiscussedMessage[] = [{ role: "user", content: userText }];
   const toolCalls = codes.map((code, index) => ({
     id: `${callPrefix}${index + 1}`,
     function: { name: GET_COURSE_TOOL_NAME, arguments: JSON.stringify({ code }) },

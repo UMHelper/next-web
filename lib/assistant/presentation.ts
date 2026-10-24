@@ -233,6 +233,6 @@ export function planRichBlocks(
   return blocks;
 }
 
-export function callsForActivity(calls: ToolCallLike[]): ToolCallLike[] {
+export function callsForActivity<T extends ToolCallLike>(calls: readonly T[]): T[] {
   return calls.filter((call) => call.function.name !== PRESENT_RESPONSE_TOOL_NAME);
 }
