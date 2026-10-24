@@ -83,6 +83,36 @@ describe("executePresentResponse", () => {
       reason: "invalid_request",
     });
   });
+
+  it("rejects a show list with more than three items", () => {
+    expect(
+      executePresentResponse({
+        show: [
+          { component: "course_detail", course: "CISC2001" },
+          { component: "course_detail", course: "CISC2002" },
+          { component: "course_detail", course: "CISC2003" },
+          { component: "course_sections", course: "CISC2004" },
+        ],
+      }),
+    ).toEqual({
+      status: "rejected",
+      reason: "invalid_request",
+    });
+  });
+
+  it("rejects duplicate component and course pairs", () => {
+    expect(
+      executePresentResponse({
+        show: [
+          { component: "course_detail", course: "CISC2001" },
+          { component: "course_detail", course: "CISC2001" },
+        ],
+      }),
+    ).toEqual({
+      status: "rejected",
+      reason: "invalid_request",
+    });
+  });
 });
 
 describe("parsePresentArguments", () => {

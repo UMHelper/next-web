@@ -176,6 +176,13 @@ describe("resolveCourseReferent", () => {
     });
   });
 
+  it("resolves compare this with off-page as the named course only", () => {
+    expect(resolve("Compare this with CISC2003.", { page: { page: "catalog" } })).toEqual({
+      kind: "explicit",
+      courseCode: "CISC2003",
+    });
+  });
+
   it("does not collapse it and a named course", () => {
     expect(resolve("Compare it with CISC2001.", { page: page("CISC3014"), priorCourseCodes: ["APAC2000"] })).toEqual({
       kind: "multiple",
