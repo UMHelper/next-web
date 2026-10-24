@@ -64,6 +64,16 @@ describe("timetable analysis", () => {
       conflictPairKey(conflict.a, conflict.b, conflict.day),
     );
     expect(new Set(analyzed)).toEqual(new Set(raw));
+    expect(analyzeTimetable(sections).conflicts).toEqual([
+      {
+        day: "TUE",
+        a: "CISC2001-001",
+        b: "ECON1001-001",
+        aTime: "09:00-10:15",
+        bTime: "10:00-11:15",
+        overlap: "10:00-10:15",
+      },
+    ]);
   });
 
   it("checks every meeting of a multi-meeting section", () => {
@@ -147,6 +157,11 @@ describe("timetable analysis", () => {
       day: "TUE",
       time: "09:00",
       label: "CISC2001-001",
+    });
+    expect(result.latestEnd).toEqual({
+      day: "WED",
+      time: "15:15",
+      label: "MATH1010-002",
     });
     expect(result.busiestDays).toEqual(["MON"]);
 
