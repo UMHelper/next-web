@@ -1,8 +1,12 @@
 type ServerToolName =
   | "search_catalog"
+  | "count_courses"
   | "get_course"
+  | "get_course_description"
+  | "get_course_ilo"
   | "get_instructor"
   | "get_course_reviews"
+  | "count_reviews"
   | "get_course_sections";
 
 export type GoldenQuestion = {
@@ -37,6 +41,30 @@ export const ASSISTANT_GOLDEN_QUESTIONS: GoldenQuestion[] = [
     id: "instructor",
     question: "CHAN TAI MAN 教哪些课？",
     expected: { kind: "server_tool", tool: "get_instructor", input: { name: "CHAN TAI MAN" } },
+  },
+  {
+    id: "search-course-content",
+    question: "哪些课程会学到 database 的内容？",
+    expected: {
+      kind: "server_tool",
+      tool: "search_catalog",
+      input: { type: "course", query: "database", searchIn: "content" },
+    },
+  },
+  {
+    id: "count-courses",
+    question: "FBA 一共开了多少门课？",
+    expected: { kind: "server_tool", tool: "count_courses", input: { faculty: "FBA" } },
+  },
+  {
+    id: "course-description",
+    question: "ACCT1000 这门课具体教什么？",
+    expected: { kind: "server_tool", tool: "get_course_description", input: { code: "ACCT1000" } },
+  },
+  {
+    id: "course-ilo",
+    question: "ACCT1000 的学习成果是什么？",
+    expected: { kind: "server_tool", tool: "get_course_ilo", input: { code: "ACCT1000" } },
   },
   {
     id: "reviews",

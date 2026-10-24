@@ -21,6 +21,19 @@ vi.mock("@/lib/mcp/data/get-course-reviews", async () => ({
 vi.mock("@/lib/mcp/data/get-course-sections", async () => ({
   getCourseSections: (await import("@/evals/assistant/catalog")).getCourseSections,
 }));
+vi.mock("@/lib/assistant/data/search-catalog", async () => ({
+  searchCatalogForAssistant: (await import("@/evals/assistant/catalog")).searchCatalogForAssistant,
+  countCoursesForAssistant: (await import("@/evals/assistant/catalog")).countCoursesForAssistant,
+}));
+vi.mock("@/lib/assistant/data/course-text", async () => ({
+  getCourseText: (await import("@/evals/assistant/catalog")).getCourseText,
+}));
+vi.mock("@/lib/assistant/data/instructor", async () => ({
+  getInstructorForAssistant: (await import("@/evals/assistant/catalog")).getInstructorForAssistant,
+}));
+vi.mock("@/lib/assistant/data/reviews", async () => ({
+  countCourseReviews: (await import("@/evals/assistant/catalog")).countCourseReviews,
+}));
 vi.mock("@/lib/assistant/model", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/assistant/model")>()),
   createAssistantModel: () => scriptedModel(),

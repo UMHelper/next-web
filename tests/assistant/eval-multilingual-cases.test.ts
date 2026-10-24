@@ -6,6 +6,13 @@ vi.mock("@/lib/mcp/data/get-course", () => ({ getCourse: vi.fn() }));
 vi.mock("@/lib/mcp/data/get-instructor", () => ({ getInstructor: vi.fn() }));
 vi.mock("@/lib/mcp/data/get-course-reviews", () => ({ getCourseReviews: vi.fn() }));
 vi.mock("@/lib/mcp/data/get-course-sections", () => ({ getCourseSections: vi.fn() }));
+vi.mock("@/lib/assistant/data/search-catalog", () => ({
+  searchCatalogForAssistant: vi.fn(),
+  countCoursesForAssistant: vi.fn(),
+}));
+vi.mock("@/lib/assistant/data/course-text", () => ({ getCourseText: vi.fn() }));
+vi.mock("@/lib/assistant/data/instructor", () => ({ getInstructorForAssistant: vi.fn() }));
+vi.mock("@/lib/assistant/data/reviews", () => ({ countCourseReviews: vi.fn() }));
 
 import { EVAL_COURSE_CODES, evalNavigationLookups } from "@/evals/assistant/catalog";
 import { MULTILINGUAL_CASES } from "@/evals/assistant/multilingual-cases";

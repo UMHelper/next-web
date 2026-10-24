@@ -7,7 +7,7 @@ import { ASSISTANT_PROMPT } from "./prompt";
 import { replyLanguageContext, replyScriptContext } from "./reply-script";
 import { createAssistantTools } from "./tools";
 
-export const ASSISTANT_MAX_STEPS = 5;
+export const ASSISTANT_MAX_STEPS = 8;
 
 export function createAssistantAgent(config: AssistantConfig, signal?: AbortSignal) {
   const agent = new BuiltInAgent({

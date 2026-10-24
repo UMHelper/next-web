@@ -15,9 +15,9 @@ const envStart = wrangler.indexOf('"env"');
 const previewStart = wrangler.indexOf('"preview"');
 
 describe("assistant inference defaults", () => {
-  it("keeps the production default at thinking off, 1200 output tokens and 5 steps", () => {
+  it("keeps the production default at thinking off, 1200 output tokens and 8 steps", () => {
     expect(readAssistantConfig({})).toMatchObject({ thinking: "off", maxOutputTokens: 1_200, model: "deepseek-flash" });
-    expect(ASSISTANT_MAX_STEPS).toBe(5);
+    expect(ASSISTANT_MAX_STEPS).toBe(8);
   });
 
   it("sets inference variables only in non-production environments", () => {
