@@ -10,6 +10,7 @@ import { searchCatalog } from "@/lib/mcp/data/search-catalog";
 import { bindCourseToolArgs, type CourseReferentSlot } from "@/lib/assistant/course-referent";
 import type { TimetableSlot } from "@/lib/assistant/timetable-context";
 import { CHECK_PLAN_CONFLICTS_TOOL_NAME } from "@/lib/assistant/check-plan-conflicts";
+import { PREVIEW_TIMETABLE_TOOL_NAME } from "@/lib/assistant/timetable-preview";
 import { createTimetableTools, unavailableTimetableSlot } from "@/lib/assistant/timetable-tools";
 import {
   executePresentResponse,
@@ -38,6 +39,7 @@ export const ASSISTANT_SERVER_TOOL_NAMES = [
   "get_course_sections",
   PRESENT_RESPONSE_TOOL_NAME,
   CHECK_PLAN_CONFLICTS_TOOL_NAME,
+  PREVIEW_TIMETABLE_TOOL_NAME,
 ] as const;
 
 export type ToolFailure = { error: "invalid_request" | "not_found" | "temporarily_unavailable" };

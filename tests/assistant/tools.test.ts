@@ -36,6 +36,7 @@ describe("assistant server tools", () => {
   it("registers the read-only tools, including present_response", () => {
     expect(createAssistantTools().map((tool) => tool.name)).toEqual([...ASSISTANT_SERVER_TOOL_NAMES]);
     expect(ASSISTANT_SERVER_TOOL_NAMES).toContain("present_response");
+    expect(ASSISTANT_SERVER_TOOL_NAMES.at(-1)).toBe("preview_timetable");
   });
 
   it("defaults present_response to omit unless the student asked to see a card", () => {

@@ -2,6 +2,10 @@ import type { ToolMessage } from "@copilotkit/react-core/v2";
 
 import { checkPlanConflictsResultSchema } from "@/lib/assistant/check-plan-conflicts";
 import {
+  PREVIEW_TIMETABLE_TOOL_NAME,
+  parseTimetablePreviewResult,
+} from "@/lib/assistant/timetable-preview";
+import {
   FILTER_CATALOG_RESULTS_TOOL_NAME,
   parseFilterCatalogResult,
 } from "@/lib/assistant/catalog-result-sets";
@@ -75,6 +79,11 @@ export function classifyToolContent(toolName: string, content: string): ToolCont
     }
     case "check_plan_conflicts":
       return classifyPlanConflict(content);
+    case PREVIEW_TIMETABLE_TOOL_NAME: {
+      const view = parseTimetablePreviewResult(content);
+      if (view.kind === "malformed") return "malformed";
+      return view.data.status === "ready" || view.data.status === "needs_section" ? "success" : "domain_error";
+    }
     default:
       return classifyUnknown(content);
   }

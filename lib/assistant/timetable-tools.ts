@@ -6,6 +6,12 @@ import {
   checkPlanConflictsParameters,
   runCheckPlanConflicts,
 } from "@/lib/assistant/check-plan-conflicts";
+import {
+  PREVIEW_TIMETABLE_DESCRIPTION,
+  PREVIEW_TIMETABLE_TOOL_NAME,
+  previewTimetableParameters,
+  runPreviewTimetable,
+} from "@/lib/assistant/timetable-preview";
 import { bindCourseToolArgs, type CourseReferentSlot } from "@/lib/assistant/course-referent";
 import type { TimetableSlot, TimetableState } from "@/lib/assistant/timetable-context";
 import { resolveCandidate, type LoadSections } from "@/lib/assistant/timetable-candidates";
@@ -56,6 +62,12 @@ export function createTimetableTools(
         if (bound.action === "clarify") return bound.result;
         return runCheckPlanConflicts(timetable.current, bound.args, deps);
       },
+    }),
+    defineTool({
+      name: PREVIEW_TIMETABLE_TOOL_NAME,
+      description: PREVIEW_TIMETABLE_DESCRIPTION,
+      parameters: previewTimetableParameters,
+      execute: async (args) => runPreviewTimetable(timetable.current, args, deps),
     }),
   ];
 }
