@@ -63,6 +63,10 @@ function fakeToolRenderer() {
   };
 }
 
+function activityRows() {
+  return Array.from(document.querySelectorAll<HTMLElement>("[data-status]"));
+}
+
 vi.mock("next/link", () => ({
   default: ({ href, children, ...props }: { href: string; children: ReactNode }) => (
     <a href={href} {...props}>
@@ -361,8 +365,8 @@ describe("AssistantChatView", () => {
 
       expect(screen.getByTestId("rich-call-1").textContent).toBe(catalogBody());
       expect(screen.getAllByText("Searched courses")).toHaveLength(1);
-      expect(screen.getByRole("status").textContent).toContain("ACCT");
-      expect(screen.getAllByRole("status")).toHaveLength(1);
+      expect(activityRows()).toHaveLength(1);
+      expect(activityRows()[0].textContent).toContain("ACCT");
     });
 
     it("keeps non-rich tools in ToolTrace", () => {
@@ -544,7 +548,7 @@ describe("AssistantChatView", () => {
       expect(screen.getByTestId("rich-call-1").textContent).toBe("loading");
       expect(screen.getAllByText("Searching courses…")).toHaveLength(1);
       expect(screen.queryByText("Searched courses")).toBeNull();
-      expect(screen.getAllByRole("status").map((node) => node.textContent)).toEqual([
+      expect(activityRows().map((node) => node.textContent)).toEqual([
         expect.stringContaining("Searching courses…"),
       ]);
       expect(screen.queryByText("Thinking…")).toBeNull();
@@ -581,7 +585,7 @@ describe("AssistantChatView", () => {
       expect(screen.getByTestId("rich-call-1").textContent).toBe(catalogBody(1));
       expect(screen.getByTestId("rich-call-2").textContent).toBe(catalogBody(2));
       expect(screen.getAllByText("Searched courses")).toHaveLength(2);
-      expect(screen.getAllByRole("status")).toHaveLength(2);
+      expect(activityRows()).toHaveLength(2);
     });
 
     it("does not restart loading on an incomplete call from a previous turn", () => {
@@ -703,8 +707,8 @@ describe("AssistantChatView", () => {
       });
 
       expect(screen.getAllByText("Read course")).toHaveLength(1);
-      expect(screen.getByRole("status").textContent).toContain("APAC1000");
-      expect(screen.getByTestId("rich-call-course").textContent).toBe(courseBody);
+      expect(activityRows()[0].textContent).toContain("APAC1000");
+      expect(screen.queryByTestId("rich-call-course")).toBeNull();
     });
 
     it("renders one activity row and a rich block for get_course_sections", () => {
@@ -732,8 +736,92 @@ describe("AssistantChatView", () => {
       });
 
       expect(screen.getAllByText("Read class times")).toHaveLength(1);
-      expect(screen.getByRole("status").textContent).toContain("APAC1000");
-      expect(screen.getByTestId("rich-call-sections").textContent).toBe(sectionsBody);
+      expect(activityRows()[0].textContent).toContain("APAC1000");
+      expect(screen.queryByTestId("rich-call-sections")).toBeNull();
+    });
+
+    it("renders a course card only when present_response claims course_detail", () => {
+      renderView({
+        messages: [
+          { id: "u1", role: "user", content: "Show the full details of APAC1000." },
+          {
+            id: "a1",
+            role: "assistant",
+            content: "",
+            toolCalls: [
+              { id: "g", type: "function", function: { name: "get_course", arguments: '{"code":"APAC1000"}' } },
+              {
+                id: "p",
+                type: "function",
+                function: {
+                  name: "present_response",
+                  arguments: '{"show":[{"component":"course_detail","course":"APAC1000"}]}',
+                },
+              },
+            ],
+          },
+          { id: "t1", role: "tool", toolCallId: "g", content: courseBody },
+          {
+            id: "t2",
+            role: "tool",
+            toolCallId: "p",
+            content: '{"status":"accepted","show":[{"component":"course_detail","course":"APAC1000"}]}',
+          },
+        ],
+        toolRenderer: fakeToolRenderer(),
+      });
+
+      expect(screen.getByTestId("rich-g")).toBeTruthy();
+      expect(screen.getByText("Read course")).toBeTruthy();
+      expect(screen.queryByText("Choosing a layout")).toBeNull();
+      expect(screen.queryByText("Chose a layout")).toBeNull();
+    });
+
+    it("does not mount two course cards for a comparison turn", () => {
+      renderView({
+        messages: [
+          { id: "u1", role: "user", content: "CISC2001 vs CISC2003?" },
+          {
+            id: "a1",
+            role: "assistant",
+            content: "| Attribute | A | B |\n|---|---|---|",
+            toolCalls: [
+              { id: "g1", type: "function", function: { name: "get_course", arguments: '{"code":"APAC1000"}' } },
+              { id: "g2", type: "function", function: { name: "get_course", arguments: '{"code":"APAC2000"}' } },
+            ],
+          },
+          { id: "t1", role: "tool", toolCallId: "g1", content: courseBody },
+          { id: "t2", role: "tool", toolCallId: "g2", content: courseBody },
+        ],
+        toolRenderer: fakeToolRenderer(),
+      });
+
+      expect(screen.queryByTestId("rich-g1")).toBeNull();
+      expect(screen.queryByTestId("rich-g2")).toBeNull();
+      expect(screen.getAllByText("Read course").length).toBeGreaterThan(0);
+    });
+
+    it("keeps a get_course clarification visible", () => {
+      renderView({
+        messages: [
+          { id: "u1", role: "user", content: "the second one" },
+          {
+            id: "a1",
+            role: "assistant",
+            content: "",
+            toolCalls: [{ id: "g", type: "function", function: { name: "get_course", arguments: '{"code":"APAC1000"}' } }],
+          },
+          {
+            id: "t",
+            role: "tool",
+            toolCallId: "g",
+            content: '{"status":"needs_clarification","ask":"Which course do you mean?"}',
+          },
+        ],
+        toolRenderer: fakeToolRenderer(),
+      });
+
+      expect(screen.getByTestId("rich-g")).toBeTruthy();
     });
 
     it("renders one activity row and the filter block", () => {
@@ -767,7 +855,7 @@ describe("AssistantChatView", () => {
       });
 
       expect(screen.getAllByText("Filtered results")).toHaveLength(1);
-      expect(screen.getByRole("status").textContent).not.toContain("call-1");
+      expect(activityRows()[0].textContent).not.toContain("call-1");
       expect(screen.getByTestId("rich-call-filter").textContent).toContain("applied");
     });
 
@@ -792,11 +880,117 @@ describe("AssistantChatView", () => {
         toolRenderer: fakeToolRenderer(),
       });
 
-      const status = screen.getByRole("status");
+      const status = activityRows()[0];
       expect(status.getAttribute("data-status")).toBe("error");
       expect(status.textContent).toContain("Couldn't read course");
       expect(screen.queryByText("Read course")).toBeNull();
+      expect(screen.queryByTestId("rich-call-1")).toBeNull();
+    });
+
+    it("mounts the rich failure block when present_response claims a not_found course", () => {
+      renderView({
+        messages: [
+          { id: "u1", role: "user", content: "APAC1000" },
+          {
+            id: "a1",
+            role: "assistant",
+            content: "",
+            toolCalls: [
+              {
+                id: "call-1",
+                type: "function",
+                function: { name: "get_course", arguments: '{"code":"APAC1000"}' },
+              },
+              {
+                id: "p",
+                type: "function",
+                function: {
+                  name: "present_response",
+                  arguments: '{"show":[{"component":"course_detail","course":"APAC1000"}]}',
+                },
+              },
+            ],
+          },
+          { id: "t1", role: "tool", toolCallId: "call-1", content: '{"error":"not_found"}' },
+          {
+            id: "t2",
+            role: "tool",
+            toolCallId: "p",
+            content: '{"status":"accepted","show":[{"component":"course_detail","course":"APAC1000"}]}',
+          },
+        ],
+        toolRenderer: fakeToolRenderer(),
+      });
+
       expect(screen.getAllByTestId("rich-call-1")).toHaveLength(1);
+    });
+
+    it("shows activity without a course card until present_response arrives on a running turn", () => {
+      const toolRenderer = fakeToolRenderer();
+      const sharedProps: AssistantChatViewProps = {
+        messages: [],
+        suggestions: [{ title: "Q1", message: "M1" }],
+        isRunning: true,
+        isReady: true,
+        draft: "",
+        alert: null,
+        onDraftChange: vi.fn(),
+        onSend: vi.fn(),
+        onStop: vi.fn(),
+        onNewChat: vi.fn(),
+        onClose: vi.fn(),
+        onClearAlert: vi.fn(),
+        toolRenderer,
+      };
+
+      const beforePresent: Message[] = [
+        { id: "u1", role: "user", content: "APAC1000 details" },
+        {
+          id: "a1",
+          role: "assistant",
+          content: "",
+          toolCalls: [
+            { id: "g", type: "function", function: { name: "get_course", arguments: '{"code":"APAC1000"}' } },
+          ],
+        },
+        { id: "t1", role: "tool", toolCallId: "g", content: courseBody },
+      ];
+
+      const { rerender } = render(
+        <AssistantChatView {...sharedProps} messages={beforePresent} />,
+      );
+
+      expect(screen.getByText("Read course")).toBeTruthy();
+      expect(screen.queryByTestId("rich-g")).toBeNull();
+
+      const afterPresent: Message[] = [
+        ...beforePresent,
+        {
+          id: "a2",
+          role: "assistant",
+          content: "",
+          toolCalls: [
+            {
+              id: "p",
+              type: "function",
+              function: {
+                name: "present_response",
+                arguments: '{"show":[{"component":"course_detail","course":"APAC1000"}]}',
+              },
+            },
+          ],
+        },
+        {
+          id: "t2",
+          role: "tool",
+          toolCallId: "p",
+          content: '{"status":"accepted","show":[{"component":"course_detail","course":"APAC1000"}]}',
+        },
+      ];
+
+      rerender(<AssistantChatView {...sharedProps} messages={afterPresent} />);
+
+      expect(screen.getByTestId("rich-g")).toBeTruthy();
     });
 
     it("pairs get_course and get_course_sections in call order when results arrive reversed", () => {
@@ -829,12 +1023,12 @@ describe("AssistantChatView", () => {
         toolRenderer: fakeToolRenderer(),
       });
 
-      const statuses = screen.getAllByRole("status").map((node) => node.textContent ?? "");
+      const statuses = activityRows().map((node) => node.textContent ?? "");
       expect(statuses[0]).toContain("Read course");
       expect(statuses[1]).toContain("Read class times");
-      expect(screen.getByTestId("rich-call-course").textContent).toBe(courseBody);
-      expect(screen.getByTestId("rich-call-sections").textContent).toBe(sectionsBody);
-      expect(screen.getAllByRole("status")).toHaveLength(2);
+      expect(screen.queryByTestId("rich-call-course")).toBeNull();
+      expect(screen.queryByTestId("rich-call-sections")).toBeNull();
+      expect(activityRows()).toHaveLength(2);
     });
 
     it("updates each call in one turn independently", () => {
@@ -867,7 +1061,7 @@ describe("AssistantChatView", () => {
         toolRenderer: fakeToolRenderer(),
       });
 
-      const statuses = screen.getAllByRole("status");
+      const statuses = activityRows();
       expect(statuses).toHaveLength(2);
       expect(statuses[0].getAttribute("data-status")).toBe("done");
       expect(statuses[0].textContent).toContain("Read course");
@@ -911,7 +1105,7 @@ describe("AssistantChatView", () => {
 
       expect(screen.getAllByTestId("rich-call-1")).toHaveLength(1);
       expect(screen.getAllByText("Searched courses")).toHaveLength(1);
-      expect(screen.getByRole("status").textContent).toContain("MATH");
+      expect(activityRows()[0].textContent).toContain("MATH");
     });
 
     it("keeps a non-rich trace and a rich row as two different calls", () => {

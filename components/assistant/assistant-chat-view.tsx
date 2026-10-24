@@ -11,7 +11,6 @@ import {
   X,
 } from "lucide-react";
 import {
-  useCallback,
   useEffect,
   useMemo,
   useState,
@@ -36,8 +35,10 @@ import {
 import { Message as ChatMessage, MessageContent } from "@/components/ai-elements/message";
 import { PromptInput } from "@/components/ai-elements/prompt-input";
 import { Response } from "@/components/ai-elements/response";
-import { dedupeCalls, ToolRow, ToolTrace } from "@/components/ai-elements/tool";
+import { dedupeCalls, ToolTrace } from "@/components/ai-elements/tool";
 import { EXAMPLE_QUESTIONS } from "@/lib/assistant/example-questions";
+import { callsForActivity, planRichBlocks, PRESENT_RESPONSE_TOOL_NAME } from "@/lib/assistant/presentation";
+import { ALWAYS_RICH_TOOL_NAMES } from "@/lib/assistant/rich-tools";
 import { cn } from "@/lib/utils";
 
 type AssistantPart = AssistantMessage | ReasoningMessage;
@@ -171,20 +172,16 @@ function AssistantTurn({
     [dedupedCalls],
   );
 
-  const turnActive = isRunning && isLast;
+  const streamingHere = isRunning && isLast;
 
-  const isRichCall = useCallback(
-    (call: ToolCall) =>
-      Boolean(
-        toolRenderer?.names.has(call.function.name) &&
-          (results.get(call.id) || turnActive),
-      ),
-    [toolRenderer, results, turnActive],
+  const activityCalls = useMemo(() => callsForActivity(dedupedCalls), [dedupedCalls]);
+  const richPlan = useMemo(
+    () => planRichBlocks(dedupedCalls, results, ALWAYS_RICH_TOOL_NAMES, streamingHere),
+    [dedupedCalls, results, streamingHere],
   );
-
-  const traceCalls = useMemo(
-    () => dedupedCalls.filter((call) => !isRichCall(call)),
-    [dedupedCalls, isRichCall],
+  const richByCallId = useMemo(
+    () => new Map(richPlan.map((block) => [block.callId, block])),
+    [richPlan],
   );
 
   // One action row per turn, not one under every assistant fragment.
@@ -196,13 +193,12 @@ function AssistantTurn({
     return "";
   }, [parts]);
 
-  const streamingHere = isRunning && isLast;
   const seenRichIds = new Set<string>();
 
   return (
     <div className="space-y-2 animate-in fade-in duration-200">
-      {traceCalls.length > 0 ? (
-        <ToolTrace calls={traceCalls} results={results} isRunning={turnActive} />
+      {activityCalls.length > 0 ? (
+        <ToolTrace calls={activityCalls} results={results} isRunning={streamingHere} />
       ) : null}
       {parts.map((part) => {
         if (part.role === "reasoning") return null;
@@ -211,18 +207,12 @@ function AssistantTurn({
         const richBlocks =
           part.toolCalls?.flatMap((rawCall) => {
             const call = dedupedById.get(rawCall.id) ?? rawCall;
-            if (!dedupedIds.has(call.id) || seenRichIds.has(call.id) || !isRichCall(call) || !toolRenderer) {
-              return [];
-            }
+            if (call.function.name === PRESENT_RESPONSE_TOOL_NAME) return [];
+            if (!dedupedIds.has(call.id) || seenRichIds.has(call.id)) return [];
+            if (!richByCallId.has(call.id) || !toolRenderer) return [];
             seenRichIds.add(call.id);
             return [
               <div key={`rich-${call.id}`} className="space-y-1.5">
-                <ToolRow
-                  call={call}
-                  result={results.get(call.id)}
-                  isRunning={turnActive}
-                  announce
-                />
                 {toolRenderer.render(call, results.get(call.id))}
               </div>,
             ];
