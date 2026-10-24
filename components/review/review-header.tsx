@@ -59,7 +59,7 @@ export async function ReviewHeader({
                 <ChevronRightCircle size={14} strokeWidth={1.5} />
               </Link>
             </div>
-            <CourseAlias codes={equivalentCodes} variant="header" className="mb-2" />
+            <CourseAlias codes={equivalentCodes} variant="plain" className="mb-2" />
             <div className='text-base'>{course_info["courseTitleEng"]}</div>
             <div className='text-sm'>{course_info["courseTitleChi"]}</div>
             <div className='pb-3 flex-row flex space-x-2 mt-4'>
