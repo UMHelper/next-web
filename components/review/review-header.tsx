@@ -10,6 +10,7 @@ import { Progress } from "@/components/ui/progress";
 import { TimetableScheduleCard } from "@/components/timetable-schedule-card";
 import { getAppConfig } from "@/lib/config/app-config";
 import { shouldShowOfferedBadge } from "@/lib/config/offered-badge";
+import { normalizeEquivalentCodes } from "@/lib/database/course-equivalences";
 import { getCourseInfo } from "@/lib/database/get-course-info";
 import getScheduleList from "@/lib/database/get-schedule-list";
 import type { ProfWithCourseRow } from "@/lib/database/types";
@@ -36,6 +37,9 @@ export async function ReviewHeader({
     getAppConfig(),
     is_offered ? getScheduleList(code, prof) : Promise.resolve([]),
   ]);
+  const primaryCode = String(course_info['New_code'] ?? code).toUpperCase();
+  const equivalentCodes = normalizeEquivalentCodes(course_info['equivalent_codes'])
+    .filter((equivalent) => equivalent !== primaryCode);
 
   return (
     <div className='bg-gradient-to-r from-brand-from to-brand-to text-white p-6'>
@@ -56,6 +60,20 @@ export async function ReviewHeader({
                 <ChevronRightCircle size={14} strokeWidth={1.5} />
               </Link>
             </div>
+            {equivalentCodes.length > 0 ? (
+              <div className="text-sm pb-1">
+                <span className="font-medium">{primaryCode}</span>
+                <span className="mx-1 opacity-70">a.k.a</span>
+                {equivalentCodes.map((equivalent, index) => (
+                  <React.Fragment key={equivalent}>
+                    {index > 0 ? <span className="opacity-70">, </span> : null}
+                    <Link className="underline underline-offset-2" href={`/course/${equivalent}`}>
+                      {equivalent}
+                    </Link>
+                  </React.Fragment>
+                ))}
+              </div>
+            ) : null}
             <div className='text-base'>{course_info["courseTitleEng"]}</div>
             <div className='text-sm'>{course_info["courseTitleChi"]}</div>
             <div className='pb-3 flex-row flex space-x-2 mt-4'>

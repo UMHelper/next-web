@@ -8,7 +8,7 @@ export const revalidate = 86400;
 
 
 const fetchCourseSitemap = async () => {
-  const { data, error } = await supabaseServer.from("course_noporf").select("New_code");
+  const { data, error } = await supabaseServer.from("course_catalog").select("New_code");
   if (error) {
     console.error("[sitemap] course query failed:", error.message);
     return [];

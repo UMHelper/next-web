@@ -115,14 +115,16 @@ export async function getCourse(input: GetCourseInput): Promise<GetCourseOutput>
 
   // The cached course helper already returns every instructor row for the course,
   // so the page is sliced from that list — exact totalCount with no extra query.
+  // Historical codes resolve to the new primary code; links use that primary.
+  const primaryCode = course.courseCode;
   const allInstructors = profList
-    .map((row) => projectInstructor(row, input.code))
+    .map((row) => projectInstructor(row, primaryCode))
     .filter((row): row is CourseInstructorSummary => row !== null);
 
   const offset = (input.page - 1) * MAX_INSTRUCTORS;
 
   return {
-    course: projectCourse(course, input.code, isOffer),
+    course: projectCourse(course, primaryCode, isOffer),
     page: input.page,
     totalCount: allInstructors.length,
     hasMore: input.page * MAX_INSTRUCTORS < allInstructors.length,

@@ -15,6 +15,8 @@ export type CourseRow = {
   gradingSystem: string | null;
   courseDescription: string | null;
   ilo: string | null;
+  /** Present on rows read through `course_catalog`. */
+  equivalent_codes?: string[];
   [key: string]: unknown;
 };
 

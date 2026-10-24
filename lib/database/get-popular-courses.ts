@@ -170,11 +170,24 @@ async function loadFallbackSources(since: string) {
     links.push(...((data ?? []) as CourseLinkRow[]));
   }
 
+  const { data: equivalenceData } = await supabaseServer
+    .from("course_equivalences")
+    .select("primary_code,equivalent_code");
+  const primaryByEquivalent = new Map<string, string>();
+  for (const row of equivalenceData ?? []) {
+    if (row.equivalent_code && row.primary_code) {
+      primaryByEquivalent.set(String(row.equivalent_code), String(row.primary_code));
+    }
+  }
+  for (const link of links) {
+    link.course_id = primaryByEquivalent.get(link.course_id) ?? link.course_id;
+  }
+
   const courseCodes = [...new Set(links.map((link) => link.course_id))];
   const courses: CourseMetaRow[] = [];
   for (const codeChunk of chunk(courseCodes, QUERY_CHUNK_SIZE)) {
     const { data, error } = await supabaseServer
-      .from("course_noporf")
+      .from("course_catalog")
       .select("*")
       .in("New_code", codeChunk);
 

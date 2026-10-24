@@ -32,6 +32,11 @@ const CourseCard=({data, listName, position}:{data:any; listName: ItemListName; 
                             
                         </CardTitle>
                         <CardTitle className='text-base'>{data.courseTitleEng}</CardTitle>
+                        {Array.isArray(data.equivalent_codes) && data.equivalent_codes.length > 0 ? (
+                            <CardDescription className="text-xs">
+                                a.k.a {data.equivalent_codes.join(", ")}
+                            </CardDescription>
+                        ) : null}
                         <CardDescription>{data.courseTitleChi}</CardDescription>
                     </div>
                 </CardHeader>

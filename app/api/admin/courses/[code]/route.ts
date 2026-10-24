@@ -14,7 +14,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ co
 
   const { code: rawCode } = await params;
   const code = decodeURIComponent(rawCode).toUpperCase();
-  if (!/^[A-Z]{4}\d{4}$/.test(code)) {
+  if (!/^[A-Z]{3,5}\d{3,4}[A-Z]?$/.test(code)) {
     return apiError("invalid_request", "Invalid course code", 400);
   }
 

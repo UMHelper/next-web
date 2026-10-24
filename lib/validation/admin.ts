@@ -49,6 +49,19 @@ export const courseUpdateSchema = z
   })
   .refine((value) => Object.keys(value).length > 0, { message: "no fields to update" });
 
+export const courseEquivalencesSchema = z.object({
+  equivalent_codes: z
+    .array(
+      z
+        .string()
+        .trim()
+        .min(1)
+        .max(30)
+        .transform((value) => value.toUpperCase()),
+    )
+    .max(20),
+});
+
 export const profWithCourseUpdateSchema = z
   .object({
     is_offered: z.union([z.literal(0), z.literal(1)]).optional(),

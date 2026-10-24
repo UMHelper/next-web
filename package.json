@@ -19,6 +19,7 @@
     "cf-typegen": "wrangler types --env-interface CloudflareEnv --include-runtime false cloudflare-env.d.ts",
     "test": "vitest run",
     "sync:um": "node scripts/sync-um.mjs --missing",
+    "equivalences:redirects": "node scripts/build-equivalence-redirects.mjs",
     "analytics:manifest": "node scripts/print-analytics-manifest.mjs",
     "plugin:assets": "node scripts/build-plugin-assets.mjs",
     "icons:build": "node scripts/build-brand-icons.mjs",
