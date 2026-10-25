@@ -181,6 +181,8 @@ export function HomeSearch({
   const router = useRouter();
   const { isLoaded, isSignedIn } = useAuth();
   const signedOut = isLoaded && !isSignedIn;
+  const serverSignedOut = initialAssistantAccess === null;
+  const askSignIn = signedOut || serverSignedOut;
   const [query, setQuery] = useState("");
   const [payload, setPayload] = useState<SearchPayload>(EMPTY);
   const [loading, setLoading] = useState(false);
@@ -289,7 +291,10 @@ export function HomeSearch({
 
   const requestAssistant = useCallback(
     (detail: Parameters<typeof openAssistant>[0] = {}) => {
-      if (!isLoaded) return;
+      if (!isLoaded) {
+        if (serverSignedOut) signInToAsk();
+        return;
+      }
       if (!isSignedIn) {
         signInToAsk();
         return;
@@ -298,7 +303,7 @@ export function HomeSearch({
       inputRef.current?.blur();
       openAssistant(detail);
     },
-    [isLoaded, isSignedIn, signInToAsk],
+    [isLoaded, isSignedIn, serverSignedOut, signInToAsk],
   );
 
   const askAi = () => {
@@ -522,19 +527,19 @@ export function HomeSearch({
             <kbd className="hidden shrink-0 rounded border border-border/60 bg-white/20 px-1.5 py-0.5 font-sans text-[11px] leading-none text-background/80 sm:inline">
               ⌘K
             </kbd>
-            {assistantDenied ? null : (
+            {assistantDenied || (initialAssistantAccess === undefined && !isLoaded) ? null : (
               <button
                 type="button"
-                aria-label={signedOut ? "Sign in to ask AI" : "Ask AI"}
+                aria-label={askSignIn ? "Sign in to ask AI" : "Ask AI"}
                 onClick={askAi}
                 className="flex h-9 shrink-0 items-center gap-1.5 rounded-md bg-brand/90 px-3 text-xs font-medium text-brand-foreground shadow-sm transition-colors hover:bg-brand-strong"
               >
-                {signedOut ? (
+                {askSignIn ? (
                   <LogIn className="h-4 w-4" aria-hidden />
                 ) : (
                   <Sparkles className="h-4 w-4" aria-hidden />
                 )}
-                <span className="hidden sm:inline">{signedOut ? "Sign in" : "Ask AI"}</span>
+                <span className="hidden sm:inline">{askSignIn ? "Sign in" : "Ask AI"}</span>
               </button>
             )}
           </div>
@@ -671,8 +676,8 @@ export function HomeSearch({
             onClick={() => requestAssistant()}
             className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-white/20 px-3 py-2 text-sm text-white backdrop-blur transition-colors hover:bg-white/30"
           >
-            {signedOut ? <LogIn className="h-4 w-4" aria-hidden /> : <Sparkles className="h-4 w-4" aria-hidden />}
-            {signedOut ? "Sign in" : "Ask AI"}
+            {askSignIn ? <LogIn className="h-4 w-4" aria-hidden /> : <Sparkles className="h-4 w-4" aria-hidden />}
+            {askSignIn ? "Sign in" : "Ask AI"}
           </button>
         )}
       </div>
