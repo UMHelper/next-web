@@ -317,21 +317,23 @@ export function CommandPalette({ variant = "header" }: { variant?: "header" | "h
       <DialogPrimitive.Trigger asChild>
         <button
           type="button"
-          aria-label="Search courses and instructors"
+          aria-label={variant === "header" ? "Search" : "Search courses and instructors"}
           className={cn(
-            "flex shrink-0 items-center gap-2 border border-border bg-background text-muted-foreground shadow-sm transition-colors hover:bg-surface-subtle hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            "flex shrink-0 items-center outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
             variant === "hero"
-              ? "h-12 w-full rounded-xl px-4 text-base shadow-xl backdrop-blur"
-              : "h-8 w-9 justify-center rounded-lg px-0 text-sm md:w-[240px] md:justify-start md:px-3",
+              ? "h-12 w-full gap-2 rounded-xl border border-border bg-background px-4 text-base text-muted-foreground shadow-xl backdrop-blur hover:bg-surface-subtle hover:text-foreground"
+              : "justify-center rounded-md text-foreground hover:text-foreground/80",
           )}
         >
-          <Search className="h-4 w-4 shrink-0 opacity-60" aria-hidden />
-          <span className={cn("min-w-0 flex-1 truncate text-left", variant === "header" && "hidden md:inline")}>
-            Search courses or instructors…
-          </span>
-          <kbd className={cn("shrink-0 rounded border border-border bg-surface-subtle px-1 py-0.5 font-sans text-[10px] leading-none", variant === "header" && "hidden md:inline")}>
-            ⌘K
-          </kbd>
+          {variant === "header" ? (
+            <Search size={20} strokeWidth={2} aria-hidden />
+          ) : (
+            <>
+              <Search className="h-4 w-4 shrink-0 opacity-60" aria-hidden />
+              <span className="min-w-0 flex-1 truncate text-left">Search courses or instructors…</span>
+              <kbd className="shrink-0 rounded border border-border bg-surface-subtle px-1 py-0.5 font-sans text-[10px] leading-none">⌘K</kbd>
+            </>
+          )}
         </button>
       </DialogPrimitive.Trigger>
 

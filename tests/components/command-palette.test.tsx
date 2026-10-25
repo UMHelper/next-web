@@ -39,7 +39,7 @@ const PAYLOAD = {
 
 function renderPalette() {
   render(<CommandPalette />);
-  fireEvent.click(screen.getByRole("button", { name: "Search courses and instructors" }));
+  fireEvent.click(screen.getByRole("button", { name: "Search" }));
   return screen.getByPlaceholderText("Search courses, instructors, pages…") as HTMLInputElement;
 }
 
