@@ -85,7 +85,7 @@ describe("CommandPalette", () => {
     const ask = screen.getByRole("option", { name: /Ask AI/ });
     fireEvent.click(ask);
 
-    expect(openAssistant).toHaveBeenCalledWith({ prompt: "給分好嗎" });
+    expect(openAssistant).toHaveBeenCalledWith({ prompt: "給分好嗎", autoSend: true });
   });
 
   it("shows page shortcuts when the query is empty", async () => {

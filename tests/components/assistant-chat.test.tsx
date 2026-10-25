@@ -93,6 +93,26 @@ describe("AssistantChat", () => {
     expect((screen.getByLabelText("Ask about courses") as HTMLTextAreaElement).value).toBe("");
   });
 
+  it("auto-sends an Ask AI prompt instead of only prefilling it", async () => {
+    const onPromptConsumed = vi.fn();
+    render(
+      <AssistantChat
+        onClose={() => {}}
+        notice={null}
+        onClearNotice={() => {}}
+        initialPrompt="ACCT1000 給分好嗎？"
+        autoSend
+        onPromptConsumed={onPromptConsumed}
+      />,
+    );
+
+    await waitFor(() => expect(mocks.runAgent).toHaveBeenCalledWith({ agent: mocks.agent }));
+    expect(mocks.agent.addMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ role: "user", content: "ACCT1000 給分好嗎？" }),
+    );
+    expect(onPromptConsumed).toHaveBeenCalled();
+  });
+
   it("shows the mapped error message when a run fails", async () => {
     mocks.runAgent.mockRejectedValueOnce(new Error("429"));
     renderChat();

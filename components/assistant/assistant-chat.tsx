@@ -27,6 +27,7 @@ export default function AssistantChat({
   panelRef,
   panelOpen,
   initialPrompt,
+  autoSend,
   onPromptConsumed,
 }: {
   onClose: () => void;
@@ -35,6 +36,7 @@ export default function AssistantChat({
   panelRef?: RefCallback<HTMLElement>;
   panelOpen?: boolean;
   initialPrompt?: string | null;
+  autoSend?: boolean;
   onPromptConsumed?: () => void;
 }) {
   const { agent, isReady } = useAgent();
@@ -93,10 +95,19 @@ export default function AssistantChat({
 
   useEffect(() => {
     if (!initialPrompt || initialPrompt === consumedPrompt.current) return;
+
+    if (!autoSend) {
+      consumedPrompt.current = initialPrompt;
+      setDraft(initialPrompt);
+      onPromptConsumed?.();
+      return;
+    }
+
+    if (!isReady || agent.isRunning) return;
     consumedPrompt.current = initialPrompt;
-    setDraft(initialPrompt);
     onPromptConsumed?.();
-  }, [initialPrompt, onPromptConsumed]);
+    void send(initialPrompt);
+  }, [agent.isRunning, autoSend, initialPrompt, isReady, onPromptConsumed, send]);
 
   // On desktop the page keeps a margin for the docked panel, so the site header
   // keeps its own style and is not covered. On mobile the panel covers the

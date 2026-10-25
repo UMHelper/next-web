@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  ArrowUp,
   ArrowUpRight,
   BookOpen,
   CalendarDays,
@@ -228,67 +227,80 @@ export function HomeSearch() {
     };
   }, []);
 
-  const searchType = (term: string): "course" | "instructor" =>
-    /[0-9]/.test(term) || !term.includes(" ") ? "course" : "instructor";
-
-  const searchTarget = (term: string) => buildSearchPath(searchType(term), term.trim());
-
-  const runSearch = () => {
-    const term = query.trim();
-    if (!term) {
-      inputRef.current?.focus();
-      return;
-    }
+  const askAi = () => {
+    const prompt = query.trim();
     setOpen(false);
     inputRef.current?.blur();
-    router.push(searchTarget(term));
+    openAssistant(prompt ? { prompt, autoSend: true } : {});
   };
 
   const groups = useMemo<HomeGroup[]>(() => {
     const term = query.trim();
+    const aiItem: HomeItem | null = assistantEnabled
+      ? { id: "home-ai", kind: "ai", title: "Ask AI", subtitle: term || undefined }
+      : null;
+
     if (!term) {
-      const emptyGroups: HomeGroup[] = [];
-      if (recents.length) emptyGroups.push({ key: "recent", title: "Recents", items: recents });
-      emptyGroups.push({ key: "tips", title: "Search tips", items: TIPS });
-      return emptyGroups;
+      const next: HomeGroup[] = [];
+      if (aiItem) next.push({ key: "ai", title: "", items: [aiItem] });
+      if (recents.length) next.push({ key: "recent", title: "Recents", items: recents });
+      next.push({ key: "tips", title: "Search tips", items: TIPS });
+      return next;
     }
 
-    const isCode = COURSE_CODE.test(term);
-    const searchItems: HomeItem[] = isCode
-      ? [
-          {
-            id: "home-search-course-list",
-            kind: "search",
-            title: `Search Course List for “${term}”`,
-            query: term,
-            searchType: "course",
-          },
-        ]
-      : [
-          {
-            id: "home-search-course",
-            kind: "search",
-            title: `Search Courses for “${term}”`,
-            query: term,
-            searchType: "course",
-          },
-          {
-            id: "home-search-instructor",
-            kind: "search",
-            title: `Search Instructors for “${term}”`,
-            query: term,
-            searchType: "instructor",
-          },
-        ];
+    if (COURSE_CODE.test(term)) {
+      const next: HomeGroup[] = [];
+      if (loading) {
+        next.push({ key: "skeleton", title: "", kind: "skeleton", items: [] });
+      } else {
+        const code = term.toUpperCase();
+        const course = payload.courses.find((entry) => entry.code.toUpperCase() === code);
+        if (course) {
+          next.push({
+            key: "course",
+            title: "",
+            items: [
+              {
+                id: `course-${course.code}`,
+                kind: "course",
+                title: course.code,
+                subtitle: course.titleEn ?? undefined,
+                trailing: [course.faculty, course.department].filter(Boolean).join(" / ") || undefined,
+                href: `/course/${encodeURIComponent(course.code)}`,
+              },
+            ],
+          });
+        } else {
+          next.push({ key: "empty", title: "", kind: "empty", items: [] });
+        }
+      }
+      if (aiItem) next.push({ key: "ai", title: "", items: [aiItem] });
+      return next;
+    }
+
+    const searchItems: HomeItem[] = [
+      {
+        id: "home-search-course",
+        kind: "search",
+        title: `Search Courses for “${term}”`,
+        query: term,
+        searchType: "course",
+      },
+      {
+        id: "home-search-instructor",
+        kind: "search",
+        title: `Search Instructors for “${term}”`,
+        query: term,
+        searchType: "instructor",
+      },
+    ];
 
     const next: HomeGroup[] = [];
-    if (assistantEnabled) {
-      next.push({ key: "ai", title: "", items: [{ id: "home-ai", kind: "ai", title: "Ask AI" }] });
-    }
+    if (aiItem) next.push({ key: "ai", title: "", items: [aiItem] });
     next.push({ key: "search", title: "Search", items: searchItems });
 
     if (loading) {
-      next.push({ key: "skeleton", title: "", section: "Search Results", kind: "skeleton", items: [] });
+      next.push({ key: "skeleton", title: "", kind: "skeleton", items: [] });
       return next;
     }
 
@@ -308,14 +320,10 @@ export function HomeSearch() {
       href: `/professor/${encodeURIComponent(instructor.name).replaceAll("%2F", "$")}`,
     }));
 
-    if (courses.length) {
-      next.push({ key: "courses", section: "Search Results", title: "Courses", items: courses });
-    }
-    if (instructors.length) {
-      next.push({ key: "instructors", section: "Search Results", title: "Instructors", items: instructors });
-    }
+    if (courses.length) next.push({ key: "courses", title: "Courses", items: courses });
+    if (instructors.length) next.push({ key: "instructors", title: "Instructors", items: instructors });
     if (courses.length === 0 && instructors.length === 0) {
-      next.push({ key: "empty", section: "Search Results", title: "", kind: "empty", items: [] });
+      next.push({ key: "empty", title: "", kind: "empty", items: [] });
     }
     return next;
   }, [assistantEnabled, loading, payload, query, recents]);
@@ -323,12 +331,7 @@ export function HomeSearch() {
   const flat = useMemo(() => groups.flatMap((group) => group.items), [groups]);
 
   useEffect(() => {
-    if (!query.trim()) {
-      setActive(0);
-      return;
-    }
-    const start = assistantEnabled ? 1 : 0;
-    setActive(searchType(query.trim()) === "instructor" ? start + 1 : start);
+    setActive(0);
   }, [assistantEnabled, query]);
 
   useEffect(() => {
@@ -358,7 +361,7 @@ export function HomeSearch() {
       inputRef.current?.blur();
       if (item.kind === "ai") {
         const prompt = query.trim();
-        openAssistant(prompt ? { prompt } : {});
+        openAssistant(prompt ? { prompt, autoSend: true } : {});
         return;
       }
       saveRecent(item);
@@ -423,11 +426,12 @@ export function HomeSearch() {
             </kbd>
             <button
               type="button"
-              aria-label="Search"
-              onClick={runSearch}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand text-brand-foreground shadow-sm transition-colors hover:bg-brand-strong"
+              aria-label="Ask AI"
+              onClick={askAi}
+              className="flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-brand px-3 text-xs font-medium text-brand-foreground shadow-sm transition-colors hover:bg-brand-strong"
             >
-              <ArrowUp className="h-4 w-4" aria-hidden />
+              <Sparkles className="h-4 w-4" aria-hidden />
+              <span className="hidden sm:inline">Ask AI</span>
             </button>
           </div>
         </div>

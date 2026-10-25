@@ -23,11 +23,14 @@ export default function AssistantLauncher() {
   const [enabled, setEnabled] = useState(false);
   const [opened, setOpened] = useState(false);
   const [pendingPrompt, setPendingPrompt] = useState<string | null>(null);
+  const [pendingAutoSend, setPendingAutoSend] = useState(false);
 
   useEffect(() => {
     // A different user must not see the previous user's conversation or access result.
     setEnabled(false);
     setOpened(false);
+    setPendingPrompt(null);
+    setPendingAutoSend(false);
     if (!isLoaded || !isSignedIn) return;
 
     let cancelled = false;
@@ -54,9 +57,10 @@ export default function AssistantLauncher() {
   useEffect(() => {
     const onOpen = (event: Event) => {
       const detail = (event as CustomEvent<OpenAssistantDetail>).detail;
-      if (typeof detail?.prompt === "string" && detail.prompt.trim()) {
-        setPendingPrompt(detail.prompt.trim());
-      }
+      setPendingPrompt(
+        typeof detail?.prompt === "string" && detail.prompt.trim() ? detail.prompt.trim() : null,
+      );
+      setPendingAutoSend(detail?.autoSend === true);
       setOpened(true);
     };
     window.addEventListener(OPEN_ASSISTANT_EVENT, onOpen);
@@ -71,7 +75,11 @@ export default function AssistantLauncher() {
       <AssistantPanel
         suppressed={suppressed}
         initialPrompt={pendingPrompt}
-        onPromptConsumed={() => setPendingPrompt(null)}
+        autoSend={pendingAutoSend}
+        onPromptConsumed={() => {
+          setPendingPrompt(null);
+          setPendingAutoSend(false);
+        }}
       />
     );
   }

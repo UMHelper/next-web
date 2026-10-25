@@ -83,10 +83,12 @@ function AssistantTools() {
 export default function AssistantPanel({
   suppressed,
   initialPrompt,
+  autoSend,
   onPromptConsumed,
 }: {
   suppressed: boolean;
   initialPrompt?: string | null;
+  autoSend?: boolean;
   onPromptConsumed?: () => void;
 }) {
   const [notice, setNotice] = useState<string | null>(null);
@@ -164,6 +166,7 @@ export default function AssistantPanel({
             panelRef={attachPanel}
             panelOpen={open}
             initialPrompt={initialPrompt}
+            autoSend={autoSend}
             onPromptConsumed={onPromptConsumed}
             onClose={close}
             notice={notice}

@@ -248,7 +248,7 @@ export function CommandPalette({ variant = "header" }: { variant?: "header" | "h
       setOpen(false);
       if (item.kind === "ai") {
         const prompt = query.trim();
-        openAssistant(prompt ? { prompt } : {});
+        openAssistant(prompt ? { prompt, autoSend: true } : {});
         return;
       }
       saveRecent(item);

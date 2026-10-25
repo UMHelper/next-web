@@ -74,7 +74,7 @@ describe("HomeSearch", () => {
     expect(window.localStorage.getItem("umeh:command-palette-recents-v2")).toContain("ACCT1000");
   });
 
-  it("keeps Ask AI first but selects Search by default and makes Enter run it", async () => {
+  it("keeps Ask AI first and selects it by default", async () => {
     render(<HomeSearch />);
     const input = screen.getByRole("combobox");
     fireEvent.focus(input);
@@ -83,25 +83,26 @@ describe("HomeSearch", () => {
     const searchRow = await screen.findByRole("option", { name: /Search Courses for/i });
     const options = screen.getAllByRole("option");
     expect(options[0]?.textContent).toContain("Ask AI");
+    expect(options[0]?.getAttribute("aria-selected")).toBe("true");
     expect(options[1]).toBe(searchRow);
-    expect(searchRow.getAttribute("aria-selected")).toBe("true");
+    expect(searchRow.getAttribute("aria-selected")).toBe("false");
 
     fireEvent.keyDown(input, { key: "Enter" });
-    expect(mocks.push).toHaveBeenCalledWith("/search/course/ACCT");
+    expect(mocks.openAssistant).toHaveBeenCalledWith({ prompt: "ACCT", autoSend: true });
   });
 
-  it("uses the submit button for the catalog search, choosing instructors for names", async () => {
+  it("uses the Ask AI button instead of a search submit", async () => {
     render(<HomeSearch />);
     const input = screen.getByRole("combobox");
     fireEvent.focus(input);
     fireEvent.change(input, { target: { value: "CHAN TAI MAN" } });
 
     await screen.findByRole("option", { name: /Search Instructors for/i });
-    fireEvent.click(screen.getByRole("button", { name: "Search" }));
-    expect(mocks.push).toHaveBeenCalledWith("/search/instructor/CHAN%20TAI%20MAN");
+    fireEvent.click(screen.getAllByRole("button", { name: "Ask AI" })[0]);
+    expect(mocks.openAssistant).toHaveBeenCalledWith({ prompt: "CHAN TAI MAN", autoSend: true });
   });
 
-  it("shows a course-list search and skeletons for a course code", async () => {
+  it("shows only the matching course and Ask AI for a course code", async () => {
     let resolveSearch: (response: Response) => void = () => {};
     vi.stubGlobal(
       "fetch",
@@ -121,15 +122,21 @@ describe("HomeSearch", () => {
     fireEvent.change(input, { target: { value: "ACCT1000" } });
 
     await waitFor(() => expect(screen.getByTestId("home-search-skeleton")).toBeTruthy());
-    expect(screen.getByRole("option", { name: /Search Course List/ })).toBeTruthy();
+    expect(screen.queryByRole("option", { name: /Search Course List/ })).toBeNull();
     expect(screen.queryByRole("option", { name: /Search Instructors/ })).toBeNull();
 
     await waitFor(() =>
       expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/api/command-palette"), expect.anything()),
     );
     resolveSearch(new Response(JSON.stringify(PAYLOAD), { status: 200 }));
-    await waitFor(() => expect(screen.getByRole("option", { name: /Principles of Financial Accounting/ })).toBeTruthy());
+
+    const course = await screen.findByRole("option", { name: /Principles of Financial Accounting/ });
+    const options = screen.getAllByRole("option");
+    expect(course.getAttribute("aria-selected")).toBe("true");
+    expect(options[1]?.textContent).toContain("Ask AI");
+    expect(screen.queryByText("Search Results")).toBeNull();
   });
+
 
   it("opens the assistant for Ask AI", async () => {
     render(<HomeSearch />);
@@ -139,6 +146,6 @@ describe("HomeSearch", () => {
 
     const ask = await screen.findByRole("option", { name: /Ask AI/ });
     fireEvent.click(ask);
-    expect(mocks.openAssistant).toHaveBeenCalledWith({ prompt: "ACCT" });
+    expect(mocks.openAssistant).toHaveBeenCalledWith({ prompt: "ACCT", autoSend: true });
   });
 });
