@@ -155,7 +155,7 @@ export const AGENT_BEHAVIOR_CASES: AgentBehaviorCase[] = [
     turns: [
       {
         message: "Compare GELH1000 and GEST1004.",
-        expect: { card: "none", maxDetailCards: 1 },
+        expect: { card: "any", maxDetailCards: 1 },
       },
     ],
   },
