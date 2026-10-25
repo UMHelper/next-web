@@ -587,9 +587,13 @@ export function HomeSearch() {
                               className={cn(
                                 "group flex w-full items-center gap-2.5 rounded-lg text-left text-sm transition-colors",
                                 isTip
-                                  ? "border border-border/60 bg-white/20 px-3 py-2.5 hover:bg-white/30"
+                                  ? "border border-border/40 bg-transparent px-3 py-2.5 hover:bg-background/10"
                                   : "px-2 py-2.5",
-                                selected ? "bg-white/20" : "",
+                                selected
+                                  ? isTip
+                                    ? "bg-background/10"
+                                    : "bg-white/20"
+                                  : "",
                               )}
                             >
                               <span className="flex h-4 w-4 shrink-0 items-center justify-center text-background/80">
