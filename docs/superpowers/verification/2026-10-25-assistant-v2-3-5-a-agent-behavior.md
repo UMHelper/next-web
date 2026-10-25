@@ -170,15 +170,19 @@ C1–C9 resolution table: **Task 8 section above**.
 
 **Review notes incorporated:** J5 does not assert GELH2001 row; J1 turn 1 does not assert scripted factual reply; close/reopen asserts short follow-up line; no automated test for class-times show button; expanded cards render in rich-block stack not inline at button; single visible-blocks turn can exceed 900 chars before turn-level trim.
 
-### Regression results (automated, Task 11)
+### Regression results (automated gates on `7376d14`, 2026-10-26)
 
-| Gate | Command | Result @ `f15bc3f` |
+Full chain run from repo root on **`feat/global-assistant-v2` @ `7376d14`** (before this docs-only commit):
+
+`npx vitest run && npx tsc --noEmit && npm run lint && npm run build && git status --short`
+
+| Gate | Command | Result |
 |---|---|---|
-| Tests | `npx vitest run` | **PASS** — 262 files, **2161** tests |
-| Typecheck | `npx tsc --noEmit` | **PASS** — 0 errors (post–type-fix commit after `d856217`) |
-| Lint | `npm run lint` | **PASS** |
-| Build | `npm run build` | **PASS** |
-| Repo hygiene | `git status --short` | Only pre-existing dirty files + verification doc + untracked audits (expected) |
+| Tests | `npx vitest run` | **PASS** (exit 0) — **262** files, **2161** tests |
+| Typecheck | `npx tsc --noEmit` | **PASS** (exit 0) — 0 errors |
+| Lint | `npm run lint` | **PASS** (exit 0) — `eslint . --max-warnings=0`, no output |
+| Build | `npm run build` | **PASS** (exit 0) — `next build` completed |
+| Repo hygiene | `git status --short` | **Expected** — modified: `.env.example`, `lib/database/get-course-info.ts`, `lib/rate-limit.ts`, `tests/rate-limit.test.ts`; untracked: `docs/superpowers/audits/` only (verification doc committed separately) |
 
 Scripted CopilotKit coverage: **`assistant-v2-3-5.integration.test.tsx` 10/10**; full components suite was green through Task 9 follow-ups. Timetable V2.3 journeys remain in **`assistant-v2-3.integration.test.tsx`**.
 
@@ -206,7 +210,7 @@ Scripted CopilotKit coverage: **`assistant-v2-3-5.integration.test.tsx` 10/10**;
 - **History** still truncated (**8** prior turns; tool results cut to **200** chars in client memory).
 - **Quota** unchanged (**30**/hour per run token model); **8** model steps; desktop-only mount.
 - **Live model quality:** dev agent-behavior pass rate **0.563** (below **0.85**); difficulty direction and partial_failure miss on dev; **`falseCardClaim` 2** on dev — holdout thresholds mostly met (see Task 10).
-- **Typecheck/build:** resolved after `d856217` by typing the agent-behavior sections fixture as `AssistantCourseSectionsOutput` and narrowing the journey test turn root to `HTMLElement`.
+- **Typecheck/build:** fixed in **`7376d14`** (`AssistantCourseSectionsOutput` on eval fixture; journey test `HTMLElement` narrow); gates above re-run green on that commit.
 
 ### Subsequent milestone dependencies (do not start here)
 
@@ -251,7 +255,7 @@ Students can get evaluation-shaped cards without magic phrases; the model is ste
 | No unsupported verified exam claims | **Yes** | **`no_midterm` 0** violations live |
 | Timetable semantics intact | **Yes** | V2.3 suites pass; conversation metric **0.778** on dev live (below 0.90) |
 | No planner mutation | **Yes** | Read-only guards + integration |
-| Tests, lint, TS, build pass | **Yes** | Full vitest + lint + tsc + build pass after type-fix commit |
+| Tests, lint, TS, build pass | **Yes** | Re-run on **`7376d14`** (2026-10-26): vitest **262/2161**, tsc **0** errors, lint **0**, build **0** |
 | Real-model eval completed | **Yes** | Task 10 live runs documented |
 | Browser acceptance | **Unverified** | No signed-in manual run |
 | Limitations / dependencies documented | **Yes** | This report |
