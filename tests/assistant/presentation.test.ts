@@ -349,4 +349,34 @@ describe("planRichBlocks", () => {
     ];
     expect(callsForActivity(calls).map((entry) => entry.id)).toEqual(["g"]);
   });
+
+  it("mounts one card when the same course was looked up twice and claimed", () => {
+    const calls = [
+      call("c1", "get_course", { code: "GELH1000" }),
+      call("c2", "get_course", { code: "GELH1000" }),
+      call("p", PRESENT_RESPONSE_TOOL_NAME, {
+        show: [{ component: "course_detail", course: "GELH1000" }],
+      }),
+    ];
+    const map = results({
+      c1: course("GELH1000"),
+      c2: course("GELH1000"),
+    });
+    expect(planRichBlocks(calls, map, always, false).map((block) => block.callId)).toEqual(["c1"]);
+  });
+
+  it("mounts one card when an alias call and a primary call resolve to the same course", () => {
+    const calls = [
+      call("c1", "get_course", { code: "OLDC1000" }),
+      call("c2", "get_course", { code: "GELH1000" }),
+      call("p", PRESENT_RESPONSE_TOOL_NAME, {
+        show: [{ component: "course_detail", course: "GELH1000" }],
+      }),
+    ];
+    const map = results({
+      c1: course("GELH1000"),
+      c2: course("GELH1000"),
+    });
+    expect(planRichBlocks(calls, map, always, false).map((block) => block.callId)).toEqual(["c1"]);
+  });
 });

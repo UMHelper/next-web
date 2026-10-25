@@ -26,6 +26,7 @@ import { useTimetablePreviewToolRender } from "./timetable-preview-tool-render";
 import { useSearchCatalogToolRender } from "./search-catalog-tool-render";
 import { useCatalogResultsTool } from "./use-catalog-results-tool";
 import { useDiscussedCourses } from "./use-discussed-courses";
+import { useVisibleBlocks } from "./use-visible-blocks";
 import { useNavigateTool } from "./use-navigate-tool";
 
 // FloatingPlanner keys its offset off this attribute; the name is repeated literally in its Tailwind classes.
@@ -51,6 +52,7 @@ function AssistantTools() {
   const navigate = useNavigateTool();
   useCatalogResultsTool();
   useDiscussedCourses();
+  useVisibleBlocks();
   useSearchCatalogToolRender();
   useCourseDetailToolRender();
   useCourseSectionsToolRender();

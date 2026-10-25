@@ -8,6 +8,7 @@ import {
   AssistantChatView,
   type AssistantChatViewProps,
 } from "@/components/assistant/assistant-chat-view";
+import { CourseDetailToolResult } from "@/components/assistant/course-detail-tool-render";
 import { TimetablePreviewToolResult } from "@/components/assistant/timetable-preview-tool-render";
 import { PREVIEW_TIMETABLE_TOOL_NAME, runPreviewTimetable } from "@/lib/assistant/timetable-preview";
 import type { TimetableToolDeps } from "@/lib/assistant/timetable-tools";
@@ -38,6 +39,30 @@ const reviewsBody = JSON.stringify({
 });
 
 const emptyToolOk = JSON.stringify({});
+
+const gelhCourseBody = JSON.stringify({
+  course: {
+    courseCode: "GELH1000",
+    titleEn: "Great Books",
+    titleZh: null,
+    credits: "3",
+    faculty: null,
+    department: null,
+    programLevel: null,
+    suggestedYear: null,
+    medium: null,
+    gradingSystem: null,
+    courseType: null,
+    duration: null,
+    description: null,
+    isOffered: true,
+    url: `${SITE_URL}/course/GELH1000`,
+  },
+  page: 1,
+  hasMore: false,
+  totalCount: 0,
+  instructors: [],
+});
 
 const courseBody = JSON.stringify({
   course: {
@@ -877,6 +902,56 @@ describe("AssistantChatView", () => {
       expect(screen.getByText("Read course")).toBeTruthy();
       expect(screen.queryByText("Choosing a layout")).toBeNull();
       expect(screen.queryByText("Chose a layout")).toBeNull();
+    });
+
+    it("renders a single course card for duplicate claimed lookups of one course", () => {
+      renderView({
+        messages: [
+          { id: "u1", role: "user", content: "Show full details of GELH1000." },
+          {
+            id: "a1",
+            role: "assistant",
+            content: "",
+            toolCalls: [
+              { id: "g1", type: "function", function: { name: "get_course", arguments: '{"code":"GELH1000"}' } },
+              { id: "g2", type: "function", function: { name: "get_course", arguments: '{"code":"GELH1000"}' } },
+              {
+                id: "p",
+                type: "function",
+                function: {
+                  name: "present_response",
+                  arguments: '{"show":[{"component":"course_detail","course":"GELH1000"}]}',
+                },
+              },
+            ],
+          },
+          { id: "t1", role: "tool", toolCallId: "g1", content: gelhCourseBody },
+          { id: "t2", role: "tool", toolCallId: "g2", content: gelhCourseBody },
+          {
+            id: "t3",
+            role: "tool",
+            toolCallId: "p",
+            content:
+              '{"status":"requested","items":[{"component":"course_detail","course":"GELH1000","eligibility":"ready"}],"note":"note"}',
+          },
+        ],
+        toolRenderer: {
+          names: RICH_TOOL_NAMES,
+          render: (call, result) => {
+            if (call.function.name === "get_course") {
+              return (
+                <CourseDetailToolResult
+                  status={result ? "complete" : "inProgress"}
+                  result={typeof result?.content === "string" ? result.content : undefined}
+                />
+              );
+            }
+            return fakeToolRenderer().render(call, result);
+          },
+        },
+      });
+
+      expect(screen.getAllByRole("article", { name: "GELH1000" })).toHaveLength(1);
     });
 
     it("does not mount two course cards for a comparison turn", () => {

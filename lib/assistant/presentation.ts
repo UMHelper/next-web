@@ -49,6 +49,82 @@ function readCallCode(call: ToolCallLike): string {
   return "";
 }
 
+function readCallInstructor(call: ToolCallLike): string {
+  try {
+    const args = JSON.parse(call.function.arguments) as unknown;
+    if (args !== null && typeof args === "object" && !Array.isArray(args)) {
+      const instructor = (args as { instructor?: unknown }).instructor;
+      if (typeof instructor === "string") {
+        return instructor.trim();
+      }
+    }
+  } catch {
+    // ignore malformed tool arguments
+  }
+  return "";
+}
+
+function courseDedupeKey(call: ToolCallLike, content: string | undefined): string {
+  const identity = courseCallIdentity(call, content);
+  return identity.canonical ?? identity.argument;
+}
+
+function sectionDedupeKey(call: ToolCallLike, content: string | undefined): string {
+  const identity = sectionCallIdentity(call, content);
+  const course = identity.canonical ?? identity.argument;
+  return `${course}\0${readCallInstructor(call)}`;
+}
+
+function claimedLookupWinners(
+  calls: ToolCallLike[],
+  results: Map<string, { content?: unknown }>,
+  show: PresentShow[],
+): { course: Map<string, string>; sections: Map<string, string> } {
+  const courseWinners = new Map<string, string>();
+  const courseOk = new Map<string, boolean>();
+  const sectionWinners = new Map<string, string>();
+  const sectionOk = new Map<string, boolean>();
+
+  for (const call of calls) {
+    const name = call.function.name;
+    const rawContent = results.get(call.id)?.content;
+    const content = typeof rawContent === "string" ? rawContent : undefined;
+
+    if (name === GET_COURSE_TOOL_NAME && isClaimed(call, content, show, "course_detail", courseCallIdentity)) {
+      const key = courseDedupeKey(call, content);
+      const ok = lookupOk(name, content);
+      if (!courseWinners.has(key)) {
+        courseWinners.set(key, call.id);
+        courseOk.set(key, ok);
+        continue;
+      }
+      if (!courseOk.get(key) && ok) {
+        courseWinners.set(key, call.id);
+        courseOk.set(key, ok);
+      }
+    }
+
+    if (
+      name === GET_COURSE_SECTIONS_TOOL_NAME &&
+      isClaimed(call, content, show, "course_sections", sectionCallIdentity)
+    ) {
+      const key = sectionDedupeKey(call, content);
+      const ok = lookupOk(name, content);
+      if (!sectionWinners.has(key)) {
+        sectionWinners.set(key, call.id);
+        sectionOk.set(key, ok);
+        continue;
+      }
+      if (!sectionOk.get(key) && ok) {
+        sectionWinners.set(key, call.id);
+        sectionOk.set(key, ok);
+      }
+    }
+  }
+
+  return { course: courseWinners, sections: sectionWinners };
+}
+
 function resultRejected(content: string): boolean {
   try {
     const body = JSON.parse(content) as unknown;
@@ -357,6 +433,7 @@ export function planRichBlocks(
 ): RichBlock[] {
   const present = activePresent(calls, results);
   const show = present?.request.show ?? [];
+  const winners = claimedLookupWinners(calls, results, show);
   const blocks: RichBlock[] = [];
 
   for (const call of calls) {
@@ -379,14 +456,20 @@ export function planRichBlocks(
         blocks.push({ kind: "tool", callId: call.id });
         continue;
       }
-      if (isClaimed(call, content, show, "course_detail", courseCallIdentity)) {
+      if (
+        isClaimed(call, content, show, "course_detail", courseCallIdentity) &&
+        winners.course.get(courseDedupeKey(call, content)) === call.id
+      ) {
         blocks.push({ kind: "tool", callId: call.id });
       }
       continue;
     }
 
     if (name === GET_COURSE_SECTIONS_TOOL_NAME) {
-      if (isClaimed(call, content, show, "course_sections", sectionCallIdentity)) {
+      if (
+        isClaimed(call, content, show, "course_sections", sectionCallIdentity) &&
+        winners.sections.get(sectionDedupeKey(call, content)) === call.id
+      ) {
         blocks.push({ kind: "tool", callId: call.id });
       }
     }
