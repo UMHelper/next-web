@@ -194,16 +194,19 @@ describe("HomeSearch", () => {
     expect(screen.getByText(/a\.k\.a\. CISC1001/)).toBeTruthy();
   });
 
-  it("does not show AI entry points when signed out", async () => {
+  it("offers one Sign in to ask AI entry when signed out, without a bare Sign in button", async () => {
     mocks.auth.isSignedIn = false;
     render(<HomeSearch />);
     const input = screen.getByRole("combobox");
     fireEvent.focus(input);
 
     expect(screen.queryByRole("button", { name: /Ask AI|Sign in/ })).toBeNull();
-    expect(screen.queryByRole("option", { name: /Ask AI|Sign in/ })).toBeNull();
     expect(screen.queryByText("Try asking")).toBeNull();
-    expect(screen.getByText("Waiting for typing…")).toBeTruthy();
+
+    const signIn = screen.getByRole("option", { name: /Sign in to ask AI/ });
+    fireEvent.click(signIn);
+    expect(mocks.push).toHaveBeenCalledWith("/sign-in?redirect_url=%2F");
+    expect(mocks.openAssistant).not.toHaveBeenCalled();
   });
 
   it("shows a grammatical empty state for an unknown course code", async () => {

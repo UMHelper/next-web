@@ -249,15 +249,22 @@ export function CommandPalette({ variant = "header" }: { variant?: "header" | "h
     if (courses.length) next.push({ key: "courses", title: "Courses", items: courses });
     if (instructors.length) next.push({ key: "instructors", title: "Instructors", items: instructors });
     if (pages.length) next.push({ key: "pages", title: "Pages", items: pages });
-    if (assistantEnabled) {
+    if (assistantEnabled || signedOut) {
       next.push({
         key: "ai",
-        title: "Ask AI",
-        items: [{ id: "ai-ask", kind: "ai", title: "Ask AI", subtitle: term }],
+        title: signedOut ? "Sign in" : "Ask AI",
+        items: [
+          {
+            id: "ai-ask",
+            kind: "ai",
+            title: signedOut ? "Sign in to ask AI" : "Ask AI",
+            subtitle: term,
+          },
+        ],
       });
     }
     return next;
-  }, [assistantEnabled, payload, query, recents]);
+  }, [assistantEnabled, payload, query, recents, signedOut]);
 
   const flat = useMemo(() => groups.flatMap((group) => group.items), [groups]);
 

@@ -181,6 +181,7 @@ export function HomeSearch({
   const { isLoaded, isSignedIn } = useAuth();
   const signedOut = isLoaded && !isSignedIn;
   const serverSignedOut = initialAssistantAccess === null;
+  const signedOutPrompt = signedOut || serverSignedOut;
   const [query, setQuery] = useState("");
   const [payload, setPayload] = useState<SearchPayload>(EMPTY);
   const [loading, setLoading] = useState(false);
@@ -188,7 +189,7 @@ export function HomeSearch({
   const [active, setActive] = useState(0);
   const [assistantEnabled, setAssistantEnabled] = useState(initialAssistantAccess === "enabled");
   const [assistantDenied, setAssistantDenied] = useState(initialAssistantAccess === "denied");
-  const hideAi = signedOut || serverSignedOut || assistantDenied;
+  const hideAi = assistantDenied;
   const [recents, setRecents] = useState<HomeItem[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -201,7 +202,8 @@ export function HomeSearch({
   useEffect(() => {
     // The home page resolves access on the server so the Ask AI entry never
     // flashes on and then disappears when the access check comes back.
-    if (initialAssistantAccess !== undefined) return;
+    const signedInAfterServerRender = initialAssistantAccess === null && isLoaded && isSignedIn;
+    if (initialAssistantAccess !== undefined && !signedInAfterServerRender) return;
     if (!isLoaded || !isSignedIn) {
       setAssistantEnabled(false);
       setAssistantDenied(false);
@@ -317,7 +319,7 @@ export function HomeSearch({
         ? {
             id: "home-ai",
             kind: "ai",
-            title: "Ask AI",
+            title: signedOutPrompt ? "Sign in to ask AI" : "Ask AI",
             subtitle: term || undefined,
           }
         : null;
@@ -326,7 +328,7 @@ export function HomeSearch({
       const next: HomeGroup[] = [];
       if (aiItem) next.push({ key: "ai", title: "", items: [aiItem] });
       if (recents.length) next.push({ key: "recent", title: "Recents", items: recents });
-      if (!hideAi) next.push({ key: "tips", title: "Try asking", items: TIPS });
+      if (!hideAi && !signedOutPrompt) next.push({ key: "tips", title: "Try asking", items: TIPS });
       return next;
     }
 
@@ -428,7 +430,7 @@ export function HomeSearch({
       });
     }
     return next;
-  }, [hideAi, isLoaded, loading, payload, query, recents]);
+  }, [hideAi, isLoaded, loading, payload, query, recents, signedOutPrompt]);
 
   const flat = useMemo(() => groups.flatMap((group) => group.items), [groups]);
 
@@ -526,7 +528,7 @@ export function HomeSearch({
             <kbd className="hidden shrink-0 rounded border border-border/60 bg-white/20 px-1.5 py-0.5 font-sans text-[11px] leading-none text-background/80 sm:inline">
               ⌘K
             </kbd>
-            {hideAi || (initialAssistantAccess === undefined && !isLoaded) ? null : (
+            {hideAi || signedOutPrompt || (initialAssistantAccess === undefined && !isLoaded) ? null : (
               <button
                 type="button"
                 aria-label="Ask AI"
@@ -667,7 +669,7 @@ export function HomeSearch({
           <CalendarDays className="h-4 w-4" aria-hidden />
           Timetable
         </Link>
-        {hideAi ? null : (
+        {hideAi || signedOutPrompt ? null : (
           <button
             type="button"
             onClick={() => requestAssistant()}
