@@ -4,7 +4,7 @@
 
 | Item | State |
 |---|---|
-| Branch / HEAD | `feat/global-assistant-v2` @ Task 1 commit (see git log) |
+| Branch / HEAD | `feat/global-assistant-v2` @ `f025c0c` |
 | Pre-existing uncommitted changes (not ours) | `.env.example`, `lib/database/get-course-info.ts`, `lib/rate-limit.ts`, `tests/rate-limit.test.ts`; untracked `docs/superpowers/audits/` |
 | `npx vitest run` (before Task 1) | 8 files / 4 tests fail. Four suites fail to load without Supabase env (`read-only-planner`, V2.1/V2.2/search-catalog integration); `eval-timetable` fails on `server-only`; catalog `aka` fixture drift (2 tests); `assistant-chat-view` copy/tool-result fixture drift (2 tests). Unmerged `tests/assistant/theme-sync.test.ts` on disk added a 9th failing file until merge conflict resolved locally. |
 | `npx vitest run` (after Task 1) | 258 files / 2106 tests pass |
