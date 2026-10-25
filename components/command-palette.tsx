@@ -239,7 +239,7 @@ export function CommandPalette({ variant = "header" }: { variant?: "header" | "h
   }, [flat.length]);
 
   useEffect(() => {
-    itemRefs.current[active]?.scrollIntoView({ block: "nearest" });
+    itemRefs.current[active]?.scrollIntoView?.({ block: "nearest" });
   }, [active]);
 
   const choose = useCallback(
