@@ -6,6 +6,7 @@ import {
   CalendarDays,
   FileText,
   Loader2,
+  MessageCircle,
   Search,
   Sparkles,
   User,
@@ -39,7 +40,7 @@ type HomeItem = {
   trailing?: string;
   href?: string;
   query?: string;
-  icon?: "course" | "instructor";
+  icon?: "course" | "instructor" | "prompt";
   searchType?: "course" | "instructor";
 };
 
@@ -57,9 +58,27 @@ const RECENTS_KEY = "umeh:command-palette-recents-v2";
 const COURSE_CODE = /^[A-Za-z]{4}\d{4}$/;
 
 const TIPS: HomeItem[] = [
-  { id: "tip-acct1000", kind: "tip", title: "ACCT1000", query: "ACCT1000", icon: "course" },
-  { id: "tip-acct", kind: "tip", title: "ACCT", query: "ACCT", icon: "course" },
-  { id: "tip-instructor", kind: "tip", title: "CHAN TAI MAN", query: "CHAN TAI MAN", icon: "instructor" },
+  {
+    id: "tip-accounting",
+    kind: "tip",
+    title: "Which courses cover accounting?",
+    query: "Which courses cover accounting?",
+    icon: "prompt",
+  },
+  {
+    id: "tip-credits",
+    kind: "tip",
+    title: "What is ACCT1000? How many credits?",
+    query: "What is ACCT1000? How many credits?",
+    icon: "prompt",
+  },
+  {
+    id: "tip-meets",
+    kind: "tip",
+    title: "When does ACCT1000 meet?",
+    query: "When does ACCT1000 meet?",
+    icon: "prompt",
+  },
 ];
 
 function readRecents(): HomeItem[] {
@@ -110,6 +129,7 @@ function Highlight({ text, query }: { text: string; query: string }) {
 
 function itemIcon(item: HomeItem) {
   if (item.kind === "tip") {
+    if (item.icon === "prompt") return <MessageCircle className="h-4 w-4" aria-hidden />;
     return item.icon === "instructor"
       ? <User className="h-4 w-4" aria-hidden />
       : <BookOpen className="h-4 w-4" aria-hidden />;
@@ -244,7 +264,7 @@ export function HomeSearch() {
       const next: HomeGroup[] = [];
       if (aiItem) next.push({ key: "ai", title: "", items: [aiItem] });
       if (recents.length) next.push({ key: "recent", title: "Recents", items: recents });
-      next.push({ key: "tips", title: "Search tips", items: TIPS });
+      next.push({ key: "tips", title: "Try asking", items: TIPS });
       return next;
     }
 
@@ -346,9 +366,9 @@ export function HomeSearch() {
     (item: HomeItem | undefined) => {
       if (!item) return;
       if (item.kind === "tip") {
-        setQuery(item.query ?? item.title);
-        setActive(0);
-        inputRef.current?.focus();
+        setOpen(false);
+        inputRef.current?.blur();
+        openAssistant({ prompt: item.query ?? item.title, autoSend: true });
         return;
       }
       if (item.kind === "search") {

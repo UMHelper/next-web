@@ -51,8 +51,8 @@ describe("HomeSearch", () => {
     const input = screen.getByRole("combobox", { name: "Search courses and instructors" });
     fireEvent.focus(input);
     expect(screen.getAllByRole("button", { name: "Ask AI" }).length).toBeGreaterThan(0);
-    expect(screen.getByText("Search tips")).toBeTruthy();
-    expect(screen.getByText("ACCT1000")).toBeTruthy();
+    expect(screen.getByText("Try asking")).toBeTruthy();
+    expect(screen.getByText("What is ACCT1000? How many credits?")).toBeTruthy();
     expect(screen.queryByText(/財務會計/)).toBeNull();
 
     fireEvent.change(input, { target: { value: "ACCT" } });
@@ -137,6 +137,19 @@ describe("HomeSearch", () => {
     expect(screen.queryByText("Search Results")).toBeNull();
   });
 
+
+  it("turns Try asking prompts into auto-sent AI messages", async () => {
+    render(<HomeSearch />);
+    const input = screen.getByRole("combobox");
+    fireEvent.focus(input);
+
+    const tip = await screen.findByRole("option", { name: /Which courses cover accounting/ });
+    fireEvent.click(tip);
+    expect(mocks.openAssistant).toHaveBeenCalledWith({
+      prompt: "Which courses cover accounting?",
+      autoSend: true,
+    });
+  });
 
   it("opens the assistant for Ask AI", async () => {
     render(<HomeSearch />);
