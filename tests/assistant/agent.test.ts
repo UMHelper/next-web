@@ -17,7 +17,7 @@ vi.mock("@/lib/assistant/model", async (importOriginal) => ({
   createAssistantModel,
 }));
 const createAssistantTools = vi.hoisted(() =>
-  vi.fn((_slot?: unknown, _timetable?: unknown) => [{ name: "search_catalog" }]),
+  vi.fn((_slot?: unknown, _timetable?: unknown, _presentation?: unknown) => [{ name: "search_catalog" }]),
 );
 vi.mock("@/lib/assistant/tools", () => ({ createAssistantTools }));
 
@@ -108,11 +108,11 @@ describe("createAssistantAgent", () => {
   it("resets and seeds the presentation ledger on each run", async () => {
     let presentationSlot: PresentationSlot | undefined;
     createAssistantTools.mockImplementationOnce((_slot, _timetable, presentation) => {
-      presentationSlot = presentation as PresentationSlot;
+      presentationSlot = presentation as PresentationSlot | undefined;
       return [
         {
           name: "present_response",
-          execute: (args: unknown) => executePresentResponse(args, presentation!.current),
+          execute: (args: unknown) => executePresentResponse(args, presentationSlot!.current),
         },
       ];
     });

@@ -10,6 +10,7 @@ import type { TimetableToolDeps } from "@/lib/assistant/timetable-tools";
 import type { TimetableState } from "@/lib/assistant/timetable-context";
 import { timetableVersion } from "@/lib/timetable/analysis";
 import { McpToolError } from "@/lib/mcp/errors";
+import type { AssistantCourseSectionsOutput } from "@/lib/assistant/assistant-output-schemas";
 import type { GetCourseSectionsOutput } from "@/lib/mcp/schemas";
 import { FIXTURE_CATALOG_SECTIONS, FIXTURE_PLAN } from "@/tests/fixtures/timetable-plan";
 
@@ -37,7 +38,7 @@ const deps = (overrides?: Partial<TimetableToolDeps>): TimetableToolDeps => ({
   loadSections: async (input) => {
     const match = fixtureLookup(input.code, input.instructor);
     if (!match) throw new McpToolError("not_found");
-    return match;
+    return { ...match, sectionDataComplete: true };
   },
   loadCatalogTerm: async () => ({ year: 2026, sem: 1 }),
   ...overrides,
@@ -105,7 +106,7 @@ describe("runPreviewTimetable", () => {
   });
 
   it("previews a single-section course without asking", async () => {
-    const singleSection: GetCourseSectionsOutput = {
+    const singleSection: AssistantCourseSectionsOutput = {
       courseCode: "STAT1001",
       instructor: "LEE KA",
       courseUrl: "https://umeh.top/course/STAT1001",
@@ -116,6 +117,7 @@ describe("runPreviewTimetable", () => {
           schedules: [{ weekday: "FRI", startTime: "09:00", endTime: "10:15", location: "E11-1001" }],
         },
       ],
+      sectionDataComplete: true,
     };
     const result = await runPreviewTimetable(
       readyState(),

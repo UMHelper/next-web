@@ -36,7 +36,7 @@ const deps = (overrides?: Partial<TimetableToolDeps>): TimetableToolDeps => ({
   loadSections: async (input) => {
     const match = fixtureLookup(input.code, input.instructor);
     if (!match) throw new McpToolError("not_found");
-    return match;
+    return { ...match, sectionDataComplete: true };
   },
   loadCatalogTerm: async () => ({ year: 2026, sem: 1 }),
   ...overrides,
@@ -130,6 +130,7 @@ describe("runCheckPlanConflicts", () => {
           instructor: "HO SIU MING",
           courseUrl: "https://umeh.top/course/MATH1010",
           sections: [{ section: "001", courseUrl: "https://umeh.top/course/MATH1010", schedules: [] }],
+          sectionDataComplete: true,
         }),
       }),
     );
@@ -228,7 +229,10 @@ describe("runCheckPlanConflicts", () => {
   });
 
   it("binds the page course like the other course tools", async () => {
-    const loadSections = vi.fn(async () => fixtureLookup("MATH1010", "HO SIU MING")!);
+    const loadSections = vi.fn(async () => ({
+      ...fixtureLookup("MATH1010", "HO SIU MING")!,
+      sectionDataComplete: true,
+    }));
     const bound = bindCourseToolArgs(
       { kind: "page", courseCode: "MATH1010" },
       "check_plan_conflicts",

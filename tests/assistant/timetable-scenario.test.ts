@@ -41,7 +41,7 @@ const deps = (): TimetableToolDeps => ({
   loadSections: async (input) => {
     const match = fixtureLookup(input.code, input.instructor);
     if (!match) throw new McpToolError("not_found");
-    return match;
+    return { ...match, sectionDataComplete: true };
   },
   loadCatalogTerm: async () => ({ year: 2026, sem: 1 }),
 });

@@ -8,6 +8,7 @@ import type { TimetableToolDeps } from "@/lib/assistant/timetable-tools";
 import type { TimetableState } from "@/lib/assistant/timetable-context";
 import { timetableVersion } from "@/lib/timetable/analysis";
 import { McpToolError } from "@/lib/mcp/errors";
+import type { AssistantCourseSectionsOutput } from "@/lib/assistant/assistant-output-schemas";
 import type { GetCourseSectionsOutput } from "@/lib/mcp/schemas";
 import { buildReviewPath } from "@/lib/site";
 import { FIXTURE_CATALOG_SECTIONS, FIXTURE_PLAN } from "@/tests/fixtures/timetable-plan";
@@ -48,7 +49,7 @@ const deps = (overrides?: Partial<TimetableToolDeps>): TimetableToolDeps => ({
   loadSections: async (input) => {
     const match = fixtureLookup(input.code, input.instructor);
     if (!match) throw new McpToolError("not_found");
-    return match;
+    return { ...match, sectionDataComplete: true };
   },
   loadCatalogTerm: async () => ({ year: 2026, sem: 1 }),
   ...overrides,
@@ -102,7 +103,7 @@ describe("TimetablePreviewToolResult", () => {
   });
 
   it("lists a meeting outside the week grid hours", async () => {
-    const eveningSection: GetCourseSectionsOutput = {
+    const eveningSection: AssistantCourseSectionsOutput = {
       courseCode: "EVEN1001",
       instructor: "LEE KA",
       courseUrl: "https://umeh.top/course/EVEN1001",
@@ -113,6 +114,7 @@ describe("TimetablePreviewToolResult", () => {
           schedules: [{ weekday: "FRI", startTime: "19:00", endTime: "21:30", location: "E11-1001" }],
         },
       ],
+      sectionDataComplete: true,
     };
     const payload = await runPreviewTimetable(
       readyState(),

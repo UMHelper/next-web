@@ -283,7 +283,7 @@ vi.mock("@/lib/assistant/tools", async (importOriginal) => {
           entry.courseCode === input.code.toUpperCase() && entry.instructor === input.instructor,
       );
       if (!match) throw new McpToolError("not_found");
-      return match;
+      return { ...match, sectionDataComplete: true };
     },
     loadCatalogTerm: async () => ({ year: 2026, sem: 1 }),
   };
