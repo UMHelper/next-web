@@ -38,7 +38,18 @@ import { PromptInput } from "@/components/ai-elements/prompt-input";
 import { Response } from "@/components/ai-elements/response";
 import { dedupeCalls, ToolTrace } from "@/components/ai-elements/tool";
 import { EXAMPLE_QUESTIONS } from "@/lib/assistant/example-questions";
-import { callsForActivity, planRichBlocks, PRESENT_RESPONSE_TOOL_NAME } from "@/lib/assistant/presentation";
+import { parseCourseDetailResult, GET_COURSE_TOOL_NAME } from "@/lib/assistant/course-detail-ui";
+import {
+  GET_COURSE_SECTIONS_TOOL_NAME,
+  parseCourseSectionsResult,
+} from "@/lib/assistant/course-sections-ui";
+import {
+  callsForActivity,
+  courseCallIdentity,
+  planRichBlocks,
+  PRESENT_RESPONSE_TOOL_NAME,
+  sectionCallIdentity,
+} from "@/lib/assistant/presentation";
 import { ALWAYS_RICH_TOOL_NAMES } from "@/lib/assistant/rich-tools";
 import { cn } from "@/lib/utils";
 
@@ -107,6 +118,48 @@ function ThinkingRow() {
   );
 }
 
+const SHOW_CARD_BUTTON_CLASS =
+  "inline-flex text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+
+function readCallInstructor(call: ToolCall): string {
+  try {
+    const args = JSON.parse(call.function.arguments) as unknown;
+    if (args !== null && typeof args === "object" && !Array.isArray(args)) {
+      const instructor = (args as { instructor?: unknown }).instructor;
+      if (typeof instructor === "string") {
+        return instructor.trim();
+      }
+    }
+  } catch {
+    // ignore malformed tool arguments
+  }
+  return "";
+}
+
+function courseLookupDedupeKey(call: ToolCall, content: string | undefined): string {
+  const identity = courseCallIdentity(call, content);
+  return identity.canonical ?? identity.argument;
+}
+
+function sectionLookupDedupeKey(call: ToolCall, content: string | undefined): string {
+  const identity = sectionCallIdentity(call, content);
+  const course = identity.canonical ?? identity.argument;
+  return `${course}\0${readCallInstructor(call)}`;
+}
+
+function lookupHasShowCardData(toolName: string, content: string): boolean {
+  if (toolName === GET_COURSE_TOOL_NAME) {
+    return parseCourseDetailResult(content).kind === "course";
+  }
+  if (toolName === GET_COURSE_SECTIONS_TOOL_NAME) {
+    const parsed = parseCourseSectionsResult(content);
+    return parsed.kind === "sections" || parsed.kind === "empty";
+  }
+  return false;
+}
+
+type ShowCardOffer = { key: string; call: ToolCall; label: string };
+
 function splitAssistantProse(content: string): string[] {
   return content
     .split(/(?<=\.)(?=[A-Z])/)
@@ -159,6 +212,8 @@ function AssistantTurn({
   isLast: boolean;
   toolRenderer?: AssistantChatViewProps["toolRenderer"];
 }) {
+  const [expandedShowCards, setExpandedShowCards] = useState<Set<string>>(() => new Set());
+
   const dedupedCalls = useMemo(() => {
     const collected: ToolCall[] = [];
     for (const part of parts) {
@@ -190,6 +245,73 @@ function AssistantTurn({
     [richPlan],
   );
 
+  const mountedLookupKeys = useMemo(() => {
+    const keys = new Set<string>();
+    for (const block of richPlan) {
+      const call = dedupedById.get(block.callId);
+      if (!call) continue;
+      const rawContent = results.get(call.id)?.content;
+      const content = typeof rawContent === "string" ? rawContent : undefined;
+      if (call.function.name === GET_COURSE_TOOL_NAME) {
+        keys.add(`course:${courseLookupDedupeKey(call, content)}`);
+      } else if (call.function.name === GET_COURSE_SECTIONS_TOOL_NAME) {
+        keys.add(`sections:${sectionLookupDedupeKey(call, content)}`);
+      }
+    }
+    return keys;
+  }, [richPlan, dedupedById, results]);
+
+  const showCardOffers = useMemo((): ShowCardOffer[] => {
+    if (streamingHere || !toolRenderer) return [];
+
+    const courseWinners = new Map<string, ShowCardOffer>();
+    const sectionWinners = new Map<string, ShowCardOffer>();
+
+    for (const call of dedupedCalls) {
+      const name = call.function.name;
+      if (name !== GET_COURSE_TOOL_NAME && name !== GET_COURSE_SECTIONS_TOOL_NAME) continue;
+
+      const rawContent = results.get(call.id)?.content;
+      const content = typeof rawContent === "string" ? rawContent : undefined;
+      if (content === undefined || !lookupHasShowCardData(name, content)) continue;
+      if (richByCallId.has(call.id)) continue;
+
+      if (name === GET_COURSE_TOOL_NAME) {
+        const dedupeKey = courseLookupDedupeKey(call, content);
+        const offerKey = `course:${dedupeKey}`;
+        if (mountedLookupKeys.has(offerKey) || courseWinners.has(dedupeKey)) continue;
+        const identity = courseCallIdentity(call, content);
+        const code = identity.canonical ?? identity.argument;
+        courseWinners.set(dedupeKey, {
+          key: offerKey,
+          call,
+          label: `Show ${code} details`,
+        });
+        continue;
+      }
+
+      const dedupeKey = sectionLookupDedupeKey(call, content);
+      const offerKey = `sections:${dedupeKey}`;
+      if (mountedLookupKeys.has(offerKey) || sectionWinners.has(dedupeKey)) continue;
+      const identity = sectionCallIdentity(call, content);
+      const code = identity.canonical ?? identity.argument;
+      sectionWinners.set(dedupeKey, {
+        key: offerKey,
+        call,
+        label: `Show ${code} class times`,
+      });
+    }
+
+    return [...courseWinners.values(), ...sectionWinners.values()];
+  }, [
+    dedupedCalls,
+    results,
+    richByCallId,
+    mountedLookupKeys,
+    streamingHere,
+    toolRenderer,
+  ]);
+
   // One action row per turn, not one under every assistant fragment.
   const lastText = useMemo(() => {
     for (let index = parts.length - 1; index >= 0; index -= 1) {
@@ -204,6 +326,33 @@ function AssistantTurn({
   const textParts = parts.filter(
     (part): part is AssistantMessage => part.role === "assistant" && Boolean(part.content?.trim()),
   );
+
+  const expandedShowCardBlocks = showCardOffers
+    .filter((offer) => expandedShowCards.has(offer.key))
+    .map((offer) => (
+      <div key={`show-card-${offer.key}`} className="space-y-1.5">
+        {toolRenderer?.render(offer.call, results.get(offer.call.id))}
+      </div>
+    ));
+
+  const showCardButtons = showCardOffers
+    .filter((offer) => !expandedShowCards.has(offer.key))
+    .map((offer) => (
+      <button
+        key={offer.key}
+        type="button"
+        onClick={() =>
+          setExpandedShowCards((previous) => {
+            const next = new Set(previous);
+            next.add(offer.key);
+            return next;
+          })
+        }
+        className={SHOW_CARD_BUTTON_CLASS}
+      >
+        {offer.label}
+      </button>
+    ));
 
   const richBlocks = parts.flatMap((part) => {
     if (part.role === "reasoning") return [];
@@ -228,7 +377,15 @@ function AssistantTurn({
       {activityCalls.length > 0 ? (
         <ToolTrace calls={activityCalls} results={results} isRunning={streamingHere} />
       ) : null}
-      {richBlocks.length > 0 ? <div className="space-y-2">{richBlocks}</div> : null}
+      {richBlocks.length > 0 || expandedShowCardBlocks.length > 0 ? (
+        <div className="space-y-2">
+          {richBlocks}
+          {expandedShowCardBlocks}
+        </div>
+      ) : null}
+      {showCardButtons.length > 0 ? (
+        <div className="flex flex-wrap gap-x-3 gap-y-1">{showCardButtons}</div>
+      ) : null}
       {textParts.length > 0 ? (
         <div className="w-full min-w-0 rounded-xl border border-border bg-background px-4 py-3 shadow-sm">
           <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-brand">

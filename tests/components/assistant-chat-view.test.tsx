@@ -812,6 +812,155 @@ describe("AssistantChatView", () => {
       expect(screen.queryByText("Not completed")).toBeNull();
     });
 
+    function courseDetailToolRenderer() {
+      return {
+        names: RICH_TOOL_NAMES,
+        render: (call: ToolCall, result: ToolMessage | undefined) => {
+          if (call.function.name === "get_course") {
+            return (
+              <CourseDetailToolResult
+                status={result ? "complete" : "inProgress"}
+                result={typeof result?.content === "string" ? result.content : undefined}
+              />
+            );
+          }
+          return fakeToolRenderer().render(call, result);
+        },
+      };
+    }
+
+    it("offers a show-details button for an unclaimed course lookup and mounts the card on click", () => {
+      renderView({
+        messages: [
+          { id: "u1", role: "user", content: "What is GELH1000?" },
+          {
+            id: "a1",
+            role: "assistant",
+            content: "GELH1000 is a great books course.",
+            toolCalls: [
+              {
+                id: "c1",
+                type: "function",
+                function: { name: "get_course", arguments: '{"code":"GELH1000"}' },
+              },
+            ],
+          },
+          { id: "t1", role: "tool", toolCallId: "c1", content: gelhCourseBody },
+        ],
+        toolRenderer: courseDetailToolRenderer(),
+      });
+
+      expect(screen.queryByRole("article", { name: "GELH1000" })).toBeNull();
+      fireEvent.click(screen.getByRole("button", { name: "Show GELH1000 details" }));
+      expect(screen.getByRole("article", { name: "GELH1000" })).toBeTruthy();
+    });
+
+    it("offers no button for a failed lookup or an already mounted card", () => {
+      renderView({
+        messages: [
+          { id: "u1", role: "user", content: "APAC1000" },
+          {
+            id: "a1",
+            role: "assistant",
+            content: "",
+            toolCalls: [
+              {
+                id: "call-1",
+                type: "function",
+                function: { name: "get_course", arguments: '{"code":"APAC1000"}' },
+              },
+            ],
+          },
+          { id: "t1", role: "tool", toolCallId: "call-1", content: '{"error":"not_found"}' },
+        ],
+        toolRenderer: courseDetailToolRenderer(),
+      });
+
+      expect(screen.queryByRole("button", { name: /Show .* details/ })).toBeNull();
+
+      cleanup();
+
+      renderView({
+        messages: [
+          { id: "u1", role: "user", content: "Show the full details of APAC1000." },
+          {
+            id: "a1",
+            role: "assistant",
+            content: "",
+            toolCalls: [
+              { id: "g", type: "function", function: { name: "get_course", arguments: '{"code":"APAC1000"}' } },
+              {
+                id: "p",
+                type: "function",
+                function: {
+                  name: "present_response",
+                  arguments: '{"show":[{"component":"course_detail","course":"APAC1000"}]}',
+                },
+              },
+            ],
+          },
+          { id: "t1", role: "tool", toolCallId: "g", content: courseBody },
+          {
+            id: "t2",
+            role: "tool",
+            toolCallId: "p",
+            content: '{"status":"accepted","show":[{"component":"course_detail","course":"APAC1000"}]}',
+          },
+        ],
+        toolRenderer: courseDetailToolRenderer(),
+      });
+
+      expect(screen.getByRole("article", { name: "APAC1000" })).toBeTruthy();
+      expect(screen.queryByRole("button", { name: "Show APAC1000 details" })).toBeNull();
+    });
+
+    it("offers one button for two lookups of the same course", () => {
+      renderView({
+        messages: [
+          { id: "u1", role: "user", content: "GELH1000?" },
+          {
+            id: "a1",
+            role: "assistant",
+            content: "",
+            toolCalls: [
+              { id: "g1", type: "function", function: { name: "get_course", arguments: '{"code":"GELH1000"}' } },
+              { id: "g2", type: "function", function: { name: "get_course", arguments: '{"code":"GELH1000"}' } },
+            ],
+          },
+          { id: "t1", role: "tool", toolCallId: "g1", content: gelhCourseBody },
+          { id: "t2", role: "tool", toolCallId: "g2", content: gelhCourseBody },
+        ],
+        toolRenderer: courseDetailToolRenderer(),
+      });
+
+      expect(screen.getAllByRole("button", { name: "Show GELH1000 details" })).toHaveLength(1);
+    });
+
+    it("offers no button while the turn is still streaming", () => {
+      renderView({
+        messages: [
+          { id: "u1", role: "user", content: "GELH1000?" },
+          {
+            id: "a1",
+            role: "assistant",
+            content: "",
+            toolCalls: [
+              {
+                id: "c1",
+                type: "function",
+                function: { name: "get_course", arguments: '{"code":"GELH1000"}' },
+              },
+            ],
+          },
+          { id: "t1", role: "tool", toolCallId: "c1", content: gelhCourseBody },
+        ],
+        isRunning: true,
+        toolRenderer: courseDetailToolRenderer(),
+      });
+
+      expect(screen.queryByRole("button", { name: "Show GELH1000 details" })).toBeNull();
+    });
+
     it("renders one activity row and a rich block for get_course", () => {
       renderView({
         messages: [
