@@ -229,6 +229,24 @@ describe("HomeSearch", () => {
     expect(screen.getByRole("option", { name: /Ask AI/ })).toBeTruthy();
   });
 
+  it("uses the server access result without an Ask AI flash", () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<HomeSearch initialAssistantAccess="denied" />);
+    const input = screen.getByRole("combobox");
+    fireEvent.focus(input);
+
+    expect(screen.queryByRole("button", { name: "Ask AI" })).toBeNull();
+    expect(screen.queryByText("Try asking")).toBeNull();
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    cleanup();
+    render(<HomeSearch initialAssistantAccess="enabled" />);
+    expect(screen.getAllByRole("button", { name: "Ask AI" }).length).toBeGreaterThan(0);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it("shows Ask AI immediately while the access check is still pending", async () => {
     let resolveAccess: (response: Response) => void = () => {};
     vi.stubGlobal(

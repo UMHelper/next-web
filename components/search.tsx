@@ -8,9 +8,15 @@ type SearchCompProps = {
   currentYear: number;
   currentSem: number;
   databaseLastUpdate: string | null;
+  assistantAccess: "enabled" | "denied" | null;
 };
 
-export default function SearchComp({ currentYear, currentSem, databaseLastUpdate }: SearchCompProps) {
+export default function SearchComp({
+  currentYear,
+  currentSem,
+  databaseLastUpdate,
+  assistantAccess,
+}: SearchCompProps) {
   return (
     <div className="relative">
       <Image
@@ -32,7 +38,7 @@ export default function SearchComp({ currentYear, currentSem, databaseLastUpdate
         </div>
 
         <div className="hero-card mt-10 w-full max-w-4xl md:mt-12">
-          <HomeSearch />
+          <HomeSearch initialAssistantAccess={assistantAccess} />
         </div>
 
         <div className="mt-8 flex flex-wrap justify-center gap-x-4 gap-y-1 text-[11px] text-white/80 md:text-xs">

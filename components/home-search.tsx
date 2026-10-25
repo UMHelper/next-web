@@ -173,7 +173,11 @@ function ResultSkeleton() {
 }
 
 /** Inline command search for the home page, modelled on Cloudflare's big search + dropdown. */
-export function HomeSearch() {
+export function HomeSearch({
+  initialAssistantAccess,
+}: {
+  initialAssistantAccess?: "enabled" | "denied" | null;
+} = {}) {
   const router = useRouter();
   const { isLoaded, isSignedIn } = useAuth();
   const signedOut = isLoaded && !isSignedIn;
@@ -182,8 +186,8 @@ export function HomeSearch() {
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
-  const [assistantEnabled, setAssistantEnabled] = useState(false);
-  const [assistantDenied, setAssistantDenied] = useState(false);
+  const [assistantEnabled, setAssistantEnabled] = useState(initialAssistantAccess === "enabled");
+  const [assistantDenied, setAssistantDenied] = useState(initialAssistantAccess === "denied");
   const [recents, setRecents] = useState<HomeItem[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -194,6 +198,9 @@ export function HomeSearch() {
   }, []);
 
   useEffect(() => {
+    // The home page resolves access on the server so the Ask AI entry never
+    // flashes on and then disappears when the access check comes back.
+    if (initialAssistantAccess !== undefined) return;
     if (!isLoaded || !isSignedIn) {
       setAssistantEnabled(false);
       setAssistantDenied(false);
@@ -217,7 +224,7 @@ export function HomeSearch() {
         setAssistantDenied(true);
       });
     return () => controller.abort();
-  }, [assistantEnabled, isLoaded, isSignedIn]);
+  }, [assistantEnabled, initialAssistantAccess, isLoaded, isSignedIn]);
 
   useEffect(() => {
     const term = query.trim();
