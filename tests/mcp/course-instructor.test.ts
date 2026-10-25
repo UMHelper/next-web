@@ -542,11 +542,15 @@ describe("get_course data adapter", () => {
   });
 
   it("projects the normalizer placeholder Unknown as null", async () => {
-    queueCourse({ course: courseFixture({ Offering_Department: "Unknown" }) });
+    queueCourse({
+      course: courseFixture({ Offering_Department: "Unknown", courseTitleEng: "Unknown", courseTitleChi: "Unknown" }),
+    });
 
     const output = readCourseOutput(await handleGetCourse({ code: "ACCT1000" }, ctx));
 
     expect(output.course.department).toBeNull();
+    expect(output.course.titleEn).toBeNull();
+    expect(output.course.titleZh).toBeNull();
   });
 
   it("projects course and instructor summaries onto the contract whitelist only", async () => {

@@ -70,8 +70,8 @@ function projectCourse(
 ): CourseDetail {
   return {
     courseCode: code,
-    titleEn: readText(course.courseTitle),
-    titleZh: readText(course.courseTitleChi),
+    titleEn: readCatalogText(course.courseTitle),
+    titleZh: readCatalogText(course.courseTitleChi),
     credits: readCatalogText(course.credits),
     faculty: readCatalogText(course.offeringUnit),
     department: readCatalogText(course.offeringDept),

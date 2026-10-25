@@ -181,7 +181,7 @@ export function createAssistantTools(slot?: CourseReferentSlot, timetable?: Time
     defineTool({
       name: "get_instructor",
       description:
-        "Get the courses an instructor has taught, with a rating summary for each. Optionally keep only courses at or above a result, at or below a difficulty, or with a minimum review count, and sort by code, result, difficulty or review count.",
+        "Get the courses an instructor has taught, with rating summaries, review counts, sampleSize and ratingScale. Optionally keep only courses at or above a result, at least as easy as minEase, or with a minimum review count, and sort by code, result, ease (difficulty score; desc lists the easiest first) or review count. When filters exclude every course the result is an empty list, not not_found.",
       parameters: getInstructorToolInputSchema,
       execute: (args) =>
         runReadOnlyTool(
