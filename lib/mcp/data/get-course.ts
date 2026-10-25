@@ -1,3 +1,4 @@
+import { resolveCourseAlias } from "@/lib/database/course-alias";
 import { fetchCourseInfo } from "@/lib/database/get-course-info";
 import { McpToolError } from "@/lib/mcp/errors";
 import type {
@@ -54,7 +55,12 @@ function truncateDescription(value: string | null): string | null {
 type CourseInfo = Awaited<ReturnType<typeof fetchCourseInfo>>;
 
 /** Build a brand-new public course DTO field by field (never spread the row). */
-function projectCourse(course: CourseInfo["course"], code: string, isOffered: boolean): CourseDetail {
+function projectCourse(
+  course: CourseInfo["course"],
+  code: string,
+  isOffered: boolean,
+  aka: string[],
+): CourseDetail {
   return {
     courseCode: code,
     titleEn: readText(course.courseTitle),
@@ -69,6 +75,7 @@ function projectCourse(course: CourseInfo["course"], code: string, isOffered: bo
     courseType: readText(course.courseType),
     duration: readText(course.duration),
     description: truncateDescription(readText(course.courseDescription)),
+    aka,
     isOffered,
     url: absoluteUrl(buildCoursePath(code)),
   };
@@ -107,7 +114,8 @@ function projectInstructor(
  * DTO, so no raw row or internal mapping id can reach `structuredContent`.
  */
 export async function getCourse(input: GetCourseInput): Promise<GetCourseOutput> {
-  const { course, profList, isOffer } = await fetchCourseInfo(input.code);
+  const alias = await resolveCourseAlias(input.code);
+  const { course, profList, isOffer } = await fetchCourseInfo(alias.primaryCode);
 
   if (course.courseTitle === MISSING_COURSE_TITLE && profList.length === 0) {
     throw new McpToolError("not_found");
@@ -115,14 +123,16 @@ export async function getCourse(input: GetCourseInput): Promise<GetCourseOutput>
 
   // The cached course helper already returns every instructor row for the course,
   // so the page is sliced from that list — exact totalCount with no extra query.
+  // Historical codes resolve to the new primary code; links use that primary.
+  const primaryCode = course.courseCode;
   const allInstructors = profList
-    .map((row) => projectInstructor(row, input.code))
+    .map((row) => projectInstructor(row, primaryCode))
     .filter((row): row is CourseInstructorSummary => row !== null);
 
   const offset = (input.page - 1) * MAX_INSTRUCTORS;
 
   return {
-    course: projectCourse(course, input.code, isOffer),
+    course: projectCourse(course, primaryCode, isOffer, alias.aka),
     page: input.page,
     totalCount: allInstructors.length,
     hasMore: input.page * MAX_INSTRUCTORS < allInstructors.length,

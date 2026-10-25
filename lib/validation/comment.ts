@@ -2,7 +2,9 @@ import { z } from "zod";
 
 const scoreSchema = z.coerce.number().finite().min(1).max(5);
 
-export const courseCodeSchema = z.string().regex(/^[A-Z]{4}\d{4}$/);
+// New catalog codes include three-letter prefixes with a section suffix, for
+// example TLL1002C, in addition to the classic four-letter form (ACCT1000).
+export const courseCodeSchema = z.string().regex(/^[A-Z]{3,5}\d{3,4}[A-Z]?$/);
 export const professorNameSchema = z
   .string()
   .trim()

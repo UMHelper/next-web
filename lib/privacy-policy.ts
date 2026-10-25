@@ -4,9 +4,9 @@ export const privacyPolicy: Record<LegalLanguage, LegalContent> = {
     zh: {
         title: '隱私政策',
         updatedLabel: '最後更新日期：',
-        updatedDate: '2026-10-18',
+        updatedDate: '2026-10-24',
         intro:
-            '歡迎使用 What2Reg @ UM 澳大選咩課（以下簡稱「本網站」）。我們重視您的私隱，並承諾以透明、負責任的方式處理個人資料。本隱私政策說明我們如何收集、使用、保存及保護您的資訊。',
+            '歡迎使用 What2Reg @ UM 澳大選咩課（以下簡稱「本網站」）。我們重視您的私隱，並承諾以透明、負責任的方式處理個人資料。本隱私政策說明我們如何收集、使用、保存及保護您的資訊。當您使用本網站或 What2Reg@UM iOS 應用程式，即表示您確認已閱讀本隱私政策。',
         sections: [
             {
                 heading: '1. 適用範圍',
@@ -19,6 +19,7 @@ export const privacyPolicy: Record<LegalLanguage, LegalContent> = {
                 bullets: [
                     '帳戶資料：當您透過第三方身份驗證服務（如 Clerk）登入時，我們可能取得您的姓名、電郵地址及頭像等基本資料。',
                     '使用資料：當您瀏覽或使用本網站時，系統可能自動記錄瀏覽器類型、裝置資訊、IP 位址、瀏覽時間及操作紀錄等。',
+                    'iOS 應用程式裝置識別碼：iOS 應用程式會在本機產生隨機識別碼（例如 ios_...），並儲存在裝置的 Keychain 中，用於執行評論／回覆頻率限制及防止濫用。此識別碼不是您的姓名或電郵地址，不用於廣告，亦不會透過 iCloud Keychain 同步；在同一裝置上通常會在重新安裝應用程式後保留。',
                     '您主動提供的內容：例如您提交的課程評價、意見回饋、問題回報等。',
                 ],
             },
@@ -29,12 +30,17 @@ export const privacyPolicy: Record<LegalLanguage, LegalContent> = {
                     '驗證使用者身份及管理登入狀態。',
                     '回應您的查詢、回饋或問題回報。',
                     '進行統計分析，以了解使用趨勢及改善使用者體驗。',
+                    '執行頻率限制、防止濫用及維護服務安全。',
+                ],
+                paragraphs: [
+                    '我們處理個人資料的依據包括：履行提供服務所需的合約、遵守法律義務、維護服務安全及防止濫用，以及在適用法律要求時取得的同意。若我們依賴您的同意處理資料，您可隨時撤回；撤回不影響撤回前已進行的處理。',
                 ],
             },
             {
                 heading: '4. Cookies 及類似技術',
                 paragraphs: [
                     '本網站可能使用 Cookies 或類似技術以維持登入狀態、記住偏好及分析網站流量。您可透過瀏覽器設定管理或刪除 Cookies，但部分功能可能因此無法正常運作。',
+                    '本網站亦可能透過 Google Tag Manager / Google Analytics 及 Google AdSense 使用 Cookie 或類似技術。部分廣告或分析 Cookie 屬於非必要 Cookie；若適用法律要求，我們會在設置該等 Cookie 前取得您的同意，您亦可隨時透過瀏覽器或裝置設定撤回或拒絕。',
                 ],
             },
             {
@@ -44,6 +50,7 @@ export const privacyPolicy: Record<LegalLanguage, LegalContent> = {
                     'Clerk：身份驗證及使用者管理。',
                     'Supabase：資料儲存及後端服務。',
                     'Google Tag Manager / Google Analytics：流量分析。',
+                    'Google AdSense：廣告投放；Google 可能依其私隱政策使用 Cookie 及裝置資訊。',
                     'Google Forms：意見回饋及問題回報。',
                     'DeepSeek：AI 選課助手（試點）的對話處理。您在助手中輸入的內容及目前課表方案的摘要會傳送至 DeepSeek（中國內地）處理；本網站不保存對話內容。',
                 ],
@@ -63,7 +70,7 @@ export const privacyPolicy: Record<LegalLanguage, LegalContent> = {
             {
                 heading: '8. 您的權利',
                 paragraphs: [
-                    '在適用法律許可的範圍內，您有權查閱、更正、刪除您的個人資料，或撤回相關同意。如需行使上述權利，請透過下方聯絡方式與我們聯繫。',
+                    '在適用法律許可的範圍內，您有權查閱、更正、刪除您的個人資料，或撤回相關同意。如我們依賴您的同意處理資料，您可隨時撤回，撤回不影響撤回前已進行的處理。如需行使上述權利，請透過下方聯絡方式與我們聯繫。',
                 ],
             },
             {
@@ -87,9 +94,9 @@ export const privacyPolicy: Record<LegalLanguage, LegalContent> = {
     en: {
         title: 'Privacy Policy',
         updatedLabel: 'Last updated: ',
-        updatedDate: '2026-10-18',
+        updatedDate: '2026-10-24',
         intro:
-            'Welcome to What2Reg @ UM 澳大選咩課 ("the Website"). We value your privacy and are committed to handling personal data in a transparent and responsible manner. This Privacy Policy explains how we collect, use, store and protect your information.',
+            'Welcome to What2Reg @ UM 澳大選咩課 ("the Website"). We value your privacy and are committed to handling personal data in a transparent and responsible manner. This Privacy Policy explains how we collect, use, store and protect your information. By using the Website or the What2Reg@UM iOS app, you acknowledge that you have read this Privacy Policy.',
         sections: [
             {
                 heading: '1. Scope',
@@ -102,6 +109,7 @@ export const privacyPolicy: Record<LegalLanguage, LegalContent> = {
                 bullets: [
                     'Account information: when you sign in through a third-party authentication service (such as Clerk), we may receive basic profile information such as your name, email address and avatar.',
                     'Usage information: when you browse or use the Website, we may automatically record your browser type, device information, IP address, browsing time and interactions.',
+                    'iOS app device identifier: the iOS app generates a random identifier (for example ios_...) and stores it in the device Keychain. It is used to enforce review/reply rate limits and prevent abuse. It is not your name or email address, is not used for advertising, and is not synced through iCloud Keychain; on the same device it will normally survive reinstalling the app.',
                     'Content you provide voluntarily: for example, course reviews, feedback and problem reports that you submit.',
                 ],
             },
@@ -112,12 +120,17 @@ export const privacyPolicy: Record<LegalLanguage, LegalContent> = {
                     'To verify user identity and manage sign-in sessions.',
                     'To respond to your enquiries, feedback or problem reports.',
                     'To perform statistical analysis to understand usage trends and improve user experience.',
+                    'To enforce rate limits, prevent abuse and maintain service security.',
+                ],
+                paragraphs: [
+                    'We process personal data on the basis of performing the contract required to provide the service, complying with legal obligations, maintaining service security and preventing abuse, and, where required by applicable law, your consent. If we rely on your consent, you may withdraw it at any time; withdrawal does not affect processing carried out before withdrawal.',
                 ],
             },
             {
                 heading: '4. Cookies and Similar Technologies',
                 paragraphs: [
                     'The Website may use cookies or similar technologies to keep you signed in, remember your preferences and analyse site traffic. You can manage or delete cookies through your browser settings, but some features may not function properly as a result.',
+                    'The Website may also use cookies or similar technologies through Google Tag Manager / Google Analytics and Google AdSense. Some advertising or analytics cookies are non-essential; where required by applicable law, we will obtain your consent before setting them, and you may withdraw or refuse that consent through your browser or device settings at any time.',
                 ],
             },
             {
@@ -127,6 +140,7 @@ export const privacyPolicy: Record<LegalLanguage, LegalContent> = {
                     'Clerk: authentication and user management.',
                     'Supabase: data storage and backend services.',
                     'Google Tag Manager / Google Analytics: traffic analysis.',
+                    'Google AdSense: advertising; Google may use cookies and device information under its own privacy policy.',
                     'Google Forms: feedback and problem reports.',
                     'DeepSeek: processing for the AI course assistant (pilot). What you type into the assistant, together with a summary of your active timetable plan, is sent to DeepSeek (Mainland China) for processing; the Website does not store conversation content.',
                 ],
@@ -146,7 +160,7 @@ export const privacyPolicy: Record<LegalLanguage, LegalContent> = {
             {
                 heading: '8. Your Rights',
                 paragraphs: [
-                    'To the extent permitted by applicable law, you have the right to access, correct or delete your personal data, or withdraw your consent. To exercise these rights, please contact us using the details below.',
+                    'To the extent permitted by applicable law, you have the right to access, correct or delete your personal data, or withdraw your consent. If we rely on your consent, you may withdraw it at any time; withdrawal does not affect processing carried out before withdrawal. To exercise these rights, please contact us using the details below.',
                 ],
             },
             {

@@ -58,4 +58,25 @@ describe("FloatingPlanner", () => {
     render(<FloatingPlanner />);
     expect(screen.queryByLabelText("Open timetable preview")).toBeNull();
   });
+
+  it("moves its desktop tab and preview left of an open assistant sidebar", () => {
+    usePathnameMock.mockReturnValue("/course/ACCT1000");
+    plannerMock.mockReturnValue({ activePlan: undefined, syncState: "idle" });
+
+    render(<FloatingPlanner />);
+    const tab = screen.getByLabelText("Open timetable preview");
+    expect(tab.className).toContain("[html[data-assistant-open]_&]:right-[var(--assistant-width)]");
+
+    fireEvent.click(tab);
+    const preview = screen
+      .getAllByText("My Timetable")
+      .map((element) => element.closest("aside"))
+      .find(Boolean)!;
+    expect(preview.className).toContain(
+      "[html[data-assistant-open]_&]:right-[calc(var(--assistant-width)_+_1rem)]",
+    );
+    expect(preview.className).toContain(
+      "[html[data-assistant-open]_&]:max-w-[calc(100vw_-_var(--assistant-width)_-_2rem)]",
+    );
+  });
 });

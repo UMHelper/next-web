@@ -63,6 +63,56 @@ describe("shapeConversation", () => {
     const shaped = shapeConversation([user("u1"), tool("t1", long)], 8);
     expect(shaped[1].content).toBe(long);
   });
+
+  it("keeps reasoning messages in place and never starts the window with one", () => {
+    const turn = (n: number): RunMessage[] => [
+      { role: "user", content: `q${n}` },
+      { role: "reasoning", content: `r${n}` },
+      { role: "assistant", content: `a${n}` },
+    ];
+    const shaped = shapeConversation([...turn(1), ...turn(2), ...turn(3)], 1);
+    expect(shaped.map((message) => `${message.role}:${String(message.content)}`)).toEqual([
+      "user:q2",
+      "reasoning:r2",
+      "assistant:a2",
+      "user:q3",
+      "reasoning:r3",
+      "assistant:a3",
+    ]);
+  });
+});
+
+const call = (id: string) => ({ id, type: "function", function: { name: "check_plan_conflicts", arguments: "{}" } });
+const assistantCalls = (id: string, content: string, ...callIds: string[]): RunMessage => ({
+  id,
+  role: "assistant",
+  content,
+  toolCalls: callIds.map(call),
+});
+const result = (id: string, callId: string): RunMessage => ({ id, role: "tool", content: "{}", toolCallId: callId });
+
+describe("shapeConversation tool-call repair", () => {
+  it("drops tool calls that never got a result so the model provider accepts the history", () => {
+    const shaped = shapeConversation(
+      [user("u1"), assistantCalls("a1", "", "c1", "c2"), user("u2")],
+      8,
+    );
+    expect(shaped.map((message) => message.id)).toEqual(["u1", "u2"]);
+  });
+
+  it("keeps the text of an assistant message and only strips its unanswered calls", () => {
+    const shaped = shapeConversation(
+      [user("u1"), assistantCalls("a1", "checking", "c1", "c2"), result("t1", "c1"), user("u2")],
+      8,
+    );
+    expect(shaped[1]).toMatchObject({ id: "a1", content: "checking", toolCalls: [{ id: "c1" }] });
+    expect(shaped.map((message) => message.id)).toEqual(["u1", "a1", "t1", "u2"]);
+  });
+
+  it("leaves complete call and result pairs alone", () => {
+    const messages = [user("u1"), assistantCalls("a1", "", "c1"), result("t1", "c1"), assistant("a2"), user("u2")];
+    expect(shapeConversation(messages, 8)).toEqual(messages);
+  });
 });
 
 describe("runInputSchema", () => {

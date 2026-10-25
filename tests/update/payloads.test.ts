@@ -4,6 +4,7 @@ import type { ScheduleRow } from "@/lib/update/types";
 import type { UmCourse } from "@/lib/update/um-api";
 import {
   buildApplySchedulePayload,
+  buildEquivalenceMatchInput,
   buildOfferedCourseInserts,
   uniqueCourseCodes,
 } from "@/lib/update/payloads";
@@ -84,5 +85,49 @@ describe("buildOfferedCourseInserts", () => {
       courseType: "Non-GE",
       suggestedYearOfStudy: 1,
     });
+  });
+});
+
+describe("buildEquivalenceMatchInput", () => {
+  it("passes UM metadata and excludes the whole import batch", () => {
+    const um: UmCourse = {
+      offeringUnit: "FIC",
+      offeringDept: "CIS",
+      courseTitle: "Programming Science",
+      credits: "3.0",
+      duration: "Semester",
+      mediumOfInstruction: "English",
+      offeringProgLevel: "UG",
+      courseType: "Non-GE",
+      suggestedYearOfStudy: 1,
+      gradingSystem: "GPA",
+      courseDescription: "Algorithms",
+      ilo: "ILO",
+    };
+
+    const input = buildEquivalenceMatchInput(
+      [
+        { ...row, code: "CSCI1001", title: "Fallback title" },
+        { ...row, code: "TLL1002C", title: "LEGAL HISTORY" },
+      ],
+      ["CSCI1001", "TLL1002C"],
+      new Map([["CSCI1001", um]]),
+    );
+
+    expect(input.exclude_codes).toEqual(["CSCI1001", "TLL1002C"]);
+    expect(input.courses).toEqual([
+      {
+        code: "CSCI1001",
+        title: "Programming Science",
+        credits: "3.0",
+        description: "Algorithms",
+      },
+      {
+        code: "TLL1002C",
+        title: "LEGAL HISTORY",
+        credits: "3",
+        description: "",
+      },
+    ]);
   });
 });

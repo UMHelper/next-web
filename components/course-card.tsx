@@ -1,5 +1,6 @@
 import {Card, CardDescription, CardFooter, CardHeader, CardTitle} from "@/components/ui/card";
 import { TrackedItemLink } from "@/components/analytics/tracked-link";
+import { CourseAlias } from "@/components/course/course-alias";
 import type { ItemListName } from "@/lib/analytics/events";
 
 
@@ -31,6 +32,7 @@ const CourseCard=({data, listName, position}:{data:any; listName: ItemListName; 
                                 }
                             
                         </CardTitle>
+                        <CourseAlias codes={data.equivalent_codes} />
                         <CardTitle className='text-base'>{data.courseTitleEng}</CardTitle>
                         <CardDescription>{data.courseTitleChi}</CardDescription>
                     </div>

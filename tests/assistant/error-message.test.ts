@@ -4,13 +4,13 @@ import { describeAssistantError } from "@/lib/assistant/error-message";
 
 describe("describeAssistantError", () => {
   it.each([
-    ["HTTP 429: Too Many Requests", "提問次數已達上限，請稍後再試。"],
-    ['{"error":{"code":"rate_limited"}}', "提問次數已達上限，請稍後再試。"],
-    ["HTTP 409", "本次對話已達上限，請刷新頁面開始新會話。"],
-    ["conversation_limit", "本次對話已達上限，請刷新頁面開始新會話。"],
-    ["HTTP 401", "請先登入試點帳號後再使用助手。"],
-    ["HTTP 403", "請先登入試點帳號後再使用助手。"],
-    ["Failed to fetch", "助手暫時不可用，頁面其它功能不受影響。"],
+    ["HTTP 429: Too Many Requests", "Too many requests. Please try again later."],
+    ['{"error":{"code":"rate_limited"}}', "Too many requests. Please try again later."],
+    ["HTTP 409", "This conversation has reached its limit. Start a new chat to continue."],
+    ["conversation_limit", "This conversation has reached its limit. Start a new chat to continue."],
+    ["HTTP 401", "Please sign in to use the assistant."],
+    ["HTTP 403", "Please sign in to use the assistant."],
+    ["Failed to fetch", "The assistant is temporarily unavailable. Please try again."],
   ])("%s", (message, expected) => {
     expect(describeAssistantError(message)).toBe(expected);
   });

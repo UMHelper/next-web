@@ -1,5 +1,5 @@
-/* Unlayered CSS beats every cascade layer. The preflight lives in its own layer so CopilotKit's layered
-   Tailwind v4 styles (public/assistant/copilotkit-v2.css) are not reset inside the assistant panel. */
+/* Keep the site preflight in its own cascade layer so deliberately layered third-party CSS can win.
+   Tailwind utilities stay unlayered and therefore override the preflight as usual. */
 @layer site-base {
   @tailwind base;
 }
@@ -185,5 +185,41 @@
 @supports (display: grid-lanes) {
   .masonry-lanes {
     display: grid-lanes;
+  }
+}
+
+/* Command-palette/assistant "thinking" label. The moving highlight follows the
+ * brand color while the rest of the text stays at the muted foreground. */
+@keyframes assistant-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.assistant-shimmer-text {
+  background-image: linear-gradient(
+    90deg,
+    hsl(var(--muted-foreground)) 0%,
+    hsl(var(--muted-foreground)) 25%,
+    hsl(var(--brand)) 40%,
+    hsl(var(--brand)) 60%,
+    hsl(var(--muted-foreground)) 75%,
+    hsl(var(--muted-foreground)) 100%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: assistant-shimmer 2.8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .assistant-shimmer-text {
+    background-image: none;
+    animation: none;
+    -webkit-text-fill-color: currentColor;
   }
 }

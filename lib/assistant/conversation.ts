@@ -28,12 +28,37 @@ function squeezeToolResult(content: unknown): unknown {
     : `${oneLine.slice(0, OLD_TOOL_RESULT_CHARS)}…`;
 }
 
+type ToolCallLike = { id?: unknown };
+
+/**
+ * The model provider rejects an assistant tool call that has no result, and the client keeps
+ * resending it, so one lost result would break the conversation for good. Unanswered calls are
+ * removed, and an assistant message left with no text and no calls goes with them.
+ */
+function dropUnansweredToolCalls(messages: RunMessage[]): RunMessage[] {
+  const answered = new Set(
+    messages.flatMap((message) =>
+      message.role === "tool" && typeof message.toolCallId === "string" ? [message.toolCallId] : [],
+    ),
+  );
+
+  return messages.flatMap((message) => {
+    const calls = message.role === "assistant" ? message.toolCalls : undefined;
+    if (!Array.isArray(calls)) return [message];
+
+    const kept = calls.filter((call: ToolCallLike) => typeof call.id === "string" && answered.has(call.id));
+    if (kept.length === calls.length) return [message];
+    if (kept.length === 0 && !message.content) return [];
+    return [{ ...message, toolCalls: kept }];
+  });
+}
+
 /**
  * Keeps the current turn plus the last `historyTurns` turns. A turn starts at a
  * user message, so cutting there never separates a tool call from its result.
  */
 export function shapeConversation(messages: RunMessage[], historyTurns: number): RunMessage[] {
-  const visible = messages.filter((message) => !BLOCKED_ROLES.has(message.role));
+  const visible = dropUnansweredToolCalls(messages.filter((message) => !BLOCKED_ROLES.has(message.role)));
   const userIndexes = visible.flatMap((message, index) => (message.role === "user" ? [index] : []));
   const keepFrom =
     userIndexes.length > historyTurns + 1

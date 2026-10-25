@@ -32,6 +32,7 @@ describe("consumeAgentRateLimits", () => {
 
     await expect(consumeAgentRateLimits("user_123", limits)).resolves.toEqual({
       allowed: false,
+      window: "hour",
       retryAfter: 120,
     });
     expect(consumeRateLimit).toHaveBeenCalledTimes(1);
@@ -44,6 +45,7 @@ describe("consumeAgentRateLimits", () => {
 
     await expect(consumeAgentRateLimits("user_123", limits)).resolves.toEqual({
       allowed: false,
+      window: "day",
       retryAfter: 40_000,
     });
   });

@@ -4,10 +4,11 @@ import path from "node:path";
 import { InMemoryTransport, McpServer } from "@modelcontextprotocol/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { consumeMock, fetchCourseInfoMock, fromMock } = vi.hoisted(() => ({
+const { consumeMock, fetchCourseInfoMock, fromMock, resolveAliasMock } = vi.hoisted(() => ({
   consumeMock: vi.fn(),
   fetchCourseInfoMock: vi.fn(),
   fromMock: vi.fn(),
+  resolveAliasMock: vi.fn(),
 }));
 
 vi.mock("server-only", () => ({}));
@@ -17,6 +18,7 @@ vi.mock("server-only", () => ({}));
 vi.mock("next/cache", () => ({ unstable_cache: (fn: unknown) => fn }));
 
 vi.mock("@/lib/supabase/server", () => ({ default: { from: fromMock } }));
+vi.mock("@/lib/database/course-alias", () => ({ resolveCourseAlias: resolveAliasMock }));
 vi.mock("@clerk/nextjs/server", () => ({ auth: vi.fn() }));
 vi.mock("@clerk/mcp-tools/next", () => ({ verifyClerkToken: vi.fn() }));
 vi.mock("@/lib/mcp/rate-limit", async (importOriginal) => {
@@ -281,6 +283,7 @@ const instructorRows = [
 ];
 
 const COURSE_KEYS = [
+  "aka",
   "courseCode",
   "courseType",
   "credits",
@@ -486,6 +489,10 @@ describe("get_course data adapter", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     consumeMock.mockResolvedValue({ allowed: true, retryAfter: 0 });
+    resolveAliasMock.mockImplementation(async (code: string) => ({
+      primaryCode: code.trim().toUpperCase(),
+      aka: [],
+    }));
   });
 
   function queueCourse(options: {
@@ -542,6 +549,7 @@ describe("get_course data adapter", () => {
 
     expect(output.course).toEqual({
       courseCode: "ACCT1000",
+      aka: [],
       titleEn: "Financial Accounting",
       titleZh: "財務會計",
       credits: "3",
@@ -574,6 +582,15 @@ describe("get_course data adapter", () => {
 
     expect(Object.keys(output.course).sort()).toEqual(COURSE_KEYS);
     expect(Object.keys(output.instructors[0]).sort()).toEqual(INSTRUCTOR_SUMMARY_KEYS);
+  });
+
+  it("projects equivalent old course codes as aka", async () => {
+    resolveAliasMock.mockResolvedValueOnce({ primaryCode: "ACCT1000", aka: ["ACCT900"] });
+    queueCourse({ course: courseFixture() });
+
+    const output = readCourseOutput(await handleGetCourse({ code: "ACCT1000" }, ctx));
+
+    expect(output.course.aka).toEqual(["ACCT900"]);
   });
 
   it("truncates the description at 1,200 Unicode code points without splitting surrogate pairs", async () => {

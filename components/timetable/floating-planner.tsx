@@ -29,7 +29,7 @@ const FloatingPlanner = () => {
         aria-label="Open timetable preview"
         aria-expanded={desktopOpen}
         onClick={() => setDesktopOpen((value) => !value)}
-        className="fixed right-0 top-1/2 z-40 hidden -translate-y-1/2 items-center gap-2 rounded-l-xl border border-r-0 border-border bg-background px-2 py-3 text-foreground shadow-lg md:flex"
+        className="fixed right-0 top-1/2 z-40 hidden -translate-y-1/2 items-center gap-2 rounded-l-xl border border-r-0 border-border bg-background px-2 py-3 text-foreground shadow-lg md:flex [html[data-assistant-open]_&]:right-[var(--assistant-width)]"
       >
         <CalendarDays size={18} />
         <span className="text-xs font-semibold">{sections.length}</span>
@@ -41,7 +41,7 @@ const FloatingPlanner = () => {
       </button>
 
       {desktopOpen && (
-        <aside className="fixed right-4 top-1/2 z-40 hidden max-h-[70vh] w-[400px] -translate-y-1/2 overflow-auto rounded-xl border border-border bg-background p-4 shadow-2xl md:block">
+        <aside className="fixed right-4 top-1/2 z-40 hidden max-h-[70vh] w-[400px] -translate-y-1/2 overflow-auto rounded-xl border border-border bg-background p-4 shadow-2xl md:block [html[data-assistant-open]_&]:right-[calc(var(--assistant-width)_+_1rem)] [html[data-assistant-open]_&]:max-w-[calc(100vw_-_var(--assistant-width)_-_2rem)]">
           <div className="mb-3 flex items-center justify-between">
             <div>
               <div className="text-sm font-semibold">My Timetable</div>

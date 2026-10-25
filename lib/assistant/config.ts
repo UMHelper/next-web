@@ -26,7 +26,7 @@ export function readAssistantConfig(
     baseURL: env.AI_BASE_URL || "https://api.deepseek.com",
     model: env.AI_MODEL || "deepseek-flash",
     thinking: env.AI_THINKING === "low" ? "low" : "off",
-    maxOutputTokens: positiveInt(env.AI_MAX_OUTPUT_TOKENS, 400),
+    maxOutputTokens: positiveInt(env.AI_MAX_OUTPUT_TOKENS, 2_000),
     timeoutMs: positiveInt(env.AI_TIMEOUT_MS, 30_000),
     ratePerHour: positiveInt(env.AGENT_RATE_LIMIT_PER_HOUR, 30),
     ratePerDay: positiveInt(env.AGENT_RATE_LIMIT_PER_DAY, 80),

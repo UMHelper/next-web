@@ -1,16 +1,17 @@
 import { BuiltInAgent } from "@copilotkit/runtime/v2";
 
 import type { AssistantConfig } from "./config";
+import { withStepMetrics } from "./metrics";
 import { createAssistantModel, thinkingProviderOptions } from "./model";
 import { ASSISTANT_PROMPT } from "./prompt";
-import { replyScriptContext } from "./reply-script";
+import { replyLanguageContext, replyScriptContext } from "./reply-script";
 import { createAssistantTools } from "./tools";
 
-export const ASSISTANT_MAX_STEPS = 5;
+export const ASSISTANT_MAX_STEPS = 8;
 
 export function createAssistantAgent(config: AssistantConfig, signal?: AbortSignal) {
   const agent = new BuiltInAgent({
-    model: createAssistantModel(config, signal),
+    model: withStepMetrics(createAssistantModel(config, signal)),
     prompt: ASSISTANT_PROMPT,
     tools: createAssistantTools(),
     maxSteps: ASSISTANT_MAX_STEPS,
@@ -19,8 +20,10 @@ export function createAssistantAgent(config: AssistantConfig, signal?: AbortSign
     overridableProperties: [],
   });
   agent.use((input, next) => {
-    const script = replyScriptContext(input.messages);
-    return next.run(script ? { ...input, context: [...input.context, script] } : input);
+    const extra = [replyScriptContext(input.messages), replyLanguageContext(input.messages)].filter(
+      (entry): entry is NonNullable<typeof entry> => entry !== null,
+    );
+    return next.run(extra.length > 0 ? { ...input, context: [...input.context, ...extra] } : input);
   });
   return agent;
 }

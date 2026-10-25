@@ -1,4 +1,3 @@
-import React from "react";
 import Link from "next/link";
 import { ArrowUpRightSquare } from "lucide-react";
 
@@ -11,13 +10,18 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { CourseAlias } from "@/components/course/course-alias";
 import { CourseJsonLd } from "@/components/seo/course-json-ld";
+import { getProfListByCourse } from "@/lib/database/get-prof-info";
 import { getCourseInfo, normalizeLocalCourseInfo } from "@/lib/database/get-course-info";
 
 export default async function CourseHeader({ code }: { code: string }) {
-  const localCourse = await getCourseInfo(code);
+  const [localCourse, profList] = await Promise.all([
+    getCourseInfo(code),
+    getProfListByCourse(code),
+  ]);
   const course = normalizeLocalCourseInfo(localCourse, code);
-  const isOffer = localCourse["Is_Offered"] === 1;
+  const isOffer = localCourse["Is_Offered"] === 1 || (profList ?? []).some((prof) => prof.is_offered);
 
   return (
     <>
@@ -48,6 +52,11 @@ export default async function CourseHeader({ code }: { code: string }) {
                     : null)
                 }
               </div>
+              <CourseAlias
+                codes={course.equivalentCodes}
+                variant="plain"
+                className="mb-2"
+              />
               <div className='text-xl font-semibold'>{course["courseTitle"]}</div>
               <div className='text-sm'>{course['offeringProgLevel'] + ' Course, Year ' + parseInt(course['suggestedYearOfStudy'])}</div>
             </div>
