@@ -12,7 +12,7 @@ import {
   User,
 } from "lucide-react";
 import { useAuth } from "@clerk/nextjs";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { openAssistant } from "@/lib/assistant/open";
@@ -119,6 +119,7 @@ function itemIcon(item: PaletteItem) {
 
 export function CommandPalette({ variant = "header" }: { variant?: "header" | "hero" }) {
   const router = useRouter();
+  const pathname = usePathname();
   const { isLoaded, isSignedIn } = useAuth();
   const signedOut = isLoaded && !isSignedIn;
   const [open, setOpen] = useState(false);
@@ -311,6 +312,8 @@ export function CommandPalette({ variant = "header" }: { variant?: "header" | "h
       choose(flat[active]);
     }
   };
+
+  if (variant === "header" && pathname === "/") return null;
 
   let cursor = -1;
 

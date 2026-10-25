@@ -24,6 +24,7 @@ import { PLAN_CONTEXT_DESCRIPTION, summarizePlan } from "@/lib/assistant/plan-su
 import { getSections } from "@/lib/timetable/catalog-client";
 
 import AssistantChat from "./assistant-chat";
+import { AssistantBubble } from "./assistant-bubble";
 import ResizeHandle from "./resize-handle";
 import { useNavigateTool } from "./use-navigate-tool";
 
@@ -92,6 +93,7 @@ export default function AssistantPanel({
   openToken?: number;
   onPromptConsumed?: () => void;
 }) {
+  const pathname = usePathname();
   const [notice, setNotice] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const [rendered, setRendered] = useState(true);
@@ -183,6 +185,7 @@ export default function AssistantPanel({
         ) : null}
       </CopilotKitProvider>
       <ResizeHandle visible={shown} panelRef={panelRef} />
+      {open || suppressed || pathname === "/" ? null : <AssistantBubble onClick={reopen} />}
     </>,
     document.body,
   );

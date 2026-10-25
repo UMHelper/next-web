@@ -4,12 +4,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   push: vi.fn(),
   openAssistant: vi.fn(),
+  pathname: "/catalog",
   auth: { isLoaded: true, isSignedIn: true },
 }));
 const { push, openAssistant } = mocks;
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: mocks.push }),
+  usePathname: () => mocks.pathname,
 }));
 
 vi.mock("@/lib/assistant/open", () => ({
@@ -48,6 +50,7 @@ describe("CommandPalette", () => {
     vi.clearAllMocks();
     mocks.auth.isLoaded = true;
     mocks.auth.isSignedIn = true;
+    mocks.pathname = "/catalog";
     installFakeStorage();
     vi.stubGlobal(
       "fetch",
@@ -104,6 +107,12 @@ describe("CommandPalette", () => {
     fireEvent.click(ask);
 
     expect(openAssistant).toHaveBeenCalledWith({ prompt: "給分好嗎", autoSend: true });
+  });
+
+  it("hides the header trigger on the homepage", () => {
+    mocks.pathname = "/";
+    render(<CommandPalette />);
+    expect(screen.queryByRole("button", { name: "Search" })).toBeNull();
   });
 
   it("shows page shortcuts when the query is empty", async () => {

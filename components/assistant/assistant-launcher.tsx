@@ -7,6 +7,8 @@ import { useEffect, useState } from "react";
 
 import { OPEN_ASSISTANT_EVENT, type OpenAssistantDetail } from "@/lib/assistant/open";
 
+import { AssistantBubble } from "./assistant-bubble";
+
 const AssistantPanel = dynamic(() => import("./assistant-panel"), { ssr: false });
 
 const SUPPRESSED_PREFIXES = ["/admin", "/oauth-consent", "/sign-in", "/sign-up"];
@@ -68,18 +70,24 @@ export default function AssistantLauncher() {
     return () => window.removeEventListener(OPEN_ASSISTANT_EVENT, onOpen);
   }, []);
 
-  if (!enabled || !opened) return null;
+  if (!enabled) return null;
 
-  return (
-    <AssistantPanel
-      suppressed={isAssistantSuppressed(pathname)}
-      initialPrompt={pendingPrompt}
-      autoSend={pendingAutoSend}
-      openToken={openToken}
-      onPromptConsumed={() => {
-        setPendingPrompt(null);
-        setPendingAutoSend(false);
-      }}
-    />
-  );
+  const suppressed = isAssistantSuppressed(pathname);
+  if (opened) {
+    return (
+      <AssistantPanel
+        suppressed={suppressed}
+        initialPrompt={pendingPrompt}
+        autoSend={pendingAutoSend}
+        openToken={openToken}
+        onPromptConsumed={() => {
+          setPendingPrompt(null);
+          setPendingAutoSend(false);
+        }}
+      />
+    );
+  }
+  if (suppressed || pathname === "/") return null;
+
+  return <AssistantBubble onClick={() => setOpened(true)} />;
 }

@@ -123,6 +123,28 @@ describe("AssistantLauncher", () => {
     });
   });
 
+  it("shows the floating launcher on non-home pages", async () => {
+    usePathnameMock.mockReturnValue("/course/ACCT1000");
+    useAuthMock.mockReturnValue({ isLoaded: true, isSignedIn: true, userId: "user_a" });
+    stubFetch(respond(true, { enabled: true }));
+    render(<AssistantLauncher />);
+
+    const bubble = await screen.findByRole("button", { name: "AI Course Helper" });
+    fireEvent.click(bubble);
+    expect(screen.getByTestId("assistant-panel")).toBeTruthy();
+  });
+
+  it("hides the floating launcher on the homepage", async () => {
+    usePathnameMock.mockReturnValue("/");
+    useAuthMock.mockReturnValue({ isLoaded: true, isSignedIn: true, userId: "user_a" });
+    const fetchMock = stubFetch(respond(true, { enabled: true }));
+    const { container } = render(<AssistantLauncher />);
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    expect(container.innerHTML).toBe("");
+    expect(screen.queryByRole("button", { name: "AI Course Helper" })).toBeNull();
+  });
+
   it("loads the panel only after an Ask AI event", async () => {
     useAuthMock.mockReturnValue({ isLoaded: true, isSignedIn: true, userId: "user_a" });
     const fetchMock = stubFetch(respond(true, { enabled: true }));
