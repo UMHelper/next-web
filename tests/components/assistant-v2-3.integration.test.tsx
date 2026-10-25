@@ -250,7 +250,7 @@ vi.mock("@/lib/assistant/tools", async (importOriginal) => {
     getInstructorOutputSchema,
   } = await import("@/lib/mcp/schemas");
   const { bindCourseToolArgs } = await import("@/lib/assistant/course-referent");
-  const { executePresentResponse } = await import("@/lib/assistant/presentation");
+  const { createPresentationLedger, executePresentResponse } = await import("@/lib/assistant/presentation");
   type CourseReferent = import("@/lib/assistant/course-referent").CourseReferent;
   type TimetableSlot = import("@/lib/assistant/timetable-context").TimetableSlot;
   type CourseReferentSlot = import("@/lib/assistant/course-referent").CourseReferentSlot;
@@ -360,7 +360,7 @@ vi.mock("@/lib/assistant/tools", async (importOriginal) => {
             .max(6)
             .optional(),
         }),
-        execute: (args) => Promise.resolve(executePresentResponse(args)),
+        execute: (args) => executePresentResponse(args, createPresentationLedger()),
       }),
       ...createTimetableTools(
         timetable ?? unavailableTimetableSlot,

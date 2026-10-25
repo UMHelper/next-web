@@ -5,11 +5,15 @@ import {
   activePresent,
   callsForActivity,
   courseCallIdentity,
+  createPresentationLedger,
   executePresentResponse,
   parsePresentArguments,
   planRichBlocks,
+  PRESENT_RECEIPT_NOTE,
   PRESENT_RESPONSE_TOOL_NAME,
   sectionCallIdentity,
+  seedLedgerFromMessages,
+  trackLookup,
   type ToolCallLike,
 } from "@/lib/assistant/presentation";
 
@@ -47,70 +51,200 @@ const course = (code: string) =>
   });
 
 describe("executePresentResponse", () => {
-  it("accepts an empty show list and ignores unknown extra fields", () => {
-    expect(executePresentResponse({ show: [], extra: true })).toEqual({ status: "accepted", show: [] });
-    expect(executePresentResponse({})).toEqual({ status: "accepted", show: [] });
+  it("never answers accepted", async () => {
+    const receipt = await executePresentResponse({ show: [] }, createPresentationLedger());
+    expect(receipt).toMatchObject({ status: "requested", items: [] });
+    expect(receipt.status === "requested" && "accepted" in receipt).toBe(false);
   });
 
-  it("normalizes up to three distinct existing-component claims", () => {
-    expect(
-      executePresentResponse({
+  it("is ready only after a matching successful lookup in this turn", async () => {
+    const ledger = createPresentationLedger();
+    await trackLookup(
+      ledger,
+      "get_course",
+      { code: "GELH1000" },
+      Promise.resolve(JSON.parse(course("GELH1000"))),
+    );
+    const receipt = await executePresentResponse(
+      { show: [{ component: "course_detail", course: "GELH1000" }] },
+      ledger,
+    );
+    expect(receipt).toMatchObject({ status: "requested", items: [{ eligibility: "ready" }] });
+    expect(receipt.status === "requested" && receipt.note).toBe(PRESENT_RECEIPT_NOTE);
+  });
+
+  it("reports missing_lookup when nothing was looked up", async () => {
+    const receipt = await executePresentResponse(
+      { show: [{ component: "course_detail", course: "GELH1000" }] },
+      createPresentationLedger(),
+    );
+    expect(receipt).toMatchObject({
+      status: "requested",
+      items: [{ component: "course_detail", course: "GELH1000", eligibility: "missing_lookup" }],
+    });
+  });
+
+  it("reports lookup_failed when the lookup returned not_found", async () => {
+    const ledger = createPresentationLedger();
+    await trackLookup(
+      ledger,
+      "get_course",
+      { code: "GELH1000" },
+      Promise.resolve({ error: "not_found" }),
+    );
+    const receipt = await executePresentResponse(
+      { show: [{ component: "course_detail", course: "GELH1000" }] },
+      ledger,
+    );
+    expect(receipt).toMatchObject({
+      status: "requested",
+      items: [{ eligibility: "lookup_failed" }],
+    });
+  });
+
+  it("waits for a lookup running in the same step (Review Focus 1)", async () => {
+    const ledger = createPresentationLedger();
+    let resolve!: (v: unknown) => void;
+    const pending = trackLookup(
+      ledger,
+      "get_course",
+      { code: "GELH1000" },
+      new Promise((r) => {
+        resolve = r;
+      }),
+    );
+    const receiptPromise = executePresentResponse(
+      { show: [{ component: "course_detail", course: "GELH1000" }] },
+      ledger,
+    );
+    resolve(JSON.parse(course("GELH1000")));
+    await pending;
+    await expect(receiptPromise).resolves.toMatchObject({ items: [{ eligibility: "ready" }] });
+  });
+
+  it("matches the canonical code when the claim uses an old alias (Review Focus 2)", async () => {
+    const ledger = createPresentationLedger();
+    await trackLookup(
+      ledger,
+      "get_course",
+      { code: "OLDC1000" },
+      Promise.resolve(JSON.parse(course("GELH1000"))),
+    );
+    const canonicalClaim = await executePresentResponse(
+      { show: [{ component: "course_detail", course: "GELH1000" }] },
+      ledger,
+    );
+    expect(canonicalClaim).toMatchObject({ items: [{ eligibility: "ready" }] });
+    const aliasClaim = await executePresentResponse(
+      { show: [{ component: "course_detail", course: "OLDC1000" }] },
+      ledger,
+    );
+    expect(aliasClaim).toMatchObject({ items: [{ eligibility: "ready" }] });
+  });
+
+  it("counts lookups from earlier runs of the current turn but not from earlier turns (Review Focus 3)", () => {
+    const ledger = createPresentationLedger();
+    seedLedgerFromMessages(ledger, [
+      { role: "user", content: "What is GEST1004?" },
+      {
+        role: "assistant",
+        toolCalls: [{ id: "a", function: { name: "get_course", arguments: '{"code":"GEST1004"}' } }],
+      },
+      { role: "tool", toolCallId: "a", content: course("GEST1004") },
+      { role: "user", content: "Tell me more about GELH1000" },
+      {
+        role: "assistant",
+        toolCalls: [{ id: "b", function: { name: "get_course", arguments: '{"code":"GELH1000"}' } }],
+      },
+      { role: "tool", toolCallId: "b", content: course("GELH1000") },
+    ]);
+    expect(ledger.lookups.map((l) => l.canonical)).toEqual(["GELH1000"]);
+  });
+
+  it("rejects malformed show items exactly as before", async () => {
+    const ledger = createPresentationLedger();
+    await expect(
+      executePresentResponse({ mode: "course_comparison", courses: ["CISC2001", "CISC2003"] }, ledger),
+    ).resolves.toEqual({ status: "rejected", reason: "invalid_request" });
+    await expect(
+      executePresentResponse({ show: [{ component: "course_comparison", course: "CISC2001" }] }, ledger),
+    ).resolves.toEqual({ status: "rejected", reason: "invalid_request" });
+    await expect(
+      executePresentResponse({ show: [{ component: "course_detail", course: "CISC 2001" }] }, ledger),
+    ).resolves.toEqual({ status: "rejected", reason: "invalid_request" });
+    await expect(
+      executePresentResponse(
+        {
+          show: [
+            { component: "course_detail", course: "CISC2001" },
+            { component: "course_detail", course: "CISC2002" },
+            { component: "course_detail", course: "CISC2003" },
+            { component: "course_sections", course: "CISC2004" },
+          ],
+        },
+        ledger,
+      ),
+    ).resolves.toEqual({ status: "rejected", reason: "invalid_request" });
+    await expect(
+      executePresentResponse(
+        {
+          show: [
+            { component: "course_detail", course: "CISC2001" },
+            { component: "course_detail", course: "CISC2001" },
+          ],
+        },
+        ledger,
+      ),
+    ).resolves.toEqual({ status: "rejected", reason: "invalid_request" });
+  });
+
+  it("accepts an empty show list and ignores unknown extra fields", async () => {
+    const ledger = createPresentationLedger();
+    expect(await executePresentResponse({ show: [], extra: true }, ledger)).toMatchObject({
+      status: "requested",
+      items: [],
+    });
+    expect(await executePresentResponse({}, ledger)).toMatchObject({ status: "requested", items: [] });
+  });
+
+  it("normalizes up to three distinct existing-component claims", async () => {
+    const ledger = createPresentationLedger();
+    await trackLookup(
+      ledger,
+      "get_course",
+      { code: "CISC2001" },
+      Promise.resolve(JSON.parse(course("CISC2001"))),
+    );
+    await trackLookup(
+      ledger,
+      "get_course_sections",
+      { code: "CISC2001", instructor: "CHAN TAI MAN" },
+      Promise.resolve(
+        JSON.parse(
+          JSON.stringify({
+            courseCode: "CISC2001",
+            instructor: "CHAN TAI MAN",
+            courseUrl: "https://umeh.top/course/CISC2001",
+            sections: [],
+          }),
+        ),
+      ),
+    );
+    const receipt = await executePresentResponse(
+      {
         show: [
           { component: "course_detail", course: "cisc2001" },
           { component: "course_sections", course: "CISC2001" },
         ],
-      }),
-    ).toEqual({
-      status: "accepted",
-      show: [
-        { component: "course_detail", course: "CISC2001" },
-        { component: "course_sections", course: "CISC2001" },
+      },
+      ledger,
+    );
+    expect(receipt).toMatchObject({
+      status: "requested",
+      items: [
+        { component: "course_detail", course: "CISC2001", eligibility: "ready" },
+        { component: "course_sections", course: "CISC2001", eligibility: "ready" },
       ],
-    });
-  });
-
-  it("rejects comparison modes, unknown components, and bad codes", () => {
-    expect(executePresentResponse({ mode: "course_comparison", courses: ["CISC2001", "CISC2003"] })).toEqual({
-      status: "rejected",
-      reason: "invalid_request",
-    });
-    expect(executePresentResponse({ show: [{ component: "course_comparison", course: "CISC2001" }] })).toEqual({
-      status: "rejected",
-      reason: "invalid_request",
-    });
-    expect(executePresentResponse({ show: [{ component: "course_detail", course: "CISC 2001" }] })).toEqual({
-      status: "rejected",
-      reason: "invalid_request",
-    });
-  });
-
-  it("rejects a show list with more than three items", () => {
-    expect(
-      executePresentResponse({
-        show: [
-          { component: "course_detail", course: "CISC2001" },
-          { component: "course_detail", course: "CISC2002" },
-          { component: "course_detail", course: "CISC2003" },
-          { component: "course_sections", course: "CISC2004" },
-        ],
-      }),
-    ).toEqual({
-      status: "rejected",
-      reason: "invalid_request",
-    });
-  });
-
-  it("rejects duplicate component and course pairs", () => {
-    expect(
-      executePresentResponse({
-        show: [
-          { component: "course_detail", course: "CISC2001" },
-          { component: "course_detail", course: "CISC2001" },
-        ],
-      }),
-    ).toEqual({
-      status: "rejected",
-      reason: "invalid_request",
     });
   });
 });
@@ -121,7 +255,7 @@ describe("parsePresentArguments", () => {
   });
 
   it("parses a finished payload", () => {
-    expect(parsePresentArguments('{"show":[]}')).toEqual({ status: "accepted", show: [] });
+    expect(parsePresentArguments('{"show":[]}')).toEqual({ show: [] });
   });
 });
 
@@ -197,7 +331,6 @@ describe("planRichBlocks", () => {
       p2: JSON.stringify({ status: "rejected", reason: "invalid_request" }),
     });
     expect(activePresent(rejectedLater, map)?.request).toEqual({
-      status: "accepted",
       show: [{ component: "course_detail", course: "CISC2001" }],
     });
     expect(planRichBlocks(rejectedLater, map, always, false)).toEqual([{ kind: "tool", callId: "g" }]);

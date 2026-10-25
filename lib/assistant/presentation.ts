@@ -1,5 +1,6 @@
 import { parseCourseDetailResult, GET_COURSE_TOOL_NAME } from "@/lib/assistant/course-detail-ui";
 import { clarificationAsk } from "@/lib/assistant/course-referent";
+import type { DiscussedMessage } from "@/lib/assistant/discussed-courses";
 import {
   GET_COURSE_SECTIONS_TOOL_NAME,
   parseCourseSectionsResult,
@@ -10,12 +11,19 @@ export const MAX_PRESENT_SHOW_ITEMS = 3;
 
 export type PresentComponent = "course_detail" | "course_sections";
 export type PresentShow = { component: PresentComponent; course: string };
-export type PresentResponse =
-  | { status: "accepted"; show: PresentShow[] }
-  | { status: "rejected"; reason: string };
-export type AcceptedPresent = { status: "accepted"; show: PresentShow[] };
+export type PresentRequest = { show: PresentShow[] };
+export type PresentEligibility = "ready" | "missing_lookup" | "lookup_failed";
+export type PresentReceipt =
+  | { status: "requested"; items: Array<PresentShow & { eligibility: PresentEligibility }>; note: string }
+  | { status: "rejected"; reason: "invalid_request" };
+export type LookupRecord = { component: PresentComponent; argument: string; canonical: string | null; ok: boolean };
+export type PresentationLedger = { lookups: LookupRecord[]; pending: Set<Promise<unknown>> };
+export type PresentationSlot = { current: PresentationLedger };
 export type ToolCallLike = { id: string; function: { name: string; arguments: string } };
 export type RichBlock = { kind: "tool"; callId: string };
+
+export const PRESENT_RECEIPT_NOTE =
+  "ready means the chat will display this card with your reply; it does not confirm the student has seen it, so never describe it as shown above. missing_lookup means no matching lookup ran in this turn: call get_course or get_course_sections for that course first, then present again, or answer in text. lookup_failed means the lookup did not return data, so no card will appear.";
 
 const COURSE_CODE_RE = /^[A-Z]{4}\d{4}$/;
 const PRESENT_COMPONENTS: ReadonlySet<string> = new Set(["course_detail", "course_sections"]);
@@ -53,9 +61,13 @@ function resultRejected(content: string): boolean {
   return false;
 }
 
-export function executePresentResponse(args: unknown): PresentResponse {
+export function createPresentationLedger(): PresentationLedger {
+  return { lookups: [], pending: new Set() };
+}
+
+export function parsePresentRequest(args: unknown): PresentRequest | null {
   if (args === null || typeof args !== "object" || Array.isArray(args)) {
-    return { status: "rejected", reason: "invalid_request" };
+    return null;
   }
 
   const record = args as Record<string, unknown>;
@@ -63,13 +75,13 @@ export function executePresentResponse(args: unknown): PresentResponse {
 
   if (show === undefined) {
     if (Object.keys(record).length === 0) {
-      return { status: "accepted", show: [] };
+      return { show: [] };
     }
-    return { status: "rejected", reason: "invalid_request" };
+    return null;
   }
 
   if (!Array.isArray(show)) {
-    return { status: "rejected", reason: "invalid_request" };
+    return null;
   }
 
   const seen = new Set<string>();
@@ -77,49 +89,194 @@ export function executePresentResponse(args: unknown): PresentResponse {
 
   for (const item of show) {
     if (normalized.length >= MAX_PRESENT_SHOW_ITEMS) {
-      return { status: "rejected", reason: "invalid_request" };
+      return null;
     }
     if (item === null || typeof item !== "object" || Array.isArray(item)) {
-      return { status: "rejected", reason: "invalid_request" };
+      return null;
     }
     const entry = item as { component?: unknown; course?: unknown };
     if (typeof entry.component !== "string" || !PRESENT_COMPONENTS.has(entry.component)) {
-      return { status: "rejected", reason: "invalid_request" };
+      return null;
     }
     const course = normalizeCourseCode(entry.course);
     if (!course) {
-      return { status: "rejected", reason: "invalid_request" };
+      return null;
     }
     const key = `${entry.component}:${course}`;
     if (seen.has(key)) {
-      return { status: "rejected", reason: "invalid_request" };
+      return null;
     }
     seen.add(key);
     normalized.push({ component: entry.component as PresentComponent, course });
   }
 
-  return { status: "accepted", show: normalized };
+  return { show: normalized };
 }
 
-export function parsePresentArguments(argumentsJson: string): PresentResponse | null {
+export function parsePresentArguments(argumentsJson: string): PresentRequest | null {
   try {
-    return executePresentResponse(JSON.parse(argumentsJson));
+    return parsePresentRequest(JSON.parse(argumentsJson));
   } catch {
     return null;
   }
 }
 
+function lookupOk(toolName: string, content: string | undefined): boolean {
+  if (typeof content !== "string") return false;
+  if (toolName === GET_COURSE_TOOL_NAME) {
+    return parseCourseDetailResult(content).kind === "course";
+  }
+  if (toolName === GET_COURSE_SECTIONS_TOOL_NAME) {
+    const parsed = parseCourseSectionsResult(content);
+    return parsed.kind === "sections" || parsed.kind === "empty";
+  }
+  return false;
+}
+
+export function lookupRecordFor(
+  toolName: string,
+  argumentsJson: string,
+  content: string | undefined,
+): LookupRecord | null {
+  if (toolName !== GET_COURSE_TOOL_NAME && toolName !== GET_COURSE_SECTIONS_TOOL_NAME) {
+    return null;
+  }
+
+  const component: PresentComponent =
+    toolName === GET_COURSE_TOOL_NAME ? "course_detail" : "course_sections";
+  const call: ToolCallLike = { id: "", function: { name: toolName, arguments: argumentsJson } };
+  const identity =
+    toolName === GET_COURSE_TOOL_NAME
+      ? courseCallIdentity(call, content)
+      : sectionCallIdentity(call, content);
+
+  return {
+    component,
+    argument: identity.argument,
+    canonical: identity.canonical,
+    ok: lookupOk(toolName, content),
+  };
+}
+
+export function trackLookup<T>(
+  ledger: PresentationLedger,
+  toolName: string,
+  args: unknown,
+  run: Promise<T>,
+): Promise<T> {
+  const argumentsJson = JSON.stringify(args);
+  const tracked = run
+    .then((result) => {
+      const content = typeof result === "string" ? result : JSON.stringify(result);
+      const record = lookupRecordFor(toolName, argumentsJson, content);
+      if (record) {
+        ledger.lookups.push(record);
+      }
+      return result;
+    })
+    .finally(() => {
+      ledger.pending.delete(tracked);
+    });
+  ledger.pending.add(tracked);
+  return tracked;
+}
+
+function lastUserMessageIndex(messages: readonly DiscussedMessage[]): number {
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    if (messages[index]?.role === "user") return index;
+  }
+  return -1;
+}
+
+export function seedLedgerFromMessages(ledger: PresentationLedger, messages: readonly DiscussedMessage[]): void {
+  const start = lastUserMessageIndex(messages);
+  if (start < 0) return;
+
+  const toolContent = new Map<string, string>();
+  for (let index = start; index < messages.length; index += 1) {
+    const message = messages[index]!;
+    if (message.role === "tool" && typeof message.toolCallId === "string") {
+      const content =
+        typeof message.content === "string"
+          ? message.content
+          : message.content === undefined
+            ? undefined
+            : JSON.stringify(message.content);
+      if (typeof content === "string") {
+        toolContent.set(message.toolCallId, content);
+      }
+    }
+  }
+
+  for (let index = start; index < messages.length; index += 1) {
+    const message = messages[index]!;
+    if (message.role !== "assistant" || !message.toolCalls) continue;
+
+    for (const toolCall of message.toolCalls) {
+      const name = toolCall.function?.name;
+      const argumentsJson = toolCall.function?.arguments;
+      const id = toolCall.id;
+      if (
+        (name !== GET_COURSE_TOOL_NAME && name !== GET_COURSE_SECTIONS_TOOL_NAME) ||
+        typeof argumentsJson !== "string" ||
+        typeof id !== "string"
+      ) {
+        continue;
+      }
+      const record = lookupRecordFor(name, argumentsJson, toolContent.get(id));
+      if (record) {
+        ledger.lookups.push(record);
+      }
+    }
+  }
+}
+
+function claimMatchesRecord(claim: PresentShow, record: LookupRecord): boolean {
+  if (claim.component !== record.component) return false;
+  if (claim.course === record.argument) return true;
+  if (record.canonical !== null && claim.course === record.canonical) return true;
+  return false;
+}
+
+function eligibilityForItem(claim: PresentShow, ledger: PresentationLedger): PresentEligibility {
+  const matching = ledger.lookups.filter((record) => claimMatchesRecord(claim, record));
+  if (matching.length === 0) return "missing_lookup";
+  if (matching.some((record) => record.ok)) return "ready";
+  return "lookup_failed";
+}
+
+export async function executePresentResponse(
+  args: unknown,
+  ledger: PresentationLedger,
+): Promise<PresentReceipt> {
+  await Promise.allSettled(ledger.pending);
+
+  const request = parsePresentRequest(args);
+  if (!request) {
+    return { status: "rejected", reason: "invalid_request" };
+  }
+
+  return {
+    status: "requested",
+    items: request.show.map((item) => ({
+      ...item,
+      eligibility: eligibilityForItem(item, ledger),
+    })),
+    note: PRESENT_RECEIPT_NOTE,
+  };
+}
+
 export function activePresent(
   calls: ToolCallLike[],
   results: Map<string, { content?: unknown }>,
-): { callId: string; request: AcceptedPresent } | null {
-  let last: { callId: string; request: AcceptedPresent } | null = null;
+): { callId: string; request: PresentRequest } | null {
+  let last: { callId: string; request: PresentRequest } | null = null;
 
   for (const call of calls) {
     if (call.function.name !== PRESENT_RESPONSE_TOOL_NAME) continue;
 
     const parsed = parsePresentArguments(call.function.arguments);
-    if (!parsed || parsed.status === "rejected") continue;
+    if (!parsed) continue;
 
     const rawContent = results.get(call.id)?.content;
     const content = typeof rawContent === "string" ? rawContent : undefined;

@@ -50,10 +50,11 @@ describe("assistant server tools", () => {
     expect(ASSISTANT_SERVER_TOOL_NAMES.at(-1)).toBe("preview_timetable");
   });
 
-  it("defaults present_response to omit unless the student asked to see a card", () => {
+  it("describes present_response as a receipt-backed card request", () => {
     const tool = createAssistantTools().find((entry) => entry.name === "present_response");
-    expect(tool?.description).toContain("Default: omit this tool");
-    expect(tool?.description).not.toContain("intent is already clear");
+    expect(tool?.description).toContain("receipt reports for each item");
+    expect(tool?.description).toContain("missing_lookup");
+    expect(tool?.description).toContain("lookup_failed");
   });
 
   it("rejects present_response show lists longer than MAX_PRESENT_SHOW_ITEMS at the schema", () => {
@@ -82,9 +83,9 @@ describe("assistant server tools", () => {
   it("validates present_response without reading academic data", async () => {
     await expect(
       call("present_response", { show: [{ component: "course_detail", course: "CISC2001" }] }),
-    ).resolves.toEqual({
-      status: "accepted",
-      show: [{ component: "course_detail", course: "CISC2001" }],
+    ).resolves.toMatchObject({
+      status: "requested",
+      items: [{ component: "course_detail", course: "CISC2001", eligibility: "missing_lookup" }],
     });
     expect(data.getCourse).not.toHaveBeenCalled();
     expect(data.getInstructorForAssistant).not.toHaveBeenCalled();

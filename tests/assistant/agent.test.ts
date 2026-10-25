@@ -22,6 +22,7 @@ const createAssistantTools = vi.hoisted(() =>
 vi.mock("@/lib/assistant/tools", () => ({ createAssistantTools }));
 
 import { createAssistantAgent } from "@/lib/assistant/agent";
+import { executePresentResponse, type PresentationSlot } from "@/lib/assistant/presentation";
 import { readAssistantConfig } from "@/lib/assistant/config";
 import { COURSE_REFERENT_DESCRIPTION } from "@/lib/assistant/course-referent";
 import {
@@ -103,6 +104,94 @@ describe("createAssistantAgent", () => {
     ) as { context: Array<{ value: string }> };
 
     expect(korean.context.some((entry) => entry.value.includes("Korean"))).toBe(true);
+  });
+
+  it("resets and seeds the presentation ledger on each run", async () => {
+    let presentationSlot: PresentationSlot | undefined;
+    createAssistantTools.mockImplementationOnce((_slot, _timetable, presentation) => {
+      presentationSlot = presentation as PresentationSlot;
+      return [
+        {
+          name: "present_response",
+          execute: (args: unknown) => executePresentResponse(args, presentation!.current),
+        },
+      ];
+    });
+
+    createAssistantAgent(readAssistantConfig({ AI_API_KEY: "sk-test" }));
+    const presentTool = (
+      createAssistantTools.mock.results.at(-1)?.value as Array<{
+        name: string;
+        execute: (args: unknown) => Promise<unknown>;
+      }>
+    ).find((entry) => entry.name === "present_response");
+    const middleware = use.mock.lastCall?.[0] as (
+      input: { context: unknown[]; messages: Array<Record<string, unknown>> },
+      next: { run: (input: unknown) => unknown },
+    ) => unknown;
+    const run = vi.fn((input: unknown) => input);
+
+    const course = (code: string) =>
+      JSON.stringify({
+        course: {
+          courseCode: code,
+          titleEn: code,
+          titleZh: null,
+          credits: "3",
+          faculty: null,
+          department: null,
+          programLevel: null,
+          suggestedYear: null,
+          medium: null,
+          gradingSystem: null,
+          courseType: null,
+          duration: null,
+          description: null,
+          isOffered: true,
+          url: `https://umeh.top/course/${code}`,
+        },
+        page: 1,
+        hasMore: false,
+        totalCount: 0,
+        instructors: [],
+      });
+
+    middleware(
+      {
+        context: [],
+        messages: [
+          { role: "user", content: "What is GEST1004?" },
+          {
+            role: "assistant",
+            toolCalls: [{ id: "a", function: { name: "get_course", arguments: '{"code":"GEST1004"}' } }],
+          },
+          { role: "tool", toolCallId: "a", content: course("GEST1004") },
+          { role: "user", content: "Tell me more about GELH1000" },
+          {
+            role: "assistant",
+            toolCalls: [{ id: "b", function: { name: "get_course", arguments: '{"code":"GELH1000"}' } }],
+          },
+          { role: "tool", toolCallId: "b", content: course("GELH1000") },
+        ],
+      },
+      { run },
+    );
+
+    expect(presentationSlot!.current.lookups.map((l) => l.canonical)).toEqual(["GELH1000"]);
+
+    await expect(
+      presentTool!.execute({ show: [{ component: "course_detail", course: "GEST1004" }] }),
+    ).resolves.toMatchObject({
+      items: [{ eligibility: "missing_lookup" }],
+    });
+    await expect(
+      presentTool!.execute({ show: [{ component: "course_detail", course: "GELH1000" }] }),
+    ).resolves.toMatchObject({
+      items: [{ eligibility: "ready" }],
+    });
+
+    middleware({ context: [], messages: [{ role: "user", content: "New turn" }] }, { run });
+    expect(presentationSlot!.current.lookups).toEqual([]);
   });
 
   it("recomputes the course referent from each run and appends it after the script hints", () => {

@@ -260,7 +260,7 @@ vi.mock("@/lib/assistant/tools", async (importOriginal) => {
     getCourseSectionsOutputSchema,
   } = await import("@/lib/mcp/schemas");
   const { bindCourseToolArgs } = await import("@/lib/assistant/course-referent");
-  const { executePresentResponse } = await import("@/lib/assistant/presentation");
+  const { createPresentationLedger, executePresentResponse } = await import("@/lib/assistant/presentation");
   type CourseReferent = import("@/lib/assistant/course-referent").CourseReferent;
 
   const pageParam = z.number().int().min(1).max(50).optional().describe("Page number, default 1");
@@ -335,7 +335,7 @@ vi.mock("@/lib/assistant/tools", async (importOriginal) => {
             .max(6)
             .optional(),
         }),
-        execute: (args) => Promise.resolve(executePresentResponse(args)),
+        execute: (args) => executePresentResponse(args, createPresentationLedger()),
       }),
     ],
   };

@@ -17,9 +17,12 @@ import { CHECK_PLAN_CONFLICTS_TOOL_NAME } from "@/lib/assistant/check-plan-confl
 import { PREVIEW_TIMETABLE_TOOL_NAME } from "@/lib/assistant/timetable-preview";
 import { createTimetableTools, unavailableTimetableSlot } from "@/lib/assistant/timetable-tools";
 import {
+  createPresentationLedger,
   executePresentResponse,
   MAX_PRESENT_SHOW_ITEMS,
   PRESENT_RESPONSE_TOOL_NAME,
+  trackLookup,
+  type PresentationSlot,
 } from "@/lib/assistant/presentation";
 import { McpToolError } from "@/lib/mcp/errors";
 import {
@@ -106,9 +109,14 @@ function runCourseTool(
   return run(bound.args);
 }
 
-export function createAssistantTools(slot?: CourseReferentSlot, timetable?: TimetableSlot) {
+export function createAssistantTools(
+  slot?: CourseReferentSlot,
+  timetable?: TimetableSlot,
+  presentation?: PresentationSlot,
+) {
   const referentSlot: CourseReferentSlot = slot ?? { current: { kind: "none" } };
   const timetableSlot = timetable ?? unavailableTimetableSlot;
+  const presentationSlot: PresentationSlot = presentation ?? { current: createPresentationLedger() };
   return [
     defineTool({
       name: "search_catalog",
@@ -143,12 +151,14 @@ export function createAssistantTools(slot?: CourseReferentSlot, timetable?: Time
       description:
         "Get a course overview: credits, offering unit, a short description, `aka` old codes and the instructors who taught it with their rating summaries. The primary courseCode is authoritative. Use get_course_description or get_course_ilo when the full text is needed.",
       parameters: z.object({ code: codeParam, page: pageParam }),
-      execute: (args) =>
-        runCourseTool(referentSlot, "get_course", args, (bound) =>
+      execute: (args) => {
+        const run = runCourseTool(referentSlot, "get_course", args, (bound) =>
           runReadOnlyTool("get_course", bound, getCourseInputSchema, assistantGetCourseOutputSchema, async (input, signal) =>
             projectCourseForAssistant(await getCourse(input)),
           ),
-        ),
+        );
+        return trackLookup(presentationSlot.current, "get_course", args, run);
+      },
     }),
     defineTool({
       name: "get_course_description",
@@ -226,8 +236,8 @@ export function createAssistantTools(slot?: CourseReferentSlot, timetable?: Time
       name: "get_course_sections",
       description: "Get this term's sections, meeting times, and locations for one instructor's offering of a course.",
       parameters: z.object({ code: codeParam, instructor: instructorParam }),
-      execute: (args) =>
-        runCourseTool(referentSlot, "get_course_sections", args, (bound) =>
+      execute: (args) => {
+        const run = runCourseTool(referentSlot, "get_course_sections", args, (bound) =>
           runReadOnlyTool(
             "get_course_sections",
             bound,
@@ -235,12 +245,14 @@ export function createAssistantTools(slot?: CourseReferentSlot, timetable?: Time
             assistantCourseSectionsOutputSchema,
             (input) => getCourseSections(input),
           ),
-        ),
+        );
+        return trackLookup(presentationSlot.current, "get_course_sections", args, run);
+      },
     }),
     defineTool({
       name: PRESENT_RESPONSE_TOOL_NAME,
       description:
-        "Default: omit this tool. Opt in to an existing rich card only when the student asked to see that card in the chat this turn. Call it in the same user turn as the academic lookups; a later model step in that turn is valid. Do not wait for another student message. Do call for explicit inspect or show-the-card intent: course_detail for tell me more about a course, more on a course, full details, or the course card; course_sections when they want section cards shown. Do not call for what-is questions, a bare course code, comparisons, Markdown tables, short factual answers, or when or what-time scheduling answers you already give in prose. Do not call just because get_course or get_course_sections succeeded. show is a list of existing components only: component course_detail with a course code matches a get_course result; component course_sections with a course code matches get_course_sections results. This tool does not look anything up. Pass the codes the lookup tools use. If binding rewrites a course code, the rendered course is the tool result.",
+        "Ask the chat to display a rich card next to your reply, for course data you looked up in this turn: course_detail for a get_course result, course_sections for get_course_sections results. Use it when a card helps the student inspect or weigh up a course; skip it when a short text answer is enough, and for comparisons (use prose or a small table). Pass the course codes you used in the lookups. The receipt reports for each item whether it can be displayed (ready), has no matching lookup in this turn (missing_lookup), or its lookup failed (lookup_failed).",
       parameters: z.object({
         show: z
           .array(
@@ -252,7 +264,7 @@ export function createAssistantTools(slot?: CourseReferentSlot, timetable?: Time
           .max(MAX_PRESENT_SHOW_ITEMS)
           .optional(),
       }),
-      execute: (args) => Promise.resolve(executePresentResponse(args)),
+      execute: (args) => executePresentResponse(args, presentationSlot.current),
     }),
     ...createTimetableTools(timetableSlot, referentSlot),
   ];
