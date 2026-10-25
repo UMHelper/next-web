@@ -22,9 +22,14 @@ import {
 import { PAGE_CONTEXT_DESCRIPTION, describePage } from "@/lib/assistant/page-context";
 import {
   TIMETABLE_CONTEXT_DESCRIPTION,
+  parseTimetableContext,
   serializeTimetableContext,
   type TimetableContextPayload,
 } from "@/lib/assistant/timetable-context";
+import {
+  TIMETABLE_PREVIEWS_CONTEXT_DESCRIPTION,
+  summarizeTimetablePreviews,
+} from "@/lib/assistant/timetable-previews";
 import { ASSISTANT_PROMPT } from "@/lib/assistant/prompt";
 
 import type { EvalCase } from "./cases";
@@ -149,9 +154,15 @@ async function runOnce(
   try {
     const agent = createAssistantAgent(options.config);
     agent.setMessages(shapeConversation(session.messages as RunMessage[], options.config.historyTurns) as Message[]);
+    const timetableState = parseTimetableContext(timetableContext);
+    const currentVersion = timetableState.status === "ready" ? timetableState.version : null;
     const context: Context[] = [
       { description: TIMETABLE_CONTEXT_DESCRIPTION, value: timetableContext },
       { description: PAGE_CONTEXT_DESCRIPTION, value: JSON.stringify(describePage(session.pathname)) },
+      {
+        description: TIMETABLE_PREVIEWS_CONTEXT_DESCRIPTION,
+        value: summarizeTimetablePreviews(session.messages, currentVersion),
+      },
     ];
     ({ newMessages } = await agent.runAgent({ runId: randomUUID(), tools: FRONTEND_TOOLS, context }));
   } catch (caught) {

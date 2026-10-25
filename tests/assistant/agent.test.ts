@@ -36,6 +36,9 @@ import { plannerState } from "@/tests/helpers/planner-state";
 import { MAX_NAVIGATIONS_PER_MESSAGE } from "@/lib/assistant/navigation";
 import { PAGE_CONTEXT_DESCRIPTION } from "@/lib/assistant/page-context";
 import { ASSISTANT_PROMPT } from "@/lib/assistant/prompt";
+import { TIMETABLE_PREVIEWS_CONTEXT_DESCRIPTION } from "@/lib/assistant/timetable-previews";
+import { TIMETABLE_SCENARIO_DESCRIPTION } from "@/lib/assistant/timetable-scenario";
+import { PREVIEW_TIMETABLE_TOOL_NAME } from "@/lib/assistant/timetable-preview";
 
 describe("createAssistantAgent", () => {
   it("builds a read-only DeepSeek agent with the spec limits", () => {
@@ -141,7 +144,8 @@ describe("createAssistantAgent", () => {
     const secondReferent = second.context.find((entry) => entry.description === COURSE_REFERENT_DESCRIPTION);
     expect(JSON.parse(firstReferent!.value)).toEqual({ kind: "page", courseCode: "CISC3014" });
     expect(JSON.parse(secondReferent!.value)).toEqual({ kind: "page", courseCode: "APAC2000" });
-    expect(first.context.at(-1)?.description).toBe(COURSE_REFERENT_DESCRIPTION);
+    expect(first.context.at(-1)?.description).toBe(TIMETABLE_SCENARIO_DESCRIPTION);
+    expect(first.context.at(-2)?.description).toBe(COURSE_REFERENT_DESCRIPTION);
   });
 
   it("replaces the timetable context with the digest and fills the slot", () => {
@@ -198,6 +202,80 @@ describe("createAssistantAgent", () => {
     expect(firstDigest).not.toBe(secondDigest);
   });
 
+  it("adds a preview scenario referent on hypothetical follow-ups", () => {
+    createAssistantAgent(readAssistantConfig({ AI_API_KEY: "sk-test" }));
+    type MiddlewareInput = {
+      context: Array<{ description: string; value: string }>;
+      messages: Array<Record<string, unknown>>;
+    };
+    const middleware = use.mock.lastCall?.[0] as (
+      input: MiddlewareInput,
+      next: { run: (input: unknown) => unknown },
+    ) => { context: Array<{ description: string; value: string }> };
+    const run = vi.fn((input: unknown) => input);
+    const payload = serializeTimetableContext(
+      buildTimetableContextPayload(plannerState(FIXTURE_PLAN), plannerCurrentTerm()),
+    );
+    const messages = [
+      { role: "user", content: "What if I take MATH1010 section 001?" },
+      {
+        role: "assistant",
+        toolCalls: [{ id: "hypo-1", function: { name: PREVIEW_TIMETABLE_TOOL_NAME, arguments: "{}" } }],
+      },
+      {
+        role: "tool",
+        toolCallId: "hypo-1",
+        content: JSON.stringify({
+          status: "ready",
+          kind: "hypothetical",
+          plan: { name: "Plan", year: 2026, sem: 1 },
+          term: "2026/2027 AY Sem 1",
+          version: "v1",
+          focusDay: "MON",
+          sections: [],
+          replaced: ["MATH1010-002"],
+          partial: [],
+          facts: { conflicts: [], unscheduled: [], complete: true },
+        }),
+      },
+      { role: "user", content: "What about the morning conflicts?" },
+    ];
+    const result = middleware(
+      {
+        context: [
+          { description: TIMETABLE_CONTEXT_DESCRIPTION, value: payload },
+          {
+            description: TIMETABLE_PREVIEWS_CONTEXT_DESCRIPTION,
+            value: JSON.stringify({
+              previews: [
+                {
+                  id: "preview-hypo-1",
+                  kind: "hypothetical",
+                  plannerVersionAtPreview: "v1",
+                  added: ["MATH1010-001"],
+                  replaced: ["MATH1010-002"],
+                  conflicts: [],
+                  morningConflicts: [],
+                  conflictCount: 0,
+                  unscheduled: [],
+                  stale: false,
+                },
+              ],
+            }),
+          },
+        ],
+        messages,
+      },
+      { run },
+    );
+    const scenario = result.context.find((entry) => entry.description === TIMETABLE_SCENARIO_DESCRIPTION);
+    expect(JSON.parse(scenario!.value)).toMatchObject({
+      kind: "preview",
+      previewId: "preview-hypo-1",
+      previewKind: "hypothetical",
+    });
+  });
+
   it("appends an unavailable digest when the context is missing", () => {
     createAssistantAgent(readAssistantConfig({ AI_API_KEY: "sk-test" }));
     const timetableSlot = createAssistantTools.mock.calls.at(-1)?.[1] as { current: { status: string } };
@@ -241,11 +319,14 @@ describe("ASSISTANT_PROMPT", () => {
   });
 
   it("guides preview_timetable use and limits", () => {
-    expect(ASSISTANT_PROMPT).toContain("Call preview_timetable only when");
+    expect(ASSISTANT_PROMPT).toContain("call preview_timetable in that turn");
+    expect(ASSISTANT_PROMPT).toContain("preview_timetable with that section in add");
     expect(ASSISTANT_PROMPT).toContain("never pick one");
     expect(ASSISTANT_PROMPT).toContain("you cannot change their timetable");
     expect(ASSISTANT_PROMPT).toContain("review page or the My Timetable page");
     expect(ASSISTANT_PROMPT).toContain("timetable previews context");
+    expect(ASSISTANT_PROMPT).toContain("timetable scenario referent");
+    expect(ASSISTANT_PROMPT).toContain("When truncated is true");
   });
 
   it("reads reviews before judging and reads long course text only when relevant", () => {

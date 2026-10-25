@@ -11,14 +11,23 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createEmptyStore, upsertPlanLocal } from "@/lib/timetable/store";
 
-const { useUserMock } = vi.hoisted(() => ({
+const { useUserMock, createPlanMock } = vi.hoisted(() => ({
   useUserMock: vi.fn((): { user: { id: string } | null; isLoaded: boolean } => ({
     user: { id: "user_1" },
     isLoaded: true,
   })),
+  createPlanMock: vi.fn(),
 }));
 
 vi.mock("@clerk/nextjs", () => ({ useUser: useUserMock }));
+
+vi.mock("@/lib/timetable/client", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/timetable/client")>();
+  return {
+    ...actual,
+    createPlan: (...args: Parameters<typeof actual.createPlan>) => createPlanMock(...args),
+  };
+});
 
 import {
   TimetablePlannerProvider,
@@ -66,6 +75,30 @@ afterEach(() => {
 describe("TimetablePlannerProvider", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    createPlanMock.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          setTimeout(
+            () =>
+              resolve({
+                id: 99,
+                client_ref: "pending-plan",
+                owner_clerk_id: "user_1",
+                name: "用户一课表",
+                year: 2026,
+                sem: 1,
+                payload: { schemaVersion: 1, sections: [] },
+                schema_version: 1,
+                revision: 1,
+                share_token: null,
+                share_token_created_at: null,
+                created_at: "2026-01-01T00:00:00Z",
+                updated_at: "2026-01-01T00:00:00Z",
+              }),
+            50,
+          );
+        }),
+    );
     const memory = new Map<string, string>();
     Object.defineProperty(window, "localStorage", {
       configurable: true,
@@ -254,5 +287,64 @@ describe("TimetablePlannerProvider", () => {
 
     expect(window.localStorage.getItem(storageKey("user_1"))).toBe(user1Before);
     expect(JSON.parse(user1Before!).plans[user1Ref].name).toBe("用户一课表");
+  });
+
+  it("does not persist the previous user's outbox flush after an account switch", async () => {
+    vi.useFakeTimers();
+
+    window.localStorage.setItem(
+      storageKey("user_2"),
+      JSON.stringify(
+        upsertPlanLocal(createEmptyStore(), {
+          clientRef: "plan-user-2",
+          name: "用户二课表",
+          year: 2026,
+          sem: 1,
+          payload: { schemaVersion: 1, sections: [] },
+          revision: 0,
+          syncState: "idle",
+        }),
+      ),
+    );
+
+    const { rerender } = render(
+      <TimetablePlannerProvider>
+        <Consumer />
+      </TimetablePlannerProvider>,
+    );
+
+    await vi.waitFor(() => {
+      expect(screen.getByTestId("load-state").textContent).toBe("ready");
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "add" }));
+    expect(screen.getByTestId("plan-name").textContent).toBe("我的课表");
+
+    await vi.advanceTimersByTimeAsync(800);
+
+    useUserMock.mockReturnValue({ user: { id: "user_2" }, isLoaded: true });
+    rerender(
+      <TimetablePlannerProvider>
+        <Consumer />
+      </TimetablePlannerProvider>,
+    );
+
+    await vi.advanceTimersByTimeAsync(100);
+
+    await vi.waitFor(() => {
+      expect(screen.getByTestId("plan-name").textContent).toBe("用户二课表");
+    });
+
+    const user2Raw = window.localStorage.getItem(storageKey("user_2"));
+    expect(user2Raw).toBeTruthy();
+    const user2Parsed = JSON.parse(user2Raw!);
+    expect(user2Parsed.plans["plan-user-2"]?.name).toBe("用户二课表");
+    expect(
+      Object.values(user2Parsed.plans as Record<string, { name?: string }>).some(
+        (plan) => plan.name === "我的课表",
+      ),
+    ).toBe(false);
+
+    vi.useRealTimers();
   });
 });

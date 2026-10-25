@@ -119,6 +119,12 @@ export function buildTimetableContextPayload(
   }
 
   const { activePlan } = planner;
+  if (
+    activePlan.year !== currentTerm.year ||
+    activePlan.sem !== currentTerm.sem
+  ) {
+    return { ...base, status: "no_plan" };
+  }
   const otherPlansThisTerm = Object.values(planner.store.plans).filter(
     (plan) => plan.year === activePlan.year && plan.sem === activePlan.sem && plan.clientRef !== activePlan.clientRef,
   ).length;

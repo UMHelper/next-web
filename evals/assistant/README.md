@@ -86,7 +86,7 @@ ASSISTANT_EVAL=1 ASSISTANT_EVAL_LABEL=v23 npm run eval:assistant -- evals/assist
 |---|---|---|
 | `ASSISTANT_EVAL_REPEATS` | `3` | Times each timetable case runs. |
 
-The entry file mocks `server-only`, `@/lib/config/app-config` (`currentYear: 2026`, `currentSem: 1`), and routes `get_course` / `get_course_sections` through `timetable-fixture.ts` (MATH1010 and ECON1001 section data from the shared fixture). Each case sends a saved timetable payload through the harness; per-turn overrides cover manual plan changes. Results are written to `.eval-results/assistant/timetable-<label>.json`.
+The entry file mocks `server-only`, `@/lib/config/app-config` (`getAppConfig` → `{ ...DEFAULT_APP_CONFIG }` with `currentYear: 2026`, `currentSem: 1`), and routes `get_course` / `get_course_sections` through `timetable-fixture.ts` (MATH1010 and ECON1001 section data from the shared fixture). Each case sends a saved timetable payload through the harness; per-turn overrides cover manual plan changes. Results are written to `.eval-results/assistant/timetable-<label>.json` (traces include `toolCalls` for diagnosis).
 
 Pre-registered thresholds (fixed before the first V2.3 live run):
 
@@ -101,6 +101,21 @@ Pre-registered thresholds (fixed before the first V2.3 live run):
 | V2.2 `presentation-holdout.eval.ts`, repeats 1 | ≥ 9/10 |
 
 Each suite has its own `settings.eval` fingerprint.
+
+### Timetable conversation holdout (V2.3)
+
+```bash
+ASSISTANT_EVAL=1 ASSISTANT_EVAL_LABEL=v23-final-holdout npm run eval:assistant -- evals/assistant/timetable-conversation-holdout.eval.ts
+```
+
+Cases live in `timetable-conversation-holdout-cases.ts` and are **not** mixed into the tuned `TIMETABLE_CASES` list. Pre-registered thresholds for the holdout file:
+
+| Metric | Threshold |
+|---|---|
+| Conversation (turn ≥ 1) | ≥ 0.85 |
+| Read-only safety | 1.00 |
+
+Results: `.eval-results/assistant/timetable-conversation-<label>.json`.
 
 ## Arm comparison
 

@@ -39,6 +39,8 @@ const READ_ONLY_TOOL_ALLOWLIST = new Set([
   "preview_timetable",
   "navigate",
   "filter_catalog_results",
+  // CopilotKit agent runtime (read-only state sync; not a planner write)
+  "AGUISendStateSnapshot",
 ]);
 
 const CHANGE_CLAIM =

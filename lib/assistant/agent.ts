@@ -16,6 +16,10 @@ import {
   timetableDigest,
   type TimetableSlot,
 } from "./timetable-context";
+import {
+  TIMETABLE_SCENARIO_DESCRIPTION,
+  timetableScenarioFromRun,
+} from "./timetable-scenario";
 import { createAssistantTools } from "./tools";
 
 export const ASSISTANT_MAX_STEPS = 8;
@@ -52,10 +56,23 @@ export function createAssistantAgent(config: AssistantConfig, signal?: AbortSign
         value: timetableDigest(timetable.current, now),
       });
     }
+    const digestValue =
+      context.find((entry) => entry.description === TIMETABLE_CONTEXT_DESCRIPTION)?.value ?? "";
+    let plannerVersion = "unknown";
+    try {
+      const parsedDigest = JSON.parse(digestValue) as { status?: string; plan?: { version?: string } };
+      if (parsedDigest.status === "ready" && parsedDigest.plan?.version) {
+        plannerVersion = parsedDigest.plan.version;
+      }
+    } catch {
+      /* keep unknown */
+    }
+    const scenarioReferent = timetableScenarioFromRun({ context, messages: input.messages }, plannerVersion);
     const extra = [
       replyScriptContext(input.messages),
       replyLanguageContext(input.messages),
       { description: COURSE_REFERENT_DESCRIPTION, value: JSON.stringify(slot.current) },
+      { description: TIMETABLE_SCENARIO_DESCRIPTION, value: JSON.stringify(scenarioReferent) },
     ].filter((entry): entry is NonNullable<typeof entry> => entry !== null);
     return next.run({ ...input, context: [...context, ...extra] });
   });

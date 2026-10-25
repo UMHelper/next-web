@@ -31,13 +31,20 @@ type TimetableDigest = {
 };
 
 type TimetablePreviewsContext = {
-  previews: Array<{ kind: string; stale?: boolean }>;
+  previews: Array<{ kind: string; stale?: boolean; morningConflicts?: string[] }>;
+};
+
+type TimetableScenarioContext = {
+  kind: string;
+  previewId?: string;
+  previewKind?: string;
 };
 
 type ModelCall = {
   page: unknown;
   digest?: TimetableDigest;
   previews?: TimetablePreviewsContext;
+  scenario?: TimetableScenarioContext;
   toolNames: string[];
   lastUser: string;
   lastTool?: { name: string; output: string };
@@ -193,6 +200,8 @@ async function fixtureGetInstructor(input: { name: string }, _signal: AbortSigna
   };
 }
 
+vi.mock("@/lib/supabase/admin", () => ({ default: {} }));
+vi.mock("@/lib/supabase/server", () => ({ default: {} }));
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/mcp/data/search-catalog", () => ({
   searchCatalog: vi.fn(async () => {
@@ -393,6 +402,7 @@ import {
   TIMETABLE_CONTEXT_DESCRIPTION,
 } from "@/lib/assistant/timetable-context";
 import { TIMETABLE_PREVIEWS_CONTEXT_DESCRIPTION } from "@/lib/assistant/timetable-previews";
+import { TIMETABLE_SCENARIO_DESCRIPTION } from "@/lib/assistant/timetable-scenario";
 
 const runs = () => h.runs as RunRecord[];
 
@@ -489,6 +499,16 @@ function describeCall(prompt: LanguageModelV3Prompt): ModelCall {
     }
   }
 
+  let scenario: TimetableScenarioContext | undefined;
+  const scenarioMarker = `${TIMETABLE_SCENARIO_DESCRIPTION}:\n`;
+  const scenarioAt = system.indexOf(scenarioMarker);
+  if (scenarioAt >= 0) {
+    const valueLine = system.slice(scenarioAt + scenarioMarker.length).split("\n")[0];
+    if (valueLine.startsWith("{")) {
+      scenario = JSON.parse(valueLine);
+    }
+  }
+
   const userMessages = prompt.filter((message) => message.role === "user").map((message) => textOf(message.content));
   const toolResults = prompt.flatMap((message) =>
     message.role === "tool"
@@ -501,6 +521,7 @@ function describeCall(prompt: LanguageModelV3Prompt): ModelCall {
     page,
     digest,
     previews,
+    scenario,
     toolNames: toolNamesFrom(prompt),
     lastUser: userMessages.at(-1) ?? "",
     lastTool:
@@ -596,6 +617,9 @@ function v23Brain(call: ModelCall): Step {
   if (/Would that fix the Monday conflict/i.test(call.lastUser)) {
     return { text: "The preview is hypothetical and not saved." };
   }
+  if (/What about the morning conflicts/i.test(call.lastUser)) {
+    return { text: "The preview shows a Monday morning overlap." };
+  }
   if (/What's on my timetable/i.test(call.lastUser)) {
     return { text: "Your plan is in the digest." };
   }
@@ -673,6 +697,9 @@ async function typeAndSend(text: string) {
 
 beforeAll(() => {
   vi.stubEnv("AI_API_KEY", "sk-test");
+  vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://example.supabase.co");
+  vi.stubEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "test-anon-key");
+  vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "test-service-key");
 });
 
 beforeEach(() => {
@@ -769,8 +796,10 @@ describe("assistant V2.3 integration (scripted model)", () => {
     expect(runs().at(-1)!.modelCalls[0].digest?.conflicts).toHaveLength(1);
 
     h.plan = planWithEconSection002();
-    await typeAndSend("Do I have any clashes?");
-    expect(runs().at(-1)!.modelCalls[0].digest?.conflicts).toEqual([]);
+    await typeAndSend("Do I still have conflicts?");
+    const call = runs().at(-1)!.modelCalls[0];
+    expect(call.digest?.conflicts).toEqual([]);
+    expect(call.scenario).toMatchObject({ kind: "saved" });
     expect(h.mutate).not.toHaveBeenCalled();
   }, 90_000);
 
@@ -785,7 +814,25 @@ describe("assistant V2.3 integration (scripted model)", () => {
     await typeAndSend("Would that fix the Monday conflict?");
     const call = runs().at(-1)!.modelCalls[0];
     expect(call.previews?.previews[0]?.kind).toBe("hypothetical");
+    expect(call.scenario).toMatchObject({ kind: "preview", previewKind: "hypothetical" });
     expect(call.digest?.sections?.some((section) => section.id === "MATH1010-002")).toBe(true);
+    expect(h.mutate).not.toHaveBeenCalled();
+  }, 90_000);
+
+  it("followup_hypo: morning conflicts referent stays on the hypothetical preview", async () => {
+    await mountAssistant();
+    await typeAndSend("What if I take MATH1010 section 001 with HO SIU MING instead?");
+    await waitFor(
+      () => expect(screen.getByRole("region", { name: "Hypothetical timetable preview" })).toBeTruthy(),
+      { timeout: 10000 },
+    );
+
+    await typeAndSend("What about the morning conflicts?");
+    const call = runs().at(-1)!.modelCalls[0];
+    expect(call.scenario).toMatchObject({ kind: "preview", previewKind: "hypothetical" });
+    const morning = call.previews?.previews[0]?.morningConflicts?.join(" ") ?? "";
+    expect(morning).toMatch(/CISC3014/);
+    expect(morning).toMatch(/10:00/);
     expect(h.mutate).not.toHaveBeenCalled();
   }, 90_000);
 

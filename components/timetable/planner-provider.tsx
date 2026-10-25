@@ -114,8 +114,11 @@ export const TimetablePlannerProvider = ({
   const storeRef = useRef(store);
   const flushTimer = useRef<ReturnType<typeof setTimeout>>();
   const flushingRef = useRef(false);
+  const userIdRef = useRef(userId);
+  const flushGenerationRef = useRef(0);
 
   storeRef.current = store;
+  userIdRef.current = userId;
 
   const persist = useCallback(
     (next: TimetableStore) => {
@@ -135,7 +138,12 @@ export const TimetablePlannerProvider = ({
   );
 
   const flushOutbox = useCallback(async () => {
-    if (!userId || flushingRef.current) return;
+    const ownerUserId = userIdRef.current;
+    if (!ownerUserId || flushingRef.current) return;
+    const generation = flushGenerationRef.current;
+    const stillOwned = () =>
+      userIdRef.current === ownerUserId && flushGenerationRef.current === generation;
+
     if (typeof navigator !== "undefined" && !navigator.onLine) {
       const next = {
         ...storeRef.current,
@@ -155,6 +163,8 @@ export const TimetablePlannerProvider = ({
       let current = storeRef.current;
 
       while (current.outbox.length > 0) {
+        if (!stillOwned()) break;
+
         const mutation = current.outbox[0];
         const plan = current.plans[mutation.clientRef];
 
@@ -167,6 +177,7 @@ export const TimetablePlannerProvider = ({
               sem: plan.sem,
               payload: plan.payload,
             });
+            if (!stillOwned()) break;
             current = {
               ...current,
               plans: {
@@ -187,6 +198,7 @@ export const TimetablePlannerProvider = ({
               name: mutation.name,
               payload: mutation.payload,
             });
+            if (!stillOwned()) break;
             current = {
               ...current,
               plans: {
@@ -204,6 +216,7 @@ export const TimetablePlannerProvider = ({
             };
           } else if (mutation.type === "delete_plan" && plan?.serverId) {
             await deletePlanApi(plan.serverId);
+            if (!stillOwned()) break;
             current = removePlanLocal(current, plan.clientRef);
             current.outbox = current.outbox.filter(
               (item) => item.id !== mutation.id,
@@ -215,6 +228,7 @@ export const TimetablePlannerProvider = ({
             };
           }
 
+          if (!stillOwned()) break;
           updateStore(current);
         } catch (error) {
           const conflict = error instanceof TimetableApiError && error.status === 409;
@@ -225,19 +239,21 @@ export const TimetablePlannerProvider = ({
               }
             : undefined;
 
-          updateStore({
-            ...current,
-            plans: failedPlan
-              ? { ...current.plans, [plan!.clientRef]: failedPlan }
-              : current.plans,
-          });
+          if (stillOwned()) {
+            updateStore({
+              ...current,
+              plans: failedPlan
+                ? { ...current.plans, [plan!.clientRef]: failedPlan }
+                : current.plans,
+            });
+          }
           break;
         }
       }
     } finally {
       flushingRef.current = false;
     }
-  }, [updateStore, userId]);
+  }, [updateStore]);
 
   const scheduleFlush = useCallback(() => {
     if (flushTimer.current) clearTimeout(flushTimer.current);
@@ -265,6 +281,8 @@ export const TimetablePlannerProvider = ({
   );
 
   useEffect(() => {
+    flushGenerationRef.current += 1;
+
     if (!isLoaded) {
       setHydrated(false);
       return;

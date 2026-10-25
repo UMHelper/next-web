@@ -14,7 +14,7 @@ import { normalizeCourseCode, planSectionSchema, type PlanSection, type Weekday 
 
 export const PREVIEW_TIMETABLE_TOOL_NAME = "preview_timetable";
 export const PREVIEW_TIMETABLE_DESCRIPTION =
-  "Show the student a read-only visual preview of their saved timetable, or of it with up to three hypothetical sections added; a section of a course already in the timetable replaces that course in the preview only. Call only when the student wants to see their timetable or week, see where a conflict is, or see a week with specific sections. Never saves anything.";
+  "Show the student a read-only visual preview of their saved timetable, or of it with up to three hypothetical sections added; a section of a course already in the timetable replaces that course in the preview only. Call when the student asks to see or show their timetable or week, to see where a conflict is on the grid, or to preview what-if they take or switch to specific sections (pass each in add with code, instructor and section). Never saves anything.";
 export const MAX_PREVIEW_ADDITIONS = 3;
 
 const weekdaySchema = z.enum(["MON", "TUE", "WED", "THU", "FRI"]);

@@ -72,6 +72,51 @@ describe("buildTimetableContextPayload", () => {
     expect(meetings).toBeLessThanOrEqual(TIMETABLE_CONTEXT_MAX_MEETINGS);
   });
 
+  it("reports no_plan when the active plan is from another term", () => {
+    const payload = buildTimetableContextPayload(
+      plannerState({ ...FIXTURE_PLAN, year: 2025, sem: 2 }),
+      currentTerm(),
+    );
+    expect(payload.status).toBe("no_plan");
+    expect(payload.plan).toBeUndefined();
+  });
+
+  it("bumps version and clears conflicts after manual_change eval fixture (ECON afternoon section)", () => {
+    const manualPlan = {
+      ...FIXTURE_PLAN,
+      payload: {
+        schemaVersion: 1 as const,
+        sections: FIXTURE_PLAN.payload.sections.map((section) =>
+          section.courseCode === "ECON1001"
+            ? normalizePlanSection({
+                courseCode: "ECON1001",
+                prof: "CHEUNG WAI",
+                section: "002",
+                schedules: [
+                  { date: "TUE", time: "15:00-16:15", location: "E21-2001" },
+                  { date: "THU", time: "15:00-16:15", location: "E21-2001" },
+                ],
+              })
+            : section,
+        ),
+      },
+    };
+    const baseState = parseTimetableContext(
+      serializeTimetableContext(buildTimetableContextPayload(plannerState(FIXTURE_PLAN), currentTerm())),
+    );
+    const changedState = parseTimetableContext(
+      serializeTimetableContext(buildTimetableContextPayload(plannerState(manualPlan), currentTerm())),
+    );
+    expect(baseState.status).toBe("ready");
+    expect(changedState.status).toBe("ready");
+    if (baseState.status !== "ready" || changedState.status !== "ready") return;
+    expect(changedState.version).not.toBe(baseState.version);
+    const baseDigest = JSON.parse(timetableDigest(baseState, new Date()));
+    const changedDigest = JSON.parse(timetableDigest(changedState, new Date()));
+    expect(baseDigest.conflicts).toHaveLength(1);
+    expect(changedDigest.conflicts).toEqual([]);
+  });
+
   it("truncates after 30 sections so the payload still parses", () => {
     const sections = Array.from({ length: 31 }, (_, index) =>
       normalizePlanSection({
@@ -212,14 +257,19 @@ describe("timetableDigest", () => {
     expect(parsed.complete).toBe(true);
   });
 
-  it("marks a plan from another term", () => {
+  it("marks a plan from another term when the payload still carries it", () => {
     const state = parseTimetableContext(
-      serializeTimetableContext(
-        buildTimetableContextPayload(
-          plannerState({ ...FIXTURE_PLAN, year: 2025, sem: 2 }),
-          { year: 2026, sem: 1 },
-        ),
-      ),
+      serializeTimetableContext({
+        v: 1,
+        status: "ready",
+        currentTerm: { year: 2026, sem: 1 },
+        plan: {
+          name: FIXTURE_PLAN.name,
+          year: 2025,
+          sem: 2,
+          sections: FIXTURE_PLAN.payload.sections,
+        },
+      }),
     );
     const parsed = JSON.parse(timetableDigest(state, new Date()));
     expect(parsed.plan.currentTerm).toBe(false);

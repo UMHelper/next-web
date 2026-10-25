@@ -106,9 +106,14 @@ describe("summarizeTimetablePreviews", () => {
       replaced: ["MATH1010-002"],
       stale: false,
     });
+    expect(parsed.previews[0].conflictCount).toBe(1);
+    expect(parsed.previews[0].conflicts).toHaveLength(1);
     expect(parsed.previews[0].conflicts).toEqual(
       expect.arrayContaining(["MON CISC3014-001 / MATH1010-001 10:00-10:15"]),
     );
+    expect(parsed.previews[0].morningConflicts.join(" ")).toMatch(/CISC3014/);
+    expect(parsed.previews[0].morningConflicts.join(" ")).toMatch(/10:00/);
+    expect(parsed.previews[0].plannerVersionAtPreview).toBeTruthy();
   });
 
   it("marks a preview stale after the plan changes", async () => {

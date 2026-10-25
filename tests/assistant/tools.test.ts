@@ -85,8 +85,8 @@ describe("assistant server tools", () => {
       show: [{ component: "course_detail", course: "CISC2001" }],
     });
     expect(data.getCourse).not.toHaveBeenCalled();
-    expect(data.getInstructor).not.toHaveBeenCalled();
-    expect(data.searchCatalog).not.toHaveBeenCalled();
+    expect(data.getInstructorForAssistant).not.toHaveBeenCalled();
+    expect(data.searchCatalogForAssistant).not.toHaveBeenCalled();
     expect(data.getCourseReviews).not.toHaveBeenCalled();
     expect(data.getCourseSections).not.toHaveBeenCalled();
   });

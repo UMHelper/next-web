@@ -3,8 +3,16 @@ import path from "node:path";
 
 import { describe, expect, it, vi } from "vitest";
 
+import { DEFAULT_APP_CONFIG } from "@/lib/config/app-config-core";
+
+const { getAppConfigMock } = vi.hoisted(() => ({
+  getAppConfigMock: vi.fn(),
+}));
+
 vi.mock("server-only", () => ({}));
-vi.mock("@/lib/config/app-config", () => ({ currentYear: 2026, currentSem: 1 }));
+vi.mock("@/lib/config/app-config", () => ({
+  getAppConfig: getAppConfigMock,
+}));
 vi.mock("@/lib/mcp/data/search-catalog", async () => ({ searchCatalog: (await import("./catalog")).searchCatalog }));
 vi.mock("@/lib/mcp/data/get-course", async () => ({ getCourse: (await import("./timetable-fixture")).getCourse }));
 vi.mock("@/lib/mcp/data/get-instructor", async () => ({ getInstructor: (await import("./catalog")).getInstructor }));
@@ -52,6 +60,7 @@ const only = env.ASSISTANT_EVAL_CASES?.split(",").map((id) => id.trim());
 
 describe.skipIf(!enabled)("assistant timetable behaviour against the real model", () => {
   it("grades timetable turns and writes the summary", async () => {
+    getAppConfigMock.mockResolvedValue({ ...DEFAULT_APP_CONFIG });
     const unknown = (only ?? []).filter((id) => !TIMETABLE_CASES.some((item) => item.id === id));
     expect(unknown, "ASSISTANT_EVAL_CASES names cases that are not in the timetable suite").toEqual([]);
     expect(config.apiKey, "AI_API_KEY is not set").toBeDefined();
@@ -64,8 +73,15 @@ describe.skipIf(!enabled)("assistant timetable behaviour against the real model"
     const grades: TimetableTurnGrade[] = [];
     const expects: Array<(typeof cases)[number]["turns"][number]["expect"]> = [];
     const traces: TurnTrace[] = [];
-    const tracesOut: Array<{ caseId: string; repeat: number; turn: number; grade: TimetableTurnGrade; reply: string }> =
-      [];
+    const tracesOut: Array<{
+      caseId: string;
+      repeat: number;
+      turn: number;
+      grade: TimetableTurnGrade;
+      reply: string;
+      toolCalls: TurnTrace["toolCalls"];
+      error?: string;
+    }> = [];
     let stoppedEarly: string | undefined;
 
     for (let repeat = 0; repeat < repeats && stoppedEarly === undefined; repeat++) {
@@ -81,7 +97,15 @@ describe.skipIf(!enabled)("assistant timetable behaviour against the real model"
             const grade = gradeTimetableTurn(trace, expect);
             grades.push(grade);
             traces.push(trace);
-            tracesOut.push({ caseId: trace.caseId, repeat: trace.repeat, turn: trace.turn, grade, reply: trace.reply });
+            tracesOut.push({
+              caseId: trace.caseId,
+              repeat: trace.repeat,
+              turn: trace.turn,
+              grade,
+              reply: trace.reply,
+              toolCalls: trace.toolCalls,
+              ...(trace.error !== undefined ? { error: trace.error } : {}),
+            });
           }
         } catch (error) {
           if (error instanceof BudgetExhausted) {
