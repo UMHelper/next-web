@@ -783,6 +783,34 @@ describe("assistant V2.3.5-A integration (real tools, scripted model)", () => {
       timeout: 10000,
     });
     expect(screen.getByText("Some sections or class times could not be listed.")).toBeTruthy();
+
+    const turnResults = runs().at(-1)!.modelCalls.flatMap((call) => call.toolResults);
+    const sectionsOutput = turnResults.find(
+      (out) => out.includes("sectionDataComplete") && out.includes("GELH1000"),
+    );
+    expect(sectionsOutput).toBeTruthy();
+    expect(JSON.parse(sectionsOutput!)).toMatchObject({ sectionDataComplete: false });
+
+    const sectionReceipt = turnResults
+      .map((out) => {
+        try {
+          return JSON.parse(out) as {
+            status?: string;
+            items?: Array<{ component: string; course: string; eligibility: string }>;
+          };
+        } catch {
+          return null;
+        }
+      })
+      .find(
+        (parsed) =>
+          parsed?.status === "requested" &&
+          parsed.items?.some((item) => item.component === "course_sections" && item.eligibility),
+      );
+    expect(sectionReceipt).toBeTruthy();
+    expect(sectionReceipt!.items!.some((item) => item.component === "course_sections" && item.course === "GELH1000")).toBe(
+      true,
+    );
   }, 60_000);
 
   it("resolves a course-page evaluation from the page referent", async () => {
