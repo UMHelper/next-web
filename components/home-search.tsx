@@ -54,6 +54,8 @@ type HomeGroup = {
   items: HomeItem[];
   section?: string;
   kind?: "skeleton" | "empty";
+  emptyTitle?: string;
+  emptyDetail?: string;
 };
 
 const EMPTY: SearchPayload = { courses: [], instructors: [] };
@@ -156,14 +158,14 @@ function ResultSkeleton() {
       {Array.from({ length: 4 }).map((_, index) => (
         <div
           key={index}
-          className="flex items-center gap-3 rounded-lg border border-border/60 bg-white/20 px-3 py-2.5"
+          className="flex items-center gap-3 rounded-lg border border-border/40 bg-transparent px-3 py-2.5"
         >
-          <Skeleton className="h-4 w-4 shrink-0 rounded bg-white/30" />
+          <Skeleton className="h-4 w-4 shrink-0 rounded bg-background/20" />
           <div className="min-w-0 flex-1 space-y-1.5">
-            <Skeleton className="h-3 w-1/3 bg-white/30" />
-            <Skeleton className="h-2.5 w-1/2 bg-white/20" />
+            <Skeleton className="h-3 w-1/3 bg-background/20" />
+            <Skeleton className="h-2.5 w-1/2 bg-background/10" />
           </div>
-          <Skeleton className="h-3 w-8 shrink-0 bg-white/20" />
+          <Skeleton className="h-3 w-8 shrink-0 bg-background/10" />
         </div>
       ))}
     </div>
@@ -334,7 +336,14 @@ export function HomeSearch() {
             ],
           });
         } else {
-          next.push({ key: "empty", title: "", kind: "empty", items: [] });
+          next.push({
+            key: "empty",
+            title: "",
+            kind: "empty",
+            emptyTitle: "No matching course.",
+            emptyDetail: "Maybe the course code is incorrect?",
+            items: [],
+          });
         }
       }
       if (aiItem) next.push({ key: "ai", title: "", items: [aiItem] });
@@ -387,7 +396,14 @@ export function HomeSearch() {
     if (courses.length) next.push({ key: "courses", title: "Courses", items: courses });
     if (instructors.length) next.push({ key: "instructors", title: "Instructors", items: instructors });
     if (courses.length === 0 && instructors.length === 0) {
-      next.push({ key: "empty", title: "", kind: "empty", items: [] });
+      next.push({
+        key: "empty",
+        title: "",
+        kind: "empty",
+        emptyTitle: "No matches.",
+        emptyDetail: "Check the course code or instructor name.",
+        items: [],
+      });
     }
     return next;
   }, [assistantEnabled, loading, payload, query, recents, signedOut]);
@@ -531,7 +547,12 @@ export function HomeSearch() {
                     ) : null}
                     {group.kind === "skeleton" ? <ResultSkeleton /> : null}
                     {group.kind === "empty" ? (
-                      <p className="px-3 py-6 text-center text-sm text-background/80">No results</p>
+                      <div className="px-3 py-8 text-center">
+                        <p className="text-sm text-background">{group.emptyTitle ?? "No matches."}</p>
+                        <p className="mt-1 text-xs text-background/60">
+                          {group.emptyDetail ?? "Check the spelling and try again."}
+                        </p>
+                      </div>
                     ) : null}
                     {group.items.length > 0 ? (
                       <div className="space-y-0.5">

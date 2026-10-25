@@ -208,6 +208,27 @@ describe("HomeSearch", () => {
     expect(screen.getByRole("option", { name: /Sign in to ask AI/ })).toBeTruthy();
   });
 
+  it("shows a grammatical empty state for an unknown course code", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        if (String(input).includes("/api/assistant/access")) {
+          return new Response(JSON.stringify({ enabled: true }), { status: 200 });
+        }
+        return new Response(JSON.stringify({ courses: [], instructors: [] }), { status: 200 });
+      }),
+    );
+
+    render(<HomeSearch />);
+    const input = screen.getByRole("combobox");
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: "ACCT9999" } });
+
+    expect(await screen.findByText("No matching course.")).toBeTruthy();
+    expect(screen.getByText("Maybe the course code is incorrect?")).toBeTruthy();
+    expect(screen.getByRole("option", { name: /Ask AI/ })).toBeTruthy();
+  });
+
   it("opens the assistant for Ask AI", async () => {
     render(<HomeSearch />);
     const input = screen.getByRole("combobox");
