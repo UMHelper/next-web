@@ -1,5 +1,5 @@
 export const RATING_SCALES = [
-  { key: "result", label: "Overall", gloss: "1 Never!, 5 Completely." },
+  { key: "result", label: "Overall", gloss: "Average of the review rating sliders, 1 to 5; higher is more positive." },
   { key: "grade", label: "Reported grade", gloss: "1 is F and 5 is A. Higher means higher grades reported, not a stricter grader." },
   { key: "difficulty", label: "Difficulty", gloss: "1 Very hard, 5 Very easy. A higher number is easier." },
   { key: "reward", label: "Usefulness", gloss: "1 Waste of time, 5 Very useful." },

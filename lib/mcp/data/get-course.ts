@@ -19,11 +19,18 @@ const MAX_DESCRIPTION_CODE_POINTS = 1200;
  * its title is missing.
  */
 const MISSING_COURSE_TITLE = "Unknown Course";
+const NORMALIZER_PLACEHOLDER = "Unknown";
 
 function readText(value: unknown): string | null {
   if (value === null || value === undefined) return null;
   const text = String(value).trim();
   return text.length > 0 ? text : null;
+}
+
+function readCatalogText(value: unknown): string | null {
+  const text = readText(value);
+  if (text === NORMALIZER_PLACEHOLDER) return null;
+  return text;
 }
 
 function readNumber(value: unknown): number | null {
@@ -65,15 +72,15 @@ function projectCourse(
     courseCode: code,
     titleEn: readText(course.courseTitle),
     titleZh: readText(course.courseTitleChi),
-    credits: readText(course.credits),
-    faculty: readText(course.offeringUnit),
-    department: readText(course.offeringDept),
-    programLevel: readText(course.offeringProgLevel),
-    suggestedYear: readText(course.suggestedYearOfStudy),
-    medium: readText(course.mediumOfInstruction),
-    gradingSystem: readText(course.gradingSystem),
-    courseType: readText(course.courseType),
-    duration: readText(course.duration),
+    credits: readCatalogText(course.credits),
+    faculty: readCatalogText(course.offeringUnit),
+    department: readCatalogText(course.offeringDept),
+    programLevel: readCatalogText(course.offeringProgLevel),
+    suggestedYear: readCatalogText(course.suggestedYearOfStudy),
+    medium: readCatalogText(course.mediumOfInstruction),
+    gradingSystem: readCatalogText(course.gradingSystem),
+    courseType: readCatalogText(course.courseType),
+    duration: readCatalogText(course.duration),
     description: truncateDescription(readText(course.courseDescription)),
     aka,
     isOffered,

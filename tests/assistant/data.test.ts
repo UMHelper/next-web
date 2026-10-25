@@ -234,7 +234,7 @@ describe("assistant instructor data", () => {
       {
         name: "CHAN TAI MAN",
         minResult: 4,
-        maxDifficulty: 3.5,
+        minEase: 3.5,
         minCommentCount: 2,
         offeredOnly: true,
         sortBy: "result",
@@ -247,7 +247,7 @@ describe("assistant instructor data", () => {
 
     expect(db.builder.eq).toHaveBeenCalledWith("prof_id", "CHAN TAI MAN");
     expect(db.builder.gte).toHaveBeenCalledWith("result", 4);
-    expect(db.builder.lte).toHaveBeenCalledWith("hard", 3.5);
+    expect(db.builder.gte).toHaveBeenCalledWith("hard", 3.5);
     expect(db.builder.gte).toHaveBeenCalledWith("comments", 2);
     expect(db.builder.order).toHaveBeenCalledWith("is_offered", { ascending: false });
     expect(db.builder.order).toHaveBeenCalledWith("result", { ascending: false });
@@ -313,6 +313,63 @@ describe("assistant instructor data", () => {
       ),
     ).rejects.toMatchObject({ code: "not_found" });
     expect(queryCount).toBe(2);
+  });
+
+  it("minEase keeps courses at least that easy (hard >= value)", async () => {
+    db.response.data = [
+      {
+        course_id: "ACCT1000",
+        prof_id: "CHAN TAI MAN",
+        result: 4.2,
+        grade: 4,
+        hard: 3.5,
+        reward: 4.5,
+        attendance: 3.8,
+        comments: 5,
+        is_offered: 1,
+      },
+    ];
+    db.response.count = 1;
+
+    const input = {
+      name: "CHAN TAI MAN",
+      sortBy: "code" as const,
+      sortOrder: "asc" as const,
+      limit: 20,
+      page: 1,
+    };
+
+    await getInstructorForAssistant({ ...input, minEase: 3.5 }, signal);
+    expect(db.builder.gte).toHaveBeenCalledWith("hard", 3.5);
+    expect(db.builder.lte).not.toHaveBeenCalledWith("hard", expect.anything());
+  });
+
+  it("sortBy ease desc lists the easiest first", async () => {
+    db.response.data = [
+      {
+        course_id: "ACCT1000",
+        prof_id: "CHAN TAI MAN",
+        result: 4.2,
+        grade: 4,
+        hard: 3.5,
+        reward: 4.5,
+        attendance: 3.8,
+        comments: 5,
+        is_offered: 1,
+      },
+    ];
+    db.response.count = 1;
+
+    const input = {
+      name: "CHAN TAI MAN",
+      sortBy: "code" as const,
+      sortOrder: "asc" as const,
+      limit: 20,
+      page: 1,
+    };
+
+    await getInstructorForAssistant({ ...input, sortBy: "ease", sortOrder: "desc" }, signal);
+    expect(db.builder.order).toHaveBeenCalledWith("hard", { ascending: false });
   });
 });
 

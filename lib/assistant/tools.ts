@@ -5,7 +5,12 @@ import { MCP_TOOL_TIMEOUT_MS } from "@/lib/mcp/constants";
 import { getCourse } from "@/lib/mcp/data/get-course";
 import { getCourseReviews } from "@/lib/mcp/data/get-course-reviews";
 import { getCourseSections } from "@/lib/mcp/data/get-course-sections";
-import { assistantCourseSectionsOutputSchema } from "@/lib/assistant/assistant-output-schemas";
+import {
+  assistantCourseSectionsOutputSchema,
+  assistantGetCourseOutputSchema,
+  assistantGetInstructorOutputSchema,
+} from "@/lib/assistant/assistant-output-schemas";
+import { projectCourseForAssistant, projectInstructorForAssistant } from "@/lib/assistant/academic-facts";
 import { bindCourseToolArgs, type CourseReferentSlot } from "@/lib/assistant/course-referent";
 import type { TimetableSlot } from "@/lib/assistant/timetable-context";
 import { CHECK_PLAN_CONFLICTS_TOOL_NAME } from "@/lib/assistant/check-plan-conflicts";
@@ -19,10 +24,8 @@ import {
 import { McpToolError } from "@/lib/mcp/errors";
 import {
   getCourseInputSchema,
-  getCourseOutputSchema,
   getCourseReviewsOutputSchema,
   getCourseSectionsInputSchema,
-  getInstructorOutputSchema,
   searchCatalogOutputSchema,
 } from "@/lib/mcp/schemas";
 
@@ -142,7 +145,9 @@ export function createAssistantTools(slot?: CourseReferentSlot, timetable?: Time
       parameters: z.object({ code: codeParam, page: pageParam }),
       execute: (args) =>
         runCourseTool(referentSlot, "get_course", args, (bound) =>
-          runReadOnlyTool("get_course", bound, getCourseInputSchema, getCourseOutputSchema, (input) => getCourse(input)),
+          runReadOnlyTool("get_course", bound, getCourseInputSchema, assistantGetCourseOutputSchema, async (input, signal) =>
+            projectCourseForAssistant(await getCourse(input)),
+          ),
         ),
     }),
     defineTool({
@@ -183,8 +188,8 @@ export function createAssistantTools(slot?: CourseReferentSlot, timetable?: Time
           "get_instructor",
           args,
           getInstructorToolInputSchema,
-          getInstructorOutputSchema,
-          getInstructorForAssistant,
+          assistantGetInstructorOutputSchema,
+          async (input, signal) => projectInstructorForAssistant(await getInstructorForAssistant(input, signal)),
         ),
     }),
     defineTool({

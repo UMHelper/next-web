@@ -12,14 +12,14 @@ const PROF_COURSE_COLUMNS =
 const SORT_COLUMNS = {
   code: "course_id",
   result: "result",
-  difficulty: "hard",
+  ease: "hard",
   commentCount: "comments",
 } as const;
 
 function hasRestrictiveFilters(input: GetInstructorToolInput): boolean {
   return (
     input.minResult !== undefined ||
-    input.maxDifficulty !== undefined ||
+    input.minEase !== undefined ||
     input.minCommentCount !== undefined ||
     input.offeredOnly === true
   );
@@ -93,7 +93,7 @@ export async function getInstructorForAssistant(
     .eq("prof_id", input.name);
 
   if (input.minResult !== undefined) builder = builder.gte("result", input.minResult);
-  if (input.maxDifficulty !== undefined) builder = builder.lte("hard", input.maxDifficulty);
+  if (input.minEase !== undefined) builder = builder.gte("hard", input.minEase);
   if (input.minCommentCount !== undefined) builder = builder.gte("comments", input.minCommentCount);
   if (input.offeredOnly === true) builder = builder.eq("is_offered", 1);
 

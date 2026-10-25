@@ -24,7 +24,9 @@ vi.mock("@/lib/mcp/data/get-course", () => ({ getCourse: data.getCourse }));
 vi.mock("@/lib/mcp/data/get-course-reviews", () => ({ getCourseReviews: data.getCourseReviews }));
 vi.mock("@/lib/mcp/data/get-course-sections", () => ({ getCourseSections: data.getCourseSections }));
 
+import { NOT_AVAILABLE_ON_SITE, RATING_SCALE_NOTE } from "@/lib/assistant/academic-facts";
 import { type CourseReferentSlot } from "@/lib/assistant/course-referent";
+import { getInstructorToolInputSchema } from "@/lib/assistant/tool-schemas";
 import { ASSISTANT_SERVER_TOOL_NAMES, createAssistantTools } from "@/lib/assistant/tools";
 import { McpToolError } from "@/lib/mcp/errors";
 
@@ -194,6 +196,53 @@ describe("assistant server tools", () => {
     expect(JSON.stringify(output)).not.toContain('"id"');
   });
 
+  it("get_course returns ratingScale, sampleSize and notAvailableOnSite to the model", async () => {
+    data.getCourse.mockResolvedValue({
+      course: {
+        courseCode: "ACCT1000",
+        titleEn: "Principles of Accounting",
+        titleZh: null,
+        credits: "3",
+        faculty: "FBA",
+        department: "ACCT",
+        programLevel: "UG",
+        suggestedYear: "1",
+        medium: "English",
+        gradingSystem: "Graded",
+        courseType: "Compulsory",
+        duration: "One semester",
+        description: "Intro accounting.",
+        aka: [],
+        isOffered: true,
+        url: COURSE_URL,
+      },
+      page: 1,
+      hasMore: false,
+      totalCount: 1,
+      instructors: [
+        {
+          name: "CHAN TAI MAN",
+          commentCount: 5,
+          result: 4,
+          attendance: null,
+          grade: null,
+          difficulty: 3.2,
+          reward: null,
+          isOffered: true,
+          reviewUrl: REVIEW_URL,
+        },
+      ],
+    });
+
+    const output = await call("get_course", { code: "ACCT1000" });
+
+    expect(output).toMatchObject({
+      ratingScale: RATING_SCALE_NOTE,
+      notAvailableOnSite: [...NOT_AVAILABLE_ON_SITE],
+      instructors: [{ name: "CHAN TAI MAN", sampleSize: "adequate" }],
+    });
+  });
+
   it("rejects a course search without any term or filter", async () => {
     await expect(call("search_catalog", { type: "course" })).resolves.toEqual({ error: "invalid_request" });
     expect(data.searchCatalogForAssistant).not.toHaveBeenCalled();
@@ -285,7 +334,7 @@ describe("assistant server tools", () => {
     await call("get_instructor", {
       name: " chan  tai man ",
       minResult: 4,
-      maxDifficulty: 3,
+      minEase: 3,
       minCommentCount: 5,
       offeredOnly: true,
       sortBy: "result",
@@ -297,7 +346,7 @@ describe("assistant server tools", () => {
       expect.objectContaining({
         name: "CHAN TAI MAN",
         minResult: 4,
-        maxDifficulty: 3,
+        minEase: 3,
         minCommentCount: 5,
         offeredOnly: true,
         sortBy: "result",
@@ -306,6 +355,12 @@ describe("assistant server tools", () => {
         page: 1,
       }),
       expect.any(AbortSignal),
+    );
+  });
+
+  it("get_instructor rejects the removed maxDifficulty filter", () => {
+    expect(getInstructorToolInputSchema.safeParse({ name: "X", maxDifficulty: 3 }).data).not.toHaveProperty(
+      "maxDifficulty",
     );
   });
 

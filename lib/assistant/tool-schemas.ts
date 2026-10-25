@@ -143,13 +143,20 @@ export const getInstructorToolInputSchema = z.object({
     .transform((value) => value.replace(/\s+/g, " ").toUpperCase())
     .describe("Instructor name in English exactly as the tools returned it."),
   minResult: z.number().min(0).max(5).optional().describe("Keep courses whose average result is at least this value."),
-  maxDifficulty: z.number().min(0).max(5).optional().describe("Keep courses whose difficulty is at most this value."),
+  minEase: z
+    .number()
+    .min(0)
+    .max(5)
+    .optional()
+    .describe(
+      "Keep courses whose difficulty score is at least this value. Difficulty runs 1 Very hard to 5 Very easy, so a higher minimum keeps easier courses.",
+    ),
   minCommentCount: z.number().int().min(0).optional().describe("Keep courses with at least this many reviews."),
   offeredOnly: z.boolean().optional().describe("When true, keep only courses offered in the current term."),
   sortBy: z
-    .enum(["code", "result", "difficulty", "commentCount"])
+    .enum(["code", "result", "ease", "commentCount"])
     .default("code")
-    .describe("Sort key for the instructor's courses."),
+    .describe("ease sorts by the difficulty score; with sortOrder desc the easiest come first."),
   sortOrder: z.enum(["asc", "desc"]).default("asc"),
   limit: z.number().int().min(1).max(20).default(20),
   page,
