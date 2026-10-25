@@ -169,15 +169,15 @@ describe("AssistantPanel", () => {
     expect(document.documentElement.hasAttribute("data-assistant-open")).toBe(false);
   });
 
-  it("closes from the chat and reopens from the bubble", async () => {
-    render(<AssistantPanel suppressed={false} />);
+  it("closes from the chat and reopens when Ask AI fires again", async () => {
+    const { rerender } = render(<AssistantPanel suppressed={false} openToken={0} />);
 
     fireEvent.click(screen.getByRole("button", { name: "close-chat" }));
     await waitFor(() => expect(screen.queryByTestId("assistant-chat")).toBeNull());
     expect(document.documentElement.hasAttribute("data-assistant-open")).toBe(false);
 
-    fireEvent.click(screen.getByRole("button", { name: "AI Course Helper" }));
-    expect(screen.getByTestId("assistant-chat")).toBeTruthy();
+    rerender(<AssistantPanel suppressed={false} openToken={1} />);
+    await waitFor(() => expect(screen.getByTestId("assistant-chat")).toBeTruthy());
     expect(document.documentElement.hasAttribute("data-assistant-open")).toBe(true);
   });
 

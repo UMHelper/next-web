@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   push: vi.fn(),
   openAssistant: vi.fn(),
+  auth: { isLoaded: true, isSignedIn: true },
 }));
 const { push, openAssistant } = mocks;
 
@@ -14,6 +15,7 @@ vi.mock("next/navigation", () => ({
 vi.mock("@/lib/assistant/open", () => ({
   openAssistant: mocks.openAssistant,
 }));
+vi.mock("@clerk/nextjs", () => ({ useAuth: () => mocks.auth }));
 
 import { CommandPalette } from "@/components/command-palette";
 import { installFakeStorage } from "@/tests/helpers/fake-storage";
@@ -44,6 +46,8 @@ function renderPalette() {
 describe("CommandPalette", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.auth.isLoaded = true;
+    mocks.auth.isSignedIn = true;
     installFakeStorage();
     vi.stubGlobal(
       "fetch",
@@ -76,6 +80,18 @@ describe("CommandPalette", () => {
     fireEvent.click(screen.getAllByRole("option", { name: /ACCT1000/ })[0]);
     expect(push).toHaveBeenCalledWith("/course/ACCT1000");
     expect(window.localStorage.getItem("umeh:command-palette-recents-v2")).toContain("ACCT1000");
+  });
+
+  it("redirects signed-out Ask AI to the sign-in page", async () => {
+    mocks.auth.isSignedIn = false;
+    const input = renderPalette();
+    fireEvent.change(input, { target: { value: "ACCT" } });
+
+    const signIn = await screen.findByRole("option", { name: /Sign in to ask AI/ });
+    fireEvent.click(signIn);
+
+    expect(openAssistant).not.toHaveBeenCalled();
+    expect(push).toHaveBeenCalledWith("/sign-in?redirect_url=%2F");
   });
 
   it("offers Ask AI with the current query", async () => {

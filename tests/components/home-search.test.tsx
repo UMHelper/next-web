@@ -4,10 +4,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   push: vi.fn(),
   openAssistant: vi.fn(),
+  auth: { isLoaded: true, isSignedIn: true },
 }));
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: mocks.push }) }));
 vi.mock("@/lib/assistant/open", () => ({ openAssistant: mocks.openAssistant }));
+vi.mock("@clerk/nextjs", () => ({ useAuth: () => mocks.auth }));
 
 import { HomeSearch } from "@/components/home-search";
 import { installFakeStorage } from "@/tests/helpers/fake-storage";
@@ -30,6 +32,8 @@ const PAYLOAD = {
 describe("HomeSearch", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.auth.isLoaded = true;
+    mocks.auth.isSignedIn = true;
     installFakeStorage();
     vi.stubGlobal(
       "fetch",
@@ -188,6 +192,20 @@ describe("HomeSearch", () => {
     const course = await screen.findByRole("option", { name: /CSCI1001/ });
     expect(course.getAttribute("aria-selected")).toBe("true");
     expect(screen.getByText(/a\.k\.a\. CISC1001/)).toBeTruthy();
+  });
+
+  it("redirects signed-out Ask AI to the sign-in page", async () => {
+    mocks.auth.isSignedIn = false;
+    render(<HomeSearch />);
+    const input = screen.getByRole("combobox");
+    fireEvent.focus(input);
+
+    const signIn = screen.getAllByRole("button", { name: /Sign in/ })[0];
+    fireEvent.click(signIn);
+
+    expect(mocks.openAssistant).not.toHaveBeenCalled();
+    expect(mocks.push).toHaveBeenCalledWith("/sign-in?redirect_url=%2F");
+    expect(screen.getByRole("option", { name: /Sign in to ask AI/ })).toBeTruthy();
   });
 
   it("opens the assistant for Ask AI", async () => {

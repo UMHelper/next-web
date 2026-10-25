@@ -7,8 +7,6 @@ import { useEffect, useState } from "react";
 
 import { OPEN_ASSISTANT_EVENT, type OpenAssistantDetail } from "@/lib/assistant/open";
 
-import { AssistantBubble } from "./assistant-bubble";
-
 const AssistantPanel = dynamic(() => import("./assistant-panel"), { ssr: false });
 
 const SUPPRESSED_PREFIXES = ["/admin", "/oauth-consent", "/sign-in", "/sign-up"];
@@ -24,6 +22,7 @@ export default function AssistantLauncher() {
   const [opened, setOpened] = useState(false);
   const [pendingPrompt, setPendingPrompt] = useState<string | null>(null);
   const [pendingAutoSend, setPendingAutoSend] = useState(false);
+  const [openToken, setOpenToken] = useState(0);
 
   useEffect(() => {
     // A different user must not see the previous user's conversation or access result.
@@ -31,6 +30,7 @@ export default function AssistantLauncher() {
     setOpened(false);
     setPendingPrompt(null);
     setPendingAutoSend(false);
+    setOpenToken(0);
     if (!isLoaded || !isSignedIn) return;
 
     let cancelled = false;
@@ -61,29 +61,25 @@ export default function AssistantLauncher() {
         typeof detail?.prompt === "string" && detail.prompt.trim() ? detail.prompt.trim() : null,
       );
       setPendingAutoSend(detail?.autoSend === true);
+      setOpenToken((value) => value + 1);
       setOpened(true);
     };
     window.addEventListener(OPEN_ASSISTANT_EVENT, onOpen);
     return () => window.removeEventListener(OPEN_ASSISTANT_EVENT, onOpen);
   }, []);
 
-  if (!enabled) return null;
+  if (!enabled || !opened) return null;
 
-  const suppressed = isAssistantSuppressed(pathname);
-  if (opened) {
-    return (
-      <AssistantPanel
-        suppressed={suppressed}
-        initialPrompt={pendingPrompt}
-        autoSend={pendingAutoSend}
-        onPromptConsumed={() => {
-          setPendingPrompt(null);
-          setPendingAutoSend(false);
-        }}
-      />
-    );
-  }
-  if (suppressed) return null;
-
-  return <AssistantBubble onClick={() => setOpened(true)} />;
+  return (
+    <AssistantPanel
+      suppressed={isAssistantSuppressed(pathname)}
+      initialPrompt={pendingPrompt}
+      autoSend={pendingAutoSend}
+      openToken={openToken}
+      onPromptConsumed={() => {
+        setPendingPrompt(null);
+        setPendingAutoSend(false);
+      }}
+    />
+  );
 }

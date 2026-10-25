@@ -11,6 +11,7 @@ import {
   Sparkles,
   User,
 } from "lucide-react";
+import { useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -118,6 +119,8 @@ function itemIcon(item: PaletteItem) {
 
 export function CommandPalette({ variant = "header" }: { variant?: "header" | "hero" }) {
   const router = useRouter();
+  const { isLoaded, isSignedIn } = useAuth();
+  const signedOut = isLoaded && !isSignedIn;
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [payload, setPayload] = useState<SearchPayload>(EMPTY);
@@ -152,6 +155,10 @@ export function CommandPalette({ variant = "header" }: { variant?: "header" | "h
   }, [open]);
 
   useEffect(() => {
+    if (!isLoaded || !isSignedIn) {
+      setAssistantEnabled(false);
+      return;
+    }
     if (!open || assistantEnabled) return;
     const controller = new AbortController();
     fetch("/api/assistant/access", { cache: "no-store", signal: controller.signal })
@@ -161,7 +168,7 @@ export function CommandPalette({ variant = "header" }: { variant?: "header" | "h
       })
       .catch(() => {});
     return () => controller.abort();
-  }, [open, assistantEnabled]);
+  }, [open, assistantEnabled, isLoaded, isSignedIn]);
 
   useEffect(() => {
     const term = query.trim();
@@ -230,15 +237,22 @@ export function CommandPalette({ variant = "header" }: { variant?: "header" | "h
     if (courses.length) next.push({ key: "courses", title: "Courses", items: courses });
     if (instructors.length) next.push({ key: "instructors", title: "Instructors", items: instructors });
     if (pages.length) next.push({ key: "pages", title: "Pages", items: pages });
-    if (assistantEnabled) {
+    if (assistantEnabled || signedOut) {
       next.push({
         key: "ai",
-        title: "Ask AI",
-        items: [{ id: "ai-ask", kind: "ai", title: "Ask AI", subtitle: term }],
+        title: signedOut ? "Sign in" : "Ask AI",
+        items: [
+          {
+            id: "ai-ask",
+            kind: "ai",
+            title: signedOut ? "Sign in to ask AI" : "Ask AI",
+            subtitle: term,
+          },
+        ],
       });
     }
     return next;
-  }, [assistantEnabled, payload, query, recents]);
+  }, [assistantEnabled, payload, query, recents, signedOut]);
 
   const flat = useMemo(() => groups.flatMap((group) => group.items), [groups]);
 
@@ -255,6 +269,13 @@ export function CommandPalette({ variant = "header" }: { variant?: "header" | "h
       if (!item) return;
       setOpen(false);
       if (item.kind === "ai") {
+        if (!isLoaded) return;
+        if (!isSignedIn) {
+          const returnTo =
+            typeof window === "undefined" ? "/" : `${window.location.pathname}${window.location.search}`;
+          router.push(`/sign-in?redirect_url=${encodeURIComponent(returnTo)}`);
+          return;
+        }
         const prompt = query.trim();
         openAssistant(prompt ? { prompt, autoSend: true } : {});
         return;
@@ -263,7 +284,7 @@ export function CommandPalette({ variant = "header" }: { variant?: "header" | "h
       setRecents(readRecents());
       if (item.href) router.push(item.href);
     },
-    [query, router],
+    [isLoaded, isSignedIn, query, router],
   );
 
   const onInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {

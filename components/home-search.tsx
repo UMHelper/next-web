@@ -6,11 +6,13 @@ import {
   CalendarDays,
   FileText,
   Loader2,
+  LogIn,
   MessageCircle,
   Search,
   Sparkles,
   User,
 } from "lucide-react";
+import { useAuth } from "@clerk/nextjs";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -171,6 +173,8 @@ function ResultSkeleton() {
 /** Inline command search for the home page, modelled on Cloudflare's big search + dropdown. */
 export function HomeSearch() {
   const router = useRouter();
+  const { isLoaded, isSignedIn } = useAuth();
+  const signedOut = isLoaded && !isSignedIn;
   const [query, setQuery] = useState("");
   const [payload, setPayload] = useState<SearchPayload>(EMPTY);
   const [loading, setLoading] = useState(false);
@@ -187,6 +191,10 @@ export function HomeSearch() {
   }, []);
 
   useEffect(() => {
+    if (!isLoaded || !isSignedIn) {
+      setAssistantEnabled(false);
+      return;
+    }
     if (assistantEnabled) return;
     const controller = new AbortController();
     fetch("/api/assistant/access", { cache: "no-store", signal: controller.signal })
@@ -196,7 +204,7 @@ export function HomeSearch() {
       })
       .catch(() => {});
     return () => controller.abort();
-  }, [assistantEnabled]);
+  }, [assistantEnabled, isLoaded, isSignedIn]);
 
   useEffect(() => {
     const term = query.trim();
@@ -254,18 +262,41 @@ export function HomeSearch() {
     };
   }, []);
 
+  const signInToAsk = useCallback(() => {
+    const returnTo = typeof window === "undefined" ? "/" : `${window.location.pathname}${window.location.search}`;
+    router.push(`/sign-in?redirect_url=${encodeURIComponent(returnTo)}`);
+  }, [router]);
+
+  const requestAssistant = useCallback(
+    (detail: Parameters<typeof openAssistant>[0] = {}) => {
+      if (!isLoaded) return;
+      if (!isSignedIn) {
+        signInToAsk();
+        return;
+      }
+      setOpen(false);
+      inputRef.current?.blur();
+      openAssistant(detail);
+    },
+    [isLoaded, isSignedIn, signInToAsk],
+  );
+
   const askAi = () => {
     const prompt = query.trim();
-    setOpen(false);
-    inputRef.current?.blur();
-    openAssistant(prompt ? { prompt, autoSend: true } : {});
+    requestAssistant(prompt ? { prompt, autoSend: true } : {});
   };
 
   const groups = useMemo<HomeGroup[]>(() => {
     const term = query.trim();
-    const aiItem: HomeItem | null = assistantEnabled
-      ? { id: "home-ai", kind: "ai", title: "Ask AI", subtitle: term || undefined }
-      : null;
+    const aiItem: HomeItem | null =
+      assistantEnabled || signedOut
+        ? {
+            id: "home-ai",
+            kind: "ai",
+            title: signedOut ? "Sign in to ask AI" : "Ask AI",
+            subtitle: term || undefined,
+          }
+        : null;
 
     if (!term) {
       const next: HomeGroup[] = [];
@@ -359,7 +390,7 @@ export function HomeSearch() {
       next.push({ key: "empty", title: "", kind: "empty", items: [] });
     }
     return next;
-  }, [assistantEnabled, loading, payload, query, recents]);
+  }, [assistantEnabled, loading, payload, query, recents, signedOut]);
 
   const flat = useMemo(() => groups.flatMap((group) => group.items), [groups]);
 
@@ -381,7 +412,7 @@ export function HomeSearch() {
       if (item.kind === "tip") {
         setOpen(false);
         inputRef.current?.blur();
-        openAssistant({ prompt: item.query ?? item.title, autoSend: true });
+        requestAssistant({ prompt: item.query ?? item.title, autoSend: true });
         return;
       }
       if (item.kind === "search") {
@@ -394,14 +425,14 @@ export function HomeSearch() {
       inputRef.current?.blur();
       if (item.kind === "ai") {
         const prompt = query.trim();
-        openAssistant(prompt ? { prompt, autoSend: true } : {});
+        requestAssistant(prompt ? { prompt, autoSend: true } : {});
         return;
       }
       saveRecent(item);
       setRecents(readRecents());
       if (item.href) router.push(item.href);
     },
-    [query, router],
+    [query, requestAssistant, router],
   );
 
   const onKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
@@ -459,12 +490,16 @@ export function HomeSearch() {
             </kbd>
             <button
               type="button"
-              aria-label="Ask AI"
+              aria-label={signedOut ? "Sign in to ask AI" : "Ask AI"}
               onClick={askAi}
               className="flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-brand px-3 text-xs font-medium text-brand-foreground shadow-sm transition-colors hover:bg-brand-strong"
             >
-              <Sparkles className="h-4 w-4" aria-hidden />
-              <span className="hidden sm:inline">Ask AI</span>
+              {signedOut ? (
+                <LogIn className="h-4 w-4" aria-hidden />
+              ) : (
+                <Sparkles className="h-4 w-4" aria-hidden />
+              )}
+              <span className="hidden sm:inline">{signedOut ? "Sign in" : "Ask AI"}</span>
             </button>
           </div>
         </div>
@@ -587,11 +622,11 @@ export function HomeSearch() {
         </Link>
         <button
           type="button"
-          onClick={() => openAssistant()}
+          onClick={() => requestAssistant()}
           className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-white/20 px-3 py-2 text-sm text-white backdrop-blur transition-colors hover:bg-white/30"
         >
-          <Sparkles className="h-4 w-4" aria-hidden />
-          Ask AI
+          {signedOut ? <LogIn className="h-4 w-4" aria-hidden /> : <Sparkles className="h-4 w-4" aria-hidden />}
+          {signedOut ? "Sign in" : "Ask AI"}
         </button>
       </div>
     </div>
