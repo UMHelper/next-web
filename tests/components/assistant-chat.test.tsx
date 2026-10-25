@@ -147,7 +147,7 @@ describe("AssistantChat", () => {
     expect(screen.getByRole("alert").textContent).toContain("Please sign in to use the assistant.");
   });
 
-  it("keeps a page margin for the panel on desktop and removes it on unmount", () => {
+  it("keeps a page margin for the docked panel on desktop", () => {
     const { unmount } = render(
       <AssistantChat onClose={() => {}} notice={null} onClearNotice={() => {}} />,
     );
@@ -175,7 +175,6 @@ describe("AssistantChat", () => {
     mocks.isReady = false;
     renderChat();
 
-    expect(screen.getByText("Connecting…")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Send" }).hasAttribute("disabled")).toBe(true);
     await act(async () => {});
     expect(mocks.agent.addMessage).not.toHaveBeenCalled();

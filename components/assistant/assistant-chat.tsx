@@ -10,7 +10,6 @@ import { useCallback, useEffect, useMemo, useRef, useState, type RefCallback } f
 
 import { describeAssistantError } from "@/lib/assistant/error-message";
 import { PANEL_WIDTH_DEFAULT } from "@/lib/assistant/panel-width";
-
 import { AssistantChatView, type ChatSuggestion } from "./assistant-chat-view";
 import { PANEL_WIDTH_VAR } from "./resize-handle";
 
@@ -99,9 +98,9 @@ export default function AssistantChat({
     onPromptConsumed?.();
   }, [initialPrompt, onPromptConsumed]);
 
-  // Match the old sidebar's layout contract: on desktop the page keeps a
-  // margin for the panel; on mobile the panel covers the viewport and the
-  // page behind it must not scroll.
+  // On desktop the page keeps a margin for the docked panel, so the site header
+  // keeps its own style and is not covered. On mobile the panel covers the
+  // viewport and the page behind it must not scroll.
   useEffect(() => {
     if (typeof window === "undefined") return;
     const previousMargin = document.body.style.marginInlineEnd;

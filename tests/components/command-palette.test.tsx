@@ -37,7 +37,7 @@ const PAYLOAD = {
 function renderPalette() {
   render(<CommandPalette />);
   fireEvent.click(screen.getByRole("button", { name: "Search courses and instructors" }));
-  return screen.getByPlaceholderText("搜尋課程、教師、頁面…") as HTMLInputElement;
+  return screen.getByPlaceholderText("Search courses, instructors, pages…") as HTMLInputElement;
 }
 
 describe("CommandPalette", () => {
@@ -63,6 +63,7 @@ describe("CommandPalette", () => {
   it("opens from the trigger and searches courses and instructors", async () => {
     const input = renderPalette();
     expect(input).toBeTruthy();
+    await waitFor(() => expect(fetch).toHaveBeenCalledWith("/api/assistant/access", expect.anything()));
 
     fireEvent.change(input, { target: { value: "ACCT" } });
 
@@ -72,11 +73,12 @@ describe("CommandPalette", () => {
 
     fireEvent.click(screen.getAllByRole("option", { name: /ACCT1000/ })[0]);
     expect(push).toHaveBeenCalledWith("/course/ACCT1000");
-    expect(window.localStorage.getItem("umeh:command-palette-recents")).toContain("ACCT1000");
+    expect(window.localStorage.getItem("umeh:command-palette-recents-v2")).toContain("ACCT1000");
   });
 
   it("offers Ask AI with the current query", async () => {
     const input = renderPalette();
+    await waitFor(() => expect(fetch).toHaveBeenCalledWith("/api/assistant/access", expect.anything()));
     fireEvent.change(input, { target: { value: "給分好嗎" } });
 
     await waitFor(() => expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/api/command-palette"), expect.anything()));
@@ -86,9 +88,10 @@ describe("CommandPalette", () => {
     expect(openAssistant).toHaveBeenCalledWith({ prompt: "給分好嗎" });
   });
 
-  it("shows page shortcuts when the query is empty", () => {
+  it("shows page shortcuts when the query is empty", async () => {
     renderPalette();
-    expect(screen.getByRole("option", { name: /課程目錄/ })).toBeTruthy();
-    expect(screen.getByRole("option", { name: /我的課表/ })).toBeTruthy();
+    await waitFor(() => expect(fetch).toHaveBeenCalledWith("/api/assistant/access", expect.anything()));
+    expect(screen.getByRole("option", { name: /Courses/ })).toBeTruthy();
+    expect(screen.getByRole("option", { name: /Timetable/ })).toBeTruthy();
   });
 });

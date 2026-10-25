@@ -46,12 +46,12 @@ type PaletteItem = {
 type PaletteGroup = { key: string; title: string; items: PaletteItem[] };
 
 const EMPTY: SearchPayload = { courses: [], instructors: [] };
-const RECENTS_KEY = "umeh:command-palette-recents";
+const RECENTS_KEY = "umeh:command-palette-recents-v2";
 
 const PAGES: PaletteItem[] = [
-  { id: "page-catalog", kind: "page", title: "課程目錄", subtitle: "Browse courses by faculty", href: "/catalog" },
-  { id: "page-timetable", kind: "page", title: "我的課表", subtitle: "Timetable planner", href: "/timetable" },
-  { id: "page-ai", kind: "page", title: "在 AI 工具中使用", subtitle: "MCP setup for Claude, Cursor, Codex", href: "/ai" },
+  { id: "page-catalog", kind: "page", title: "Courses", href: "/catalog" },
+  { id: "page-timetable", kind: "page", title: "Timetable", href: "/timetable" },
+  { id: "page-ai", kind: "page", title: "AI setup", href: "/ai" },
 ];
 
 function readRecents(): PaletteItem[] {
@@ -109,7 +109,7 @@ function itemIcon(item: PaletteItem) {
   return <FileText className="h-4 w-4" aria-hidden />;
 }
 
-export function CommandPalette() {
+export function CommandPalette({ variant = "header" }: { variant?: "header" | "hero" }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -127,6 +127,7 @@ export function CommandPalette() {
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
+      if (window.location.pathname === "/") return;
       if (event.key.toLowerCase() === "k" && (event.metaKey || event.ctrlKey)) {
         event.preventDefault();
         setOpen((value) => !value);
@@ -193,8 +194,8 @@ export function CommandPalette() {
     const next: PaletteGroup[] = [];
 
     if (!term) {
-      if (recents.length > 0) next.push({ key: "recent", title: "最近", items: recents });
-      next.push({ key: "pages", title: "頁面", items: PAGES });
+      if (recents.length > 0) next.push({ key: "recent", title: "Recent", items: recents });
+      next.push({ key: "pages", title: "Pages", items: PAGES });
       return next;
     }
 
@@ -203,7 +204,7 @@ export function CommandPalette() {
       id: `course-${course.code}`,
       kind: "course",
       title: course.code,
-      subtitle: [course.titleZh, course.titleEn].filter(Boolean).join(" · ") || undefined,
+      subtitle: course.titleEn ?? undefined,
       trailing: [course.faculty, course.department].filter(Boolean).join(" / ") || undefined,
       href: `/course/${encodeURIComponent(course.code)}`,
     }));
@@ -211,22 +212,20 @@ export function CommandPalette() {
       id: `instructor-${instructor.name}`,
       kind: "instructor",
       title: instructor.name,
-      subtitle: instructor.sampleCourse
-        ? `${instructor.courseCount} 門課 · ${instructor.sampleCourse}`
-        : `${instructor.courseCount} 門課`,
+      trailing: `${instructor.courseCount} courses`,
       href: `/professor/${encodeURIComponent(instructor.name).replaceAll("%2F", "$")}`,
     }));
     const pages = PAGES.filter((page) =>
       `${page.title} ${page.subtitle ?? ""}`.toLowerCase().includes(lowered),
     );
 
-    if (courses.length) next.push({ key: "courses", title: "課程", items: courses });
-    if (instructors.length) next.push({ key: "instructors", title: "教師", items: instructors });
-    if (pages.length) next.push({ key: "pages", title: "頁面", items: pages });
+    if (courses.length) next.push({ key: "courses", title: "Courses", items: courses });
+    if (instructors.length) next.push({ key: "instructors", title: "Instructors", items: instructors });
+    if (pages.length) next.push({ key: "pages", title: "Pages", items: pages });
     if (assistantEnabled) {
       next.push({
         key: "ai",
-        title: "問 AI",
+        title: "Ask AI",
         items: [{ id: "ai-ask", kind: "ai", title: "Ask AI", subtitle: term }],
       });
     }
@@ -290,11 +289,18 @@ export function CommandPalette() {
         <button
           type="button"
           aria-label="Search courses and instructors"
-          className="flex h-8 w-9 shrink-0 items-center justify-center gap-2 rounded-lg border border-border bg-background px-0 text-sm text-muted-foreground shadow-sm transition-colors hover:bg-surface-subtle hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:w-[240px] md:justify-start md:px-3"
+          className={cn(
+            "flex shrink-0 items-center gap-2 border border-border bg-background text-muted-foreground shadow-sm transition-colors hover:bg-surface-subtle hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            variant === "hero"
+              ? "h-12 w-full rounded-xl px-4 text-base shadow-xl backdrop-blur"
+              : "h-8 w-9 justify-center rounded-lg px-0 text-sm md:w-[240px] md:justify-start md:px-3",
+          )}
         >
           <Search className="h-4 w-4 shrink-0 opacity-60" aria-hidden />
-          <span className="hidden min-w-0 flex-1 truncate text-left md:inline">搜尋課程或教師…</span>
-          <kbd className="hidden shrink-0 rounded border border-border bg-surface-subtle px-1 py-0.5 font-sans text-[10px] leading-none text-muted-foreground md:inline">
+          <span className={cn("min-w-0 flex-1 truncate text-left", variant === "header" && "hidden md:inline")}>
+            Search courses or instructors…
+          </span>
+          <kbd className={cn("shrink-0 rounded border border-border bg-surface-subtle px-1 py-0.5 font-sans text-[10px] leading-none", variant === "header" && "hidden md:inline")}>
             ⌘K
           </kbd>
         </button>
@@ -306,9 +312,9 @@ export function CommandPalette() {
           aria-describedby={undefined}
           className="fixed left-1/2 top-[10vh] z-[1300] w-[calc(100%-2rem)] max-w-2xl -translate-x-1/2 overflow-hidden rounded-lg border border-border bg-background shadow-2xl outline-none data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[state=open]:duration-150"
         >
-          <DialogPrimitive.Title className="sr-only">搜尋課程或教師</DialogPrimitive.Title>
+          <DialogPrimitive.Title className="sr-only">Search courses and instructors</DialogPrimitive.Title>
           <DialogPrimitive.Description id="command-palette-description" className="sr-only">
-            搜尋課程、教師或頁面，或把問題交給 AI。
+            Search courses, instructors and pages, or ask the assistant.
           </DialogPrimitive.Description>
 
           <div className="flex items-center gap-3 border-b border-border px-4 py-3 focus-within:ring-2 focus-within:ring-brand/30">
@@ -323,10 +329,10 @@ export function CommandPalette() {
               aria-controls="command-palette-list"
               aria-activedescendant={flat[active] ? `command-item-${flat[active].id}` : undefined}
               aria-autocomplete="list"
-              aria-label="搜尋課程、教師、頁面"
+              aria-label="Search courses, instructors, pages"
               autoComplete="off"
               spellCheck={false}
-              placeholder="搜尋課程、教師、頁面…"
+              placeholder="Search courses, instructors, pages…"
               className="min-w-0 flex-1 bg-transparent text-base text-foreground outline-none placeholder:text-muted-foreground"
             />
             {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin text-brand" aria-label="Searching" /> : null}
@@ -337,7 +343,7 @@ export function CommandPalette() {
 
           <div id="command-palette-list" role="listbox" className="max-h-[60vh] overflow-y-auto p-2">
             {flat.length === 0 ? (
-              <p className="px-3 py-8 text-center text-sm text-muted-foreground">沒有符合的結果</p>
+              <p className="px-3 py-8 text-center text-sm text-muted-foreground">No results</p>
             ) : (
               groups.map((group) => (
                 <div key={group.key} className="mb-2 last:mb-0">
@@ -417,7 +423,10 @@ export function CommandPalette() {
               <CornerDownLeft className="h-3 w-3" aria-hidden />
               open
             </span>
-            <span className="ml-auto hidden sm:inline">Ask AI 會把搜尋詞帶進助手</span>
+            <span className="flex items-center gap-1">
+              <kbd className="rounded border border-border bg-surface-subtle px-1 py-0.5 font-sans">esc</kbd>
+              close
+            </span>
           </div>
         </DialogPrimitive.Content>
       </DialogPrimitive.Portal>

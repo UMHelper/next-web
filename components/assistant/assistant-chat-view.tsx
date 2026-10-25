@@ -85,7 +85,7 @@ function ThinkingRow() {
       role="status"
     >
       <Sparkles className="h-3.5 w-3.5 shrink-0 text-brand motion-safe:animate-pulse" aria-hidden />
-      <span className="assistant-shimmer-text font-medium">選咩課 AI 正在思考…</span>
+      <span className="assistant-shimmer-text font-medium">AI is thinking…</span>
       <span className="flex items-center gap-1" aria-hidden>
         <span className="h-1 w-1 rounded-full bg-brand motion-safe:animate-bounce [animation-delay:-0.3s]" />
         <span className="h-1 w-1 rounded-full bg-brand motion-safe:animate-bounce [animation-delay:-0.15s]" />
@@ -214,16 +214,15 @@ function Welcome({
 }) {
   return (
     <div className="flex flex-col pt-1 pb-4 animate-in fade-in duration-300">
-      <h3 className="text-base font-semibold text-foreground">想做什麼？</h3>
+      <h3 className="text-base font-semibold text-foreground">What can I help with?</h3>
       <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
         Ask about courses, professors, reviews, class times, or timetable conflicts.
       </p>
       <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
         查課程、教授、評價、上課時間，或檢查課表衝突。
       </p>
-      <div className="mt-5">
-        <p className="text-xs font-medium text-muted-foreground">Try asking</p>
-        <div className="mt-2 space-y-2">
+      <div className="mt-4">
+        <div className="space-y-2">
           {suggestions.map((suggestion, index) => (
             <button
               key={`${suggestion.message}-${index}`}
@@ -304,16 +303,14 @@ export function AssistantChatView({
         className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(circle,rgba(100,116,139,0.10)_1px,transparent_1px)] bg-[size:12px_12px] opacity-70"
       />
       {/* 58px matches Cloudflare's compact AI header; the site navbar stays separate. */}
-      <header className="relative z-10 flex shrink-0 items-center gap-2 border-b border-border bg-background/80 px-4 pb-3 pt-[calc(0.75rem_+_env(safe-area-inset-top))] backdrop-blur md:h-[58px] md:pb-0 md:pt-0">
-        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-brand/10">
-          <Cat className="h-4 w-4 text-brand" aria-hidden />
-        </span>
+      <header className="relative z-10 flex shrink-0 items-center gap-2 border-b border-border bg-background/80 px-4 pb-3 pt-[calc(0.75rem_+_env(safe-area-inset-top))] backdrop-blur md:h-[65px] md:pb-0 md:pt-0">
+        <Cat className="h-5 w-5 shrink-0 text-brand-logo" aria-hidden />
         <div className="min-w-0 flex-1">
           <h2 className="truncate text-sm font-semibold leading-tight text-foreground">
-            選咩課 AI
+            AI Course Helper
           </h2>
           <p className="truncate text-[11px] leading-tight text-muted-foreground">
-            {isReady ? "課程 · 評價 · 課表" : "Connecting…"}
+            {isReady ? "AI 選課助手" : "Connecting…"}
           </p>
         </div>
         <div className="ml-auto flex items-center gap-1">

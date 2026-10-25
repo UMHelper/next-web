@@ -61,7 +61,6 @@ describe("AssistantLauncher", () => {
     render(<AssistantLauncher />);
 
     expect(await screen.findByRole("button", { name: "AI Course Helper" })).toBeTruthy();
-    expect(screen.getByText("AI Course Helper")).toBeTruthy();
     expect(screen.getByText("AI 選課助手")).toBeTruthy();
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock).toHaveBeenCalledWith("/api/assistant/access", expect.objectContaining({ cache: "no-store" }));

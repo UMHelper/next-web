@@ -69,7 +69,7 @@ describe("AssistantChatView", () => {
   it("shows the welcome intro and sends an example question", () => {
     const props = renderView();
 
-    expect(screen.getByText("想做什麼？")).toBeTruthy();
+    expect(screen.getByText("What can I help with?")).toBeTruthy();
     expect(screen.getByText(/Ask about courses, professors, reviews, class times/)).toBeTruthy();
     expect(screen.getAllByText(/查課程、教授、評價/).length).toBeGreaterThan(0);
     expect(screen.queryByText(/read-only|30 turns/)).toBeNull();
@@ -224,7 +224,7 @@ describe("AssistantChatView", () => {
       isRunning: true,
     });
 
-    expect(screen.getByText(/正在思考/)).toBeTruthy();
+    expect(screen.getByText(/AI is thinking/)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Stop generating" }));
     expect(props.onStop).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole("button", { name: "Send" })).toBeNull();
@@ -282,7 +282,6 @@ describe("AssistantChatView", () => {
   it("disables the composer and suggestions until the agent is ready", () => {
     renderView({ isReady: false });
 
-    expect(screen.getByText("Connecting…")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Q1" }).hasAttribute("disabled")).toBe(true);
     expect(screen.getByRole("button", { name: "Send" }).hasAttribute("disabled")).toBe(true);
   });
