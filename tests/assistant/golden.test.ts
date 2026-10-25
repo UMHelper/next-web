@@ -4,9 +4,15 @@ import type { z } from "zod";
 vi.mock("@copilotkit/runtime/v2", () => ({ defineTool: (config: unknown) => config }));
 vi.mock("@/lib/mcp/data/search-catalog", () => ({ searchCatalog: vi.fn() }));
 vi.mock("@/lib/mcp/data/get-course", () => ({ getCourse: vi.fn() }));
-vi.mock("@/lib/mcp/data/get-instructor", () => ({ getInstructor: vi.fn() }));
 vi.mock("@/lib/mcp/data/get-course-reviews", () => ({ getCourseReviews: vi.fn() }));
 vi.mock("@/lib/mcp/data/get-course-sections", () => ({ getCourseSections: vi.fn() }));
+vi.mock("@/lib/assistant/data/search-catalog", () => ({
+  searchCatalogForAssistant: vi.fn(),
+  countCoursesForAssistant: vi.fn(),
+}));
+vi.mock("@/lib/assistant/data/course-text", () => ({ getCourseText: vi.fn() }));
+vi.mock("@/lib/assistant/data/instructor", () => ({ getInstructorForAssistant: vi.fn() }));
+vi.mock("@/lib/assistant/data/reviews", () => ({ countCourseReviews: vi.fn() }));
 
 import { buildNavigationPath, parseDestination } from "@/lib/assistant/navigation";
 import { describePage } from "@/lib/assistant/page-context";
@@ -21,7 +27,7 @@ import {
 
 import { ASSISTANT_GOLDEN_QUESTIONS } from "../fixtures/assistant-golden-questions";
 
-const MCP_INPUT_SCHEMAS = {
+const MCP_INPUT_SCHEMAS: Record<string, { safeParse: (value: unknown) => { success: boolean } }> = {
   search_catalog: searchCatalogInputSchema,
   get_course: getCourseInputSchema,
   get_instructor: getInstructorInputSchema,
@@ -65,7 +71,9 @@ describe("assistant golden questions", () => {
 
       const tool = tools.find((entry) => entry.name === expected.tool);
       expect(tool?.parameters.safeParse(expected.input).success).toBe(true);
-      expect(MCP_INPUT_SCHEMAS[expected.tool].safeParse(expected.input).success).toBe(true);
+
+      const mcpSchema = MCP_INPUT_SCHEMAS[expected.tool];
+      if (mcpSchema) expect(mcpSchema.safeParse(expected.input).success).toBe(true);
     },
   );
 

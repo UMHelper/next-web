@@ -1,6 +1,6 @@
-export const PANEL_WIDTH_DEFAULT = 380;
-export const PANEL_WIDTH_MIN = 320;
-export const PANEL_WIDTH_MAX = 560;
+export const PANEL_WIDTH_DEFAULT = 450;
+export const PANEL_WIDTH_MIN = 380;
+export const PANEL_WIDTH_MAX = 800;
 export const PANEL_WIDTH_STEP = 16;
 export const PANEL_WIDTH_STORAGE_KEY = "umeh-assistant-width";
 

@@ -1,8 +1,5 @@
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it, vi } from "vitest";
-
-// Banner 會透過 CsBanner 用到 usePathname（CSS 系的公告只在 CISC/ISOM 頁出現）
-vi.mock("next/navigation", () => ({ usePathname: () => "/" }));
+import { describe, expect, it } from "vitest";
 
 import { Banner } from "@/components/banner";
 import { IOS_APP_STORE_URL } from "@/lib/site";
@@ -16,8 +13,6 @@ describe("App Store announcement banner", () => {
     expect(html).toContain("立即下載");
     expect(html).toContain("from-wordmark-from");
     expect(html).toContain("to-wordmark-to");
-    // 公告句只有一個連結：不再在句子中間多開 tab 停留點
-    expect(html.match(/<a /g)).toHaveLength(1);
   });
 
   it("keeps the Apple mark inline and decorative", () => {

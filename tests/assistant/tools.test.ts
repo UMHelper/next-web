@@ -2,17 +2,25 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 
 const data = vi.hoisted(() => ({
-  searchCatalog: vi.fn(),
+  searchCatalogForAssistant: vi.fn(),
+  countCoursesForAssistant: vi.fn(),
   getCourse: vi.fn(),
-  getInstructor: vi.fn(),
+  getCourseText: vi.fn(),
+  getInstructorForAssistant: vi.fn(),
   getCourseReviews: vi.fn(),
+  countCourseReviews: vi.fn(),
   getCourseSections: vi.fn(),
 }));
 
 vi.mock("@copilotkit/runtime/v2", () => ({ defineTool: (config: unknown) => config }));
-vi.mock("@/lib/mcp/data/search-catalog", () => ({ searchCatalog: data.searchCatalog }));
+vi.mock("@/lib/assistant/data/search-catalog", () => ({
+  searchCatalogForAssistant: data.searchCatalogForAssistant,
+  countCoursesForAssistant: data.countCoursesForAssistant,
+}));
+vi.mock("@/lib/assistant/data/course-text", () => ({ getCourseText: data.getCourseText }));
+vi.mock("@/lib/assistant/data/instructor", () => ({ getInstructorForAssistant: data.getInstructorForAssistant }));
+vi.mock("@/lib/assistant/data/reviews", () => ({ countCourseReviews: data.countCourseReviews }));
 vi.mock("@/lib/mcp/data/get-course", () => ({ getCourse: data.getCourse }));
-vi.mock("@/lib/mcp/data/get-instructor", () => ({ getInstructor: data.getInstructor }));
 vi.mock("@/lib/mcp/data/get-course-reviews", () => ({ getCourseReviews: data.getCourseReviews }));
 vi.mock("@/lib/mcp/data/get-course-sections", () => ({ getCourseSections: data.getCourseSections }));
 
@@ -34,7 +42,7 @@ describe("assistant server tools", () => {
     vi.clearAllMocks();
   });
 
-  it("registers the read-only tools, including present_response", () => {
+  it("registers every read-only tool, including present_response", () => {
     expect(createAssistantTools().map((tool) => tool.name)).toEqual([...ASSISTANT_SERVER_TOOL_NAMES]);
     expect(ASSISTANT_SERVER_TOOL_NAMES).toContain("present_response");
     expect(ASSISTANT_SERVER_TOOL_NAMES.at(-1)).toBe("preview_timetable");
@@ -186,18 +194,154 @@ describe("assistant server tools", () => {
     expect(JSON.stringify(output)).not.toContain('"id"');
   });
 
-  it("rejects invalid input without touching the data layer", async () => {
+  it("rejects a course search without any term or filter", async () => {
     await expect(call("search_catalog", { type: "course" })).resolves.toEqual({ error: "invalid_request" });
-    expect(data.searchCatalog).not.toHaveBeenCalled();
+    expect(data.searchCatalogForAssistant).not.toHaveBeenCalled();
+  });
+
+  it("rejects course-only filters on an instructor search", async () => {
+    await expect(
+      call("search_catalog", { type: "instructor", query: "CHAN", credits: "3" }),
+    ).resolves.toEqual({ error: "invalid_request" });
+    expect(data.searchCatalogForAssistant).not.toHaveBeenCalled();
+  });
+
+  it("passes advanced course filters, sorting and content search to the data layer", async () => {
+    data.searchCatalogForAssistant.mockResolvedValue({
+      type: "course",
+      page: 1,
+      totalCount: 0,
+      hasMore: false,
+      results: [],
+    });
+
+    await call("search_catalog", {
+      type: "course",
+      query: "database",
+      searchIn: "content",
+      faculty: "FST",
+      credits: "3",
+      offeredOnly: true,
+      sortBy: "credits",
+      sortOrder: "desc",
+      limit: 30,
+    });
+
+    expect(data.searchCatalogForAssistant).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "course",
+        query: "database",
+        searchIn: "content",
+        faculty: "FST",
+        credits: "3",
+        offeredOnly: true,
+        sortBy: "credits",
+        sortOrder: "desc",
+        limit: 30,
+        page: 1,
+      }),
+      expect.any(AbortSignal),
+    );
+  });
+
+  it("counts courses through the count-only path", async () => {
+    data.countCoursesForAssistant.mockResolvedValue({ totalCount: 42 });
+
+    await expect(call("count_courses", { faculty: "FBA", offeredOnly: true })).resolves.toEqual({
+      totalCount: 42,
+    });
+    expect(data.countCoursesForAssistant).toHaveBeenCalledWith(
+      expect.objectContaining({ faculty: "FBA", offeredOnly: true, searchIn: "code_title" }),
+      expect.any(AbortSignal),
+    );
+  });
+
+  it("reads the description and ILO through separate tools", async () => {
+    data.getCourseText.mockResolvedValue({
+      courseCode: "ACCT1000",
+      titleEn: "Principles of Accounting",
+      titleZh: null,
+      text: "Course text",
+      truncated: false,
+      url: COURSE_URL,
+    });
+
+    await call("get_course_description", { code: " acct1000 " });
+    expect(data.getCourseText).toHaveBeenLastCalledWith("ACCT1000", "description", expect.any(AbortSignal));
+
+    await call("get_course_ilo", { code: "ACCT1000" });
+    expect(data.getCourseText).toHaveBeenLastCalledWith("ACCT1000", "ilo", expect.any(AbortSignal));
+  });
+
+  it("forwards instructor rating filters and sorting", async () => {
+    data.getInstructorForAssistant.mockResolvedValue({
+      name: "CHAN TAI MAN",
+      page: 1,
+      totalCount: 0,
+      hasMore: false,
+      courses: [],
+    });
+
+    await call("get_instructor", {
+      name: " chan  tai man ",
+      minResult: 4,
+      maxDifficulty: 3,
+      minCommentCount: 5,
+      offeredOnly: true,
+      sortBy: "result",
+      sortOrder: "desc",
+      limit: 10,
+    });
+
+    expect(data.getInstructorForAssistant).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: "CHAN TAI MAN",
+        minResult: 4,
+        maxDifficulty: 3,
+        minCommentCount: 5,
+        offeredOnly: true,
+        sortBy: "result",
+        sortOrder: "desc",
+        limit: 10,
+        page: 1,
+      }),
+      expect.any(AbortSignal),
+    );
+  });
+
+  it("defaults review pages to ten and exposes the count-only review tool", async () => {
+    data.getCourseReviews.mockResolvedValue({
+      courseCode: "ACCT1000",
+      instructor: "CHAN TAI MAN",
+      page: 1,
+      hasMore: false,
+      url: REVIEW_URL,
+      reviews: [],
+    });
+    data.countCourseReviews.mockResolvedValue({ totalCount: 12 });
+
+    await call("get_course_reviews", { code: "ACCT1000", instructor: "CHAN TAI MAN" });
+    expect(data.getCourseReviews).toHaveBeenCalledWith(
+      expect.objectContaining({ code: "ACCT1000", instructor: "CHAN TAI MAN", limit: 10, page: 1 }),
+      expect.any(AbortSignal),
+    );
+
+    await expect(call("count_reviews", { code: "ACCT1000", instructor: "CHAN TAI MAN" })).resolves.toEqual({
+      totalCount: 12,
+    });
+    expect(data.countCourseReviews).toHaveBeenCalledWith(
+      { code: "ACCT1000", instructor: "CHAN TAI MAN" },
+      expect.any(AbortSignal),
+    );
   });
 
   it("reports missing records as not_found", async () => {
-    data.getInstructor.mockRejectedValue(new McpToolError("not_found"));
+    data.getInstructorForAssistant.mockRejectedValue(new McpToolError("not_found"));
     await expect(call("get_instructor", { name: "NOBODY" })).resolves.toEqual({ error: "not_found" });
   });
 
   it("hides other failures behind temporarily_unavailable", async () => {
-    data.searchCatalog.mockRejectedValue(new Error("supabase exploded"));
+    data.searchCatalogForAssistant.mockRejectedValue(new Error("supabase exploded"));
     await expect(call("search_catalog", { type: "course", query: "acct" })).resolves.toEqual({
       error: "temporarily_unavailable",
     });

@@ -11,6 +11,13 @@ import type {
   SearchCatalogInput,
   SearchCatalogOutput,
 } from "@/lib/mcp/schemas";
+import type {
+  CountCoursesInput,
+  CountReviewsInput,
+  CourseTextOutput,
+  GetInstructorToolInput,
+  SearchCatalogToolInput,
+} from "@/lib/assistant/tool-schemas";
 import { absoluteUrl, buildCoursePath, buildProfessorPath, buildReviewPath } from "@/lib/site";
 
 import type { CatalogFacts } from "./grade";
@@ -35,6 +42,7 @@ type FixtureCourse = {
   faculty: string;
   department: string;
   description: string;
+  ilo: string;
   instructors: FixtureOffering[];
 };
 
@@ -47,6 +55,7 @@ const EVAL_COURSES: FixtureCourse[] = [
     faculty: "FST",
     department: "CIS",
     description: "Problem solving and structured programming in C.",
+    ilo: "Design small programs and reason about algorithms.",
     instructors: [
       {
         name: "WONG KA KI",
@@ -80,6 +89,7 @@ const EVAL_COURSES: FixtureCourse[] = [
     faculty: "FST",
     department: "CIS",
     description: "Relational model, SQL, normalisation and transactions.",
+    ilo: "Model relational data and write correct SQL queries.",
     instructors: [
       {
         name: "CHAN TAI MAN",
@@ -156,6 +166,7 @@ export async function searchCatalog(input: SearchCatalogInput, _signal?: AbortSi
     department: course.department,
     credits: course.credits,
     isOffered: true,
+    aka: [],
     url: absoluteUrl(buildCoursePath(course.code)),
   }));
   return { type: "course", page: 1, hasMore: false, totalCount: results.length, results };
@@ -179,6 +190,7 @@ export async function getCourse(input: GetCourseInput): Promise<GetCourseOutput>
       courseType: null,
       duration: null,
       description: course.description,
+      aka: [],
       isOffered: true,
       url: absoluteUrl(buildCoursePath(course.code)),
     },
@@ -248,6 +260,132 @@ export async function getCourseSections(input: GetCourseSectionsInput): Promise<
       courseUrl,
     })),
   };
+}
+
+function projectEvalCourse(course: FixtureCourse) {
+  return {
+    courseCode: course.code,
+    titleEn: course.titleEn,
+    titleZh: course.titleZh,
+    faculty: course.faculty,
+    department: course.department,
+    credits: course.credits,
+    isOffered: true,
+    aka: [],
+    url: absoluteUrl(buildCoursePath(course.code)),
+  };
+}
+
+/** Fixture implementation of the assistant's advanced course search. */
+export async function searchCatalogForAssistant(input: SearchCatalogToolInput): Promise<SearchCatalogOutput> {
+  if (input.type === "instructor") {
+    return searchCatalog({
+      type: "instructor",
+      query: input.query,
+      faculty: input.faculty,
+      department: input.department,
+      limit: input.limit,
+      page: input.page,
+    } as SearchCatalogInput);
+  }
+
+  const query = input.query?.toLowerCase();
+  const filtered = EVAL_COURSES.filter((course) => {
+    const fields =
+      input.searchIn === "content"
+        ? [course.titleEn, course.titleZh, course.description, course.ilo]
+        : input.searchIn === "all"
+          ? [course.code, course.titleEn, course.titleZh, course.description, course.ilo]
+          : [course.code, course.titleEn, course.titleZh];
+    return (
+      (!query || fields.some((text) => text.toLowerCase().includes(query))) &&
+      (!input.faculty || course.faculty === input.faculty.toUpperCase()) &&
+      (!input.department || course.department === input.department.toUpperCase()) &&
+      (!input.credits || course.credits === input.credits) &&
+      (!input.offeredOnly || true)
+    );
+  });
+
+  const sorted = [...filtered].sort((a, b) => {
+    const left = input.sortBy === "title" ? a.titleEn : input.sortBy === "credits" ? a.credits : a.code;
+    const right = input.sortBy === "title" ? b.titleEn : input.sortBy === "credits" ? b.credits : b.code;
+    const result = left.localeCompare(right);
+    return input.sortOrder === "asc" ? result : -result;
+  });
+  const offset = (input.page - 1) * input.limit;
+
+  return {
+    type: "course",
+    page: input.page,
+    totalCount: sorted.length,
+    hasMore: input.page * input.limit < sorted.length,
+    results: sorted.slice(offset, offset + input.limit).map(projectEvalCourse),
+  };
+}
+
+/** Fixture count-only path. */
+export async function countCoursesForAssistant(input: CountCoursesInput): Promise<{ totalCount: number }> {
+  const result = await searchCatalogForAssistant({
+    ...input,
+    type: "course",
+    sortBy: "code",
+    sortOrder: "asc",
+    limit: 50,
+    page: 1,
+  });
+  return { totalCount: result.type === "course" ? result.totalCount : 0 };
+}
+
+/** Fixture description/ILO read. */
+export async function getCourseText(
+  code: string,
+  part: "description" | "ilo",
+): Promise<CourseTextOutput> {
+  const course = findCourse(code);
+  if (!course) throw new McpToolError("not_found");
+  return {
+    courseCode: course.code,
+    titleEn: course.titleEn,
+    titleZh: course.titleZh,
+    text: part === "description" ? course.description : course.ilo,
+    truncated: false,
+    aka: [],
+    url: absoluteUrl(buildCoursePath(course.code)),
+  };
+}
+
+/** Fixture instructor list with the assistant filters and sorting. */
+export async function getInstructorForAssistant(input: GetInstructorToolInput): Promise<GetInstructorOutput> {
+  const base = await getInstructor({ name: input.name, limit: 20, page: 1 } as GetInstructorInput);
+  const filtered = base.courses.filter(
+    (course) =>
+      (input.minResult === undefined || (course.result ?? 0) >= input.minResult) &&
+      (input.maxDifficulty === undefined || (course.difficulty ?? 0) <= input.maxDifficulty) &&
+      (input.minCommentCount === undefined || course.commentCount >= input.minCommentCount) &&
+      (input.offeredOnly !== true || course.isOffered),
+  );
+  const sorted = [...filtered].sort((a, b) => {
+    const left =
+      input.sortBy === "result" ? (a.result ?? 0) : input.sortBy === "difficulty" ? (a.difficulty ?? 0) : input.sortBy === "commentCount" ? a.commentCount : a.courseCode;
+    const right =
+      input.sortBy === "result" ? (b.result ?? 0) : input.sortBy === "difficulty" ? (b.difficulty ?? 0) : input.sortBy === "commentCount" ? b.commentCount : b.courseCode;
+    const result = typeof left === "number" && typeof right === "number" ? left - right : String(left).localeCompare(String(right));
+    return input.sortOrder === "asc" ? result : -result;
+  });
+  const offset = (input.page - 1) * input.limit;
+  return {
+    name: input.name,
+    page: input.page,
+    totalCount: sorted.length,
+    hasMore: input.page * input.limit < sorted.length,
+    courses: sorted.slice(offset, offset + input.limit),
+  };
+}
+
+/** Fixture review count. */
+export async function countCourseReviews(input: CountReviewsInput): Promise<{ totalCount: number }> {
+  const { prof } = offering(input.code, input.instructor);
+  return { totalCount: prof.commentCount };
 }
 
 export const evalNavigationLookups = {

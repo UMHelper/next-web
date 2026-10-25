@@ -18,7 +18,7 @@ import {
 } from "./timetable-context";
 import { createAssistantTools } from "./tools";
 
-export const ASSISTANT_MAX_STEPS = 5;
+export const ASSISTANT_MAX_STEPS = 8;
 
 export function createAssistantAgent(config: AssistantConfig, signal?: AbortSignal) {
   const slot: CourseReferentSlot = { current: { kind: "none" } };

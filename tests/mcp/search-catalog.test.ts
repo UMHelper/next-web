@@ -134,6 +134,7 @@ const courseRow = {
   offering_department: "ACCT",
   credits: "3",
   is_offered: 1,
+  equivalent_codes: ["ACCT900"],
   // Fields that must never be projected into MCP output.
   total_count: 42,
   id: "internal-course-1",
@@ -151,6 +152,7 @@ const instructorRow = {
 };
 
 const COURSE_KEYS = [
+  "aka",
   "courseCode",
   "credits",
   "department",
@@ -414,6 +416,7 @@ describe("search_catalog data adapter", () => {
       results: [
         {
           courseCode: "ACCT1000",
+          aka: ["ACCT900"],
           titleEn: "Financial Accounting",
           titleZh: "財務會計",
           faculty: "FBA",

@@ -6,6 +6,7 @@ type AuditEntry = {
     | "report.update"
     | "comment.update"
     | "course.update"
+    | "course.equivalence"
     | "prof.update"
     | "admin.grant"
     | "admin.revoke"

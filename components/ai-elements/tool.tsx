@@ -13,9 +13,13 @@ import { cn } from "@/lib/utils";
 
 const TOOL_LABELS: Record<string, { running: string; done: string }> = {
   search_catalog: { running: "Searching courses", done: "Searched courses" },
+  count_courses: { running: "Counting courses", done: "Counted courses" },
   get_course: { running: "Reading course", done: "Read course" },
+  get_course_description: { running: "Reading description", done: "Read description" },
+  get_course_ilo: { running: "Reading learning outcomes", done: "Read learning outcomes" },
   get_instructor: { running: "Reading instructor", done: "Read instructor" },
   get_course_reviews: { running: "Reading reviews", done: "Read reviews" },
+  count_reviews: { running: "Counting reviews", done: "Counted reviews" },
   get_course_sections: { running: "Reading class times", done: "Read class times" },
   check_plan_conflicts: { running: "Checking timetable", done: "Checked timetable" },
   preview_timetable: { running: "Building timetable preview", done: "Built timetable preview" },
@@ -40,7 +44,7 @@ function failedLabel(name: string) {
 }
 
 function toolLabel(name: string) {
-  return TOOL_LABELS[name] ?? { running: `使用 ${name}`, done: `已使用 ${name}` };
+  return TOOL_LABELS[name] ?? { running: `Using ${name}`, done: `Used ${name}` };
 }
 
 function toolDetail(call: ToolCall): string | null {

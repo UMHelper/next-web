@@ -12,6 +12,19 @@ vi.mock("@/lib/mcp/data/get-course-reviews", async () => ({
 vi.mock("@/lib/mcp/data/get-course-sections", async () => ({
   getCourseSections: (await import("./catalog")).getCourseSections,
 }));
+vi.mock("@/lib/assistant/data/search-catalog", async () => ({
+  searchCatalogForAssistant: (await import("./catalog")).searchCatalogForAssistant,
+  countCoursesForAssistant: (await import("./catalog")).countCoursesForAssistant,
+}));
+vi.mock("@/lib/assistant/data/course-text", async () => ({
+  getCourseText: (await import("./catalog")).getCourseText,
+}));
+vi.mock("@/lib/assistant/data/instructor", async () => ({
+  getInstructorForAssistant: (await import("./catalog")).getInstructorForAssistant,
+}));
+vi.mock("@/lib/assistant/data/reviews", async () => ({
+  countCourseReviews: (await import("./catalog")).countCourseReviews,
+}));
 
 import { ASSISTANT_MAX_STEPS } from "@/lib/assistant/agent";
 import { readAssistantConfig } from "@/lib/assistant/config";

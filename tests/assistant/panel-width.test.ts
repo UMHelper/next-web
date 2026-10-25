@@ -16,13 +16,13 @@ afterEach(() => {
 });
 
 describe("maxPanelWidth", () => {
-  it("leaves the page at least 480px and caps at 560", () => {
+  it("leaves the page at least 480px and caps at 800", () => {
     expect(mod.maxPanelWidth(1024)).toBe(544);
-    expect(mod.maxPanelWidth(1440)).toBe(560);
+    expect(mod.maxPanelWidth(1440)).toBe(800);
   });
 
-  it("never goes below the 320 minimum on narrow windows", () => {
-    expect(mod.maxPanelWidth(780)).toBe(320);
+  it("never goes below the 380 minimum on narrow windows", () => {
+    expect(mod.maxPanelWidth(780)).toBe(380);
   });
 });
 
@@ -32,20 +32,20 @@ describe("clampPanelWidth", () => {
   });
 
   it("clamps to the minimum and to the viewport-aware maximum", () => {
-    expect(mod.clampPanelWidth(100, 1440)).toBe(320);
-    expect(mod.clampPanelWidth(900, 1440)).toBe(560);
+    expect(mod.clampPanelWidth(100, 1440)).toBe(380);
+    expect(mod.clampPanelWidth(900, 1440)).toBe(800);
     expect(mod.clampPanelWidth(560, 1024)).toBe(544);
   });
 
   it("treats a non-finite width as the default", () => {
-    expect(mod.clampPanelWidth(Number.NaN, 1440)).toBe(380);
+    expect(mod.clampPanelWidth(Number.NaN, 1440)).toBe(450);
   });
 });
 
 describe("stored width", () => {
-  it("defaults to 380 when nothing is stored", () => {
+  it("defaults to 450 when nothing is stored", () => {
     installFakeStorage();
-    expect(mod.readStoredPanelWidth()).toBe(380);
+    expect(mod.readStoredPanelWidth()).toBe(450);
   });
 
   it("round-trips a stored width", () => {
@@ -57,15 +57,15 @@ describe("stored width", () => {
 
   it("returns an unparsable stored value as the default", () => {
     installFakeStorage().setItem("umeh-assistant-width", "wide");
-    expect(mod.readStoredPanelWidth()).toBe(380);
+    expect(mod.readStoredPanelWidth()).toBe(450);
   });
 
-  it("falls back to 380 and keeps the width in memory when storage throws", () => {
+  it("falls back to 450 and keeps the width in memory when storage throws", () => {
     const fail = () => {
       throw new Error("denied");
     };
     vi.stubGlobal("localStorage", { getItem: fail, setItem: fail });
-    expect(mod.readStoredPanelWidth()).toBe(380);
+    expect(mod.readStoredPanelWidth()).toBe(450);
     mod.storePanelWidth(420);
     expect(mod.readStoredPanelWidth()).toBe(420);
   });

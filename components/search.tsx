@@ -1,26 +1,24 @@
 import Image from "next/image";
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import HeroBackground from "@/components/hero-background";
-import SearchForm from "@/components/search/search-form";
+import { HomeSearch } from "@/components/home-search";
 import { formatAcademicYear } from "@/lib/config/term-format";
 
 type SearchCompProps = {
   currentYear: number;
   currentSem: number;
   databaseLastUpdate: string | null;
+  assistantAccess: "enabled" | "denied" | null;
 };
 
-export default function SearchComp({ currentYear, currentSem, databaseLastUpdate }: SearchCompProps) {
+export default function SearchComp({
+  currentYear,
+  currentSem,
+  databaseLastUpdate,
+  assistantAccess,
+}: SearchCompProps) {
   return (
-    <div className="relative overflow-hidden">
+    <div className="relative">
       <Image
         src="/images/hero-1920.jpg"
         alt=""
@@ -30,37 +28,23 @@ export default function SearchComp({ currentYear, currentSem, databaseLastUpdate
         className="hero-photo object-cover object-center"
       />
       <HeroBackground />
-      <div className="relative z-10 max-w-screen-xl mx-auto p-2">
-        <div className="flex justify-between mx-2 py-10 md:py-8">
-          <div className="md:flex flex-col justify-center hero-ink text-white hidden space-y-2 p-6">
-            <h1 className="text-5xl font-medium">What2Reg @UM</h1>
-            <h1 className="text-4xl font-medium">澳大選咩課</h1>
-            <br />
-            <h2 className="text-base">Course review platform for University of Macau</h2>
-            <h2 className="text-base">專為澳大學生而設的課程評價網站</h2>
-          </div>
-          <Card className="md:mx-8 md:w-96 w-full mx-0 backdrop-blur bg-transparent border-none hero-card">
-            <CardHeader />
-            <CardContent className="space-y-2">
-              <div className="hero-ink text-white">
-                <CardTitle>Search Courses or Instructors</CardTitle>
-                <CardDescription className="hero-ink-soft text-white/80">
-                  搜尋課程或講師
-                </CardDescription>
-              </div>
-              <SearchForm variant="hero" />
-            </CardContent>
-            <CardFooter className="hero-ink-soft text-xs text-white/80 flex flex-col items-start space-y-1">
-              <div className="max-w-sm">
-                Search by course codes/titles, or name of instructors (partial search supported)
-              </div>
-              <div>鍵入部分課程代碼/名稱或講師姓名</div>
-              <br />
-              <div>{formatAcademicYear(currentYear, currentSem)}</div>
-              <div className="italic">Data Source: reg.um.edu.mo</div>
-              <div className="italic">Last updated on: {databaseLastUpdate ?? "2026-08-08"}</div>
-            </CardFooter>
-          </Card>
+      <div className="relative z-10 mx-auto flex max-w-screen-xl flex-col items-center px-4 py-14 text-center md:py-20">
+        <div className="hero-ink space-y-2 text-white">
+          <h1 className="text-4xl font-medium tracking-tight md:text-6xl">What2Reg @UM</h1>
+          <p className="text-2xl font-medium md:text-3xl">澳大選咩課</p>
+          <p className="mx-auto max-w-2xl pt-3 text-sm text-white/80 md:text-base">
+            Course reviews, instructors, and timetable planning for University of Macau.
+          </p>
+        </div>
+
+        <div className="hero-card mt-10 w-full max-w-4xl md:mt-12">
+          <HomeSearch initialAssistantAccess={assistantAccess} />
+        </div>
+
+        <div className="mt-8 flex flex-wrap justify-center gap-x-4 gap-y-1 text-[11px] text-white/80 md:text-xs">
+          <span>{formatAcademicYear(currentYear, currentSem)}</span>
+          <span>Data source: reg.um.edu.mo</span>
+          <span>Last updated: {databaseLastUpdate ?? "2026-08-08"}</span>
         </div>
       </div>
     </div>

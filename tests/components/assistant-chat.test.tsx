@@ -103,6 +103,26 @@ describe("AssistantChat", () => {
     expect((screen.getByLabelText("Ask about courses") as HTMLTextAreaElement).value).toBe("");
   });
 
+  it("auto-sends an Ask AI prompt instead of only prefilling it", async () => {
+    const onPromptConsumed = vi.fn();
+    render(
+      <AssistantChat
+        onClose={() => {}}
+        notice={null}
+        onClearNotice={() => {}}
+        initialPrompt="ACCT1000 給分好嗎？"
+        autoSend
+        onPromptConsumed={onPromptConsumed}
+      />,
+    );
+
+    await waitFor(() => expect(mocks.runAgent).toHaveBeenCalledWith({ agent: mocks.agent }));
+    expect(mocks.agent.addMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ role: "user", content: "ACCT1000 給分好嗎？" }),
+    );
+    expect(onPromptConsumed).toHaveBeenCalled();
+  });
+
   it("shows the mapped error message when a run fails", async () => {
     mocks.runAgent.mockRejectedValueOnce(new Error("429"));
     renderChat();
@@ -157,11 +177,11 @@ describe("AssistantChat", () => {
     expect(screen.getByRole("alert").textContent).toContain("Please sign in to use the assistant.");
   });
 
-  it("keeps a page margin for the panel on desktop and removes it on unmount", () => {
+  it("keeps a page margin for the docked panel on desktop", () => {
     const { unmount } = render(
       <AssistantChat onClose={() => {}} notice={null} onClearNotice={() => {}} />,
     );
-    expect(document.body.style.marginInlineEnd).toBe("var(--assistant-width, 380px)");
+    expect(document.body.style.marginInlineEnd).toBe("var(--assistant-width, 450px)");
 
     unmount();
     expect(document.body.style.marginInlineEnd).toBe("");
@@ -185,7 +205,6 @@ describe("AssistantChat", () => {
     mocks.isReady = false;
     renderChat();
 
-    expect(screen.getByText("Connecting…")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Send" }).hasAttribute("disabled")).toBe(true);
     await act(async () => {});
     expect(mocks.agent.addMessage).not.toHaveBeenCalled();

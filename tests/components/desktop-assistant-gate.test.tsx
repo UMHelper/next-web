@@ -94,9 +94,8 @@ vi.mock("@/components/assistant/assistant-chat", () => ({
 
 import AssistantLauncher from "@/components/assistant/assistant-launcher";
 import DesktopAssistantGate from "@/components/assistant/desktop-assistant-gate";
+import { openAssistant } from "@/lib/assistant/open";
 import { PAGE_CONTEXT_DESCRIPTION } from "@/lib/assistant/page-context";
-
-const BUTTON = { name: "AI Course Helper" };
 
 // Evaluates min-width queries against a mutable width, the way a browser would.
 const viewport = { width: 1280, listeners: new Set<() => void>() };
@@ -164,8 +163,8 @@ const lastPageContext = () => {
 };
 
 async function openPanel() {
-  fireEvent.click(await screen.findByRole("button", BUTTON));
-  expect(screen.getByTestId("assistant-chat")).toBeTruthy();
+  act(() => openAssistant());
+  expect(await screen.findByTestId("assistant-chat")).toBeTruthy();
 }
 
 beforeEach(() => {
@@ -206,14 +205,14 @@ describe("DesktopAssistantGate", () => {
     },
   );
 
-  it.each([1024, 1280, 1440])("offers the launcher at %ipx", async (width) => {
+  it.each([1024, 1280, 1440])("opens the assistant at %ipx", async (width) => {
     installViewport(width);
     const fetchMock = stubFetch();
     renderAssistant();
+    await openPanel();
 
-    expect(await screen.findByRole("button", BUTTON)).toBeTruthy();
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(providerLife.mounts).toBe(0);
+    expect(providerLife.mounts).toBe(1);
   });
 
   it("renders nothing on the server and hydrates on desktop without a mismatch", async () => {
@@ -292,11 +291,13 @@ describe("DesktopAssistantGate", () => {
 
     resizeTo(375);
     resizeTo(1280);
+    await act(async () => {});
 
-    expect(await screen.findByRole("button", BUTTON)).toBeTruthy();
     expect(screen.queryByTestId("assistant-chat")).toBeNull();
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(providerLife.live).toBe(0);
+    await openPanel();
+    expect(providerLife.live).toBe(1);
   });
 
   it("keeps one listener, one launcher and one provider through repeated resizing", async () => {
@@ -308,12 +309,12 @@ describe("DesktopAssistantGate", () => {
       resizeTo(1023);
       expect(providerLife.live).toBe(0);
       resizeTo(1440);
-      expect(await screen.findAllByRole("button", BUTTON)).toHaveLength(1);
+      await openPanel();
       expect(viewport.listeners.size).toBe(1);
     }
     expect(fetchMock).toHaveBeenCalledTimes(6);
 
-    fireEvent.click(screen.getByRole("button", BUTTON));
+    act(() => openAssistant());
     resizeTo(1100);
     resizeTo(1920);
     resizeTo(1024);
@@ -332,7 +333,7 @@ describe("DesktopAssistantGate", () => {
     await openPanel();
 
     fireEvent.click(screen.getByRole("button", { name: "close-chat" }));
-    fireEvent.click(screen.getByRole("button", BUTTON));
+    act(() => openAssistant());
     pathnameRef.current = "/course/COMP1000";
     rerender(assistantTree());
 

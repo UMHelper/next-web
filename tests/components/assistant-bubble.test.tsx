@@ -8,7 +8,7 @@ afterEach(() => {
 });
 
 describe("AssistantBubble", () => {
-  it("always shows the label next to the button, since it only renders on desktop", () => {
+  it("keeps the original assistant label next to the button", () => {
     render(<AssistantBubble onClick={() => {}} />);
     const label = screen.getByText("AI Course Helper");
     expect(label.className.split(" ")).not.toContain("hidden");

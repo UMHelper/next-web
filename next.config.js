@@ -1,5 +1,7 @@
 const path = require('path')
 
+const courseEquivalences = require('./lib/course-equivalences.generated.json')
+
 const COPILOTKIT_V2_DIST = path.join('@copilotkit', 'react-core', 'dist', 'v2')
 const ASSISTANT_BUILD_STUBS = path.join(__dirname, 'lib', 'assistant', 'build-stubs')
 
@@ -10,6 +12,17 @@ const nextConfig = {
     // production `next build` (run by opennextjs-cloudflare into .next) cannot wipe the
     // dev manifests out from under a running dev server.
     distDir: process.env.NEXT_DIST_DIR || '.next',
+    async redirects() {
+        // Historical course codes permanently move to their new primary code.
+        // Regenerate lib/course-equivalences.generated.json after data changes
+        // (npm run equivalences:redirects) so these stay real 308s; the page
+        // components also redirect dynamically as a fallback.
+        return Object.entries(courseEquivalences).flatMap(([from, to]) => [
+            { source: `/course/${from}`, destination: `/course/${to}`, permanent: true },
+            { source: `/reviews/${from}/:prof*`, destination: `/reviews/${to}/:prof*`, permanent: true },
+            { source: `/submit/${from}/:prof*`, destination: `/submit/${to}/:prof*`, permanent: true },
+        ])
+    },
     images: {
         remotePatterns: [
             { protocol: 'https', hostname: 'img.clerk.com' },

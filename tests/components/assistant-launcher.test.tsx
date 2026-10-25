@@ -17,6 +17,7 @@ vi.mock("next/dynamic", () => ({
 }));
 
 import AssistantLauncher, { isAssistantSuppressed } from "@/components/assistant/assistant-launcher";
+import { openAssistant } from "@/lib/assistant/open";
 
 type FakeResponse = { ok: boolean; json: () => Promise<unknown> };
 
@@ -55,15 +56,13 @@ describe("AssistantLauncher", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("asks the access endpoint once and shows the button when enabled", async () => {
+  it("asks the access endpoint once without rendering a floating launcher", async () => {
     useAuthMock.mockReturnValue({ isLoaded: true, isSignedIn: true, userId: "user_a" });
     const fetchMock = stubFetch(respond(true, { enabled: true }));
-    render(<AssistantLauncher />);
+    const { container } = render(<AssistantLauncher />);
 
-    expect(await screen.findByRole("button", { name: "AI Course Helper" })).toBeTruthy();
-    expect(screen.getByText("AI Course Helper")).toBeTruthy();
-    expect(screen.getByText("AI 選課助手")).toBeTruthy();
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    expect(container.innerHTML).toBe("");
     expect(fetchMock).toHaveBeenCalledWith("/api/assistant/access", expect.objectContaining({ cache: "no-store" }));
   });
 
@@ -124,14 +123,36 @@ describe("AssistantLauncher", () => {
     });
   });
 
-  it("loads the panel only after the user opens it", async () => {
+  it("shows the floating launcher on non-home pages", async () => {
+    usePathnameMock.mockReturnValue("/course/ACCT1000");
     useAuthMock.mockReturnValue({ isLoaded: true, isSignedIn: true, userId: "user_a" });
     stubFetch(respond(true, { enabled: true }));
     render(<AssistantLauncher />);
 
-    const button = await screen.findByRole("button", { name: "AI Course Helper" });
+    const bubble = await screen.findByRole("button", { name: "AI Course Helper" });
+    fireEvent.click(bubble);
+    expect(screen.getByTestId("assistant-panel")).toBeTruthy();
+  });
+
+  it("hides the floating launcher on the homepage", async () => {
+    usePathnameMock.mockReturnValue("/");
+    useAuthMock.mockReturnValue({ isLoaded: true, isSignedIn: true, userId: "user_a" });
+    const fetchMock = stubFetch(respond(true, { enabled: true }));
+    const { container } = render(<AssistantLauncher />);
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    expect(container.innerHTML).toBe("");
+    expect(screen.queryByRole("button", { name: "AI Course Helper" })).toBeNull();
+  });
+
+  it("loads the panel only after an Ask AI event", async () => {
+    useAuthMock.mockReturnValue({ isLoaded: true, isSignedIn: true, userId: "user_a" });
+    const fetchMock = stubFetch(respond(true, { enabled: true }));
+    render(<AssistantLauncher />);
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
     expect(screen.queryByTestId("assistant-panel")).toBeNull();
-    fireEvent.click(button);
+    act(() => openAssistant());
     expect(screen.getByTestId("assistant-panel")).toBeTruthy();
   });
 
@@ -153,7 +174,8 @@ describe("AssistantLauncher", () => {
     useAuthMock.mockReturnValue({ isLoaded: true, isSignedIn: true, userId: "user_a" });
     stubFetch(respond(true, { enabled: true }));
     const { rerender } = render(<AssistantLauncher />);
-    fireEvent.click(await screen.findByRole("button", { name: "AI Course Helper" }));
+    await waitFor(() => expect(screen.queryByTestId("assistant-panel")).toBeNull());
+    act(() => openAssistant());
     expect(screen.getByTestId("assistant-panel").getAttribute("data-suppressed")).toBe("false");
 
     usePathnameMock.mockReturnValue("/admin/assistant");
@@ -169,7 +191,8 @@ describe("AssistantLauncher", () => {
     useAuthMock.mockReturnValue({ isLoaded: true, isSignedIn: true, userId: "user_a" });
     stubFetch(respond(true, { enabled: true }));
     const { rerender } = render(<AssistantLauncher />);
-    fireEvent.click(await screen.findByRole("button", { name: "AI Course Helper" }));
+    await act(async () => {});
+    act(() => openAssistant());
     expect(screen.getByTestId("assistant-panel")).toBeTruthy();
 
     useAuthMock.mockReturnValue({ isLoaded: true, isSignedIn: false, userId: null });
@@ -178,7 +201,6 @@ describe("AssistantLauncher", () => {
 
     useAuthMock.mockReturnValue({ isLoaded: true, isSignedIn: true, userId: "user_a" });
     rerender(<AssistantLauncher />);
-    expect(await screen.findByRole("button", { name: "AI Course Helper" })).toBeTruthy();
     expect(screen.queryByTestId("assistant-panel")).toBeNull();
   });
 
@@ -196,7 +218,9 @@ describe("AssistantLauncher", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     const { rerender } = render(<AssistantLauncher />);
-    fireEvent.click(await screen.findByRole("button", { name: "AI Course Helper" }));
+    await act(async () => {});
+    act(() => openAssistant());
+    expect(screen.getByTestId("assistant-panel")).toBeTruthy();
 
     useAuthMock.mockReturnValue({ isLoaded: true, isSignedIn: true, userId: "user_b" });
     rerender(<AssistantLauncher />);

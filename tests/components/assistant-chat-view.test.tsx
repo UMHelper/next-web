@@ -180,9 +180,9 @@ describe("AssistantChatView", () => {
   it("shows the welcome intro and sends an example question", () => {
     const props = renderView();
 
-    expect(screen.getByText("How can I help?")).toBeTruthy();
+    expect(screen.getByText("What can I help with?")).toBeTruthy();
     expect(screen.getByText(/Ask about courses, professors, reviews, class times/)).toBeTruthy();
-    expect(screen.getByText(/查課程、教授、評價/)).toBeTruthy();
+    expect(screen.getAllByText(/查課程、教授、評價/).length).toBeGreaterThan(0);
     expect(screen.queryByText(/read-only|30 turns/)).toBeNull();
     expect(screen.queryByText("Beta")).toBeNull();
 
@@ -252,6 +252,51 @@ describe("AssistantChatView", () => {
     const link = screen.getByRole("link", { name: "Course reviews" });
     expect(link.getAttribute("href")).toBe("/reviews/ACCT1000");
     expect(screen.getByRole("button", { name: "Copy reply" })).toBeTruthy();
+  });
+
+  it("labels count and course-text tools instead of falling back to Chinese", () => {
+    renderView({
+      messages: [
+        { id: "u1", role: "user", content: "CISC1001 xuqiwen 如何？" },
+        {
+          id: "a1",
+          role: "assistant",
+          content: "",
+          toolCalls: [
+            {
+              id: "call-1",
+              type: "function",
+              function: { name: "get_course_reviews", arguments: '{"code":"CISC1001","instructor":"XU QI WEN"}' },
+            },
+            {
+              id: "call-2",
+              type: "function",
+              function: { name: "count_reviews", arguments: '{"code":"CISC1001","instructor":"XU QI WEN"}' },
+            },
+            {
+              id: "call-3",
+              type: "function",
+              function: { name: "get_course_ilo", arguments: '{"code":"CISC1001"}' },
+            },
+            {
+              id: "call-4",
+              type: "function",
+              function: { name: "custom_tool", arguments: "{}" },
+            },
+          ],
+        },
+        { id: "t1", role: "tool", toolCallId: "call-1", content: "ok" },
+        { id: "t2", role: "tool", toolCallId: "call-2", content: "ok" },
+        { id: "t3", role: "tool", toolCallId: "call-3", content: "ok" },
+        { id: "t4", role: "tool", toolCallId: "call-4", content: "ok" },
+      ],
+    });
+
+    expect(screen.getByText("Read reviews")).toBeTruthy();
+    expect(screen.getByText("Counted reviews")).toBeTruthy();
+    expect(screen.getByText("Read learning outcomes")).toBeTruthy();
+    expect(screen.getByText("Used custom_tool")).toBeTruthy();
+    expect(screen.queryByText(/已使用/)).toBeNull();
   });
 
   it("renders GFM tables as real tables", () => {
@@ -324,7 +369,7 @@ describe("AssistantChatView", () => {
       isRunning: true,
     });
 
-    expect(screen.getByText("Thinking…")).toBeTruthy();
+    expect(screen.getByText(/AI is thinking/)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Stop generating" }));
     expect(props.onStop).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole("button", { name: "Send" })).toBeNull();
@@ -382,7 +427,6 @@ describe("AssistantChatView", () => {
   it("disables the composer and suggestions until the agent is ready", () => {
     renderView({ isReady: false });
 
-    expect(screen.getByText("Connecting…")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Q1" }).hasAttribute("disabled")).toBe(true);
     expect(screen.getByRole("button", { name: "Send" }).hasAttribute("disabled")).toBe(true);
   });

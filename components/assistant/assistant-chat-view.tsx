@@ -8,6 +8,7 @@ import {
   Copy,
   MessageCircle,
   RotateCcw,
+  Sparkles,
   X,
 } from "lucide-react";
 import {
@@ -64,6 +65,7 @@ export type AssistantChatViewProps = {
   onClose: () => void;
   onClearAlert: () => void;
   panelRef?: RefCallback<HTMLElement>;
+  panelOpen?: boolean;
   toolRenderer?: {
     names: ReadonlySet<string>;
     render: (call: ToolCall, result: ToolMessage | undefined) => ReactNode;
@@ -90,13 +92,17 @@ function userText(content: UserMessage["content"]): string {
 
 function ThinkingRow() {
   return (
-    <div className="flex items-center gap-2 text-xs text-muted-foreground" role="status">
+    <div
+      className="flex w-fit items-center gap-2 rounded-xl border border-border/70 bg-background/80 px-3 py-2 text-xs text-muted-foreground shadow-sm"
+      role="status"
+    >
+      <Sparkles className="h-3.5 w-3.5 shrink-0 text-brand motion-safe:animate-pulse" aria-hidden />
+      <span className="assistant-shimmer-text font-medium">AI is thinking…</span>
       <span className="flex items-center gap-1" aria-hidden>
-        <span className="h-1.5 w-1.5 rounded-full bg-brand motion-safe:animate-bounce [animation-delay:-0.3s]" />
-        <span className="h-1.5 w-1.5 rounded-full bg-brand motion-safe:animate-bounce [animation-delay:-0.15s]" />
-        <span className="h-1.5 w-1.5 rounded-full bg-brand motion-safe:animate-bounce" />
+        <span className="h-1 w-1 rounded-full bg-brand motion-safe:animate-bounce [animation-delay:-0.3s]" />
+        <span className="h-1 w-1 rounded-full bg-brand motion-safe:animate-bounce [animation-delay:-0.15s]" />
+        <span className="h-1 w-1 rounded-full bg-brand motion-safe:animate-bounce" />
       </span>
-      Thinking…
     </div>
   );
 }
@@ -195,42 +201,48 @@ function AssistantTurn({
 
   const seenRichIds = new Set<string>();
 
+  const textParts = parts.filter(
+    (part): part is AssistantMessage => part.role === "assistant" && Boolean(part.content?.trim()),
+  );
+
+  const richBlocks = parts.flatMap((part) => {
+    if (part.role === "reasoning") return [];
+    return (
+      part.toolCalls?.flatMap((rawCall) => {
+        const call = dedupedById.get(rawCall.id) ?? rawCall;
+        if (call.function.name === PRESENT_RESPONSE_TOOL_NAME) return [];
+        if (!dedupedIds.has(call.id) || seenRichIds.has(call.id)) return [];
+        if (!richByCallId.has(call.id) || !toolRenderer) return [];
+        seenRichIds.add(call.id);
+        return [
+          <div key={`rich-${call.id}`} className="space-y-1.5">
+            {toolRenderer.render(call, results.get(call.id))}
+          </div>,
+        ];
+      }) ?? []
+    );
+  });
+
   return (
-    <div className="space-y-2 animate-in fade-in duration-200">
+    <div className="flex w-full min-w-0 flex-col gap-2 animate-in fade-in duration-200">
       {activityCalls.length > 0 ? (
         <ToolTrace calls={activityCalls} results={results} isRunning={streamingHere} />
       ) : null}
-      {parts.map((part) => {
-        if (part.role === "reasoning") return null;
-
-        const text = part.content?.trim() ?? "";
-        const richBlocks =
-          part.toolCalls?.flatMap((rawCall) => {
-            const call = dedupedById.get(rawCall.id) ?? rawCall;
-            if (call.function.name === PRESENT_RESPONSE_TOOL_NAME) return [];
-            if (!dedupedIds.has(call.id) || seenRichIds.has(call.id)) return [];
-            if (!richByCallId.has(call.id) || !toolRenderer) return [];
-            seenRichIds.add(call.id);
-            return [
-              <div key={`rich-${call.id}`} className="space-y-1.5">
-                {toolRenderer.render(call, results.get(call.id))}
-              </div>,
-            ];
-          }) ?? [];
-
-        if (!text && richBlocks.length === 0) return null;
-
-        return (
-          <div key={part.id} className="space-y-2">
-            {text
-              ? splitAssistantProse(part.content ?? "").map((segment, index) => (
-                  <Response key={`${part.id}-${index}`}>{segment}</Response>
-                ))
-              : null}
-            {richBlocks}
+      {richBlocks.length > 0 ? <div className="space-y-2">{richBlocks}</div> : null}
+      {textParts.length > 0 ? (
+        <div className="w-full min-w-0 rounded-xl border border-border bg-background px-4 py-3 shadow-sm">
+          <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-brand">
+            AI
+          </span>
+          <div className="min-w-0">
+            {textParts.map((part) =>
+              splitAssistantProse(part.content ?? "").map((segment, index) => (
+                <Response key={`${part.id}-${index}`}>{segment}</Response>
+              )),
+            )}
           </div>
-        );
-      })}
+        </div>
+      ) : null}
       {lastText && !streamingHere ? <CopyAction text={lastText} /> : null}
     </div>
   );
@@ -240,8 +252,8 @@ function UserTurn({ message }: { message: UserMessage }) {
   return (
     <ChatMessage align="end" className="justify-end animate-in fade-in duration-200">
       <MessageContent className="items-end">
-        <Bubble align="end" variant="brand">
-          <BubbleContent className="rounded-br-md whitespace-pre-wrap">
+        <Bubble align="end" variant="muted" className="max-w-[85%]">
+          <BubbleContent className="whitespace-pre-wrap rounded-xl border border-border bg-surface-subtle px-4 py-3 text-sm leading-relaxed text-foreground">
             {userText(message.content)}
           </BubbleContent>
         </Bubble>
@@ -261,16 +273,15 @@ function Welcome({
 }) {
   return (
     <div className="flex flex-col pt-1 pb-4 animate-in fade-in duration-300">
-      <h3 className="text-base font-semibold text-foreground">How can I help?</h3>
+      <h3 className="text-base font-semibold text-foreground">What can I help with?</h3>
       <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
         Ask about courses, professors, reviews, class times, or timetable conflicts.
       </p>
       <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
         查課程、教授、評價、上課時間，或檢查課表衝突。
       </p>
-      <div className="mt-5">
-        <p className="text-xs font-medium text-muted-foreground">Try asking</p>
-        <div className="mt-2 space-y-2">
+      <div className="mt-4">
+        <div className="space-y-2">
           {suggestions.map((suggestion, index) => (
             <button
               key={`${suggestion.message}-${index}`}
@@ -307,6 +318,7 @@ export function AssistantChatView({
   onClose,
   onClearAlert,
   panelRef,
+  panelOpen = true,
   toolRenderer,
 }: AssistantChatViewProps) {
   const { viewportRef, contentRef, showScrollButton, onScroll, scrollToBottom } =
@@ -341,10 +353,17 @@ export function AssistantChatView({
     <aside
       ref={panelRef}
       aria-label="AI Course Helper"
-      className="fixed inset-y-0 right-0 z-[1200] m-0 flex w-full flex-col border-l border-border bg-background text-foreground md:w-[var(--assistant-width,380px)]"
+      className={cn(
+        "fixed inset-y-0 right-0 z-[1200] m-0 flex w-full flex-col border-l border-border bg-background text-foreground shadow-2xl transition-transform duration-300 ease-in-out will-change-transform motion-reduce:transition-none md:w-[var(--assistant-width,450px)]",
+        panelOpen ? "translate-x-0" : "translate-x-full",
+      )}
     >
-      {/* 65px matches the site navbar at md so its bottom rule continues across the panel. */}
-      <header className="flex shrink-0 items-center gap-2 border-b border-border px-4 pb-3 pt-[calc(0.75rem_+_env(safe-area-inset-top))] md:h-[65px] md:pb-0 md:pt-0">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(circle,rgba(100,116,139,0.10)_1px,transparent_1px)] bg-[size:12px_12px] opacity-70"
+      />
+      {/* 58px matches Cloudflare's compact AI header; the site navbar stays separate. */}
+      <header className="relative z-10 flex shrink-0 items-center gap-2 border-b border-border bg-background/80 px-4 pb-3 pt-[calc(0.75rem_+_env(safe-area-inset-top))] backdrop-blur md:h-[65px] md:pb-0 md:pt-0">
         <Cat className="h-5 w-5 shrink-0 text-brand-logo" aria-hidden />
         <div className="min-w-0 flex-1">
           <h2 className="truncate text-sm font-semibold leading-tight text-foreground">
@@ -376,7 +395,7 @@ export function AssistantChatView({
         </div>
       </header>
 
-      <div className="relative min-h-0 flex-1">
+      <div className="relative z-10 min-h-0 flex-1">
         <div
           ref={viewportRef}
           onScroll={onScroll}
@@ -423,7 +442,7 @@ export function AssistantChatView({
         <ConversationScrollButton visible={showScrollButton} onClick={() => scrollToBottom()} />
       </div>
 
-      <div className="shrink-0 bg-background px-3 pb-[calc(0.75rem_+_env(safe-area-inset-bottom))] pt-3">
+      <div className="relative z-10 shrink-0 bg-background/90 px-4 pb-[calc(1rem_+_env(safe-area-inset-bottom))] pt-3 backdrop-blur">
         {alert ? (
           <div
             role="alert"

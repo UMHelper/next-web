@@ -45,6 +45,15 @@ function toRowList(value: unknown): Record<string, unknown>[] {
  * spread or forwarded, so `total_count`, internal ids and future columns cannot
  * reach the model.
  */
+function readCodes(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((entry): entry is string => typeof entry === "string")
+    .map((entry) => entry.trim().toUpperCase())
+    .filter(Boolean)
+    .slice(0, 20);
+}
+
 function projectCourse(row: Record<string, unknown>): CatalogCourse | null {
   const code = readText(row.course_code);
   if (!code) return null;
@@ -57,6 +66,7 @@ function projectCourse(row: Record<string, unknown>): CatalogCourse | null {
     department: readText(row.offering_department),
     credits: readText(row.credits),
     isOffered: Number(row.is_offered) === 1,
+    aka: readCodes(row.equivalent_codes),
     url: absoluteUrl(buildCoursePath(code)),
   };
 }

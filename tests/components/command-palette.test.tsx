@@ -1,0 +1,124 @@
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+const mocks = vi.hoisted(() => ({
+  push: vi.fn(),
+  openAssistant: vi.fn(),
+  pathname: "/catalog",
+  auth: { isLoaded: true, isSignedIn: true },
+}));
+const { push, openAssistant } = mocks;
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: mocks.push }),
+  usePathname: () => mocks.pathname,
+}));
+
+vi.mock("@/lib/assistant/open", () => ({
+  openAssistant: mocks.openAssistant,
+}));
+vi.mock("@clerk/nextjs", () => ({ useAuth: () => mocks.auth }));
+
+import { CommandPalette } from "@/components/command-palette";
+import { installFakeStorage } from "@/tests/helpers/fake-storage";
+
+const PAYLOAD = {
+  courses: [
+    {
+      code: "ACCT1000",
+      titleEn: "Principles of Financial Accounting",
+      titleZh: "財務會計原理",
+      faculty: "FBA",
+      department: "ACCT",
+      credits: "3",
+      equivalentCodes: ["ACCT100"],
+    },
+  ],
+  instructors: [
+    { name: "CHAN TAI MAN", courseCount: 3, sampleCourse: "ACCT1000" },
+  ],
+};
+
+function renderPalette() {
+  render(<CommandPalette />);
+  fireEvent.click(screen.getByRole("button", { name: "Search" }));
+  return screen.getByPlaceholderText("Search courses, instructors, pages…") as HTMLInputElement;
+}
+
+describe("CommandPalette", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.auth.isLoaded = true;
+    mocks.auth.isSignedIn = true;
+    mocks.pathname = "/catalog";
+    installFakeStorage();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        if (String(input).includes("/api/assistant/access")) {
+          return new Response(JSON.stringify({ enabled: true }), { status: 200 });
+        }
+        return new Response(JSON.stringify(PAYLOAD), { status: 200 });
+      }),
+    );
+  });
+
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+  });
+
+  it("opens from the trigger and searches courses and instructors", async () => {
+    const input = renderPalette();
+    expect(input).toBeTruthy();
+    await waitFor(() => expect(fetch).toHaveBeenCalledWith("/api/assistant/access", expect.anything()));
+
+    fireEvent.change(input, { target: { value: "ACCT" } });
+
+    await waitFor(() => expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/api/command-palette"), expect.anything()));
+    expect(screen.getAllByRole("option", { name: /ACCT1000/ }).length).toBeGreaterThan(0);
+    expect(screen.getByRole("option", { name: /CHAN TAI MAN/ })).toBeTruthy();
+    expect(screen.getByText(/a\.k\.a\. ACCT100/)).toBeTruthy();
+
+    fireEvent.click(screen.getAllByRole("option", { name: /ACCT1000/ })[0]);
+    expect(push).toHaveBeenCalledWith("/course/ACCT1000");
+    expect(window.localStorage.getItem("umeh:command-palette-recents-v2")).toContain("ACCT1000");
+  });
+
+  it("offers Sign in to ask AI when signed out", async () => {
+    mocks.auth.isSignedIn = false;
+    const input = renderPalette();
+    fireEvent.change(input, { target: { value: "ACCT" } });
+
+    const signIn = await screen.findByRole("option", { name: /Sign in to ask AI/ });
+    fireEvent.click(signIn);
+
+    expect(openAssistant).not.toHaveBeenCalled();
+    expect(push).toHaveBeenCalledWith("/sign-in?redirect_url=%2F");
+  });
+
+  it("offers Ask AI with the current query", async () => {
+    const input = renderPalette();
+    await waitFor(() => expect(fetch).toHaveBeenCalledWith("/api/assistant/access", expect.anything()));
+    fireEvent.change(input, { target: { value: "給分好嗎" } });
+
+    await waitFor(() => expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/api/command-palette"), expect.anything()));
+    const ask = screen.getByRole("option", { name: /Ask AI/ });
+    fireEvent.click(ask);
+
+    expect(openAssistant).toHaveBeenCalledWith({ prompt: "給分好嗎", autoSend: true });
+  });
+
+  it("hides the header trigger on the homepage", () => {
+    mocks.pathname = "/";
+    render(<CommandPalette />);
+    expect(screen.queryByRole("button", { name: "Search" })).toBeNull();
+  });
+
+  it("shows page shortcuts when the query is empty", async () => {
+    renderPalette();
+    await waitFor(() => expect(fetch).toHaveBeenCalledWith("/api/assistant/access", expect.anything()));
+    expect(screen.getByRole("option", { name: /Courses/ })).toBeTruthy();
+    expect(screen.getByRole("option", { name: /Timetable/ })).toBeTruthy();
+  });
+});

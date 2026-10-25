@@ -199,6 +199,7 @@ export const catalogCourseSchema = z.object({
   department: z.string().nullable(),
   credits: z.string().nullable(),
   isOffered: z.boolean(),
+  aka: z.array(z.string()).max(20).default([]).describe("Previous course codes for the same course; the primary courseCode is authoritative."),
   url: referenceUrlSchema,
 });
 
@@ -271,6 +272,7 @@ export const courseDetailSchema = z.object({
   courseType: z.string().nullable(),
   duration: z.string().nullable(),
   description: z.string().nullable(),
+  aka: z.array(z.string()).max(20).default([]).describe("Previous course codes for the same course; the primary courseCode is authoritative."),
   isOffered: z.boolean(),
   url: referenceUrlSchema,
 });
