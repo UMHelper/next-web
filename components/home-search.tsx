@@ -6,7 +6,6 @@ import {
   CalendarDays,
   FileText,
   Loader2,
-  LogIn,
   MessageCircle,
   Search,
   Sparkles,
@@ -182,7 +181,6 @@ export function HomeSearch({
   const { isLoaded, isSignedIn } = useAuth();
   const signedOut = isLoaded && !isSignedIn;
   const serverSignedOut = initialAssistantAccess === null;
-  const askSignIn = signedOut || serverSignedOut;
   const [query, setQuery] = useState("");
   const [payload, setPayload] = useState<SearchPayload>(EMPTY);
   const [loading, setLoading] = useState(false);
@@ -190,6 +188,7 @@ export function HomeSearch({
   const [active, setActive] = useState(0);
   const [assistantEnabled, setAssistantEnabled] = useState(initialAssistantAccess === "enabled");
   const [assistantDenied, setAssistantDenied] = useState(initialAssistantAccess === "denied");
+  const hideAi = signedOut || serverSignedOut || assistantDenied;
   const [recents, setRecents] = useState<HomeItem[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -314,11 +313,11 @@ export function HomeSearch({
   const groups = useMemo<HomeGroup[]>(() => {
     const term = query.trim();
     const aiItem: HomeItem | null =
-      isLoaded && (signedOut || !assistantDenied)
+      isLoaded && !hideAi
         ? {
             id: "home-ai",
             kind: "ai",
-            title: signedOut ? "Sign in to ask AI" : "Ask AI",
+            title: "Ask AI",
             subtitle: term || undefined,
           }
         : null;
@@ -327,7 +326,7 @@ export function HomeSearch({
       const next: HomeGroup[] = [];
       if (aiItem) next.push({ key: "ai", title: "", items: [aiItem] });
       if (recents.length) next.push({ key: "recent", title: "Recents", items: recents });
-      if (!assistantDenied) next.push({ key: "tips", title: "Try asking", items: TIPS });
+      if (!hideAi) next.push({ key: "tips", title: "Try asking", items: TIPS });
       return next;
     }
 
@@ -429,7 +428,7 @@ export function HomeSearch({
       });
     }
     return next;
-  }, [assistantDenied, isLoaded, loading, payload, query, recents, signedOut]);
+  }, [hideAi, isLoaded, loading, payload, query, recents]);
 
   const flat = useMemo(() => groups.flatMap((group) => group.items), [groups]);
 
@@ -527,19 +526,15 @@ export function HomeSearch({
             <kbd className="hidden shrink-0 rounded border border-border/60 bg-white/20 px-1.5 py-0.5 font-sans text-[11px] leading-none text-background/80 sm:inline">
               ⌘K
             </kbd>
-            {assistantDenied || (initialAssistantAccess === undefined && !isLoaded) ? null : (
+            {hideAi || (initialAssistantAccess === undefined && !isLoaded) ? null : (
               <button
                 type="button"
-                aria-label={askSignIn ? "Sign in to ask AI" : "Ask AI"}
+                aria-label="Ask AI"
                 onClick={askAi}
                 className="flex h-9 shrink-0 items-center gap-1.5 rounded-md bg-brand/90 px-3 text-xs font-medium text-brand-foreground shadow-sm transition-colors hover:bg-brand-strong"
               >
-                {askSignIn ? (
-                  <LogIn className="h-4 w-4" aria-hidden />
-                ) : (
-                  <Sparkles className="h-4 w-4" aria-hidden />
-                )}
-                <span className="hidden sm:inline">{askSignIn ? "Sign in" : "Ask AI"}</span>
+                <Sparkles className="h-4 w-4" aria-hidden />
+                <span className="hidden sm:inline">Ask AI</span>
               </button>
             )}
           </div>
@@ -670,14 +665,14 @@ export function HomeSearch({
           <CalendarDays className="h-4 w-4" aria-hidden />
           Timetable
         </Link>
-        {assistantDenied ? null : (
+        {hideAi ? null : (
           <button
             type="button"
             onClick={() => requestAssistant()}
             className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-white/20 px-3 py-2 text-sm text-white backdrop-blur transition-colors hover:bg-white/30"
           >
-            {askSignIn ? <LogIn className="h-4 w-4" aria-hidden /> : <Sparkles className="h-4 w-4" aria-hidden />}
-            {askSignIn ? "Sign in" : "Ask AI"}
+            <Sparkles className="h-4 w-4" aria-hidden />
+            Ask AI
           </button>
         )}
       </div>
