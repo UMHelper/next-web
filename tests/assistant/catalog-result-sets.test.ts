@@ -53,6 +53,7 @@ function courses(n: number, offeredIndices: number[]) {
       department: "MATH",
       credits: "3",
       isOffered: offeredSet.has(i),
+      aka: [],
       url: courseUrl(courseCode),
     };
   });
@@ -87,6 +88,7 @@ function coursePayload(
         department: "AIM",
         credits: "3",
         isOffered: true,
+        aka: [],
         url: courseUrl("ACCT1000"),
       },
     ],
@@ -106,6 +108,7 @@ const math = coursePayload({
       department: "MATH",
       credits: "3",
       isOffered: false,
+      aka: [],
       url: courseUrl("MATH1001"),
     },
   ],
@@ -122,6 +125,7 @@ const acct = coursePayload({
       department: "AIM",
       credits: "3",
       isOffered: true,
+      aka: [],
       url: courseUrl("ACCT1000"),
     },
   ],
@@ -290,6 +294,7 @@ describe("summarizeCatalogResultSets", () => {
         department: null,
         credits: null,
         isOffered,
+        aka: [],
         url: courseUrl(courseCode),
       })),
     };

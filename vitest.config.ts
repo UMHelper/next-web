@@ -12,6 +12,10 @@ export default defineConfig({
     },
   },
   test: {
+    env: {
+      NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:54321",
+      SUPABASE_SECRET_KEY: "test-secret-key",
+    },
     environment: "node",
     environmentMatchGlobs: [
       ["tests/components/**", "jsdom"],

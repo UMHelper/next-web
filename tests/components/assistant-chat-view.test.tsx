@@ -28,6 +28,17 @@ function catalogBody(totalCount = 0) {
   });
 }
 
+const reviewsBody = JSON.stringify({
+  courseCode: "CISC1001",
+  instructor: "XU QI WEN",
+  page: 1,
+  hasMore: false,
+  url: `${SITE_URL}/reviews/CISC1001/XU%20QI%20WEN`,
+  reviews: [],
+});
+
+const emptyToolOk = JSON.stringify({});
+
 const courseBody = JSON.stringify({
   course: {
     courseCode: "APAC1000",
@@ -285,10 +296,10 @@ describe("AssistantChatView", () => {
             },
           ],
         },
-        { id: "t1", role: "tool", toolCallId: "call-1", content: "ok" },
-        { id: "t2", role: "tool", toolCallId: "call-2", content: "ok" },
-        { id: "t3", role: "tool", toolCallId: "call-3", content: "ok" },
-        { id: "t4", role: "tool", toolCallId: "call-4", content: "ok" },
+        { id: "t1", role: "tool", toolCallId: "call-1", content: reviewsBody },
+        { id: "t2", role: "tool", toolCallId: "call-2", content: emptyToolOk },
+        { id: "t3", role: "tool", toolCallId: "call-3", content: emptyToolOk },
+        { id: "t4", role: "tool", toolCallId: "call-4", content: emptyToolOk },
       ],
     });
 
@@ -642,7 +653,7 @@ describe("AssistantChatView", () => {
       expect(activityRows().map((node) => node.textContent)).toEqual([
         expect.stringContaining("Searching courses…"),
       ]);
-      expect(screen.queryByText("Thinking…")).toBeNull();
+      expect(screen.queryByText(/AI is thinking/)).toBeNull();
     });
 
     it("renders two rich blocks for identical args with different ids and results", () => {
@@ -734,7 +745,7 @@ describe("AssistantChatView", () => {
       expect(screen.getByTestId("rich-call-1").textContent).toBe(catalogBody());
       expect(screen.getAllByText("Searched courses")).toHaveLength(1);
       expect(screen.queryByText("Searching courses…")).toBeNull();
-      expect(screen.getByText("Thinking…")).toBeTruthy();
+      expect(screen.getByText(/AI is thinking/)).toBeTruthy();
     });
 
     it("dedupes a replayed empty-arg search_catalog call", () => {
@@ -1227,7 +1238,7 @@ describe("AssistantChatView", () => {
       expect(statuses[0].textContent).toContain("Read course");
       expect(statuses[1].getAttribute("data-status")).toBe("running");
       expect(statuses[1].textContent).toContain("Reading class times…");
-      expect(screen.queryByText("Thinking…")).toBeNull();
+      expect(screen.queryByText(/AI is thinking/)).toBeNull();
     });
 
     it("renders one row when the same call id is replayed", () => {

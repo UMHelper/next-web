@@ -22,6 +22,7 @@ const fixture = {
     duration: null,
     description: "Basics.",
     isOffered: true,
+    aka: [],
     url: `${SITE_URL}/course/APAC1000`,
   },
   page: 1,

@@ -2,6 +2,8 @@ import type { LanguageModelV3StreamPart } from "@ai-sdk/provider";
 import { MockLanguageModelV3, simulateReadableStream } from "ai/test";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+vi.mock("server-only", () => ({}));
+
 import type { ToolCallRecord, TurnTrace } from "@/evals/assistant/grade";
 import { evalFingerprint } from "@/evals/assistant/results";
 import { SUITES } from "@/evals/assistant/suites";
@@ -10,7 +12,7 @@ import { gradeTimetableTurn } from "@/evals/assistant/timetable-grade";
 import type { TimetableContextPayload } from "@/lib/assistant/timetable-context";
 import { serializeTimetableContext } from "@/lib/assistant/timetable-context";
 
-const NAVIGATION_EVAL_FINGERPRINT = "69a3a243fb2b";
+const NAVIGATION_EVAL_FINGERPRINT = "7324128e0535";
 
 type Step = { text: string } | { tool: string; input: Record<string, unknown> };
 

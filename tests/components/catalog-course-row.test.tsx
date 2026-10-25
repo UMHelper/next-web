@@ -22,6 +22,7 @@ const fullCourse: CatalogCourse = {
   department: "AIM",
   credits: "3",
   isOffered: true,
+  aka: [],
   url: `${SITE_URL}/course/ACCT1000`,
 };
 
