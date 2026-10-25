@@ -756,6 +756,9 @@ describe("assistant V2.3.5-A integration (real tools, scripted model)", () => {
     expect(courseOutput).toContain('"difficulty":null');
     expect(courseOutput).toContain('"sampleSize":"none"');
     expect(courseOutput).toContain("HO KA WAI");
+    expect(
+      screen.getByText("LEE MEI LING is easier on average than CHAN TAI MAN, with more reviews."),
+    ).toBeTruthy();
     expect(screen.queryByRole("article", { name: "GELH1000" })).toBeNull();
   }, 60_000);
 
@@ -886,6 +889,7 @@ describe("assistant V2.3.5-A integration (real tools, scripted model)", () => {
     await waitFor(() => expect(screen.getByRole("article", { name: "GELH1000" })).toBeTruthy(), { timeout: 10000 });
 
     await typeAndSend("Still there?");
+    expect(screen.getByText("Checking context.")).toBeTruthy();
     const contextCall = runs().at(-1)!.modelCalls[0];
     expect(
       contextCall.visibleBlocks?.turns.some((entry) =>
@@ -907,5 +911,6 @@ describe("assistant V2.3.5-A integration (real tools, scripted model)", () => {
     }
     const allPresentStrings = runs().flatMap((run) => run.modelCalls).flatMap((call) => call.toolResults);
     expect(allPresentStrings.some((out) => out.includes('"status":"accepted"'))).toBe(false);
+    expect(screen.getByText("These are LEE MEI LING's listed sections.")).toBeTruthy();
   }, 150_000);
 });
