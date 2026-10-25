@@ -174,8 +174,8 @@ export function SearchCatalogToolResult({
   if (view.kind === "empty") {
     const message =
       view.searchType === "course"
-        ? "No matching courses on this site."
-        : "No matching instructors on this site.";
+        ? "No courses matched this search."
+        : "No instructors matched this search.";
     return <p className="text-sm text-muted-foreground">{message}</p>;
   }
 

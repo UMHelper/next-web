@@ -140,7 +140,7 @@ describe("SearchCatalogToolResult", () => {
         })}
       />,
     );
-    expect(screen.getByText("No matching courses on this site.")).toBeTruthy();
+    expect(screen.getByText("No courses matched this search.")).toBeTruthy();
 
     rerender(
       <SearchCatalogToolResult
@@ -154,7 +154,7 @@ describe("SearchCatalogToolResult", () => {
         })}
       />,
     );
-    expect(screen.getByText("No matching instructors on this site.")).toBeTruthy();
+    expect(screen.getByText("No instructors matched this search.")).toBeTruthy();
   });
 
   it("shows failure copy for temporarily_unavailable", () => {

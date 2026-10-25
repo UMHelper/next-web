@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+const { lookupReviewMappingMock } = vi.hoisted(() => ({
+  lookupReviewMappingMock: vi.fn(),
+}));
+
 const db = vi.hoisted(() => {
   const response: { data: unknown; error: unknown; count: number | null } = {
     data: [],
@@ -20,10 +24,16 @@ vi.mock("@/lib/database/get-course-info", () => ({ getCourseInfo: vi.fn() }));
 vi.mock("@/lib/database/course-alias", () => ({
   resolveCourseAlias: vi.fn(async (code: string) => ({ primaryCode: code.trim().toUpperCase(), aka: [] })),
 }));
-vi.mock("@/lib/database/get-prof-info", () => ({ getReviewInfo: vi.fn() }));
+vi.mock("@/lib/database/get-prof-info", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/database/get-prof-info")>();
+  return {
+    ...actual,
+    getReviewInfo: vi.fn(),
+    lookupReviewMapping: lookupReviewMappingMock,
+  };
+});
 
 import { getCourseInfo } from "@/lib/database/get-course-info";
-import { getReviewInfo } from "@/lib/database/get-prof-info";
 import { searchCatalog as searchCatalogBase } from "@/lib/mcp/data/search-catalog";
 import { McpToolError } from "@/lib/mcp/errors";
 import { getCourseText } from "@/lib/assistant/data/course-text";
@@ -197,7 +207,11 @@ describe("assistant course text", () => {
 describe("assistant instructor data", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    db.response.data = [];
     db.response.error = null;
+    db.response.count = 0;
+    db.builder.then = (resolve: (value: unknown) => unknown) =>
+      Promise.resolve(db.response).then(resolve);
   });
 
   it("applies rating filters, sorting and pagination", async () => {
@@ -242,7 +256,31 @@ describe("assistant instructor data", () => {
     expect(result.courses[0]?.reviewUrl).toBe("https://umeh.top/reviews/ACCT1000/CHAN%20TAI%20MAN");
   });
 
-  it("reports an instructor with no matching courses as not_found", async () => {
+  it("returns an empty success when filters exclude every course of a known instructor", async () => {
+    const baseInput = {
+      name: "CHAN TAI MAN",
+      sortBy: "code" as const,
+      sortOrder: "asc" as const,
+      limit: 20,
+      page: 1,
+    };
+    let queryCount = 0;
+    db.builder.then = (resolve: (value: unknown) => unknown) => {
+      queryCount += 1;
+      const payload =
+        queryCount === 1
+          ? { data: [], error: null, count: 0 }
+          : { data: null, error: null, count: 3 };
+      return Promise.resolve(payload).then(resolve);
+    };
+
+    await expect(
+      getInstructorForAssistant({ ...baseInput, minResult: 4.9 }, signal),
+    ).resolves.toMatchObject({ courses: [], totalCount: 0, hasMore: false });
+    expect(queryCount).toBe(2);
+  });
+
+  it("returns not_found for an instructor with no rows at all", async () => {
     db.response.data = [];
     db.response.count = 0;
 
@@ -251,7 +289,30 @@ describe("assistant instructor data", () => {
         { name: "NOBODY", sortBy: "code", sortOrder: "asc", limit: 20, page: 1 },
         signal,
       ),
-    ).rejects.toBeInstanceOf(McpToolError);
+    ).rejects.toMatchObject({ code: "not_found" });
+  });
+
+  it("returns not_found when restrictive filters match nothing and the instructor has no rows", async () => {
+    let queryCount = 0;
+    db.builder.then = (resolve: (value: unknown) => unknown) => {
+      queryCount += 1;
+      return Promise.resolve({ data: [], error: null, count: 0 }).then(resolve);
+    };
+
+    await expect(
+      getInstructorForAssistant(
+        {
+          name: "NOBODY",
+          minResult: 4.9,
+          sortBy: "code",
+          sortOrder: "asc",
+          limit: 20,
+          page: 1,
+        },
+        signal,
+      ),
+    ).rejects.toMatchObject({ code: "not_found" });
+    expect(queryCount).toBe(2);
   });
 });
 
@@ -259,10 +320,13 @@ describe("assistant review counts", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     db.response.error = null;
+    db.response.count = 0;
+    db.builder.then = (resolve: (value: unknown) => unknown) =>
+      Promise.resolve(db.response).then(resolve);
   });
 
   it("counts only visible top-level reviews for the mapped course offering", async () => {
-    vi.mocked(getReviewInfo).mockResolvedValue({ id: 7 } as never);
+    lookupReviewMappingMock.mockResolvedValue({ id: 7 });
     db.response.count = 12;
 
     await expect(countCourseReviews({ code: "ACCT1000", instructor: "CHAN TAI MAN" }, signal)).resolves.toEqual({
@@ -274,9 +338,19 @@ describe("assistant review counts", () => {
   });
 
   it("reports missing review mappings as not_found", async () => {
-    vi.mocked(getReviewInfo).mockResolvedValue(null);
+    lookupReviewMappingMock.mockResolvedValue(null);
     await expect(
       countCourseReviews({ code: "ACCT1000", instructor: "CHAN TAI MAN" }, signal),
     ).rejects.toMatchObject({ code: "not_found" });
+  });
+
+  it("reports a review-mapping query failure as temporarily_unavailable, not not_found", async () => {
+    const { ReviewMappingError } = await import("@/lib/database/get-prof-info");
+    lookupReviewMappingMock.mockRejectedValueOnce(new ReviewMappingError("boom"));
+
+    await expect(
+      countCourseReviews({ code: "ACCT1000", instructor: "CHAN TAI MAN" }, signal),
+    ).rejects.toMatchObject({ code: "temporarily_unavailable" });
+    expect(db.from).not.toHaveBeenCalled();
   });
 });

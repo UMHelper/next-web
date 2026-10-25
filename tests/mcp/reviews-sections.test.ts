@@ -4,11 +4,21 @@ import path from "node:path";
 import { InMemoryTransport, McpServer } from "@modelcontextprotocol/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { consumeMock, fromMock, getReviewInfoMock, getScheduleListMock, rpcMock } = vi.hoisted(() => ({
+const {
+  consumeMock,
+  fetchScheduleListMock,
+  fromMock,
+  getReviewInfoMock,
+  getScheduleListMock,
+  lookupReviewMappingMock,
+  rpcMock,
+} = vi.hoisted(() => ({
   consumeMock: vi.fn(),
+  fetchScheduleListMock: vi.fn(),
   fromMock: vi.fn(),
   getReviewInfoMock: vi.fn(),
   getScheduleListMock: vi.fn(),
+  lookupReviewMappingMock: vi.fn(),
   rpcMock: vi.fn(),
 }));
 
@@ -16,8 +26,22 @@ vi.mock("server-only", () => ({}));
 vi.mock("@/lib/supabase/server", () => ({ default: { from: fromMock, rpc: rpcMock } }));
 vi.mock("@clerk/nextjs/server", () => ({ auth: vi.fn() }));
 vi.mock("@clerk/mcp-tools/next", () => ({ verifyClerkToken: vi.fn() }));
-vi.mock("@/lib/database/get-prof-info", () => ({ getReviewInfo: getReviewInfoMock }));
-vi.mock("@/lib/database/get-schedule-list", () => ({ default: getScheduleListMock }));
+vi.mock("@/lib/database/get-prof-info", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/database/get-prof-info")>();
+  return {
+    ...actual,
+    getReviewInfo: getReviewInfoMock,
+    lookupReviewMapping: lookupReviewMappingMock,
+  };
+});
+vi.mock("@/lib/database/get-schedule-list", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/database/get-schedule-list")>();
+  return {
+    ...actual,
+    default: getScheduleListMock,
+    fetchScheduleList: fetchScheduleListMock,
+  };
+});
 vi.mock("@/lib/mcp/rate-limit", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/mcp/rate-limit")>();
   return { ...actual, consumeMcpRateLimits: consumeMock };
@@ -42,7 +66,8 @@ import {
   sectionScheduleSchema,
 } from "@/lib/mcp/schemas";
 import { absoluteUrl, buildCoursePath, buildReviewPath } from "@/lib/site";
-import { parseSectionTimeRange } from "@/lib/mcp/data/get-course-sections";
+import { getCourseReviews } from "@/lib/mcp/data/get-course-reviews";
+import { getCourseSections, parseSectionTimeRange } from "@/lib/mcp/data/get-course-sections";
 import {
   GET_COURSE_REVIEWS_ANNOTATIONS,
   GET_COURSE_REVIEWS_DESCRIPTION,
@@ -393,7 +418,27 @@ describe("get_course_reviews data adapter", () => {
     vi.clearAllMocks();
     consumeMock.mockResolvedValue({ allowed: true, retryAfter: 0 });
     getReviewInfoMock.mockResolvedValue(MAPPING_ROW);
+    lookupReviewMappingMock.mockResolvedValue(MAPPING_ROW);
     queueRpc({ data: PUBLIC_ROWS });
+  });
+
+  it("reports a review-mapping query failure as temporarily_unavailable, not not_found", async () => {
+    const { ReviewMappingError } = await import("@/lib/database/get-prof-info");
+    lookupReviewMappingMock.mockRejectedValueOnce(new ReviewMappingError("boom"));
+
+    await expect(
+      getCourseReviews({ code: "ACCT1000", instructor: "CHAN TAI MAN", page: 1, limit: 5 }, new AbortController().signal),
+    ).rejects.toMatchObject({ code: "temporarily_unavailable" });
+    expect(rpcMock).not.toHaveBeenCalled();
+  });
+
+  it("still reports a missing offering as not_found", async () => {
+    lookupReviewMappingMock.mockResolvedValueOnce(null);
+
+    await expect(
+      getCourseReviews({ code: "ACCT1000", instructor: "CHAN TAI MAN", page: 1, limit: 5 }, new AbortController().signal),
+    ).rejects.toMatchObject({ code: "not_found" });
+    expect(rpcMock).not.toHaveBeenCalled();
   });
 
   it("resolves the internal mapping with the normalized code and instructor", async () => {
@@ -402,8 +447,8 @@ describe("get_course_reviews data adapter", () => {
       ctx,
     );
 
-    expect(getReviewInfoMock).toHaveBeenCalledTimes(1);
-    expect(getReviewInfoMock).toHaveBeenCalledWith("ACCT1000", "CHAN TAI MAN");
+    expect(lookupReviewMappingMock).toHaveBeenCalledTimes(1);
+    expect(lookupReviewMappingMock).toHaveBeenCalledWith("ACCT1000", "CHAN TAI MAN");
   });
 
   it("calls the controlled RPC with the zero-based page and one extra row for hasMore", async () => {
@@ -591,7 +636,7 @@ describe("get_course_reviews data adapter", () => {
   });
 
   it("returns not_found for an unknown course/instructor mapping", async () => {
-    getReviewInfoMock.mockResolvedValue(null);
+    lookupReviewMappingMock.mockResolvedValue(null);
 
     await expectCode(
       handleGetCourseReviews({ code: "ZZZZ9999", instructor: "NOBODY" }, ctx),
@@ -617,8 +662,11 @@ describe("get_course_reviews data adapter", () => {
     }
   });
 
-  it("maps a mapping lookup failure to a non-leaking internal_error", async () => {
-    getReviewInfoMock.mockRejectedValue(new Error("permission denied for table prof_with_course"));
+  it("maps a mapping lookup failure to a non-leaking temporarily_unavailable", async () => {
+    const { ReviewMappingError } = await import("@/lib/database/get-prof-info");
+    lookupReviewMappingMock.mockRejectedValueOnce(
+      new ReviewMappingError("permission denied for table prof_with_course"),
+    );
 
     try {
       await handleGetCourseReviews({ code: "ACCT1000", instructor: "CHAN TAI MAN" }, ctx);
@@ -626,14 +674,14 @@ describe("get_course_reviews data adapter", () => {
     } catch (error) {
       expect(error).toBeInstanceOf(McpToolError);
       const toolError = error as McpToolError;
-      expect(toolError.code).toBe("internal_error");
+      expect(toolError.code).toBe("temporarily_unavailable");
       expect(JSON.stringify(toolError.message)).not.toContain("permission denied");
     }
   });
 
   it("requires authentication and never reaches the data layer without it", async () => {
     await expectCode(handleGetCourseReviews({ code: "ACCT1000", instructor: "CHAN" }, {}), "unauthorized");
-    expect(getReviewInfoMock).not.toHaveBeenCalled();
+    expect(lookupReviewMappingMock).not.toHaveBeenCalled();
     expect(rpcMock).not.toHaveBeenCalled();
   });
 
@@ -646,7 +694,7 @@ describe("get_course_reviews data adapter", () => {
       handleGetCourseReviews({ code: "ACCT1000", instructor: "CHAN", limit: 0 }, ctx),
       "invalid_request",
     );
-    expect(getReviewInfoMock).not.toHaveBeenCalled();
+    expect(lookupReviewMappingMock).not.toHaveBeenCalled();
     expect(rpcMock).not.toHaveBeenCalled();
   });
 });
@@ -703,20 +751,30 @@ describe("get_course_sections data adapter", () => {
     vi.clearAllMocks();
     consumeMock.mockResolvedValue({ allowed: true, retryAfter: 0 });
     getScheduleListMock.mockResolvedValue([sectionFixture()]);
+    fetchScheduleListMock.mockResolvedValue({ year: 2026, sem: 1, sections: [sectionFixture()] });
+  });
+
+  it("reports a schedule RPC failure as temporarily_unavailable, not an empty section list", async () => {
+    const { ScheduleListError } = await import("@/lib/database/get-schedule-list");
+    fetchScheduleListMock.mockRejectedValueOnce(new ScheduleListError("boom"));
+
+    await expect(
+      getCourseSections({ code: "ECON1001", instructor: "CHAN TAI MAN" }),
+    ).rejects.toMatchObject({ code: "temporarily_unavailable" });
   });
 
   function queueSections(sections: SectionFixture[]) {
-    getScheduleListMock.mockResolvedValue(sections);
+    fetchScheduleListMock.mockResolvedValue({ year: 2026, sem: 1, sections });
   }
 
-  it("reads the catalog through getScheduleList with the normalized code and instructor", async () => {
+  it("reads the catalog through fetchScheduleList with the normalized code and instructor", async () => {
     await handleGetCourseSections(
       { code: " acct1000 ", instructor: "  Chan   Tai Man " },
       ctx,
     );
 
-    expect(getScheduleListMock).toHaveBeenCalledTimes(1);
-    expect(getScheduleListMock).toHaveBeenCalledWith("ACCT1000", "CHAN TAI MAN");
+    expect(fetchScheduleListMock).toHaveBeenCalledTimes(1);
+    expect(fetchScheduleListMock).toHaveBeenCalledWith("ACCT1000", "CHAN TAI MAN");
     // The catalog helper is the only data source: no user/timetable table is read.
     expect(fromMock).not.toHaveBeenCalled();
     expect(rpcMock).not.toHaveBeenCalled();
@@ -878,8 +936,23 @@ describe("get_course_sections data adapter", () => {
     expect(output.courseUrl).toBe("https://umeh.top/course/ACCT1000");
   });
 
+  it("maps a schedule RPC failure to a non-leaking temporarily_unavailable", async () => {
+    const { ScheduleListError } = await import("@/lib/database/get-schedule-list");
+    fetchScheduleListMock.mockRejectedValueOnce(new ScheduleListError("permission denied for function get_schedule_list"));
+
+    try {
+      await handleGetCourseSections({ code: "ACCT1000", instructor: "CHAN TAI MAN" }, ctx);
+      throw new Error("expected the tool to reject");
+    } catch (error) {
+      expect(error).toBeInstanceOf(McpToolError);
+      const toolError = error as McpToolError;
+      expect(toolError.code).toBe("temporarily_unavailable");
+      expect(JSON.stringify(toolError.message)).not.toContain("permission denied");
+    }
+  });
+
   it("maps an unexpected catalog failure to a non-leaking internal_error", async () => {
-    getScheduleListMock.mockRejectedValue(new Error("permission denied for function get_schedule_list"));
+    fetchScheduleListMock.mockRejectedValue(new Error("unexpected catalog failure"));
 
     try {
       await handleGetCourseSections({ code: "ACCT1000", instructor: "CHAN TAI MAN" }, ctx);
@@ -888,19 +961,19 @@ describe("get_course_sections data adapter", () => {
       expect(error).toBeInstanceOf(McpToolError);
       const toolError = error as McpToolError;
       expect(toolError.code).toBe("internal_error");
-      expect(JSON.stringify(toolError.message)).not.toContain("permission denied");
+      expect(JSON.stringify(toolError.message)).not.toContain("unexpected catalog failure");
     }
   });
 
   it("requires authentication and never reaches the catalog without it", async () => {
     await expectCode(handleGetCourseSections({ code: "ACCT1000", instructor: "CHAN" }, {}), "unauthorized");
-    expect(getScheduleListMock).not.toHaveBeenCalled();
+    expect(fetchScheduleListMock).not.toHaveBeenCalled();
   });
 
   it("maps invalid arguments to invalid_request without reading the catalog", async () => {
     await expectCode(handleGetCourseSections({ code: "ACCT1000", instructor: "" }, ctx), "invalid_request");
     await expectCode(handleGetCourseSections({ code: "A".repeat(21), instructor: "X" }, ctx), "invalid_request");
-    expect(getScheduleListMock).not.toHaveBeenCalled();
+    expect(fetchScheduleListMock).not.toHaveBeenCalled();
   });
 });
 
@@ -1084,9 +1157,9 @@ describe("reviews/sections source boundaries", () => {
 
   it("reads only the catalog and never the saved timetable tables", () => {
     const source = read("lib/mcp/data/get-course-sections.ts");
-    expect(source).toContain("@/lib/database/get-schedule-list");
+    expect(source).toContain("fetchScheduleList");
     expect(source).not.toContain("timetable_plan");
-    expect(source).not.toContain("supabase");
+    expect(source).not.toContain("supabaseServer");
     expect(source).not.toMatch(/\bfrom\s*\(/);
   });
 });

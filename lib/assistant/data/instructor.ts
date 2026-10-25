@@ -16,6 +16,15 @@ const SORT_COLUMNS = {
   commentCount: "comments",
 } as const;
 
+function hasRestrictiveFilters(input: GetInstructorToolInput): boolean {
+  return (
+    input.minResult !== undefined ||
+    input.maxDifficulty !== undefined ||
+    input.minCommentCount !== undefined ||
+    input.offeredOnly === true
+  );
+}
+
 function readText(value: unknown): string | null {
   if (value === null || value === undefined) return null;
   const text = String(value).trim();
@@ -99,7 +108,27 @@ export async function getInstructorForAssistant(
   if (error) throw new McpToolError("temporarily_unavailable");
 
   const totalCount = typeof count === "number" && count >= 0 ? count : 0;
-  if (totalCount === 0) throw new McpToolError("not_found");
+  if (totalCount === 0) {
+    if (hasRestrictiveFilters(input)) {
+      const { count: existenceCount, error: existenceError } = await supabaseServer
+        .from(PROF_COURSE_TABLE)
+        .select(PROF_COURSE_COLUMNS, { count: "exact", head: true })
+        .eq("prof_id", input.name)
+        .abortSignal(signal);
+
+      if (existenceError) throw new McpToolError("temporarily_unavailable");
+      if (typeof existenceCount === "number" && existenceCount > 0) {
+        return {
+          name: input.name,
+          page: input.page,
+          totalCount: 0,
+          hasMore: false,
+          courses: [],
+        };
+      }
+    }
+    throw new McpToolError("not_found");
+  }
 
   const courses = toRows(data)
     .map((row) => projectCourse(row, input.name))

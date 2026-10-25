@@ -1,4 +1,5 @@
-import getScheduleList from "@/lib/database/get-schedule-list";
+import { fetchScheduleList, ScheduleListError } from "@/lib/database/get-schedule-list";
+import { McpToolError } from "@/lib/mcp/errors";
 import type {
   CourseSection,
   GetCourseSectionsInput,
@@ -122,7 +123,15 @@ function projectSection(entry: unknown, courseUrl: string): CourseSection | null
 export async function getCourseSections(
   input: GetCourseSectionsInput,
 ): Promise<GetCourseSectionsOutput> {
-  const entries = await getScheduleList(input.code, input.instructor);
+  let entries;
+  try {
+    ({ sections: entries } = await fetchScheduleList(input.code, input.instructor));
+  } catch (error) {
+    if (error instanceof ScheduleListError) {
+      throw new McpToolError("temporarily_unavailable");
+    }
+    throw error;
+  }
 
   const courseUrl = absoluteUrl(buildCoursePath(input.code));
   const sections = (Array.isArray(entries) ? entries : [])
