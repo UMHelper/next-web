@@ -823,6 +823,8 @@ describe("assistant V2.3.5-A integration (real tools, scripted model)", () => {
     expect(data.getCourse).toHaveBeenCalledWith(expect.objectContaining({ code: "GELH1000" }));
     const firstCall = runs().at(-1)!.modelCalls[0];
     expect(firstCall.referent).toMatchObject({ kind: "page", courseCode: "GELH1000" });
+    expect(screen.getByText("Ratings suggest moderate difficulty overall.")).toBeTruthy();
+    expect(screen.queryByRole("article", { name: "GELH1000" })).toBeNull();
   }, 60_000);
 
   it("J5 partial failure: a failed search and a populated search stay distinct", async () => {
@@ -848,6 +850,8 @@ describe("assistant V2.3.5-A integration (real tools, scripted model)", () => {
       .find((out) => out.includes("temporarily_unavailable") || out.includes("not_found"));
     expect(reviewOutput).toContain("temporarily_unavailable");
     expect(reviewOutput).not.toContain("not_found");
+    expect(screen.getByText("I couldn't read the reviews right now.")).toBeTruthy();
+    expect(screen.queryByRole("article", { name: "GELH1000" })).toBeNull();
   }, 60_000);
 
   it("keeps cards and visible-blocks context after closing and reopening the sidebar", async () => {
