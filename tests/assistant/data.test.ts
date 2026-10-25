@@ -17,6 +17,9 @@ const db = vi.hoisted(() => {
 vi.mock("@/lib/supabase/server", () => ({ default: { from: db.from } }));
 vi.mock("@/lib/mcp/data/search-catalog", () => ({ searchCatalog: vi.fn() }));
 vi.mock("@/lib/database/get-course-info", () => ({ getCourseInfo: vi.fn() }));
+vi.mock("@/lib/database/course-alias", () => ({
+  resolveCourseAlias: vi.fn(async (code: string) => ({ primaryCode: code.trim().toUpperCase(), aka: [] })),
+}));
 vi.mock("@/lib/database/get-prof-info", () => ({ getReviewInfo: vi.fn() }));
 
 import { getCourseInfo } from "@/lib/database/get-course-info";
@@ -42,6 +45,7 @@ const courseRow = {
   Offering_Department: "ACCT",
   Credits: "3",
   Is_Offered: 1,
+  equivalent_codes: ["ACCT900"],
 };
 
 describe("assistant catalog data", () => {
@@ -73,6 +77,7 @@ describe("assistant catalog data", () => {
           department: "ACCT",
           credits: "3",
           isOffered: true,
+          aka: [],
           url: "https://umeh.top/course/ACCT1000",
         },
       ],
@@ -128,6 +133,7 @@ describe("assistant catalog data", () => {
     expect(db.builder.range).toHaveBeenCalledWith(0, 19);
     expect(result).toMatchObject({ type: "course", totalCount: 1 });
     expect(result.type === "course" ? result.results[0]?.courseCode : null).toBe("ACCT1000");
+    expect(result.type === "course" ? result.results[0]?.aka : []).toEqual(["ACCT900"]);
   });
 
   it("counts advanced-filtered courses with a head-only exact count", async () => {

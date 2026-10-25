@@ -1,3 +1,4 @@
+import { resolveCourseAlias } from "@/lib/database/course-alias";
 import { getCourseInfo } from "@/lib/database/get-course-info";
 import { McpToolError } from "@/lib/mcp/errors";
 import { absoluteUrl, buildCoursePath } from "@/lib/site";
@@ -35,7 +36,8 @@ export async function getCourseText(
 ): Promise<CourseTextOutput> {
   if (signal.aborted) throw new McpToolError("temporarily_unavailable");
 
-  const row = await getCourseInfo(code);
+  const alias = await resolveCourseAlias(code);
+  const row = await getCourseInfo(alias.primaryCode);
   if (!row || !row.New_code) throw new McpToolError("not_found");
 
   const raw = part === "description" ? row.courseDescription : row.ilo;
@@ -47,6 +49,7 @@ export async function getCourseText(
     titleZh: readText(row.courseTitleChi),
     text,
     truncated,
+    aka: alias.aka,
     url: absoluteUrl(buildCoursePath(row.New_code)),
   };
 }

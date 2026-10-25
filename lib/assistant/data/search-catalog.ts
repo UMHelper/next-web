@@ -7,7 +7,7 @@ import supabaseServer from "@/lib/supabase/server";
 import type { CountCoursesInput, SearchCatalogToolInput } from "../tool-schemas";
 
 const COURSE_COLUMNS =
-  "New_code,courseTitleEng,courseTitleChi,Offering_Unit,Offering_Department,Credits,Is_Offered";
+  "New_code,courseTitleEng,courseTitleChi,Offering_Unit,Offering_Department,Credits,Is_Offered,equivalent_codes";
 
 type CourseQuery = SearchCatalogToolInput | CountCoursesInput;
 
@@ -53,6 +53,15 @@ function toRows(value: unknown): Record<string, unknown>[] {
   );
 }
 
+function readCodes(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((entry): entry is string => typeof entry === "string")
+    .map((entry) => entry.trim().toUpperCase())
+    .filter(Boolean)
+    .slice(0, 20);
+}
+
 function projectCourse(row: Record<string, unknown>): CatalogCourse | null {
   const code = readText(row.New_code);
   if (!code) return null;
@@ -65,6 +74,7 @@ function projectCourse(row: Record<string, unknown>): CatalogCourse | null {
     department: readText(row.Offering_Department),
     credits: readText(row.Credits),
     isOffered: Number(row.Is_Offered) === 1,
+    aka: readCodes(row.equivalent_codes),
     url: absoluteUrl(buildCoursePath(code)),
   };
 }
@@ -99,7 +109,10 @@ function applyTerm(builder: any, input: CourseQuery): any {
   if (!term) return builder;
 
   const filters = SEARCH_FIELDS[input.searchIn].map((field) => `${field}.ilike.%${term}%`).join(",");
-  return builder.or(filters);
+  const alias = /^[A-Za-z]{4}\d{4}$/.test(term)
+    ? `,equivalent_codes.cs.{${term.toUpperCase()}}`
+    : "";
+  return builder.or(`${filters}${alias}`);
 }
 
 async function searchCoursesDirect(

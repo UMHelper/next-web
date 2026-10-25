@@ -108,6 +108,8 @@ describe("ASSISTANT_PROMPT", () => {
     "get_course_description",
     "get_course_ilo",
     "read at least one page",
+    "a.k.a. OLD",
+    "primary courseCode is authoritative",
     "course-code prefix",
   ])("contains %s", (rule) => {
     expect(ASSISTANT_PROMPT).toContain(rule);

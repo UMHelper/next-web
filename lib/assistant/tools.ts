@@ -84,7 +84,7 @@ export function createAssistantTools() {
     defineTool({
       name: "search_catalog",
       description:
-        "Search courses or instructors. For courses, filter by faculty, department, exact credits, course type, programme level, suggested year and offered status; sort by code, title, credits, suggested year or offered status; use searchIn=content to search titles, descriptions and ILOs. For a subject's full course list use the code prefix (e.g. ACCT). Returns up to 50 courses per page with totalCount and hasMore.",
+        "Search courses or instructors. For courses, filter by faculty, department, exact credits, course type, programme level, suggested year and offered status; sort by code, title, credits, suggested year or offered status; use searchIn=content to search titles, descriptions and ILOs. For a subject's full course list use the code prefix (e.g. ACCT). Course results include `aka` aliases; the primary courseCode is authoritative. Returns up to 50 courses per page with totalCount and hasMore.",
       parameters: searchCatalogToolParametersSchema,
       execute: (args) =>
         runReadOnlyTool(
@@ -112,7 +112,7 @@ export function createAssistantTools() {
     defineTool({
       name: "get_course",
       description:
-        "Get a course overview: credits, offering unit, a short description and the instructors who taught it with their rating summaries. Use get_course_description or get_course_ilo when the full text is needed.",
+        "Get a course overview: credits, offering unit, a short description, `aka` old codes and the instructors who taught it with their rating summaries. The primary courseCode is authoritative. Use get_course_description or get_course_ilo when the full text is needed.",
       parameters: z.object({ code: codeParam, page: pageParam }),
       execute: (args) =>
         runReadOnlyTool("get_course", args, getCourseInputSchema, getCourseOutputSchema, (input) => getCourse(input)),
@@ -120,7 +120,7 @@ export function createAssistantTools() {
     defineTool({
       name: "get_course_description",
       description:
-        "Read one course's full catalog description (up to 6,000 characters). Use it when the student asks what the course covers, its topics or its content; do not use it for a simple credit, time or instructor question.",
+        "Read one course's full catalog description (up to 6,000 characters), including its `aka` old codes. Use it when the student asks what the course covers, its topics or its content; do not use it for a simple credit, time or instructor question.",
       parameters: getCourseTextInputSchema,
       execute: (args) =>
         runReadOnlyTool(
@@ -134,7 +134,7 @@ export function createAssistantTools() {
     defineTool({
       name: "get_course_ilo",
       description:
-        "Read one course's Intended Learning Outcomes (up to 6,000 characters). Use it when the student asks what they will learn, the learning outcomes or the skills the course develops.",
+        "Read one course's Intended Learning Outcomes (up to 6,000 characters), including its `aka` old codes. Use it when the student asks what they will learn, the learning outcomes or the skills the course develops.",
       parameters: getCourseTextInputSchema,
       execute: (args) =>
         runReadOnlyTool(

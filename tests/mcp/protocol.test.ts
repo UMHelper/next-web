@@ -109,6 +109,7 @@ const SEARCH_CATALOG_OUTPUT = {
   results: [
     {
       courseCode: "ACCT1000",
+      aka: [],
       titleEn: "Financial Accounting",
       titleZh: null,
       faculty: "FBA",
@@ -123,6 +124,7 @@ const SEARCH_CATALOG_OUTPUT = {
 const GET_COURSE_OUTPUT = {
   course: {
     courseCode: "ACCT1000",
+    aka: [],
     titleEn: "Financial Accounting",
     titleZh: null,
     credits: "3",

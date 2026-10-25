@@ -166,6 +166,7 @@ export async function searchCatalog(input: SearchCatalogInput, _signal?: AbortSi
     department: course.department,
     credits: course.credits,
     isOffered: true,
+    aka: [],
     url: absoluteUrl(buildCoursePath(course.code)),
   }));
   return { type: "course", page: 1, hasMore: false, totalCount: results.length, results };
@@ -189,6 +190,7 @@ export async function getCourse(input: GetCourseInput): Promise<GetCourseOutput>
       courseType: null,
       duration: null,
       description: course.description,
+      aka: [],
       isOffered: true,
       url: absoluteUrl(buildCoursePath(course.code)),
     },
@@ -269,6 +271,7 @@ function projectEvalCourse(course: FixtureCourse) {
     department: course.department,
     credits: course.credits,
     isOffered: true,
+    aka: [],
     url: absoluteUrl(buildCoursePath(course.code)),
   };
 }
@@ -346,6 +349,7 @@ export async function getCourseText(
     titleZh: course.titleZh,
     text: part === "description" ? course.description : course.ilo,
     truncated: false,
+    aka: [],
     url: absoluteUrl(buildCoursePath(course.code)),
   };
 }

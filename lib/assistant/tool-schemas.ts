@@ -128,6 +128,7 @@ export const courseTextOutputSchema = z.object({
   titleZh: z.string().nullable(),
   text: z.string().nullable(),
   truncated: z.boolean(),
+  aka: z.array(z.string()).max(20).default([]),
   url: z.string().url(),
 });
 
