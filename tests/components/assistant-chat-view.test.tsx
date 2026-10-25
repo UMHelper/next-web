@@ -115,6 +115,51 @@ describe("AssistantChatView", () => {
     expect(screen.getByRole("button", { name: "Copy reply" })).toBeTruthy();
   });
 
+  it("labels count and course-text tools instead of falling back to Chinese", () => {
+    renderView({
+      messages: [
+        { id: "u1", role: "user", content: "CISC1001 xuqiwen 如何？" },
+        {
+          id: "a1",
+          role: "assistant",
+          content: "",
+          toolCalls: [
+            {
+              id: "call-1",
+              type: "function",
+              function: { name: "get_course_reviews", arguments: '{"code":"CISC1001","instructor":"XU QI WEN"}' },
+            },
+            {
+              id: "call-2",
+              type: "function",
+              function: { name: "count_reviews", arguments: '{"code":"CISC1001","instructor":"XU QI WEN"}' },
+            },
+            {
+              id: "call-3",
+              type: "function",
+              function: { name: "get_course_ilo", arguments: '{"code":"CISC1001"}' },
+            },
+            {
+              id: "call-4",
+              type: "function",
+              function: { name: "custom_tool", arguments: "{}" },
+            },
+          ],
+        },
+        { id: "t1", role: "tool", toolCallId: "call-1", content: "ok" },
+        { id: "t2", role: "tool", toolCallId: "call-2", content: "ok" },
+        { id: "t3", role: "tool", toolCallId: "call-3", content: "ok" },
+        { id: "t4", role: "tool", toolCallId: "call-4", content: "ok" },
+      ],
+    });
+
+    expect(screen.getByText("Read reviews")).toBeTruthy();
+    expect(screen.getByText("Counted reviews")).toBeTruthy();
+    expect(screen.getByText("Read learning outcomes")).toBeTruthy();
+    expect(screen.getByText("Used custom_tool")).toBeTruthy();
+    expect(screen.queryByText(/已使用/)).toBeNull();
+  });
+
   it("renders GFM tables as real tables", () => {
     renderView({
       messages: [
