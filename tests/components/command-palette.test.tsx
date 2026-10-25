@@ -85,16 +85,14 @@ describe("CommandPalette", () => {
     expect(window.localStorage.getItem("umeh:command-palette-recents-v2")).toContain("ACCT1000");
   });
 
-  it("redirects signed-out Ask AI to the sign-in page", async () => {
+  it("does not show an AI option when signed out", async () => {
     mocks.auth.isSignedIn = false;
     const input = renderPalette();
     fireEvent.change(input, { target: { value: "ACCT" } });
 
-    const signIn = await screen.findByRole("option", { name: /Sign in to ask AI/ });
-    fireEvent.click(signIn);
-
+    await screen.findByRole("option", { name: /ACCT1000/ });
+    expect(screen.queryByRole("option", { name: /Ask AI|Sign in/ })).toBeNull();
     expect(openAssistant).not.toHaveBeenCalled();
-    expect(push).toHaveBeenCalledWith("/sign-in?redirect_url=%2F");
   });
 
   it("offers Ask AI with the current query", async () => {
