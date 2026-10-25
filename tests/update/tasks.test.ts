@@ -66,6 +66,43 @@ describe("update tasks", () => {
     });
   });
 
+  it("adds an auto-matched historical equivalence to the insert payload", async () => {
+    (createUmFetcher as any).mockReturnValue(async () => null);
+    const client = {
+      rpc: vi.fn((name: string) => {
+        if (name === "admin_resolve_known_codes") return Promise.resolve({ data: [], error: null });
+        if (name === "admin_match_course_equivalences") {
+          return Promise.resolve({
+            data: [{
+              primary_code: "ACCT1000",
+              equivalent_code: "ACCT9999",
+              confidence: 0.9,
+              source: "auto:title+number",
+            }],
+            error: null,
+          });
+        }
+        return Promise.resolve({ data: { upserted: 1, linked: 1, marked: 0 }, error: null });
+      }),
+    };
+
+    await UPDATE_TASKS["check-courses"].run(context(client));
+
+    expect(client.rpc).toHaveBeenCalledWith("admin_upsert_offered_courses", {
+      payload: {
+        inserts: [
+          expect.objectContaining({
+            New_code: "ACCT1000",
+            equivalent_code: "ACCT9999",
+            equivalence_source: "auto:title+number",
+            equivalence_confidence: 0.9,
+          }),
+        ],
+        offered_codes: [],
+      },
+    });
+  });
+
   it("set-offered marks unique codes", async () => {
     const client = { rpc: vi.fn().mockResolvedValue({ data: 1, error: null }) };
     await UPDATE_TASKS["set-offered"].run(context(client));

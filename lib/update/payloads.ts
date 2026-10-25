@@ -49,6 +49,39 @@ export function buildOfferedCourseInserts(
   });
 }
 
+export type EquivalenceMatchCourse = {
+  code: string;
+  title: string;
+  credits: string;
+  description: string;
+};
+
+export function buildEquivalenceMatchInput(
+  rows: ScheduleRow[],
+  missingCodes: string[],
+  umCache: Map<string, UmCourse | null>,
+) {
+  const byCode = firstRowByCode(rows);
+
+  return {
+    courses: missingCodes.map((rawCode): EquivalenceMatchCourse => {
+      const code = rawCode.trim().toUpperCase();
+      const row = byCode.get(code);
+      const um = umCache.get(code) ?? null;
+      return {
+        code,
+        title: um?.courseTitle || row?.title || "",
+        credits: um?.credits || "3",
+        description: um?.courseDescription || "",
+      };
+    }),
+    // Never match two new codes from the same import batch to each other. This
+    // is what keeps TLL1002C and TLL1002P from linking to one another instead of
+    // their shared LAWS1002 predecessor.
+    exclude_codes: uniqueCourseCodes(rows),
+  };
+}
+
 export type ApplyRow = {
   code: string;
   prof: string;

@@ -19,8 +19,8 @@ const TERMS_EN_PAGE = "app/terms-of-service/page.tsx";
 const TERMS_ZH_PAGE = "app/terms-of-service/zh/page.tsx";
 const MCP_RESOURCE_METADATA = "app/.well-known/oauth-protected-resource/mcp/route.ts";
 
-const PLUGIN_UPDATED_DATE = "2026-10-05";
-const PREVIOUS_UPDATED_DATE = "2025-08-22";
+const PLUGIN_UPDATED_DATE = "2026-10-24";
+const PREVIOUS_UPDATED_DATE = "2026-10-05";
 
 const PUBLIC_PAGES = [
   "app/page.tsx",

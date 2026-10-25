@@ -21,7 +21,7 @@ export const metadata: Metadata = {
  * 正文沿用 `lib/privacy-policy.ts` 的既有章節，這裡只追加 MCP 服務的資料流、
  * 日誌與保留、撤銷授權與第三方平台政策段落。
  */
-const PLUGIN_UPDATED_DATE = '2026-10-05'
+const PLUGIN_UPDATED_DATE = '2026-10-24'
 
 const pluginSections: LegalSection[] = [
     {

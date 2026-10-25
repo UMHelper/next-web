@@ -36,6 +36,17 @@ type Course = {
   ilo: string | null;
 };
 
+type CourseEquivalence = {
+  code: string;
+  source: string;
+  confidence: number | null;
+};
+
+type CourseEquivalences = {
+  primary_code: string;
+  equivalents: CourseEquivalence[];
+};
+
 const PAGE_SIZE = 50;
 
 export default function AdminCoursesClient() {
@@ -47,6 +58,9 @@ export default function AdminCoursesClient() {
   const [coursesLoadingMore, setCoursesLoadingMore] = useState(false);
   const [editing, setEditing] = useState<Course | null>(null);
   const [draft, setDraft] = useState<Partial<Course>>({});
+  const [equivalences, setEquivalences] = useState<CourseEquivalences | null>(null);
+  const [equivalentsDraft, setEquivalentsDraft] = useState("");
+  const [savingEquivalents, setSavingEquivalents] = useState(false);
   const coursesRequestRef = useRef(0);
 
   const buildParams = useCallback((page: number) => {
@@ -94,9 +108,51 @@ export default function AdminCoursesClient() {
     void loadCourses(coursePage + 1, true);
   }, [loadCourses, coursePage, loadingCourses, coursesLoadingMore, hasMoreCourses]);
 
+  async function loadEquivalences(code: string) {
+    try {
+      const response = await fetch(`/api/admin/courses/${encodeURIComponent(code)}/equivalences`);
+      const body = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(body?.error?.message ?? "Failed to load equivalences");
+      setEquivalences(body);
+      setEquivalentsDraft((body?.equivalents ?? []).map((item: CourseEquivalence) => item.code).join(", "));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to load equivalences");
+    }
+  }
+
   function openEdit(course: Course) {
     setEditing(course);
     setDraft(course);
+    setEquivalences(null);
+    setEquivalentsDraft("");
+    void loadEquivalences(course.New_code);
+  }
+
+  async function saveEquivalences() {
+    if (!editing) return;
+    setSavingEquivalents(true);
+    try {
+      const codes = equivalentsDraft
+        .split(/[\s,]+/)
+        .map((code) => code.trim().toUpperCase())
+        .filter(Boolean);
+
+      const response = await fetch(`/api/admin/courses/${encodeURIComponent(editing.New_code)}/equivalences`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ equivalent_codes: codes }),
+      });
+      const body = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(body?.error?.message ?? "Failed to update equivalences");
+
+      setEquivalences(body);
+      setEquivalentsDraft((body?.equivalents ?? []).map((item: CourseEquivalence) => item.code).join(", "));
+      toast.success(`Equivalences updated for ${body?.primary_code ?? editing.New_code}`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to update equivalences");
+    } finally {
+      setSavingEquivalents(false);
+    }
   }
 
   async function saveCourse() {
@@ -254,6 +310,31 @@ export default function AdminCoursesClient() {
             </div>
             <Textarea className="sm:col-span-2" value={draft.courseDescription ?? ""} onChange={(e) => setDraft({ ...draft, courseDescription: e.target.value })} placeholder="Course description" />
             <Textarea className="sm:col-span-2" value={draft.ilo ?? ""} onChange={(e) => setDraft({ ...draft, ilo: e.target.value })} placeholder="ILO" />
+            <div className="space-y-2 rounded-md border p-3 sm:col-span-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="text-sm font-medium">Course equivalences</div>
+                <div className="text-xs text-muted-foreground">
+                  Primary: {equivalences?.primary_code ?? editing?.New_code}
+                </div>
+              </div>
+              <Input
+                value={equivalentsDraft}
+                onChange={(e) => setEquivalentsDraft(e.target.value)}
+                placeholder="CISC1001, LAWS1017"
+                disabled={savingEquivalents}
+              />
+              <div className="text-xs text-muted-foreground">
+                Comma-separated historical codes. They redirect to the primary code and share its instructors/reviews.
+              </div>
+              <Button
+                size="xs"
+                variant="outline"
+                onClick={() => void saveEquivalences()}
+                disabled={savingEquivalents || !editing}
+              >
+                {savingEquivalents ? "Saving…" : "Save equivalences"}
+              </Button>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditing(null)}>Cancel</Button>

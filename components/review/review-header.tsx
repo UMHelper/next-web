@@ -1,8 +1,8 @@
-import React from "react";
 import Link from "next/link";
 import { ChevronRightCircle } from "lucide-react";
 
 import { SkinIcon } from "@/components/skin-icon";
+import { CourseAlias } from "@/components/course/course-alias";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -10,6 +10,7 @@ import { Progress } from "@/components/ui/progress";
 import { TimetableScheduleCard } from "@/components/timetable-schedule-card";
 import { getAppConfig } from "@/lib/config/app-config";
 import { shouldShowOfferedBadge } from "@/lib/config/offered-badge";
+import { normalizeEquivalentCodes } from "@/lib/database/course-equivalences";
 import { getCourseInfo } from "@/lib/database/get-course-info";
 import getScheduleList from "@/lib/database/get-schedule-list";
 import type { ProfWithCourseRow } from "@/lib/database/types";
@@ -36,6 +37,8 @@ export async function ReviewHeader({
     getAppConfig(),
     is_offered ? getScheduleList(code, prof) : Promise.resolve([]),
   ]);
+  const equivalentCodes = normalizeEquivalentCodes(course_info['equivalent_codes'])
+    .filter((equivalent) => equivalent !== String(course_info['New_code'] ?? code).toUpperCase());
 
   return (
     <div className='bg-gradient-to-r from-brand-from to-brand-to text-white p-6'>
@@ -56,6 +59,7 @@ export async function ReviewHeader({
                 <ChevronRightCircle size={14} strokeWidth={1.5} />
               </Link>
             </div>
+            <CourseAlias codes={equivalentCodes} variant="plain" className="mb-2" />
             <div className='text-base'>{course_info["courseTitleEng"]}</div>
             <div className='text-sm'>{course_info["courseTitleChi"]}</div>
             <div className='pb-3 flex-row flex space-x-2 mt-4'>

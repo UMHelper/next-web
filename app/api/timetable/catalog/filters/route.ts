@@ -11,7 +11,7 @@ export async function GET() {
   if (!userId) return apiError("unauthorized", "Sign in required", 401);
 
   const { data, error } = await supabaseAdmin
-    .from("course_noporf")
+    .from("course_catalog")
     .select("Offering_Unit,Offering_Department");
 
   if (error) {

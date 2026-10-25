@@ -158,7 +158,13 @@ describe("fetchPopularCourses", () => {
         };
       }
 
-      if (table === "course_noporf") {
+      if (table === "course_equivalences") {
+        return {
+          select: () => Promise.resolve({ data: [], error: null }),
+        };
+      }
+
+      if (table === "course_catalog") {
         return {
           select: () => ({
             in: () =>
