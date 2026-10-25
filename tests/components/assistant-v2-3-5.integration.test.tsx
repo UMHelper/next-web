@@ -764,6 +764,9 @@ describe("assistant V2.3.5-A integration (real tools, scripted model)", () => {
     await typeAndSend("How many credits is GEST1004?");
     expect(screen.getByText("GEST1004 is worth 3 credits.")).toBeTruthy();
     expect(screen.queryByRole("article", { name: "GEST1004" })).toBeNull();
+    const turnCalls = runs().at(-1)!.modelCalls;
+    expect(turnCalls.some((call) => call.toolNames.includes("get_course"))).toBe(true);
+    expect(turnCalls.flatMap((call) => call.toolResults).some((out) => out.includes("GEST1004"))).toBe(true);
   }, 60_000);
 
   it("keeps a two-course comparison free of stacked cards", async () => {
@@ -774,6 +777,19 @@ describe("assistant V2.3.5-A integration (real tools, scripted model)", () => {
     expect(screen.getByRole("button", { name: "Show GEST1004 details" })).toBeTruthy();
     expect(screen.queryByRole("article", { name: "GELH1000" })).toBeNull();
     expect(screen.queryByRole("article", { name: "GEST1004" })).toBeNull();
+    const turnResults = runs().at(-1)!.modelCalls.flatMap((call) => call.toolResults);
+    const courseCodes = turnResults
+      .map((out) => {
+        try {
+          const parsed = JSON.parse(out) as { course?: { courseCode?: string } };
+          return parsed.course?.courseCode;
+        } catch {
+          return undefined;
+        }
+      })
+      .filter((code): code is string => typeof code === "string");
+    expect(courseCodes.filter((code) => code === "GELH1000").length).toBeGreaterThanOrEqual(1);
+    expect(courseCodes.filter((code) => code === "GEST1004").length).toBeGreaterThanOrEqual(1);
   }, 60_000);
 
   it("shows section cards on request and the incomplete note when data was cut", async () => {
