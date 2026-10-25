@@ -74,6 +74,30 @@ describe("HomeSearch", () => {
     expect(window.localStorage.getItem("umeh:command-palette-recents-v2")).toContain("ACCT1000");
   });
 
+  it("puts the original search action first and makes Enter run it", async () => {
+    render(<HomeSearch />);
+    const input = screen.getByRole("combobox");
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: "ACCT" } });
+
+    const searchRow = await screen.findByRole("option", { name: /Search courses for/ });
+    expect(searchRow.getAttribute("aria-selected")).toBe("true");
+
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(mocks.push).toHaveBeenCalledWith("/search/course/ACCT");
+  });
+
+  it("uses the submit button for the catalog search, choosing instructors for names", async () => {
+    render(<HomeSearch />);
+    const input = screen.getByRole("combobox");
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: "CHAN TAI MAN" } });
+
+    await screen.findByRole("option", { name: /Search instructors for/ });
+    fireEvent.click(screen.getByRole("button", { name: "Search" }));
+    expect(mocks.push).toHaveBeenCalledWith("/search/instructor/CHAN%20TAI%20MAN");
+  });
+
   it("opens the assistant for Ask AI", async () => {
     render(<HomeSearch />);
     const input = screen.getByRole("combobox");

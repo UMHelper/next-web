@@ -16,6 +16,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { openAssistant } from "@/lib/assistant/open";
+import { buildSearchPath } from "@/lib/site";
 import { cn } from "@/lib/utils";
 
 type CourseHit = {
@@ -32,13 +33,14 @@ type SearchPayload = { courses: CourseHit[]; instructors: InstructorHit[] };
 
 type HomeItem = {
   id: string;
-  kind: "course" | "instructor" | "tip" | "ai";
+  kind: "course" | "instructor" | "tip" | "ai" | "search";
   title: string;
   subtitle?: string;
   trailing?: string;
   href?: string;
   query?: string;
   icon?: "course" | "instructor";
+  searchType?: "course" | "instructor";
 };
 
 type HomeGroup = { key: string; title: string; items: HomeItem[] };
@@ -90,7 +92,7 @@ function Highlight({ text, query }: { text: string; query: string }) {
   return (
     <>
       {text.slice(0, at)}
-      <mark className="rounded-sm bg-brand/10 px-0.5 text-foreground">
+      <mark className="rounded-sm bg-brand/30 px-0.5 text-background">
         {text.slice(at, at + needle.length)}
       </mark>
       {text.slice(at + needle.length)}
@@ -107,6 +109,7 @@ function itemIcon(item: HomeItem) {
   if (item.kind === "course") return <BookOpen className="h-4 w-4" aria-hidden />;
   if (item.kind === "instructor") return <User className="h-4 w-4" aria-hidden />;
   if (item.kind === "ai") return <Sparkles className="h-4 w-4" aria-hidden />;
+  if (item.kind === "search") return <Search className="h-4 w-4" aria-hidden />;
   return <FileText className="h-4 w-4" aria-hidden />;
 }
 
@@ -194,6 +197,22 @@ export function HomeSearch() {
     };
   }, []);
 
+  const searchType = (term: string): "course" | "instructor" =>
+    /[0-9]/.test(term) || !term.includes(" ") ? "course" : "instructor";
+
+  const searchTarget = (term: string) => buildSearchPath(searchType(term), term.trim());
+
+  const runSearch = () => {
+    const term = query.trim();
+    if (!term) {
+      inputRef.current?.focus();
+      return;
+    }
+    setOpen(false);
+    inputRef.current?.blur();
+    router.push(searchTarget(term));
+  };
+
   const groups = useMemo<HomeGroup[]>(() => {
     const term = query.trim();
     if (!term) {
@@ -204,6 +223,22 @@ export function HomeSearch() {
     }
 
     const lowered = term.toLowerCase();
+    const type = searchType(term);
+    const next: HomeGroup[] = [
+      {
+        key: "search",
+        title: "",
+        items: [
+          {
+            id: "home-search-action",
+            kind: "search",
+            title: type === "instructor" ? `Search instructors for “${term}”` : `Search courses for “${term}”`,
+            query: term,
+            searchType: type,
+          },
+        ],
+      },
+    ];
     const courses: HomeItem[] = payload.courses.map((course) => ({
       id: `course-${course.code}`,
       kind: "course",
@@ -220,7 +255,6 @@ export function HomeSearch() {
       href: `/professor/${encodeURIComponent(instructor.name).replaceAll("%2F", "$")}`,
     }));
 
-    const next: HomeGroup[] = [];
     if (courses.length) next.push({ key: "courses", title: "Courses", items: courses });
     if (instructors.length) next.push({ key: "instructors", title: "Instructors", items: instructors });
     if (assistantEnabled) {
@@ -250,6 +284,12 @@ export function HomeSearch() {
         setQuery(item.query ?? item.title);
         setActive(0);
         inputRef.current?.focus();
+        return;
+      }
+      if (item.kind === "search") {
+        setOpen(false);
+        inputRef.current?.blur();
+        router.push(buildSearchPath(item.searchType ?? "course", item.query ?? query.trim()));
         return;
       }
       setOpen(false);
@@ -288,12 +328,12 @@ export function HomeSearch() {
       <div className="relative">
         <div
           className={cn(
-            "rounded-lg border border-border/60 bg-white/20 p-2 shadow-md ring-1 ring-border/40 backdrop-blur-md transition-shadow",
+            "rounded-lg border border-border/60 bg-foreground/40 p-2 shadow-md ring-1 ring-border/40 backdrop-blur-md transition-shadow",
             open && "ring-brand/30",
           )}
         >
           <div className="flex items-center gap-3 px-2 md:px-3">
-            <Search className="h-5 w-5 shrink-0 text-white/80" aria-hidden />
+            <Search className="h-5 w-5 shrink-0 text-background/80" aria-hidden />
             <input
               ref={inputRef}
               value={query}
@@ -313,10 +353,10 @@ export function HomeSearch() {
               autoComplete="off"
               spellCheck={false}
               placeholder="Search courses or instructors…"
-              className="h-12 min-w-0 flex-1 bg-transparent text-base text-white caret-white outline-none placeholder:text-white/80 md:text-lg"
+              className="h-12 min-w-0 flex-1 bg-transparent text-base text-background caret-background outline-none placeholder:text-background/80 md:text-lg"
             />
-            {loading ? <Loader2 className="h-4 w-4 animate-spin text-white/80" aria-label="Searching" /> : null}
-            <kbd className="hidden shrink-0 rounded border border-border/60 bg-white/20 px-1.5 py-0.5 font-sans text-[11px] leading-none text-white/80 sm:inline">
+            {loading ? <Loader2 className="h-4 w-4 animate-spin text-background/80" aria-label="Searching" /> : null}
+            <kbd className="hidden shrink-0 rounded border border-border/60 bg-white/20 px-1.5 py-0.5 font-sans text-[11px] leading-none text-background/80 sm:inline">
               ⌘K
             </kbd>
             <button
@@ -337,16 +377,18 @@ export function HomeSearch() {
           <div
             id="home-search-list"
             role="listbox"
-            className="absolute left-0 right-0 top-full z-40 mt-2 max-h-[58vh] overflow-y-auto rounded-lg border border-border bg-background p-2 text-left shadow-xl"
+            className="absolute left-0 right-0 top-full z-40 mt-2 max-h-[58vh] overflow-y-auto rounded-lg border border-border/60 bg-foreground/90 p-2 text-left text-background shadow-xl backdrop-blur-xl"
           >
             {flat.length === 0 ? (
-              <p className="px-3 py-8 text-center text-sm text-muted-foreground">No results</p>
+              <p className="px-3 py-8 text-center text-sm text-background/80">No results</p>
             ) : (
               groups.map((group) => (
                 <div key={group.key} className="mb-2 last:mb-0">
-                  <div className="px-2 pb-1 pt-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                    {group.title}
-                  </div>
+                  {group.title ? (
+                    <div className="px-2 pb-1 pt-1 text-[11px] font-semibold uppercase tracking-wide text-background/80">
+                      {group.title}
+                    </div>
+                  ) : null}
                   <div className="space-y-0.5">
                     {group.items.map((item) => {
                       cursor += 1;
@@ -368,40 +410,39 @@ export function HomeSearch() {
                           className={cn(
                             "group flex w-full items-center gap-2.5 rounded-lg text-left text-sm transition-colors",
                             isTip
-                              ? "border border-border bg-background px-3 py-2.5 hover:border-brand/40 hover:bg-surface-subtle"
+                              ? "border border-border/60 bg-white/20 px-3 py-2.5 hover:bg-white/30"
                               : "px-2 py-2.5",
-                            selected && !isTip ? "bg-surface-subtle" : "",
-                            selected && isTip ? "border-brand/40 bg-surface-subtle" : "",
+                            selected ? "bg-white/20" : "",
                           )}
                         >
                           <span
                             className={cn(
                               "flex h-4 w-4 shrink-0 items-center justify-center",
-                              isTip ? "text-brand" : "text-muted-foreground",
+                              "text-background/80",
                             )}
                           >
                             {itemIcon(item)}
                           </span>
                           <span className="min-w-0 flex-1">
                             <span className="flex min-w-0 items-center gap-2">
-                              <span className="truncate text-sm text-foreground">
+                              <span className="truncate text-sm text-background">
                                 <Highlight text={item.title} query={query} />
                               </span>
                               {item.subtitle ? (
-                                <span className="min-w-0 truncate text-xs text-muted-foreground">
+                                <span className="min-w-0 truncate text-xs text-background/80">
                                   <Highlight text={item.subtitle} query={query} />
                                 </span>
                               ) : null}
                             </span>
                           </span>
                           {item.trailing ? (
-                            <span className="hidden shrink-0 text-[11px] text-muted-foreground sm:inline">
+                            <span className="hidden shrink-0 text-[11px] text-background/80 sm:inline">
                               {item.trailing}
                             </span>
                           ) : null}
                           <ArrowUpRight
                             className={cn(
-                              "h-4 w-4 shrink-0 text-muted-foreground transition-opacity",
+                              "h-4 w-4 shrink-0 text-background/80 transition-opacity",
                               isTip || selected ? "opacity-100" : "opacity-0 group-hover:opacity-100",
                             )}
                             aria-hidden
