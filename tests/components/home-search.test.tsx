@@ -50,7 +50,7 @@ describe("HomeSearch", () => {
     render(<HomeSearch />);
     const input = screen.getByRole("combobox", { name: "Search courses and instructors" });
     fireEvent.focus(input);
-
+    expect(screen.getAllByRole("button", { name: "Ask AI" }).length).toBeGreaterThan(0);
     expect(screen.getByText("Search tips")).toBeTruthy();
     expect(screen.getByText("ACCT1000")).toBeTruthy();
     expect(screen.queryByText(/財務會計/)).toBeNull();

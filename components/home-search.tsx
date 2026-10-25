@@ -38,6 +38,7 @@ type HomeItem = {
   trailing?: string;
   href?: string;
   query?: string;
+  icon?: "course" | "instructor";
 };
 
 type HomeGroup = { key: string; title: string; items: HomeItem[] };
@@ -46,9 +47,9 @@ const EMPTY: SearchPayload = { courses: [], instructors: [] };
 const RECENTS_KEY = "umeh:command-palette-recents-v2";
 
 const TIPS: HomeItem[] = [
-  { id: "tip-acct1000", kind: "tip", title: "ACCT1000", query: "ACCT1000" },
-  { id: "tip-acct", kind: "tip", title: "ACCT", query: "ACCT" },
-  { id: "tip-instructor", kind: "tip", title: "CHAN TAI MAN", query: "CHAN TAI MAN" },
+  { id: "tip-acct1000", kind: "tip", title: "ACCT1000", query: "ACCT1000", icon: "course" },
+  { id: "tip-acct", kind: "tip", title: "ACCT", query: "ACCT", icon: "course" },
+  { id: "tip-instructor", kind: "tip", title: "CHAN TAI MAN", query: "CHAN TAI MAN", icon: "instructor" },
 ];
 
 function readRecents(): HomeItem[] {
@@ -98,7 +99,12 @@ function Highlight({ text, query }: { text: string; query: string }) {
 }
 
 function itemIcon(item: HomeItem) {
-  if (item.kind === "course" || item.kind === "tip") return <BookOpen className="h-4 w-4" aria-hidden />;
+  if (item.kind === "tip") {
+    return item.icon === "instructor"
+      ? <User className="h-4 w-4" aria-hidden />
+      : <BookOpen className="h-4 w-4" aria-hidden />;
+  }
+  if (item.kind === "course") return <BookOpen className="h-4 w-4" aria-hidden />;
   if (item.kind === "instructor") return <User className="h-4 w-4" aria-hidden />;
   if (item.kind === "ai") return <Sparkles className="h-4 w-4" aria-hidden />;
   return <FileText className="h-4 w-4" aria-hidden />;
@@ -278,152 +284,162 @@ export function HomeSearch() {
   const visible = open;
 
   return (
-    <div ref={rootRef} className="relative z-30">
-      <div
-        className={cn(
-          "rounded-xl border border-border/60 bg-white/20 p-2 shadow-lg ring-1 ring-border/40 backdrop-blur-md transition-shadow",
-          open && "ring-2 ring-brand/30",
-        )}
-      >
-        <div className="flex items-center gap-3 px-2 md:px-3">
-          <Search className="h-5 w-5 shrink-0 text-white/80" aria-hidden />
-          <input
-            ref={inputRef}
-            value={query}
-            onChange={(event) => {
-              setQuery(event.target.value);
-              setOpen(true);
-              setActive(0);
-            }}
-            onFocus={() => setOpen(true)}
-            onKeyDown={onKeyDown}
-            role="combobox"
-            aria-expanded={visible}
-            aria-controls="home-search-list"
-            aria-activedescendant={flat[active] ? `home-search-${flat[active].id}` : undefined}
-            aria-autocomplete="list"
-            aria-label="Search courses and instructors"
-            autoComplete="off"
-            spellCheck={false}
-            placeholder="Search courses or instructors…"
-            className="h-12 min-w-0 flex-1 bg-transparent text-base text-white caret-white outline-none placeholder:text-white/80 md:text-lg"
-          />
-          {loading ? <Loader2 className="h-4 w-4 animate-spin text-white/80" aria-label="Searching" /> : null}
-          <kbd className="hidden shrink-0 rounded border border-border/60 bg-white/20 px-1.5 py-0.5 font-sans text-[11px] leading-none text-white/80 sm:inline">
-            ⌘K
-          </kbd>
-          <button
-            type="button"
-            aria-label="Search"
-            onClick={() => {
-              if (query.trim() && flat[0]) choose(flat[0]);
-              else inputRef.current?.focus();
-            }}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand text-brand-foreground shadow-sm transition-colors hover:bg-brand-strong"
-          >
-            <ArrowUp className="h-4 w-4" aria-hidden />
-          </button>
+    <div ref={rootRef} className="relative z-30 text-left">
+      <div className="relative">
+        <div
+          className={cn(
+            "rounded-lg border border-border/60 bg-white/20 p-2 shadow-md ring-1 ring-border/40 backdrop-blur-md transition-shadow",
+            open && "ring-brand/30",
+          )}
+        >
+          <div className="flex items-center gap-3 px-2 md:px-3">
+            <Search className="h-5 w-5 shrink-0 text-white/80" aria-hidden />
+            <input
+              ref={inputRef}
+              value={query}
+              onChange={(event) => {
+                setQuery(event.target.value);
+                setOpen(true);
+                setActive(0);
+              }}
+              onFocus={() => setOpen(true)}
+              onKeyDown={onKeyDown}
+              role="combobox"
+              aria-expanded={visible}
+              aria-controls="home-search-list"
+              aria-activedescendant={flat[active] ? `home-search-${flat[active].id}` : undefined}
+              aria-autocomplete="list"
+              aria-label="Search courses and instructors"
+              autoComplete="off"
+              spellCheck={false}
+              placeholder="Search courses or instructors…"
+              className="h-12 min-w-0 flex-1 bg-transparent text-base text-white caret-white outline-none placeholder:text-white/80 md:text-lg"
+            />
+            {loading ? <Loader2 className="h-4 w-4 animate-spin text-white/80" aria-label="Searching" /> : null}
+            <kbd className="hidden shrink-0 rounded border border-border/60 bg-white/20 px-1.5 py-0.5 font-sans text-[11px] leading-none text-white/80 sm:inline">
+              ⌘K
+            </kbd>
+            <button
+              type="button"
+              aria-label="Search"
+              onClick={() => {
+                if (query.trim() && flat[0]) choose(flat[0]);
+                else inputRef.current?.focus();
+              }}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand text-brand-foreground shadow-sm transition-colors hover:bg-brand-strong"
+            >
+              <ArrowUp className="h-4 w-4" aria-hidden />
+            </button>
+          </div>
         </div>
+
+        {visible ? (
+          <div
+            id="home-search-list"
+            role="listbox"
+            className="absolute left-0 right-0 top-full z-40 mt-2 max-h-[58vh] overflow-y-auto rounded-lg border border-border bg-background p-2 text-left shadow-xl"
+          >
+            {flat.length === 0 ? (
+              <p className="px-3 py-8 text-center text-sm text-muted-foreground">No results</p>
+            ) : (
+              groups.map((group) => (
+                <div key={group.key} className="mb-2 last:mb-0">
+                  <div className="px-2 pb-1 pt-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    {group.title}
+                  </div>
+                  <div className="space-y-0.5">
+                    {group.items.map((item) => {
+                      cursor += 1;
+                      const index = cursor;
+                      const selected = index === active;
+                      const isTip = item.kind === "tip";
+                      return (
+                        <button
+                          key={item.id}
+                          id={`home-search-${item.id}`}
+                          ref={(node) => {
+                            itemRefs.current[index] = node;
+                          }}
+                          type="button"
+                          role="option"
+                          aria-selected={selected}
+                          onMouseEnter={() => setActive(index)}
+                          onClick={() => choose(item)}
+                          className={cn(
+                            "group flex w-full items-center gap-2.5 rounded-lg text-left text-sm transition-colors",
+                            isTip
+                              ? "border border-border bg-background px-3 py-2.5 hover:border-brand/40 hover:bg-surface-subtle"
+                              : "px-2 py-2.5",
+                            selected && !isTip ? "bg-surface-subtle" : "",
+                            selected && isTip ? "border-brand/40 bg-surface-subtle" : "",
+                          )}
+                        >
+                          <span
+                            className={cn(
+                              "flex h-4 w-4 shrink-0 items-center justify-center",
+                              isTip ? "text-brand" : "text-muted-foreground",
+                            )}
+                          >
+                            {itemIcon(item)}
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="flex min-w-0 items-center gap-2">
+                              <span className="truncate text-sm text-foreground">
+                                <Highlight text={item.title} query={query} />
+                              </span>
+                              {item.subtitle ? (
+                                <span className="min-w-0 truncate text-xs text-muted-foreground">
+                                  <Highlight text={item.subtitle} query={query} />
+                                </span>
+                              ) : null}
+                            </span>
+                          </span>
+                          {item.trailing ? (
+                            <span className="hidden shrink-0 text-[11px] text-muted-foreground sm:inline">
+                              {item.trailing}
+                            </span>
+                          ) : null}
+                          <ArrowUpRight
+                            className={cn(
+                              "h-4 w-4 shrink-0 text-muted-foreground transition-opacity",
+                              isTip || selected ? "opacity-100" : "opacity-0 group-hover:opacity-100",
+                            )}
+                            aria-hidden
+                          />
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        ) : null}
       </div>
 
-      {visible ? (
-        <div
-          id="home-search-list"
-          role="listbox"
-          className="absolute left-0 right-0 top-full z-40 mt-2 max-h-[58vh] overflow-y-auto rounded-lg border border-border bg-background p-2 shadow-xl"
-        >
-          {flat.length === 0 ? (
-            <p className="px-3 py-8 text-center text-sm text-muted-foreground">No results</p>
-          ) : (
-            groups.map((group) => (
-              <div key={group.key} className="mb-2 last:mb-0">
-                <div className="px-2 pb-1 pt-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                  {group.title}
-                </div>
-                <div className="space-y-0.5">
-                  {group.items.map((item) => {
-                    cursor += 1;
-                    const index = cursor;
-                    const selected = index === active;
-                    return (
-                      <button
-                        key={item.id}
-                        id={`home-search-${item.id}`}
-                        ref={(node) => {
-                          itemRefs.current[index] = node;
-                        }}
-                        type="button"
-                        role="option"
-                        aria-selected={selected}
-                        onMouseEnter={() => setActive(index)}
-                        onClick={() => choose(item)}
-                        className={cn(
-                          "group flex w-full items-center gap-3 rounded-lg px-2 py-2.5 text-left transition-colors",
-                          selected ? "bg-surface-subtle" : "bg-transparent",
-                        )}
-                      >
-                        <span className="flex h-4 w-4 shrink-0 items-center justify-center text-muted-foreground">
-                          {itemIcon(item)}
-                        </span>
-                        <span className="min-w-0 flex-1">
-                          <span className="flex min-w-0 items-center gap-2">
-                            <span className="truncate text-sm text-foreground">
-                              <Highlight text={item.title} query={query} />
-                            </span>
-                            {item.subtitle ? (
-                              <span className="min-w-0 truncate text-xs text-muted-foreground">
-                                <Highlight text={item.subtitle} query={query} />
-                              </span>
-                            ) : null}
-                          </span>
-                        </span>
-                        {item.trailing ? (
-                          <span className="hidden shrink-0 text-[11px] text-muted-foreground sm:inline">
-                            {item.trailing}
-                          </span>
-                        ) : null}
-                        <ArrowUpRight
-                          className={cn(
-                            "h-4 w-4 shrink-0 text-muted-foreground transition-opacity",
-                            selected ? "opacity-100" : "opacity-0 group-hover:opacity-100",
-                          )}
-                          aria-hidden
-                        />
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      ) : null}
-
-      <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
+      <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
         <Link
           href="/catalog"
-          className="inline-flex items-center gap-1.5 rounded-full border border-border bg-white/20 px-4 py-2 text-sm text-white backdrop-blur transition-colors hover:bg-white/30"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-white/20 px-3 py-2 text-sm text-white backdrop-blur transition-colors hover:bg-white/30"
         >
           <BookOpen className="h-4 w-4" aria-hidden />
           Courses
         </Link>
         <Link
           href="/timetable"
-          className="inline-flex items-center gap-1.5 rounded-full border border-border bg-white/20 px-4 py-2 text-sm text-white backdrop-blur transition-colors hover:bg-white/30"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-white/20 px-3 py-2 text-sm text-white backdrop-blur transition-colors hover:bg-white/30"
         >
           <CalendarDays className="h-4 w-4" aria-hidden />
           Timetable
         </Link>
-        {assistantEnabled ? (
-          <button
-            type="button"
-            onClick={() => openAssistant()}
-            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-white/20 px-4 py-2 text-sm text-white backdrop-blur transition-colors hover:bg-white/30"
-          >
-            <Sparkles className="h-4 w-4" aria-hidden />
-            Ask AI
-          </button>
-        ) : null}
+        <button
+          type="button"
+          onClick={() => openAssistant()}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-white/20 px-3 py-2 text-sm text-white backdrop-blur transition-colors hover:bg-white/30"
+        >
+          <Sparkles className="h-4 w-4" aria-hidden />
+          Ask AI
+        </button>
       </div>
     </div>
   );
