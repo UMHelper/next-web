@@ -15,11 +15,9 @@ import {
 import { bindCourseToolArgs, type CourseReferentSlot } from "@/lib/assistant/course-referent";
 import type { TimetableSlot, TimetableState } from "@/lib/assistant/timetable-context";
 import { resolveCandidate, type LoadSections } from "@/lib/assistant/timetable-candidates";
+import { assistantCourseSectionsOutputSchema } from "@/lib/assistant/assistant-output-schemas";
 import { getCourseSections } from "@/lib/mcp/data/get-course-sections";
-import {
-  getCourseSectionsInputSchema,
-  getCourseSectionsOutputSchema,
-} from "@/lib/mcp/schemas";
+import { getCourseSectionsInputSchema } from "@/lib/mcp/schemas";
 
 export type { LoadSections } from "@/lib/assistant/timetable-candidates";
 export { resolveCandidate };
@@ -33,7 +31,7 @@ export const defaultTimetableToolDeps: TimetableToolDeps = {
   loadSections: async (input) => {
     const parsed = getCourseSectionsInputSchema.safeParse(input);
     if (!parsed.success) throw new Error("invalid_request");
-    return getCourseSectionsOutputSchema.parse(await getCourseSections(parsed.data));
+    return assistantCourseSectionsOutputSchema.parse(await getCourseSections(parsed.data));
   },
   loadCatalogTerm: async () => {
     const { getAppConfig } = await import("@/lib/config/app-config");

@@ -45,6 +45,7 @@ export type CheckPlanConflictsResult =
       plan: { name: string; term: string };
       planComplete: boolean;
       unscheduled: string[];
+      sectionListComplete: boolean;
       sections: SectionCheck[];
     }
   | { status: "no_timetable"; timetable: "no_plan" | "loading" | "unavailable" }
@@ -83,6 +84,7 @@ export const checkPlanConflictsResultSchema: z.ZodType<CheckPlanConflictsResult>
       plan: z.object({ name: z.string(), term: z.string() }).strict(),
       planComplete: z.boolean(),
       unscheduled: z.array(z.string()),
+      sectionListComplete: z.boolean(),
       sections: z.array(sectionConflictSchema),
     })
     .strict(),
@@ -180,6 +182,7 @@ export async function runCheckPlanConflicts(
     },
     planComplete: analysis.complete,
     unscheduled: analysis.unscheduled,
+    sectionListComplete: resolution.sectionListComplete,
     sections,
   };
 }

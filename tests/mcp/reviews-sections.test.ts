@@ -975,6 +975,21 @@ describe("get_course_sections data adapter", () => {
     await expectCode(handleGetCourseSections({ code: "A".repeat(21), instructor: "X" }, ctx), "invalid_request");
     expect(fetchScheduleListMock).not.toHaveBeenCalled();
   });
+
+  it("marks section data incomplete when a meeting time cannot be parsed", async () => {
+    queueSections([sectionFixture({ schedules: [scheduleFixture({ time: "TBA" })] })]);
+
+    await expect(getCourseSections({ code: "ACCT1000", instructor: "CHAN TAI MAN" })).resolves.toMatchObject({
+      sectionDataComplete: false,
+    });
+  });
+
+  it("marks section data complete and echoes the term for clean data", async () => {
+    await expect(getCourseSections({ code: "ACCT1000", instructor: "CHAN TAI MAN" })).resolves.toMatchObject({
+      sectionDataComplete: true,
+      term: { year: 2026, sem: 1 },
+    });
+  });
 });
 
 // ---------------------------------------------------------------------------

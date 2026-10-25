@@ -43,6 +43,19 @@ const deps = (overrides?: Partial<TimetableToolDeps>): TimetableToolDeps => ({
 });
 
 describe("runCheckPlanConflicts", () => {
+  it("reports sectionListComplete false when the section list was incomplete", async () => {
+    const sections = fixtureLookup("MATH1010", "HO SIU MING")!;
+    await expect(
+      runCheckPlanConflicts(
+        readyState(),
+        { code: "MATH1010", instructor: "HO SIU MING", section: "001" },
+        deps({
+          loadSections: async () => ({ ...sections, sectionDataComplete: false }),
+        }),
+      ),
+    ).resolves.toMatchObject({ status: "checked", sectionListComplete: false });
+  });
+
   it("checks a named section and reports the overlap", async () => {
     const result = await runCheckPlanConflicts(
       readyState(),

@@ -1,9 +1,9 @@
 import { fetchScheduleList, ScheduleListError } from "@/lib/database/get-schedule-list";
 import { McpToolError } from "@/lib/mcp/errors";
+import type { AssistantCourseSectionsOutput } from "@/lib/assistant/assistant-output-schemas";
 import type {
   CourseSection,
   GetCourseSectionsInput,
-  GetCourseSectionsOutput,
   SectionSchedule,
 } from "@/lib/mcp/schemas";
 import { absoluteUrl, buildCoursePath } from "@/lib/site";
@@ -95,8 +95,10 @@ function projectSchedule(entry: unknown): SectionSchedule | null {
   };
 }
 
+type ProjectedSection = { section: CourseSection; droppedData: boolean };
+
 /** Build a brand-new public section DTO field by field (never spread the row). */
-function projectSection(entry: unknown, courseUrl: string): CourseSection | null {
+function projectSection(entry: unknown, courseUrl: string): ProjectedSection | null {
   const row = toRecord(entry);
   if (row === null) return null;
 
@@ -104,12 +106,22 @@ function projectSection(entry: unknown, courseUrl: string): CourseSection | null
   if (section === null) return null;
 
   const rawSchedules = Array.isArray(row.schedules) ? row.schedules : [];
-  const schedules = rawSchedules
-    .map(projectSchedule)
-    .filter((schedule): schedule is SectionSchedule => schedule !== null)
-    .slice(0, MAX_SCHEDULES_PER_SECTION);
+  let droppedData = false;
+  const schedules: SectionSchedule[] = [];
+  for (const raw of rawSchedules) {
+    const projected = projectSchedule(raw);
+    if (projected === null) {
+      droppedData = true;
+      continue;
+    }
+    schedules.push(projected);
+  }
+  if (schedules.length > MAX_SCHEDULES_PER_SECTION) {
+    droppedData = true;
+    schedules.length = MAX_SCHEDULES_PER_SECTION;
+  }
 
-  return { section, schedules, courseUrl };
+  return { section: { section, schedules, courseUrl }, droppedData };
 }
 
 /**
@@ -122,10 +134,12 @@ function projectSection(entry: unknown, courseUrl: string): CourseSection | null
  */
 export async function getCourseSections(
   input: GetCourseSectionsInput,
-): Promise<GetCourseSectionsOutput> {
+): Promise<AssistantCourseSectionsOutput> {
   let entries;
+  let year: number;
+  let sem: number;
   try {
-    ({ sections: entries } = await fetchScheduleList(input.code, input.instructor));
+    ({ sections: entries, year, sem } = await fetchScheduleList(input.code, input.instructor));
   } catch (error) {
     if (error instanceof ScheduleListError) {
       throw new McpToolError("temporarily_unavailable");
@@ -134,15 +148,25 @@ export async function getCourseSections(
   }
 
   const courseUrl = absoluteUrl(buildCoursePath(input.code));
-  const sections = (Array.isArray(entries) ? entries : [])
+  const projected = (Array.isArray(entries) ? entries : [])
     .map((entry) => projectSection(entry, courseUrl))
-    .filter((section): section is CourseSection => section !== null)
-    .slice(0, MAX_SECTIONS);
+    .filter((entry): entry is ProjectedSection => entry !== null);
+
+  let sectionDataComplete = projected.length <= MAX_SECTIONS;
+  const sections: CourseSection[] = [];
+  for (const [index, entry] of projected.entries()) {
+    if (index >= MAX_SECTIONS) break;
+    if (entry.droppedData) sectionDataComplete = false;
+    sections.push(entry.section);
+  }
+  if (projected.length > MAX_SECTIONS) sectionDataComplete = false;
 
   return {
     courseCode: input.code,
     instructor: input.instructor,
     courseUrl,
     sections,
+    sectionDataComplete,
+    term: { year, sem },
   };
 }

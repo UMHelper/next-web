@@ -1,11 +1,14 @@
-import { getCourseSectionsOutputSchema, type GetCourseSectionsOutput } from "@/lib/mcp/schemas";
+import {
+  assistantCourseSectionsOutputSchema,
+  type AssistantCourseSectionsOutput,
+} from "@/lib/assistant/assistant-output-schemas";
 
 import { parseToolResult, type ToolResultFailure } from "@/lib/assistant/tool-result";
 
 export const GET_COURSE_SECTIONS_TOOL_NAME = "get_course_sections";
 
 export type CourseSectionsView =
-  | { kind: "sections"; data: GetCourseSectionsOutput }
+  | { kind: "sections"; data: AssistantCourseSectionsOutput }
   | { kind: "empty"; courseCode: string; instructor: string }
   | { kind: "failure"; reason: ToolResultFailure };
 
@@ -24,7 +27,7 @@ export function formatWeekday(value: string): string {
 }
 
 export function parseCourseSectionsResult(content: string): CourseSectionsView {
-  const result = parseToolResult(content, getCourseSectionsOutputSchema);
+  const result = parseToolResult(content, assistantCourseSectionsOutputSchema);
   if (!result.ok) {
     return { kind: "failure", reason: result.reason };
   }

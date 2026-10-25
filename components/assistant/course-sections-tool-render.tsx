@@ -100,6 +100,11 @@ export function CourseSectionsToolResult({
     <div className="min-w-0 space-y-3 break-words text-sm text-foreground">
       <div className="space-y-2">
         <h3 className="text-base font-semibold leading-snug">{`${code} · ${instructor}`}</h3>
+        {view.data.sectionDataComplete === false ? (
+          <p className="text-xs text-muted-foreground">
+            Some sections or class times could not be listed.
+          </p>
+        ) : null}
         <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs">
           <Link
             href={buildReviewPath(code, instructor)}

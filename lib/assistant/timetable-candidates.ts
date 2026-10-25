@@ -1,5 +1,6 @@
 import { McpToolError } from "@/lib/mcp/errors";
-import type { CourseSection, GetCourseSectionsOutput } from "@/lib/mcp/schemas";
+import type { AssistantCourseSectionsOutput } from "@/lib/assistant/assistant-output-schemas";
+import type { CourseSection } from "@/lib/mcp/schemas";
 import {
   normalizePlanSection,
   normalizeSchedule,
@@ -7,7 +8,10 @@ import {
   type PlanSection,
 } from "@/lib/timetable/schema";
 
-export type LoadSections = (input: { code: string; instructor: string }) => Promise<GetCourseSectionsOutput>;
+export type LoadSections = (input: {
+  code: string;
+  instructor: string;
+}) => Promise<AssistantCourseSectionsOutput>;
 
 export type CandidateOption = {
   section: string;
@@ -17,7 +21,13 @@ export type CandidateOption = {
 };
 
 export type CandidateResolution =
-  | { status: "resolved"; courseCode: string; instructor: string; options: CandidateOption[] }
+  | {
+      status: "resolved";
+      courseCode: string;
+      instructor: string;
+      options: CandidateOption[];
+      sectionListComplete: boolean;
+    }
   | { status: "not_found" }
   | { status: "temporarily_unavailable" };
 
@@ -74,6 +84,7 @@ export async function resolveCandidate(
       courseCode: output.courseCode,
       instructor: output.instructor,
       options: sections.map((entry) => toCandidateOption(output.courseCode, output.instructor, entry)),
+      sectionListComplete: output.sectionDataComplete,
     };
   } catch (error) {
     if (error instanceof McpToolError && error.code === "not_found") return { status: "not_found" };

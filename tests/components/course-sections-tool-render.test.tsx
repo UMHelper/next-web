@@ -47,6 +47,16 @@ describe("CourseSectionsToolResult", () => {
     expect(screen.getByRole("status").textContent).toContain("Loading class sections…");
   });
 
+  it("tells the student when some class times could not be listed", () => {
+    render(
+      <CourseSectionsToolResult
+        status="complete"
+        result={JSON.stringify({ ...fixture, sectionDataComplete: false })}
+      />,
+    );
+    expect(screen.getByText("Some sections or class times could not be listed.")).toBeTruthy();
+  });
+
   it("renders every meeting of every section", () => {
     render(<CourseSectionsToolResult status="complete" result={JSON.stringify(fixture)} />);
     expect(screen.getByRole("heading", { name: "APAC1000 · CHAN TAI MAN" })).toBeTruthy();

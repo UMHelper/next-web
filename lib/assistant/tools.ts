@@ -5,6 +5,7 @@ import { MCP_TOOL_TIMEOUT_MS } from "@/lib/mcp/constants";
 import { getCourse } from "@/lib/mcp/data/get-course";
 import { getCourseReviews } from "@/lib/mcp/data/get-course-reviews";
 import { getCourseSections } from "@/lib/mcp/data/get-course-sections";
+import { assistantCourseSectionsOutputSchema } from "@/lib/assistant/assistant-output-schemas";
 import { bindCourseToolArgs, type CourseReferentSlot } from "@/lib/assistant/course-referent";
 import type { TimetableSlot } from "@/lib/assistant/timetable-context";
 import { CHECK_PLAN_CONFLICTS_TOOL_NAME } from "@/lib/assistant/check-plan-conflicts";
@@ -21,7 +22,6 @@ import {
   getCourseOutputSchema,
   getCourseReviewsOutputSchema,
   getCourseSectionsInputSchema,
-  getCourseSectionsOutputSchema,
   getInstructorOutputSchema,
   searchCatalogOutputSchema,
 } from "@/lib/mcp/schemas";
@@ -227,7 +227,7 @@ export function createAssistantTools(slot?: CourseReferentSlot, timetable?: Time
             "get_course_sections",
             bound,
             getCourseSectionsInputSchema,
-            getCourseSectionsOutputSchema,
+            assistantCourseSectionsOutputSchema,
             (input) => getCourseSections(input),
           ),
         ),
