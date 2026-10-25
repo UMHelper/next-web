@@ -183,6 +183,7 @@ export function HomeSearch() {
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
   const [assistantEnabled, setAssistantEnabled] = useState(false);
+  const [assistantDenied, setAssistantDenied] = useState(false);
   const [recents, setRecents] = useState<HomeItem[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -195,6 +196,7 @@ export function HomeSearch() {
   useEffect(() => {
     if (!isLoaded || !isSignedIn) {
       setAssistantEnabled(false);
+      setAssistantDenied(false);
       return;
     }
     if (assistantEnabled) return;
@@ -202,9 +204,18 @@ export function HomeSearch() {
     fetch("/api/assistant/access", { cache: "no-store", signal: controller.signal })
       .then((response) => (response.ok ? response.json() : null))
       .then((body) => {
-        if (body?.enabled === true) setAssistantEnabled(true);
+        if (body?.enabled === true) {
+          setAssistantEnabled(true);
+          setAssistantDenied(false);
+        } else {
+          setAssistantEnabled(false);
+          setAssistantDenied(true);
+        }
       })
-      .catch(() => {});
+      .catch(() => {
+        setAssistantEnabled(false);
+        setAssistantDenied(true);
+      });
     return () => controller.abort();
   }, [assistantEnabled, isLoaded, isSignedIn]);
 
@@ -291,7 +302,7 @@ export function HomeSearch() {
   const groups = useMemo<HomeGroup[]>(() => {
     const term = query.trim();
     const aiItem: HomeItem | null =
-      assistantEnabled || signedOut
+      isLoaded && (signedOut || !assistantDenied)
         ? {
             id: "home-ai",
             kind: "ai",
@@ -406,7 +417,7 @@ export function HomeSearch() {
       });
     }
     return next;
-  }, [assistantEnabled, loading, payload, query, recents, signedOut]);
+  }, [assistantDenied, isLoaded, loading, payload, query, recents, signedOut]);
 
   const flat = useMemo(() => groups.flatMap((group) => group.items), [groups]);
 

@@ -127,6 +127,7 @@ export function CommandPalette({ variant = "header" }: { variant?: "header" | "h
   const [loading, setLoading] = useState(false);
   const [active, setActive] = useState(0);
   const [assistantEnabled, setAssistantEnabled] = useState(false);
+  const [assistantDenied, setAssistantDenied] = useState(false);
   const [recents, setRecents] = useState<PaletteItem[]>([]);
   const itemRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -157,6 +158,7 @@ export function CommandPalette({ variant = "header" }: { variant?: "header" | "h
   useEffect(() => {
     if (!isLoaded || !isSignedIn) {
       setAssistantEnabled(false);
+      setAssistantDenied(false);
       return;
     }
     if (!open || assistantEnabled) return;
@@ -164,9 +166,18 @@ export function CommandPalette({ variant = "header" }: { variant?: "header" | "h
     fetch("/api/assistant/access", { cache: "no-store", signal: controller.signal })
       .then((response) => (response.ok ? response.json() : null))
       .then((body) => {
-        if (body?.enabled === true) setAssistantEnabled(true);
+        if (body?.enabled === true) {
+          setAssistantEnabled(true);
+          setAssistantDenied(false);
+        } else {
+          setAssistantEnabled(false);
+          setAssistantDenied(true);
+        }
       })
-      .catch(() => {});
+      .catch(() => {
+        setAssistantEnabled(false);
+        setAssistantDenied(true);
+      });
     return () => controller.abort();
   }, [open, assistantEnabled, isLoaded, isSignedIn]);
 
@@ -237,7 +248,7 @@ export function CommandPalette({ variant = "header" }: { variant?: "header" | "h
     if (courses.length) next.push({ key: "courses", title: "Courses", items: courses });
     if (instructors.length) next.push({ key: "instructors", title: "Instructors", items: instructors });
     if (pages.length) next.push({ key: "pages", title: "Pages", items: pages });
-    if (assistantEnabled || signedOut) {
+    if (isLoaded && (signedOut || !assistantDenied)) {
       next.push({
         key: "ai",
         title: signedOut ? "Sign in" : "Ask AI",
@@ -252,7 +263,7 @@ export function CommandPalette({ variant = "header" }: { variant?: "header" | "h
       });
     }
     return next;
-  }, [assistantEnabled, payload, query, recents, signedOut]);
+  }, [assistantDenied, isLoaded, payload, query, recents, signedOut]);
 
   const flat = useMemo(() => groups.flatMap((group) => group.items), [groups]);
 

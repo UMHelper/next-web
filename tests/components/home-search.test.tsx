@@ -229,6 +229,31 @@ describe("HomeSearch", () => {
     expect(screen.getByRole("option", { name: /Ask AI/ })).toBeTruthy();
   });
 
+  it("shows Ask AI immediately while the access check is still pending", async () => {
+    let resolveAccess: (response: Response) => void = () => {};
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((input: RequestInfo | URL) => {
+        if (String(input).includes("/api/assistant/access")) {
+          return new Promise<Response>((resolve) => {
+            resolveAccess = resolve;
+          });
+        }
+        return Promise.resolve(new Response(JSON.stringify(PAYLOAD), { status: 200 }));
+      }),
+    );
+
+    render(<HomeSearch />);
+    const input = screen.getByRole("combobox");
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: "ACCT" } });
+
+    expect(await screen.findByRole("option", { name: /Ask AI/ })).toBeTruthy();
+
+    resolveAccess(new Response(JSON.stringify({ enabled: false }), { status: 200 }));
+    await waitFor(() => expect(screen.queryByRole("option", { name: /Ask AI/ })).toBeNull());
+  });
+
   it("opens the assistant for Ask AI", async () => {
     render(<HomeSearch />);
     const input = screen.getByRole("combobox");
