@@ -203,6 +203,7 @@ describe("HomeSearch", () => {
     expect(screen.queryByRole("button", { name: /Ask AI|Sign in/ })).toBeNull();
     expect(screen.queryByRole("option", { name: /Ask AI|Sign in/ })).toBeNull();
     expect(screen.queryByText("Try asking")).toBeNull();
+    expect(screen.getByText("Waiting for typing…")).toBeTruthy();
   });
 
   it("shows a grammatical empty state for an unknown course code", async () => {

@@ -547,8 +547,10 @@ export function HomeSearch({
             aria-busy={loading}
             className="absolute left-0 right-0 top-full z-40 mt-2 max-h-[58vh] overflow-y-auto rounded-lg border border-border/60 bg-foreground/80 p-2 text-left text-background shadow-xl backdrop-blur-xl"
           >
-            {flat.length === 0 ? (
-              <p className="px-3 py-8 text-center text-sm text-background/80">No results</p>
+            {groups.length === 0 ? (
+              <p className="px-3 py-8 text-center text-sm text-background/80">
+                {query.trim() ? "No matches." : "Waiting for typing…"}
+              </p>
             ) : (
               groups.map((group) => {
                 const showSection = Boolean(group.section && group.section !== currentSection);
