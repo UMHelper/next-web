@@ -151,15 +151,26 @@ function pickPreviewReferent(
   return fresh ?? previews[0] ?? null;
 }
 
-function toPreviewReferent(preview: TimetablePreviewSummaryRef): Extract<TimetableScenarioReferent, { kind: "preview" }> {
+function hypoPreviewWording(userText: string): string {
+  if (/\b(?:morning|afternoon|evening)\b/i.test(userText)) {
+    return "Answer from this preview's morningConflicts and changeConflicts for that previewId; do not use the saved timetable context conflicts list.";
+  }
+  if (/\ball\s+(?:conflicts?|clashes?)\b/i.test(userText)) {
+    return "Answer from this preview's conflicts list (full hypothetical week) for that previewId; do not substitute the saved digest conflicts list.";
+  }
+  return "Answer from this preview entry (changeConflicts for changes from the add/replace, conflicts for the whole preview week when they ask broadly); do not attribute facts to the saved timetable. You may say the preview is not saved.";
+}
+
+function toPreviewReferent(
+  preview: TimetablePreviewSummaryRef,
+  userText: string,
+): Extract<TimetableScenarioReferent, { kind: "preview" }> {
   return {
     kind: "preview",
     previewId: preview.id,
     previewKind: preview.kind,
     stale: preview.stale,
-    ...(preview.kind === "hypothetical"
-      ? { wording: "Do not use the word saved in this reply." }
-      : {}),
+    ...(preview.kind === "hypothetical" ? { wording: hypoPreviewWording(userText) } : {}),
   };
 }
 
@@ -193,7 +204,7 @@ export function timetableScenarioFromRun(
 
   if (PREVIEW_EXPLICIT.test(text)) {
     const picked = pickPreviewReferent(previews, true);
-    if (picked) return toPreviewReferent(picked);
+    if (picked) return toPreviewReferent(picked, text);
   }
 
   const hypos = hypotheticalPreviews(previews);
@@ -207,12 +218,13 @@ export function timetableScenarioFromRun(
   const lastPreview = lastReadyPreviewBeforeLatestUser(input.messages);
   if (lastPreview?.kind === "hypothetical" && DEICTIC_FOLLOWUP.test(text) && !SAVED_EXPLICIT.test(text)) {
     const match = previews.find((preview) => preview.id === lastPreview.previewId);
-    if (match) return toPreviewReferent(match);
+    if (match) return toPreviewReferent(match, text);
     return {
       kind: "preview",
       previewId: lastPreview.previewId,
       previewKind: "hypothetical",
       stale: false,
+      wording: hypoPreviewWording(text),
     };
   }
 
@@ -225,7 +237,7 @@ export function timetableScenarioFromRun(
     !SAVED_EXPLICIT.test(text) &&
     previews[0]?.kind === "hypothetical"
   ) {
-    return toPreviewReferent(previews[0]);
+    return toPreviewReferent(previews[0], text);
   }
 
   if (CLASH_STATUS.test(text) && !PREVIEW_EXPLICIT.test(text)) {
@@ -234,7 +246,7 @@ export function timetableScenarioFromRun(
 
   if (PREVIEW_EXPLICIT.test(text) || (lastPreview && DEICTIC_FOLLOWUP.test(text))) {
     const picked = pickPreviewReferent(previews, lastPreview?.kind === "hypothetical");
-    if (picked && PREVIEW_EXPLICIT.test(text)) return toPreviewReferent(picked);
+    if (picked && PREVIEW_EXPLICIT.test(text)) return toPreviewReferent(picked, text);
   }
 
   return savedReferent(version, text);

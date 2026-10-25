@@ -194,7 +194,13 @@ export const TIMETABLE_CASES: TimetableEvalCase[] = [
       },
       {
         message: "What about the morning conflicts?",
-        expect: { presentation: "text", mention: ["CISC3014", "10:00"], forbid: ["saved"] },
+        expect: {
+          presentation: "text",
+          mention: ["CISC3014", "10:00"],
+          forbid: [
+            "\\bsaved\\s+(plan|timetable|schedule)\\b|\\byour\\s+saved\\s+(plan|timetable)\\b|\\balready\\s+in\\s+your\\s+(saved\\s+)?timetable\\b",
+          ],
+        },
       },
     ],
   },

@@ -20,15 +20,20 @@ const PLANS_API_PATTERN = /\/api\/timetable\/plans/;
 
 const READ_ONLY_TOOL_ALLOWLIST = new Set([
   "search_catalog",
+  "count_courses",
   "get_course",
+  "get_course_description",
+  "get_course_ilo",
   "get_instructor",
   "get_course_reviews",
+  "count_reviews",
   "get_course_sections",
   "present_response",
   "check_plan_conflicts",
   "preview_timetable",
   "navigate",
   "filter_catalog_results",
+  "AGUISendStateSnapshot",
 ]);
 
 function listSourceFiles(root: string): string[] {

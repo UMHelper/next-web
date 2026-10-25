@@ -1,5 +1,5 @@
 import type { LanguageModelV3Prompt, LanguageModelV3StreamPart } from "@ai-sdk/provider";
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { RouterContext } from "next/dist/shared/lib/router-context.shared-runtime";
 import { MockLanguageModelV3, simulateReadableStream } from "ai/test";
 import { Request as NativeRequest } from "undici";
@@ -720,6 +720,11 @@ describe("assistant V2.1 integration (scripted model)", () => {
     expect(screen.queryByRole("article", { name: "Section 001" })).toBeNull();
     expect(screen.getAllByText("Read class times")).toHaveLength(1);
     expect(screen.getByText("Here are the class sections.")).toBeTruthy();
+
+    await act(async () => {
+      nav.set("/course/MATH1002");
+    });
+    await waitFor(() => expect(nav.get()).toBe("/course/MATH1002"));
 
     fireEvent.click(screen.getByRole("button", { name: "Close" }));
     fireEvent.click(screen.getByRole("button", { name: "AI Course Helper" }));

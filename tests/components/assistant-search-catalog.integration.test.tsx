@@ -368,7 +368,7 @@ describe("assistant search_catalog integration (scripted model)", () => {
       expect(screen.queryByRole("list", { name: "Loaded courses" })).toBeNull();
       expect(screen.queryByText("ACCT1000")).toBeNull();
       expect(screen.queryByRole("link", { name: "CHAN TAI MAN" })).toBeNull();
-      expect(screen.getByText("How can I help?")).toBeTruthy();
+      expect(screen.getByText("What can I help with?")).toBeTruthy();
     });
   });
 
@@ -381,6 +381,6 @@ describe("assistant search_catalog integration (scripted model)", () => {
     await mountAssistant();
 
     expect(screen.queryByRole("link", { name: /ACCT1000/ })).toBeNull();
-    expect(screen.getByText("How can I help?")).toBeTruthy();
+    expect(screen.getByText("What can I help with?")).toBeTruthy();
   });
 });

@@ -8,7 +8,7 @@ import { DAY_PARTS, sectionLabel, type AnalyzedConflict } from "@/lib/timetable/
 import { timeToMinutes } from "@/lib/timetable/conflicts";
 
 export const TIMETABLE_PREVIEWS_CONTEXT_DESCRIPTION =
-  "Timetable previews already shown in this chat, newest first. They are snapshots: hypothetical ones were never saved, and stale ones were built from an older version of the timetable. For the student's real timetable use the timetable context";
+  "Timetable previews already shown in this chat, newest first. They are snapshots: hypothetical ones were never saved, and stale ones were built from an older version of the timetable. For the student's real timetable use the timetable context. Each preview lists conflicts for the full hypothetical week, changeConflicts for clashes involving newly added sections, and morningConflicts for morning overlaps (from changeConflicts on hypothetical previews)";
 
 export const MAX_PREVIEWS_CONTEXT_CHARS = 1200;
 
@@ -19,8 +19,10 @@ export type TimetablePreviewSummary = {
   added: string[];
   replaced: string[];
   conflicts: string[];
+  changeConflicts: string[];
   morningConflicts: string[];
   conflictCount: number;
+  changeConflictCount: number;
   unscheduled: string[];
   stale: boolean;
 };
@@ -65,15 +67,13 @@ const morningConflictsFrom = (conflicts: AnalyzedConflict[]): string[] =>
 const conflictTouchesAdded = (conflict: AnalyzedConflict, addedLabels: readonly string[]): boolean =>
   addedLabels.some((label) => conflict.a.includes(label) || conflict.b.includes(label));
 
-const conflictsForSummary = (
+const changeConflictsFrom = (
   preview: Extract<TimetablePreviewResult, { status: "ready" }>,
 ): AnalyzedConflict[] => {
-  const conflicts = preview.facts.conflicts;
-  if (preview.kind !== "hypothetical") return conflicts;
+  if (preview.kind !== "hypothetical") return [];
   const addedLabels = preview.sections.filter((section) => section.origin === "added").map(sectionLabel);
-  if (addedLabels.length === 0) return conflicts;
-  const hypoSpecific = conflicts.filter((conflict) => conflictTouchesAdded(conflict, addedLabels));
-  return hypoSpecific.length > 0 ? hypoSpecific : conflicts;
+  if (addedLabels.length === 0) return [];
+  return preview.facts.conflicts.filter((conflict) => conflictTouchesAdded(conflict, addedLabels));
 };
 
 function isStale(previewVersion: string | null, currentVersion: string | null): boolean {
@@ -85,17 +85,20 @@ function summarizeReadyPreview(
   preview: Extract<TimetablePreviewResult, { status: "ready" }>,
   currentVersion: string | null,
 ): TimetablePreviewSummary {
-  const analyzed = conflictsForSummary(preview);
-  const conflicts = analyzed.map(formatConflict);
+  const fullConflicts = preview.facts.conflicts;
+  const changeConflicts = changeConflictsFrom(preview);
+  const morningSource = preview.kind === "hypothetical" ? changeConflicts : fullConflicts;
   return {
     id: `preview-${toolCallId}`,
     kind: preview.kind,
     plannerVersionAtPreview: preview.version,
     added: preview.sections.filter((section) => section.origin === "added").map(sectionLabel),
     replaced: preview.replaced,
-    conflicts,
-    morningConflicts: morningConflictsFrom(analyzed),
-    conflictCount: analyzed.length,
+    conflicts: fullConflicts.map(formatConflict),
+    changeConflicts: changeConflicts.map(formatConflict),
+    morningConflicts: morningConflictsFrom(morningSource),
+    conflictCount: fullConflicts.length,
+    changeConflictCount: changeConflicts.length,
     unscheduled: preview.facts.unscheduled,
     stale: isStale(preview.version, currentVersion),
   };

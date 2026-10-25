@@ -891,6 +891,14 @@ describe("assistant V2.3 integration (scripted model)", () => {
 
   it("keeps the timetable context after closing and reopening the sidebar", async () => {
     await mountAssistant();
+    await act(async () => {
+      nav.set("/timetable");
+    });
+    await waitFor(() => expect(nav.get()).toBe("/timetable"));
+
+    await typeAndSend("Do I have any clashes?");
+    expect(runs().at(-1)!.modelCalls[0].digest?.status).toBe("ready");
+
     fireEvent.click(screen.getByRole("button", { name: "Close" }));
     await waitFor(() => expect(screen.queryByLabelText("Ask about courses")).toBeNull());
     fireEvent.click(screen.getByRole("button", { name: "AI Course Helper" }));
@@ -899,5 +907,5 @@ describe("assistant V2.3 integration (scripted model)", () => {
     await typeAndSend("What's on my timetable?");
     expect(runs().at(-1)!.modelCalls[0].digest?.status).toBe("ready");
     expect(h.mutate).not.toHaveBeenCalled();
-  }, 60_000);
+  }, 90_000);
 });
