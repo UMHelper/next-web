@@ -240,6 +240,8 @@ describe("HomeSearch", () => {
 
     expect(screen.queryByRole("button", { name: "Ask AI" })).toBeNull();
     expect(screen.queryByText("Try asking")).toBeNull();
+    expect(screen.queryByRole("listbox")).toBeNull();
+    expect(screen.queryByText("Waiting for typing…")).toBeNull();
     expect(fetchMock).not.toHaveBeenCalled();
 
     cleanup();
