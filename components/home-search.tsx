@@ -16,6 +16,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { openAssistant } from "@/lib/assistant/open";
+import { Skeleton } from "@/components/ui/skeleton";
 import { buildSearchPath } from "@/lib/site";
 import { cn } from "@/lib/utils";
 
@@ -43,10 +44,18 @@ type HomeItem = {
   searchType?: "course" | "instructor";
 };
 
-type HomeGroup = { key: string; title: string; items: HomeItem[] };
+type HomeGroup = {
+  key: string;
+  title: string;
+  items: HomeItem[];
+  section?: string;
+  kind?: "skeleton" | "empty";
+};
 
 const EMPTY: SearchPayload = { courses: [], instructors: [] };
 const RECENTS_KEY = "umeh:command-palette-recents-v2";
+
+const COURSE_CODE = /^[A-Za-z]{4}\d{4}$/;
 
 const TIPS: HomeItem[] = [
   { id: "tip-acct1000", kind: "tip", title: "ACCT1000", query: "ACCT1000", icon: "course" },
@@ -113,6 +122,26 @@ function itemIcon(item: HomeItem) {
   return <FileText className="h-4 w-4" aria-hidden />;
 }
 
+function ResultSkeleton() {
+  return (
+    <div data-testid="home-search-skeleton" className="space-y-2" aria-hidden>
+      {Array.from({ length: 4 }).map((_, index) => (
+        <div
+          key={index}
+          className="flex items-center gap-3 rounded-lg border border-border/60 bg-white/20 px-3 py-2.5"
+        >
+          <Skeleton className="h-4 w-4 shrink-0 rounded bg-white/30" />
+          <div className="min-w-0 flex-1 space-y-1.5">
+            <Skeleton className="h-3 w-1/3 bg-white/30" />
+            <Skeleton className="h-2.5 w-1/2 bg-white/20" />
+          </div>
+          <Skeleton className="h-3 w-8 shrink-0 bg-white/20" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /** Inline command search for the home page, modelled on Cloudflare's big search + dropdown. */
 export function HomeSearch() {
   const router = useRouter();
@@ -150,9 +179,11 @@ export function HomeSearch() {
       setLoading(false);
       return;
     }
+
+    setPayload(EMPTY);
+    setLoading(true);
     const controller = new AbortController();
     const timer = window.setTimeout(() => {
-      setLoading(true);
       fetch(`/api/command-palette?q=${encodeURIComponent(term)}`, { signal: controller.signal })
         .then((response) => (response.ok ? response.json() : EMPTY))
         .then((body: SearchPayload) => {
@@ -216,29 +247,51 @@ export function HomeSearch() {
   const groups = useMemo<HomeGroup[]>(() => {
     const term = query.trim();
     if (!term) {
-      const next: HomeGroup[] = [];
-      if (recents.length) next.push({ key: "recent", title: "Recents", items: recents });
-      next.push({ key: "tips", title: "Search tips", items: TIPS });
+      const emptyGroups: HomeGroup[] = [];
+      if (recents.length) emptyGroups.push({ key: "recent", title: "Recents", items: recents });
+      emptyGroups.push({ key: "tips", title: "Search tips", items: TIPS });
+      return emptyGroups;
+    }
+
+    const isCode = COURSE_CODE.test(term);
+    const searchItems: HomeItem[] = isCode
+      ? [
+          {
+            id: "home-search-course-list",
+            kind: "search",
+            title: `Search Course List for “${term}”`,
+            query: term,
+            searchType: "course",
+          },
+        ]
+      : [
+          {
+            id: "home-search-course",
+            kind: "search",
+            title: `Search Courses for “${term}”`,
+            query: term,
+            searchType: "course",
+          },
+          {
+            id: "home-search-instructor",
+            kind: "search",
+            title: `Search Instructors for “${term}”`,
+            query: term,
+            searchType: "instructor",
+          },
+        ];
+
+    const next: HomeGroup[] = [];
+    if (assistantEnabled) {
+      next.push({ key: "ai", title: "", items: [{ id: "home-ai", kind: "ai", title: "Ask AI" }] });
+    }
+    next.push({ key: "search", title: "Search", items: searchItems });
+
+    if (loading) {
+      next.push({ key: "skeleton", title: "", section: "Search Results", kind: "skeleton", items: [] });
       return next;
     }
 
-    const lowered = term.toLowerCase();
-    const type = searchType(term);
-    const next: HomeGroup[] = [
-      {
-        key: "search",
-        title: "",
-        items: [
-          {
-            id: "home-search-action",
-            kind: "search",
-            title: type === "instructor" ? `Search instructors for “${term}”` : `Search courses for “${term}”`,
-            query: term,
-            searchType: type,
-          },
-        ],
-      },
-    ];
     const courses: HomeItem[] = payload.courses.map((course) => ({
       id: `course-${course.code}`,
       kind: "course",
@@ -255,26 +308,35 @@ export function HomeSearch() {
       href: `/professor/${encodeURIComponent(instructor.name).replaceAll("%2F", "$")}`,
     }));
 
-    if (courses.length) next.push({ key: "courses", title: "Courses", items: courses });
-    if (instructors.length) next.push({ key: "instructors", title: "Instructors", items: instructors });
-    if (assistantEnabled) {
-      next.push({
-        key: "ai",
-        title: "Ask AI",
-        items: [{ id: "home-ai", kind: "ai", title: "Ask AI", subtitle: term }],
-      });
+    if (courses.length) {
+      next.push({ key: "courses", section: "Search Results", title: "Courses", items: courses });
+    }
+    if (instructors.length) {
+      next.push({ key: "instructors", section: "Search Results", title: "Instructors", items: instructors });
+    }
+    if (courses.length === 0 && instructors.length === 0) {
+      next.push({ key: "empty", section: "Search Results", title: "", kind: "empty", items: [] });
     }
     return next;
-  }, [assistantEnabled, payload, query, recents]);
+  }, [assistantEnabled, loading, payload, query, recents]);
 
   const flat = useMemo(() => groups.flatMap((group) => group.items), [groups]);
+
+  useEffect(() => {
+    if (!query.trim()) {
+      setActive(0);
+      return;
+    }
+    const start = assistantEnabled ? 1 : 0;
+    setActive(searchType(query.trim()) === "instructor" ? start + 1 : start);
+  }, [assistantEnabled, query]);
 
   useEffect(() => {
     setActive((current) => Math.min(current, Math.max(flat.length - 1, 0)));
   }, [flat.length]);
 
   useEffect(() => {
-    itemRefs.current[active]?.scrollIntoView({ block: "nearest" });
+    itemRefs.current[active]?.scrollIntoView?.({ block: "nearest" });
   }, [active]);
 
   const choose = useCallback(
@@ -321,6 +383,7 @@ export function HomeSearch() {
   };
 
   let cursor = -1;
+  let currentSection: string | undefined;
   const visible = open;
 
   return (
@@ -340,7 +403,6 @@ export function HomeSearch() {
               onChange={(event) => {
                 setQuery(event.target.value);
                 setOpen(true);
-                setActive(0);
               }}
               onFocus={() => setOpen(true)}
               onKeyDown={onKeyDown}
@@ -362,10 +424,7 @@ export function HomeSearch() {
             <button
               type="button"
               aria-label="Search"
-              onClick={() => {
-                if (query.trim() && flat[0]) choose(flat[0]);
-                else inputRef.current?.focus();
-              }}
+              onClick={runSearch}
               className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand text-brand-foreground shadow-sm transition-colors hover:bg-brand-strong"
             >
               <ArrowUp className="h-4 w-4" aria-hidden />
@@ -377,82 +436,93 @@ export function HomeSearch() {
           <div
             id="home-search-list"
             role="listbox"
-            className="absolute left-0 right-0 top-full z-40 mt-2 max-h-[58vh] overflow-y-auto rounded-lg border border-border/60 bg-foreground/90 p-2 text-left text-background shadow-xl backdrop-blur-xl"
+            aria-busy={loading}
+            className="absolute left-0 right-0 top-full z-40 mt-2 max-h-[58vh] overflow-y-auto rounded-lg border border-border/60 bg-foreground/80 p-2 text-left text-background shadow-xl backdrop-blur-xl"
           >
             {flat.length === 0 ? (
               <p className="px-3 py-8 text-center text-sm text-background/80">No results</p>
             ) : (
-              groups.map((group) => (
-                <div key={group.key} className="mb-2 last:mb-0">
-                  {group.title ? (
-                    <div className="px-2 pb-1 pt-1 text-[11px] font-semibold uppercase tracking-wide text-background/80">
-                      {group.title}
-                    </div>
-                  ) : null}
-                  <div className="space-y-0.5">
-                    {group.items.map((item) => {
-                      cursor += 1;
-                      const index = cursor;
-                      const selected = index === active;
-                      const isTip = item.kind === "tip";
-                      return (
-                        <button
-                          key={item.id}
-                          id={`home-search-${item.id}`}
-                          ref={(node) => {
-                            itemRefs.current[index] = node;
-                          }}
-                          type="button"
-                          role="option"
-                          aria-selected={selected}
-                          onMouseEnter={() => setActive(index)}
-                          onClick={() => choose(item)}
-                          className={cn(
-                            "group flex w-full items-center gap-2.5 rounded-lg text-left text-sm transition-colors",
-                            isTip
-                              ? "border border-border/60 bg-white/20 px-3 py-2.5 hover:bg-white/30"
-                              : "px-2 py-2.5",
-                            selected ? "bg-white/20" : "",
-                          )}
-                        >
-                          <span
-                            className={cn(
-                              "flex h-4 w-4 shrink-0 items-center justify-center",
-                              "text-background/80",
-                            )}
-                          >
-                            {itemIcon(item)}
-                          </span>
-                          <span className="min-w-0 flex-1">
-                            <span className="flex min-w-0 items-center gap-2">
-                              <span className="truncate text-sm text-background">
-                                <Highlight text={item.title} query={query} />
+              groups.map((group) => {
+                const showSection = Boolean(group.section && group.section !== currentSection);
+                if (group.section) currentSection = group.section;
+                return (
+                  <div key={group.key} className="mb-2 last:mb-0">
+                    {showSection ? (
+                      <div className="px-2 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-wide text-background/80">
+                        {group.section}
+                      </div>
+                    ) : null}
+                    {group.title ? (
+                      <div className="px-2 pb-1 pt-1 text-[10px] font-semibold uppercase tracking-wide text-background/60">
+                        {group.title}
+                      </div>
+                    ) : null}
+                    {group.kind === "skeleton" ? <ResultSkeleton /> : null}
+                    {group.kind === "empty" ? (
+                      <p className="px-3 py-6 text-center text-sm text-background/80">No results</p>
+                    ) : null}
+                    {group.items.length > 0 ? (
+                      <div className="space-y-0.5">
+                        {group.items.map((item) => {
+                          cursor += 1;
+                          const index = cursor;
+                          const selected = index === active;
+                          const isTip = item.kind === "tip";
+                          return (
+                            <button
+                              key={item.id}
+                              id={`home-search-${item.id}`}
+                              ref={(node) => {
+                                itemRefs.current[index] = node;
+                              }}
+                              type="button"
+                              role="option"
+                              aria-selected={selected}
+                              onMouseEnter={() => setActive(index)}
+                              onClick={() => choose(item)}
+                              className={cn(
+                                "group flex w-full items-center gap-2.5 rounded-lg text-left text-sm transition-colors",
+                                isTip
+                                  ? "border border-border/60 bg-white/20 px-3 py-2.5 hover:bg-white/30"
+                                  : "px-2 py-2.5",
+                                selected ? "bg-white/20" : "",
+                              )}
+                            >
+                              <span className="flex h-4 w-4 shrink-0 items-center justify-center text-background/80">
+                                {itemIcon(item)}
                               </span>
-                              {item.subtitle ? (
-                                <span className="min-w-0 truncate text-xs text-background/80">
-                                  <Highlight text={item.subtitle} query={query} />
+                              <span className="min-w-0 flex-1">
+                                <span className="flex min-w-0 items-center gap-2">
+                                  <span className="truncate text-sm text-background">
+                                    <Highlight text={item.title} query={query} />
+                                  </span>
+                                  {item.subtitle ? (
+                                    <span className="min-w-0 truncate text-xs text-background/80">
+                                      <Highlight text={item.subtitle} query={query} />
+                                    </span>
+                                  ) : null}
+                                </span>
+                              </span>
+                              {item.trailing ? (
+                                <span className="hidden shrink-0 text-[11px] text-background/80 sm:inline">
+                                  {item.trailing}
                                 </span>
                               ) : null}
-                            </span>
-                          </span>
-                          {item.trailing ? (
-                            <span className="hidden shrink-0 text-[11px] text-background/80 sm:inline">
-                              {item.trailing}
-                            </span>
-                          ) : null}
-                          <ArrowUpRight
-                            className={cn(
-                              "h-4 w-4 shrink-0 text-background/80 transition-opacity",
-                              isTip || selected ? "opacity-100" : "opacity-0 group-hover:opacity-100",
-                            )}
-                            aria-hidden
-                          />
-                        </button>
-                      );
-                    })}
+                              <ArrowUpRight
+                                className={cn(
+                                  "h-4 w-4 shrink-0 text-background/80 transition-opacity",
+                                  isTip || selected ? "opacity-100" : "opacity-0 group-hover:opacity-100",
+                                )}
+                                aria-hidden
+                              />
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : null}
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         ) : null}
