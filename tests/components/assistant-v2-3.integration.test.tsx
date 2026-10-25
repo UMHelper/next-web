@@ -54,6 +54,19 @@ type ModelCall = {
 
 type RunRecord = { body: { messages: Array<{ role: string; content?: unknown }> }; modelCalls: ModelCall[] };
 
+const plannerSync = vi.hoisted(() => ({
+  revision: 0,
+  listeners: new Set<() => void>(),
+  cachedRevision: -1,
+  cachedSnapshot: null as ReturnType<
+    typeof import("@/tests/helpers/planner-state").plannerState
+  > | null,
+  bump() {
+    plannerSync.revision += 1;
+    for (const listener of plannerSync.listeners) listener();
+  },
+}));
+
 const h = vi.hoisted(() => ({
   brain: (() => ({ text: "ok" })) as (call: never) => unknown,
   runs: [] as unknown[],
@@ -380,18 +393,35 @@ vi.mock("@/lib/timetable/catalog-client", () => ({
   getSections: async () => ({ sections: [] }),
 }));
 vi.mock("@/components/timetable/planner-provider", async () => {
+  const { useSyncExternalStore } = await import("react");
   const { plannerState } = await import("@/tests/helpers/planner-state");
   return {
-    useTimetablePlanner: () => ({
-      ...plannerState(h.plan as never, h.plannerOverrides),
-      addSection: h.mutate,
-      replaceSection: h.mutate,
-      removeSection: h.mutate,
-      createPlan: h.mutate,
-      deletePlan: h.mutate,
-      renamePlan: h.mutate,
-      setActivePlan: h.mutate,
-    }),
+    useTimetablePlanner: () => {
+      const snapshot = useSyncExternalStore(
+        (listener) => {
+          plannerSync.listeners.add(listener);
+          return () => plannerSync.listeners.delete(listener);
+        },
+        () => {
+          if (plannerSync.revision !== plannerSync.cachedRevision || !plannerSync.cachedSnapshot) {
+            plannerSync.cachedRevision = plannerSync.revision;
+            plannerSync.cachedSnapshot = plannerState(h.plan as never, h.plannerOverrides);
+          }
+          return plannerSync.cachedSnapshot;
+        },
+        () => plannerState(h.plan as never, h.plannerOverrides),
+      );
+      return {
+        ...snapshot,
+        addSection: h.mutate,
+        replaceSection: h.mutate,
+        removeSection: h.mutate,
+        createPlan: h.mutate,
+        deletePlan: h.mutate,
+        renamePlan: h.mutate,
+        setActivePlan: h.mutate,
+      };
+    },
   };
 });
 
@@ -712,6 +742,11 @@ beforeEach(() => {
   h.access = true;
   h.plan = FIXTURE_PLAN;
   h.plannerOverrides = undefined;
+  plannerSync.revision = 0;
+  plannerSync.cachedRevision = -1;
+  plannerSync.cachedSnapshot = null;
+  plannerSync.listeners.clear();
+  plannerSync.bump();
   h.mutate.mockClear();
   h.brain = v23Brain as never;
   nav.landOnPush = true;
@@ -796,6 +831,7 @@ describe("assistant V2.3 integration (scripted model)", () => {
     expect(runs().at(-1)!.modelCalls[0].digest?.conflicts).toHaveLength(1);
 
     h.plan = planWithEconSection002();
+    plannerSync.bump();
     await typeAndSend("Do I still have conflicts?");
     const call = runs().at(-1)!.modelCalls[0];
     expect(call.digest?.conflicts).toEqual([]);
@@ -862,6 +898,7 @@ describe("assistant V2.3 integration (scripted model)", () => {
 
     h.plan = undefined;
     h.plannerOverrides = { serverLoad: "failed" };
+    plannerSync.bump();
     await mountAssistant();
     await typeAndSend("What's on my timetable?");
     expect(runs().at(-1)!.modelCalls[0].digest?.status).toBe("unavailable");
@@ -869,6 +906,7 @@ describe("assistant V2.3 integration (scripted model)", () => {
     cleanup();
 
     h.plannerOverrides = { loadState: "loading" };
+    plannerSync.bump();
     await mountAssistant();
     await typeAndSend("What's on my timetable?");
     expect(runs().at(-1)!.modelCalls[0].digest?.status).toBe("loading");
