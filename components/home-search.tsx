@@ -519,7 +519,7 @@ export function HomeSearch() {
               type="button"
               aria-label={signedOut ? "Sign in to ask AI" : "Ask AI"}
               onClick={askAi}
-              className="flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-brand px-3 text-xs font-medium text-brand-foreground shadow-sm transition-colors hover:bg-brand-strong"
+              className="flex h-9 shrink-0 items-center gap-1.5 rounded-md bg-brand/90 px-3 text-xs font-medium text-brand-foreground shadow-sm transition-colors hover:bg-brand-strong"
             >
               {signedOut ? (
                 <LogIn className="h-4 w-4" aria-hidden />
