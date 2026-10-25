@@ -52,6 +52,7 @@ export const privacyPolicy: Record<LegalLanguage, LegalContent> = {
                     'Google Tag Manager / Google Analytics：流量分析。',
                     'Google AdSense：廣告投放；Google 可能依其私隱政策使用 Cookie 及裝置資訊。',
                     'Google Forms：意見回饋及問題回報。',
+                    'DeepSeek：AI 選課助手（試點）的對話處理。您在助手中輸入的內容及目前課表方案的摘要會傳送至 DeepSeek（中國內地）處理；本網站不保存對話內容。',
                 ],
             },
             {
@@ -141,6 +142,7 @@ export const privacyPolicy: Record<LegalLanguage, LegalContent> = {
                     'Google Tag Manager / Google Analytics: traffic analysis.',
                     'Google AdSense: advertising; Google may use cookies and device information under its own privacy policy.',
                     'Google Forms: feedback and problem reports.',
+                    'DeepSeek: processing for the AI course assistant (pilot). What you type into the assistant, together with a summary of your active timetable plan, is sent to DeepSeek (Mainland China) for processing; the Website does not store conversation content.',
                 ],
             },
             {

@@ -17,7 +17,12 @@ const GUARD_INVOCATIONS = [
   "auth(",
 ];
 
-const PUBLIC_API_ROUTES = new Map<string, string>([]);
+const PUBLIC_API_ROUTES = new Map<string, string>([
+  [
+    "/api/command-palette",
+    "Anonymous quick search over the same public course/instructor catalog already exposed by the public /search pages.",
+  ],
+]);
 
 // Pages that are intentionally reachable without a session. Every other page
 // under app/ must be guarded by its own file or by an ancestor layout.

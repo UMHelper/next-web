@@ -6,6 +6,12 @@ import {
   isAllowedRelayPath,
   MAX_RELAY_BODY_BYTES,
 } from "@/lib/supabase-relay";
+import {
+  PREVIEW_READONLY_CODE,
+  PREVIEW_READONLY_MESSAGE,
+  evaluateSupabaseRequest,
+  isReadonlyPreview,
+} from "@/lib/supabase/readonly-guard";
 
 export const dynamic = "force-dynamic";
 
@@ -43,6 +49,13 @@ async function handle(request: Request, context: { params: Promise<{ path: strin
     const { path } = await context.params;
     if (!isAllowedRelayPath(path)) {
       return relayError("forbidden", "Relay path not allowed", 403);
+    }
+
+    if (isReadonlyPreview()) {
+      const decision = evaluateSupabaseRequest(request.method, `/${path.join("/")}`);
+      if (!decision.allowed) {
+        return relayError(PREVIEW_READONLY_CODE, PREVIEW_READONLY_MESSAGE, 403);
+      }
     }
 
     const base = process.env.NEXT_PUBLIC_SUPABASE_URL;

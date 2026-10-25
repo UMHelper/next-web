@@ -166,13 +166,13 @@ export const searchCatalogInputSchema = z
       "Search the course catalog (`course`) or the instructor catalog (`instructor`).",
     ),
     query: optionalFilter(80).describe(
-      "Course code, course title or instructor name to search for. Optional, but at least one of query, faculty or department is required.",
+      "Course code or prefix (for example `ACCT`), course title or instructor name. For a subject's full course list use the code prefix. Optional, but at least one of query, faculty or department is required.",
     ),
     faculty: optionalFilter(40).describe(
       "Faculty / offering unit filter, for example `FBA`. Optional.",
     ),
     department: optionalFilter(80).describe(
-      "Department / offering department filter, for example `ACCT`. Optional.",
+      "Offering department filter, for example `AIM` (Accounting and Information Management). This is not the course-code prefix. Optional.",
     ),
     limit: z
       .number()
@@ -199,6 +199,7 @@ export const catalogCourseSchema = z.object({
   department: z.string().nullable(),
   credits: z.string().nullable(),
   isOffered: z.boolean(),
+  aka: z.array(z.string()).max(20).default([]).describe("Previous course codes for the same course; the primary courseCode is authoritative."),
   url: referenceUrlSchema,
 });
 
@@ -271,6 +272,7 @@ export const courseDetailSchema = z.object({
   courseType: z.string().nullable(),
   duration: z.string().nullable(),
   description: z.string().nullable(),
+  aka: z.array(z.string()).max(20).default([]).describe("Previous course codes for the same course; the primary courseCode is authoritative."),
   isOffered: z.boolean(),
   url: referenceUrlSchema,
 });

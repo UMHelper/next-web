@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NextResponse } from "next/server";
 
 const { requireAdmin } = vi.hoisted(() => ({ requireAdmin: vi.fn() }));
@@ -62,6 +62,10 @@ describe("/api/admin/supabase relay", () => {
     vi.stubGlobal("fetch", fetchMock);
   });
 
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   it("rejects non-platform-admins", async () => {
     requireAdmin.mockResolvedValue({
       ok: false,
@@ -104,5 +108,58 @@ describe("/api/admin/supabase relay", () => {
     const response = await POST(request, ctx("rest", "v1", "course_noporf"));
     expect(response.status).toBe(413);
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  describe("when PREVIEW_DB_READONLY is 1", () => {
+    beforeEach(() => {
+      vi.stubEnv("PREVIEW_DB_READONLY", "1");
+    });
+
+    it("blocks table writes without calling upstream", async () => {
+      const request = new Request("http://localhost/api/admin/supabase/rest/v1/comment", {
+        method: "POST",
+        body: "{}",
+        headers: { "Content-Type": "application/json" },
+      });
+      const response = await POST(request, ctx("rest", "v1", "comment"));
+
+      expect(response.status).toBe(403);
+      await expect(response.json()).resolves.toMatchObject({ code: "PREVIEW_READONLY" });
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it("blocks non-allowlisted rpc calls", async () => {
+      const request = new Request("http://localhost/api/admin/supabase/rest/v1/rpc/consume_rate_limit", {
+        method: "POST",
+        body: "{}",
+        headers: { "Content-Type": "application/json" },
+      });
+      const response = await POST(request, ctx("rest", "v1", "rpc", "consume_rate_limit"));
+
+      expect(response.status).toBe(403);
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it("still forwards reads", async () => {
+      const response = await GET(
+        new Request("http://localhost/api/admin/supabase/rest/v1/course_noporf?select=New_code"),
+        ctx("rest", "v1", "course_noporf"),
+      );
+
+      expect(response.status).toBe(200);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it("forwards writes when the preview flag is off", async () => {
+    const request = new Request("http://localhost/api/admin/supabase/rest/v1/course_noporf", {
+      method: "POST",
+      body: "{}",
+      headers: { "Content-Type": "application/json" },
+    });
+    const response = await POST(request, ctx("rest", "v1", "course_noporf"));
+
+    expect(response.status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });

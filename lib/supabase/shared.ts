@@ -1,5 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 
+import { createReadonlyFetch, isReadonlyPreview } from "./readonly-guard";
+
 function requireEnv(name: string, value: string | undefined) {
   if (!value) {
     throw new Error(`Missing required Supabase env: ${name}`);
@@ -17,7 +19,8 @@ export function createSupabaseAdminClient() {
         persistSession: false,
         autoRefreshToken: false,
       },
+      // Preview workers read production data. Block every write at the source.
+      ...(isReadonlyPreview() ? { global: { fetch: createReadonlyFetch() } } : {}),
     },
   );
 }
-

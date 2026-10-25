@@ -1,0 +1,27 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { describe, expect, it } from "vitest";
+
+const read = (...parts: string[]) => readFileSync(join(process.cwd(), ...parts), "utf8");
+
+describe("assistant dependency contract", () => {
+  it("pins the CopilotKit and DeepSeek packages exactly", () => {
+    const pkg = JSON.parse(read("package.json"));
+    expect(pkg.dependencies["@copilotkit/react-core"]).toBe("1.79.1");
+    expect(pkg.dependencies["@copilotkit/runtime"]).toBe("1.79.1");
+    expect(pkg.dependencies["@ai-sdk/deepseek"]).toBe("2.0.76");
+  });
+
+  it("runs on the AI SDK version the thinking-mode findings were checked against", () => {
+    expect(JSON.parse(read("node_modules/ai/package.json")).version).toBe("6.0.309");
+  });
+
+  it("renders assistant replies with react-markdown", () => {
+    const pkg = JSON.parse(read("package.json"));
+    expect(pkg.dependencies["react-markdown"]).toMatch(/^\^?8\./);
+  });
+
+  it("keeps CopilotKit telemetry off in the Worker config", () => {
+    expect(read("wrangler.jsonc")).toMatch(/"COPILOTKIT_TELEMETRY_DISABLED":\s*"true"/);
+  });
+});

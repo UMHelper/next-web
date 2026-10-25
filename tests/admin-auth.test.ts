@@ -19,6 +19,7 @@ import {
   getPlatformAdminEmails,
   getPlatformAdminIds,
   requireAdmin,
+  resolveAdminSession,
 } from "@/lib/admin-auth";
 
 describe("admin auth", () => {
@@ -107,5 +108,52 @@ describe("admin auth", () => {
     const result = await requireAdmin();
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.response.status).toBe(401);
+  });
+
+  it("returns 500 when the db lookup fails", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    auth.mockResolvedValue({ userId: "user_db_down" });
+    maybeSingle.mockResolvedValue({ data: null, error: { message: "db down" } });
+
+    const result = await getCurrentAdmin();
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.response.status).toBe(500);
+  });
+
+  describe("resolveAdminSession", () => {
+    it("resolves an env platform admin without Clerk or the db", async () => {
+      process.env.PLATFORM_ADMIN_USER_IDS = "user_platform";
+
+      await expect(resolveAdminSession("user_platform")).resolves.toEqual({
+        ok: true,
+        session: { userId: "user_platform", isPlatformAdmin: true },
+      });
+      expect(getDirectoryUsers).not.toHaveBeenCalled();
+      expect(maybeSingle).not.toHaveBeenCalled();
+    });
+
+    it("resolves an active db admin", async () => {
+      maybeSingle.mockResolvedValue({ data: { clerk_user_id: "user_db", active: true }, error: null });
+
+      await expect(resolveAdminSession("user_db")).resolves.toEqual({
+        ok: true,
+        session: { userId: "user_db", isPlatformAdmin: false },
+      });
+    });
+
+    it("returns a null session for non-admins and inactive admins", async () => {
+      maybeSingle.mockResolvedValueOnce({ data: null, error: null });
+      await expect(resolveAdminSession("user_plain")).resolves.toEqual({ ok: true, session: null });
+
+      maybeSingle.mockResolvedValueOnce({ data: { clerk_user_id: "user_old", active: false }, error: null });
+      await expect(resolveAdminSession("user_old")).resolves.toEqual({ ok: true, session: null });
+    });
+
+    it("reports a db failure as not ok", async () => {
+      vi.spyOn(console, "error").mockImplementation(() => {});
+      maybeSingle.mockResolvedValue({ data: null, error: { message: "db down" } });
+
+      await expect(resolveAdminSession("user_x")).resolves.toEqual({ ok: false });
+    });
   });
 });
