@@ -19,7 +19,7 @@ import type { TimetableToolDeps } from "@/lib/assistant/timetable-tools";
 
 export const CHECK_PLAN_CONFLICTS_TOOL_NAME = "check_plan_conflicts";
 export const CHECK_PLAN_CONFLICTS_DESCRIPTION =
-  "Check whether sections of one instructor's offering of a course clash with the student's saved timetable, using this term's catalog class times. Omit section to check every listed section. Read-only; never changes the timetable.";
+  "Check whether sections of one instructor's offering of a course clash with the student's saved timetable, using this term's catalog class times. It needs the instructor: call get_course first when you do not know who teaches the course, then check each instructor teaching this term, at most three (list any others and ask). When the page names a course, check that code even if get_course fails, using an instructor from the page context, courseReferent or get_course_sections. Omit section to check every listed section; do that, and answer in text, when the student asks what if they take a course without naming a section. A section with complete false, or a result with sectionListComplete false, was not fully checked. Read-only; never changes the timetable.";
 
 export const checkPlanConflictsParameters = z.object({
   code: z.string().min(1).max(20).describe("Course code, e.g. ECON1001"),

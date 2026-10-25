@@ -25,7 +25,7 @@ vi.mock("@/lib/mcp/data/get-course-reviews", () => ({ getCourseReviews: data.get
 vi.mock("@/lib/mcp/data/get-course-sections", () => ({ getCourseSections: data.getCourseSections }));
 
 import { NOT_AVAILABLE_ON_SITE, RATING_SCALE_NOTE } from "@/lib/assistant/academic-facts";
-import { type CourseReferentSlot } from "@/lib/assistant/course-referent";
+import { COURSE_REFERENT_DESCRIPTION, type CourseReferentSlot } from "@/lib/assistant/course-referent";
 import { getInstructorToolInputSchema } from "@/lib/assistant/tool-schemas";
 import { ASSISTANT_SERVER_TOOL_NAMES, createAssistantTools } from "@/lib/assistant/tools";
 import { McpToolError } from "@/lib/mcp/errors";
@@ -465,5 +465,41 @@ describe("assistant server tools", () => {
       ask: "Which course do you mean?",
     });
     expect(data.getCourse).not.toHaveBeenCalled();
+  });
+});
+
+describe("tool descriptions carry moved procedures", () => {
+  function description(name: string) {
+    const tool = createAssistantTools().find((entry) => entry.name === name);
+    if (!tool?.description) throw new Error(`missing tool ${name}`);
+    return tool.description;
+  }
+
+  it("check_plan_conflicts", () => {
+    const text = description("check_plan_conflicts");
+    expect(text).toContain("at most three");
+    expect(text).toContain("even if get_course fails");
+  });
+
+  it("preview_timetable", () => {
+    expect(description("preview_timetable")).toContain("never pick one");
+  });
+
+  it("get_course_sections", () => {
+    expect(description("get_course_sections")).toContain("at most three in one turn");
+  });
+
+  it("get_course_reviews", () => {
+    expect(description("get_course_reviews")).toContain("not that none exist");
+  });
+
+  it("present_response", () => {
+    const text = description("present_response");
+    expect(text).toContain("missing_lookup");
+    expect(text).not.toContain("Default: omit");
+  });
+
+  it("courseReferent context description", () => {
+    expect(COURSE_REFERENT_DESCRIPTION).toContain("ambiguous: ask the ask text");
   });
 });
