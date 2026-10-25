@@ -641,6 +641,13 @@ async function typeAndSend(text: string) {
   await waitForAgentIdle();
 }
 
+function assistantTurnRootForUserMessage(text: string) {
+  const userLabel = screen.getByText(text);
+  const turnRoot = userLabel.closest("div.flex.flex-col.gap-3");
+  if (!turnRoot) throw new Error(`assistant turn not found for user message: ${text}`);
+  return turnRoot;
+}
+
 function presentResponseReceipts() {
   const receipts: Array<{ status: string }> = [];
   for (const out of runs().flatMap((run) => run.modelCalls).flatMap((call) => call.toolResults)) {
@@ -707,9 +714,11 @@ describe("assistant V2.3.5-A integration (real tools, scripted model)", () => {
     expect(turn2Receipt).toBeTruthy();
 
     await typeAndSend("Tell me more.");
-    const turn3Results = runs().at(-1)!.modelCalls.flatMap((call) => call.toolResults);
-    expect(turn3Results.some((out) => out.includes("missing_lookup"))).toBe(true);
     const turn3Calls = runs().at(-1)!.modelCalls;
+    const turn3Results = turn3Calls.flatMap((call) => call.toolResults);
+    expect(turn3Results.some((out) => out.includes("missing_lookup"))).toBe(true);
+    expect(turn3Calls.some((call) => call.toolNames.includes("get_course"))).toBe(true);
+    expect(turn3Calls.some((call) => call.toolNames.includes("present_response"))).toBe(true);
     expect(
       turn3Calls.some(
         (call) =>
@@ -720,10 +729,12 @@ describe("assistant V2.3.5-A integration (real tools, scripted model)", () => {
           ),
       ),
     ).toBe(true);
+    const turn3Assistant = assistantTurnRootForUserMessage("Tell me more.");
     await waitFor(
-      () => expect(screen.getAllByRole("article", { name: "GELH1000" }).length).toBeGreaterThanOrEqual(1),
+      () => expect(within(turn3Assistant).getAllByRole("article", { name: "GELH1000" })).toHaveLength(1),
       { timeout: 10000 },
     );
+    expect(screen.getAllByRole("article", { name: "GELH1000" })).toHaveLength(2);
   }, 120_000);
 
   it("J1 instructor comparison sees direction, sample size and nulled zero aggregates, with no card", async () => {
