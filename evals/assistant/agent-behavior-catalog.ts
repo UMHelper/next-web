@@ -154,7 +154,11 @@ const EVAL_COURSES: FixtureCourse[] = [
 ];
 
 /** When set, `searchCatalogForAssistant` throws for queries containing GEST (partial_failure case). */
-export let failingQuery: string | null = null;
+let failingQuery: string | null = null;
+
+export function setAgentBehaviorFailingQuery(query: string | null): void {
+  failingQuery = query;
+}
 
 export const AGENT_BEHAVIOR_COURSE_CODES = EVAL_COURSES.map((course) => course.code);
 

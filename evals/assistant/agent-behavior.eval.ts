@@ -37,7 +37,7 @@ import { readAssistantConfig } from "@/lib/assistant/config";
 import { detectChineseScript } from "@/lib/assistant/reply-script";
 
 import { AGENT_BEHAVIOR_CASES } from "./agent-behavior-cases";
-import { AGENT_BEHAVIOR_CATALOG_FACTS, failingQuery } from "./agent-behavior-catalog";
+import { AGENT_BEHAVIOR_CATALOG_FACTS, setAgentBehaviorFailingQuery } from "./agent-behavior-catalog";
 import {
   AGENT_BEHAVIOR_HOLDOUT_CASES,
   type AgentBehaviorHoldoutCase,
@@ -133,7 +133,7 @@ describe.skipIf(!enabled)("assistant agent behavior against the real model", () 
     for (let repeat = 0; repeat < repeats && stoppedEarly === undefined; repeat++) {
       for (const evalCase of cases) {
         if (evalCase.id === "partial_failure") {
-          failingQuery = evalCase.turns[0]!.message;
+          setAgentBehaviorFailingQuery(evalCase.turns[0]!.message);
         }
         const options: HarnessOptions = { config, budget, repeat };
         try {
@@ -169,7 +169,7 @@ describe.skipIf(!enabled)("assistant agent behavior against the real model", () 
           throw error;
         } finally {
           if (evalCase.id === "partial_failure") {
-            failingQuery = null;
+            setAgentBehaviorFailingQuery(null);
           }
         }
         await new Promise((resolve) => setTimeout(resolve, delayMs));
