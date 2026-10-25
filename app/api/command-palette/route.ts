@@ -17,6 +17,12 @@ function text(row: Row, keys: string[]): string | null {
 function courseFromRow(row: Row) {
   const code = text(row, ["New_code", "course_code", "courseCode"]);
   if (!code) return null;
+  const equivalents = Array.isArray(row.equivalent_codes)
+    ? row.equivalent_codes
+        .filter((entry): entry is string => typeof entry === "string")
+        .map((entry) => entry.trim().toUpperCase())
+        .filter(Boolean)
+    : [];
   return {
     code: code.toUpperCase(),
     titleEn: text(row, ["courseTitleEng", "course_title_eng", "titleEn"]),
@@ -24,6 +30,7 @@ function courseFromRow(row: Row) {
     faculty: text(row, ["Offering_Unit", "offering_unit", "faculty"]),
     department: text(row, ["Offering_Department", "offering_department", "department"]),
     credits: text(row, ["Credits", "credits"]),
+    equivalentCodes: equivalents,
   };
 }
 

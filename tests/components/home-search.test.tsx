@@ -21,6 +21,7 @@ const PAYLOAD = {
       faculty: "FBA",
       department: "AIM",
       credits: "3",
+      equivalentCodes: ["ACCT100"],
     },
   ],
   instructors: [{ name: "CHAN TAI MAN", courseCount: 3, sampleCourse: "ACCT1000" }],
@@ -58,6 +59,7 @@ describe("HomeSearch", () => {
     fireEvent.change(input, { target: { value: "ACCT" } });
     await waitFor(() => expect(screen.getByRole("option", { name: /Principles of Financial Accounting/ })).toBeTruthy());
     expect(screen.getByRole("option", { name: /CHAN TAI MAN/ })).toBeTruthy();
+    expect(screen.getByText(/a\.k\.a\. ACCT100/)).toBeTruthy();
     expect(screen.queryByText(/財務會計/)).toBeNull();
   });
 
@@ -149,6 +151,43 @@ describe("HomeSearch", () => {
       prompt: "Which courses cover accounting?",
       autoSend: true,
     });
+  });
+
+  it("resolves an old a.k.a. code to its primary course", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        if (String(input).includes("/api/assistant/access")) {
+          return new Response(JSON.stringify({ enabled: true }), { status: 200 });
+        }
+        return new Response(
+          JSON.stringify({
+            courses: [
+              {
+                code: "CSCI1001",
+                titleEn: "Programming Science",
+                titleZh: null,
+                faculty: "FIC",
+                department: "CSC",
+                credits: "3",
+                equivalentCodes: ["CISC1001"],
+              },
+            ],
+            instructors: [],
+          }),
+          { status: 200 },
+        );
+      }),
+    );
+
+    render(<HomeSearch />);
+    const input = screen.getByRole("combobox");
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: "CISC1001" } });
+
+    const course = await screen.findByRole("option", { name: /CSCI1001/ });
+    expect(course.getAttribute("aria-selected")).toBe("true");
+    expect(screen.getByText(/a\.k\.a\. CISC1001/)).toBeTruthy();
   });
 
   it("opens the assistant for Ask AI", async () => {

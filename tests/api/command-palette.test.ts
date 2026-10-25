@@ -28,6 +28,7 @@ describe("GET /api/command-palette", () => {
               Offering_Unit: "FBA",
               Offering_Department: "ACCT",
               Credits: "3",
+              equivalent_codes: ["ACCT100"],
               ilo: "must not leak",
             },
           ]
@@ -51,6 +52,7 @@ describe("GET /api/command-palette", () => {
         faculty: "FBA",
         department: "ACCT",
         credits: "3",
+        equivalentCodes: ["ACCT100"],
       },
     ]);
     expect(body.courses[0]).not.toHaveProperty("ilo");

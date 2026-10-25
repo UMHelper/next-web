@@ -27,6 +27,7 @@ const PAYLOAD = {
       faculty: "FBA",
       department: "ACCT",
       credits: "3",
+      equivalentCodes: ["ACCT100"],
     },
   ],
   instructors: [
@@ -70,6 +71,7 @@ describe("CommandPalette", () => {
     await waitFor(() => expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/api/command-palette"), expect.anything()));
     expect(screen.getAllByRole("option", { name: /ACCT1000/ }).length).toBeGreaterThan(0);
     expect(screen.getByRole("option", { name: /CHAN TAI MAN/ })).toBeTruthy();
+    expect(screen.getByText(/a\.k\.a\. ACCT100/)).toBeTruthy();
 
     fireEvent.click(screen.getAllByRole("option", { name: /ACCT1000/ })[0]);
     expect(push).toHaveBeenCalledWith("/course/ACCT1000");

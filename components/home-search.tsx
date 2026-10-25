@@ -27,6 +27,7 @@ type CourseHit = {
   faculty: string | null;
   department: string | null;
   credits: string | null;
+  equivalentCodes?: string[];
 };
 
 type InstructorHit = { name: string; courseCount: number; sampleCourse: string | null };
@@ -42,6 +43,7 @@ type HomeItem = {
   query?: string;
   icon?: "course" | "instructor" | "prompt";
   searchType?: "course" | "instructor";
+  aka?: string;
 };
 
 type HomeGroup = {
@@ -80,6 +82,11 @@ const TIPS: HomeItem[] = [
     icon: "prompt",
   },
 ];
+
+function formatAka(codes: string[] | undefined): string | undefined {
+  const list = (codes ?? []).map((code) => code.trim().toUpperCase()).filter(Boolean);
+  return list.length ? list.join(", ") : undefined;
+}
 
 function readRecents(): HomeItem[] {
   try {
@@ -274,7 +281,11 @@ export function HomeSearch() {
         next.push({ key: "skeleton", title: "", kind: "skeleton", items: [] });
       } else {
         const code = term.toUpperCase();
-        const course = payload.courses.find((entry) => entry.code.toUpperCase() === code);
+        const course = payload.courses.find(
+          (entry) =>
+            entry.code.toUpperCase() === code ||
+            entry.equivalentCodes?.some((equivalent) => equivalent.toUpperCase() === code),
+        );
         if (course) {
           next.push({
             key: "course",
@@ -284,6 +295,7 @@ export function HomeSearch() {
                 id: `course-${course.code}`,
                 kind: "course",
                 title: course.code,
+                aka: formatAka(course.equivalentCodes),
                 subtitle: course.titleEn ?? undefined,
                 trailing: [course.faculty, course.department].filter(Boolean).join(" / ") || undefined,
                 href: `/course/${encodeURIComponent(course.code)}`,
@@ -328,6 +340,7 @@ export function HomeSearch() {
       id: `course-${course.code}`,
       kind: "course",
       title: course.code,
+      aka: formatAka(course.equivalentCodes),
       subtitle: course.titleEn ?? undefined,
       trailing: [course.faculty, course.department].filter(Boolean).join(" / ") || undefined,
       href: `/course/${encodeURIComponent(course.code)}`,
@@ -520,6 +533,11 @@ export function HomeSearch() {
                                   <span className="truncate text-sm text-background">
                                     <Highlight text={item.title} query={query} />
                                   </span>
+                                  {item.aka ? (
+                                    <span className="shrink-0 whitespace-nowrap text-[11px] text-background/60">
+                                      a.k.a. {item.aka}
+                                    </span>
+                                  ) : null}
                                   {item.subtitle ? (
                                     <span className="min-w-0 truncate text-xs text-background/80">
                                       <Highlight text={item.subtitle} query={query} />

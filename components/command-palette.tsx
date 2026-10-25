@@ -24,6 +24,7 @@ type CourseHit = {
   faculty: string | null;
   department: string | null;
   credits: string | null;
+  equivalentCodes?: string[];
 };
 
 type InstructorHit = {
@@ -41,9 +42,15 @@ type PaletteItem = {
   subtitle?: string;
   trailing?: string;
   href?: string;
+  aka?: string;
 };
 
 type PaletteGroup = { key: string; title: string; items: PaletteItem[] };
+
+function formatAka(codes: string[] | undefined): string | undefined {
+  const list = (codes ?? []).map((code) => code.trim().toUpperCase()).filter(Boolean);
+  return list.length ? list.join(", ") : undefined;
+}
 
 const EMPTY: SearchPayload = { courses: [], instructors: [] };
 const RECENTS_KEY = "umeh:command-palette-recents-v2";
@@ -204,6 +211,7 @@ export function CommandPalette({ variant = "header" }: { variant?: "header" | "h
       id: `course-${course.code}`,
       kind: "course",
       title: course.code,
+      aka: formatAka(course.equivalentCodes),
       subtitle: course.titleEn ?? undefined,
       trailing: [course.faculty, course.department].filter(Boolean).join(" / ") || undefined,
       href: `/course/${encodeURIComponent(course.code)}`,
@@ -385,6 +393,11 @@ export function CommandPalette({ variant = "header" }: { variant?: "header" | "h
                               >
                                 <Highlight text={item.title} query={query} />
                               </span>
+                              {item.aka ? (
+                                <span className="shrink-0 whitespace-nowrap text-[11px] text-muted-foreground">
+                                  a.k.a. {item.aka}
+                                </span>
+                              ) : null}
                               {item.subtitle ? (
                                 <span className="min-w-0 truncate text-xs text-muted-foreground">
                                   <Highlight text={item.subtitle} query={query} />
