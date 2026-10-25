@@ -185,7 +185,6 @@ export function summarizeAgentBehavior(
   const noMidtermCertaintyViolations = grades.filter(
     (grade) =>
       (grade.caseId === "no_midterm" || grade.caseId === "holdout-no_midterm") &&
-      grade.turn === 1 &&
       grade.checks.forbid === false,
   ).length;
 

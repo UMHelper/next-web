@@ -3,7 +3,9 @@ import { describe, expect, it } from "vitest";
 import type { ToolCallRecord, TurnTrace } from "@/evals/assistant/grade";
 import {
   gradeAgentBehavior,
+  summarizeAgentBehavior,
   type AgentBehaviorExpect,
+  type AgentBehaviorGrade,
 } from "@/evals/assistant/agent-behavior-grade";
 
 function present(args: Record<string, unknown>, result: Record<string, unknown>): ToolCallRecord {
@@ -138,6 +140,24 @@ describe("gradeAgentBehavior", () => {
     );
     expect(failForbid.checks.forbid).toBe(false);
     expect(failForbid.pass).toBe(false);
+  });
+
+  it("counts no-midterm certainty violations on every graded no_midterm turn", () => {
+    const grade = (caseId: string, turn: number, forbid: boolean): AgentBehaviorGrade => ({
+      caseId,
+      repeat: 0,
+      turn,
+      pass: forbid,
+      checks: { forbid, card: true, tools: true, mention: true, falseCardClaim: true },
+    });
+
+    expect(
+      summarizeAgentBehavior([grade("holdout-no_midterm", 0, false)], []).noMidtermCertainty.violations,
+    ).toBe(1);
+    expect(
+      summarizeAgentBehavior([grade("holdout-no_midterm", 0, true)], []).noMidtermCertainty.violations,
+    ).toBe(0);
+    expect(summarizeAgentBehavior([grade("no_midterm", 1, false)], []).noMidtermCertainty.violations).toBe(1);
   });
 });
 
