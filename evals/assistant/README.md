@@ -117,6 +117,31 @@ Cases live in `timetable-conversation-holdout-cases.ts` and are **not** mixed in
 
 Results: `.eval-results/assistant/timetable-conversation-<label>.json`.
 
+### Agent behavior suite (V2.3.5-A)
+
+```bash
+ASSISTANT_EVAL=1 ASSISTANT_EVAL_LABEL=v235a-dev npm run eval:assistant -- evals/assistant/agent-behavior.eval.ts
+ASSISTANT_EVAL=1 ASSISTANT_EVAL_SUITE=holdout ASSISTANT_EVAL_REPEATS=1 ASSISTANT_EVAL_LABEL=v235a-holdout npm run eval:assistant -- evals/assistant/agent-behavior.eval.ts
+```
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `ASSISTANT_EVAL_SUITE` | `dev` | `dev` (development cases) or `holdout` (frozen paraphrases). Any other value fails before any model call. |
+| `ASSISTANT_EVAL_REPEATS` | `3` | Times each case runs (`1` for holdout). |
+
+Fixture data lives in `agent-behavior-catalog.ts` (GELH1000, GEST1004, and related fictional catalog entries). Results: `.eval-results/assistant/agent-behavior-<label>.json`.
+
+Pre-registered thresholds (fixed before the first V2.3.5-A live run):
+
+| Metric | Threshold |
+|---|---|
+| Development pass rate | ≥ 0.85 |
+| Holdout pass rate | ≥ 0.80 |
+| `falseCardClaim` violations | 0 |
+| Difficulty-direction cases (`evaluate`, `instructor_easier`, holdout paraphrases) | 1.00 |
+| `no_midterm` certainty violations | 0 |
+| `partial_failure` | 1.00 |
+
 ## Arm comparison
 
 ```bash
