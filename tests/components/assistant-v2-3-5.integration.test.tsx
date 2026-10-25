@@ -641,10 +641,12 @@ async function typeAndSend(text: string) {
   await waitForAgentIdle();
 }
 
-function assistantTurnRootForUserMessage(text: string) {
+function assistantTurnRootForUserMessage(text: string): HTMLElement {
   const userLabel = screen.getByText(text);
   const turnRoot = userLabel.closest("div.flex.flex-col.gap-3");
-  if (!turnRoot) throw new Error(`assistant turn not found for user message: ${text}`);
+  if (!(turnRoot instanceof HTMLElement)) {
+    throw new Error(`assistant turn not found for user message: ${text}`);
+  }
   return turnRoot;
 }
 

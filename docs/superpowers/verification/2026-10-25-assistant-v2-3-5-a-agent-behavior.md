@@ -175,9 +175,9 @@ C1–C9 resolution table: **Task 8 section above**.
 | Gate | Command | Result @ `f15bc3f` |
 |---|---|---|
 | Tests | `npx vitest run` | **PASS** — 262 files, **2161** tests |
-| Typecheck | `npx tsc --noEmit` | **FAIL** — 2 errors: `evals/assistant/agent-behavior-catalog.ts` returns `sectionDataComplete` on mock `GetCourseSectionsOutput` (MCP schema omits field); `tests/components/assistant-v2-3-5.integration.test.tsx:734` `Element` vs `HTMLElement` for `within()` |
+| Typecheck | `npx tsc --noEmit` | **PASS** — 0 errors (post–type-fix commit after `d856217`) |
 | Lint | `npm run lint` | **PASS** |
-| Build | `npm run build` | **FAIL** — same type errors during Next type check |
+| Build | `npm run build` | **PASS** |
 | Repo hygiene | `git status --short` | Only pre-existing dirty files + verification doc + untracked audits (expected) |
 
 Scripted CopilotKit coverage: **`assistant-v2-3-5.integration.test.tsx` 10/10**; full components suite was green through Task 9 follow-ups. Timetable V2.3 journeys remain in **`assistant-v2-3.integration.test.tsx`**.
@@ -206,7 +206,7 @@ Scripted CopilotKit coverage: **`assistant-v2-3-5.integration.test.tsx` 10/10**;
 - **History** still truncated (**8** prior turns; tool results cut to **200** chars in client memory).
 - **Quota** unchanged (**30**/hour per run token model); **8** model steps; desktop-only mount.
 - **Live model quality:** dev agent-behavior pass rate **0.563** (below **0.85**); difficulty direction and partial_failure miss on dev; **`falseCardClaim` 2** on dev — holdout thresholds mostly met (see Task 10).
-- **Typecheck/build drift:** `f15bc3f` tree fails `tsc`/`build` on the two errors above despite green vitest — needs a small follow-up fix outside this docs commit.
+- **Typecheck/build:** resolved after `d856217` by typing the agent-behavior sections fixture as `AssistantCourseSectionsOutput` and narrowing the journey test turn root to `HTMLElement`.
 
 ### Subsequent milestone dependencies (do not start here)
 
@@ -232,7 +232,7 @@ Students can get evaluation-shaped cards without magic phrases; the model is ste
 ### Evidence
 
 - **2161** vitest tests pass; **10/10** V2.3.5-A integration journeys; live holdout agent-behavior **7/8**; presentation-holdout **9/10**; timetable-conversation-holdout **1.00**; prompt fingerprint **`b7bca953977e`** stable.
-- **Gaps:** dev live pass rate **27/48**; **`tsc`/`build` fail** on `f15bc3f`; browser matrix **UNVERIFIED**; D4 historical presentation cases conflict with natural-card policy.
+- **Gaps:** dev live pass rate **27/48**; browser matrix **UNVERIFIED**; D4 historical presentation cases conflict with natural-card policy.
 
 ### Spec §10 acceptance criteria
 
@@ -251,7 +251,7 @@ Students can get evaluation-shaped cards without magic phrases; the model is ste
 | No unsupported verified exam claims | **Yes** | **`no_midterm` 0** violations live |
 | Timetable semantics intact | **Yes** | V2.3 suites pass; conversation metric **0.778** on dev live (below 0.90) |
 | No planner mutation | **Yes** | Read-only guards + integration |
-| Tests, lint, TS, build pass | **Partial** | Vitest + lint pass; **tsc/build fail** on HEAD |
+| Tests, lint, TS, build pass | **Yes** | Full vitest + lint + tsc + build pass after type-fix commit |
 | Real-model eval completed | **Yes** | Task 10 live runs documented |
 | Browser acceptance | **Unverified** | No signed-in manual run |
 | Limitations / dependencies documented | **Yes** | This report |
@@ -260,4 +260,4 @@ Students can get evaluation-shaped cards without magic phrases; the model is ste
 
 **V2.3.5-B:** Projections, completeness flags, typed errors, and receipts are in place for discovery work. **V2.3.5-C:** Visible-blocks and ledger design assume raw message persistence — do not persist summary-only history. **Do not start B/C in this milestone.**
 
-**Release stance:** Strong automated and holdout-live signal; dev live quality and production **typecheck/build** need follow-up before treating the branch as fully ship-ready; complete browser checklist with a signed-in student at 380px and 800px.
+**Release stance:** Strong automated and holdout-live signal; dev live quality still below preregistered floors; complete browser checklist with a signed-in student at 380px and 800px.

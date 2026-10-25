@@ -1,3 +1,4 @@
+import type { AssistantCourseSectionsOutput } from "@/lib/assistant/assistant-output-schemas";
 import { McpToolError } from "@/lib/mcp/errors";
 import type {
   GetCourseInput,
@@ -5,7 +6,6 @@ import type {
   GetCourseReviewsInput,
   GetCourseReviewsOutput,
   GetCourseSectionsInput,
-  GetCourseSectionsOutput,
   GetInstructorInput,
   GetInstructorOutput,
   SearchCatalogInput,
@@ -292,7 +292,7 @@ export async function getCourseReviews(
   };
 }
 
-export async function getCourseSections(input: GetCourseSectionsInput): Promise<GetCourseSectionsOutput> {
+export async function getCourseSections(input: GetCourseSectionsInput): Promise<AssistantCourseSectionsOutput> {
   const { course, prof } = offering(input.code, input.instructor);
   const courseUrl = absoluteUrl(buildCoursePath(course.code));
   return {
