@@ -315,7 +315,7 @@ export function HomeSearch() {
       const next: HomeGroup[] = [];
       if (aiItem) next.push({ key: "ai", title: "", items: [aiItem] });
       if (recents.length) next.push({ key: "recent", title: "Recents", items: recents });
-      next.push({ key: "tips", title: "Try asking", items: TIPS });
+      if (!assistantDenied) next.push({ key: "tips", title: "Try asking", items: TIPS });
       return next;
     }
 
@@ -515,19 +515,21 @@ export function HomeSearch() {
             <kbd className="hidden shrink-0 rounded border border-border/60 bg-white/20 px-1.5 py-0.5 font-sans text-[11px] leading-none text-background/80 sm:inline">
               ⌘K
             </kbd>
-            <button
-              type="button"
-              aria-label={signedOut ? "Sign in to ask AI" : "Ask AI"}
-              onClick={askAi}
-              className="flex h-9 shrink-0 items-center gap-1.5 rounded-md bg-brand/90 px-3 text-xs font-medium text-brand-foreground shadow-sm transition-colors hover:bg-brand-strong"
-            >
-              {signedOut ? (
-                <LogIn className="h-4 w-4" aria-hidden />
-              ) : (
-                <Sparkles className="h-4 w-4" aria-hidden />
-              )}
-              <span className="hidden sm:inline">{signedOut ? "Sign in" : "Ask AI"}</span>
-            </button>
+            {assistantDenied ? null : (
+              <button
+                type="button"
+                aria-label={signedOut ? "Sign in to ask AI" : "Ask AI"}
+                onClick={askAi}
+                className="flex h-9 shrink-0 items-center gap-1.5 rounded-md bg-brand/90 px-3 text-xs font-medium text-brand-foreground shadow-sm transition-colors hover:bg-brand-strong"
+              >
+                {signedOut ? (
+                  <LogIn className="h-4 w-4" aria-hidden />
+                ) : (
+                  <Sparkles className="h-4 w-4" aria-hidden />
+                )}
+                <span className="hidden sm:inline">{signedOut ? "Sign in" : "Ask AI"}</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -656,14 +658,16 @@ export function HomeSearch() {
           <CalendarDays className="h-4 w-4" aria-hidden />
           Timetable
         </Link>
-        <button
-          type="button"
-          onClick={() => requestAssistant()}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-white/20 px-3 py-2 text-sm text-white backdrop-blur transition-colors hover:bg-white/30"
-        >
-          {signedOut ? <LogIn className="h-4 w-4" aria-hidden /> : <Sparkles className="h-4 w-4" aria-hidden />}
-          {signedOut ? "Sign in" : "Ask AI"}
-        </button>
+        {assistantDenied ? null : (
+          <button
+            type="button"
+            onClick={() => requestAssistant()}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-white/20 px-3 py-2 text-sm text-white backdrop-blur transition-colors hover:bg-white/30"
+          >
+            {signedOut ? <LogIn className="h-4 w-4" aria-hidden /> : <Sparkles className="h-4 w-4" aria-hidden />}
+            {signedOut ? "Sign in" : "Ask AI"}
+          </button>
+        )}
       </div>
     </div>
   );

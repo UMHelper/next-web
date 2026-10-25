@@ -251,7 +251,11 @@ describe("HomeSearch", () => {
     expect(await screen.findByRole("option", { name: /Ask AI/ })).toBeTruthy();
 
     resolveAccess(new Response(JSON.stringify({ enabled: false }), { status: 200 }));
-    await waitFor(() => expect(screen.queryByRole("option", { name: /Ask AI/ })).toBeNull());
+    await waitFor(() => {
+      expect(screen.queryByRole("option", { name: /Ask AI/ })).toBeNull();
+      expect(screen.queryByRole("button", { name: "Ask AI" })).toBeNull();
+      expect(screen.queryByText("Try asking")).toBeNull();
+    });
   });
 
   it("opens the assistant for Ask AI", async () => {
