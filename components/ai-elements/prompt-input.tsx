@@ -54,7 +54,7 @@ export function PromptInput({
 
   return (
     <form onSubmit={handleSubmit} className="w-full">
-      <div className="rounded-lg border border-border bg-background p-2 transition-all focus-within:border-brand/50 focus-within:ring-1 focus-within:ring-brand/20">
+      <div className="rounded-2xl border border-border bg-background p-3 shadow-sm transition-all focus-within:border-brand/50 focus-within:ring-2 focus-within:ring-brand/20">
         <textarea
           ref={textareaRef}
           value={value}
@@ -63,7 +63,7 @@ export function PromptInput({
           rows={1}
           aria-label="Ask about courses"
           placeholder="Ask about a course or instructor…"
-          className="block max-h-40 min-h-[44px] w-full resize-none bg-transparent px-2 py-1.5 text-base leading-relaxed text-foreground outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-60 md:text-sm"
+          className="block max-h-40 min-h-[44px] w-full resize-none bg-transparent px-1 py-1 text-sm leading-relaxed text-foreground outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-60"
         />
         <div className="flex items-center justify-between gap-2 px-1 pb-0.5 pt-1">
           <span className="hidden items-center gap-1 whitespace-nowrap text-[10px] leading-none text-muted-foreground sm:flex">
@@ -90,7 +90,7 @@ export function PromptInput({
               type="button"
               onClick={onStop}
               aria-label="Stop generating"
-              className="flex h-8 items-center gap-1.5 rounded-md border border-border bg-background px-2.5 text-xs font-medium text-foreground transition-colors hover:bg-muted"
+              className="flex h-8 items-center gap-1.5 rounded-full border border-border bg-background px-3 text-xs font-medium text-foreground transition-colors hover:bg-muted"
             >
               <Loader2 className="h-3 w-3 animate-spin text-brand" aria-hidden />
               Stop
@@ -101,7 +101,7 @@ export function PromptInput({
               type="submit"
               aria-label="Send"
               disabled={!canSend}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-brand text-brand-foreground transition-colors hover:bg-brand-strong disabled:bg-muted disabled:text-muted-foreground disabled:shadow-none"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand text-brand-foreground shadow-sm transition-colors hover:bg-brand-strong disabled:bg-muted disabled:text-muted-foreground disabled:shadow-none"
             >
               <ArrowUp className="h-4 w-4" aria-hidden />
             </button>

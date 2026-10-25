@@ -151,7 +151,7 @@ describe("AssistantChat", () => {
     const { unmount } = render(
       <AssistantChat onClose={() => {}} notice={null} onClearNotice={() => {}} />,
     );
-    expect(document.body.style.marginInlineEnd).toBe("var(--assistant-width, 380px)");
+    expect(document.body.style.marginInlineEnd).toBe("var(--assistant-width, 450px)");
 
     unmount();
     expect(document.body.style.marginInlineEnd).toBe("");

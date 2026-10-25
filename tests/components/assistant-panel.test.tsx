@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ReactNode } from "react";
 
@@ -169,11 +169,11 @@ describe("AssistantPanel", () => {
     expect(document.documentElement.hasAttribute("data-assistant-open")).toBe(false);
   });
 
-  it("closes from the chat and reopens from the bubble", () => {
+  it("closes from the chat and reopens from the bubble", async () => {
     render(<AssistantPanel suppressed={false} />);
 
     fireEvent.click(screen.getByRole("button", { name: "close-chat" }));
-    expect(screen.queryByTestId("assistant-chat")).toBeNull();
+    await waitFor(() => expect(screen.queryByTestId("assistant-chat")).toBeNull());
     expect(document.documentElement.hasAttribute("data-assistant-open")).toBe(false);
 
     fireEvent.click(screen.getByRole("button", { name: "AI Course Helper" }));

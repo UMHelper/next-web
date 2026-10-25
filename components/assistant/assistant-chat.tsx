@@ -6,7 +6,7 @@ import {
   useCopilotKit,
   useSuggestions,
 } from "@copilotkit/react-core/v2/headless";
-import { useCallback, useEffect, useMemo, useState, type RefCallback } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type RefCallback } from "react";
 
 import { describeAssistantError } from "@/lib/assistant/error-message";
 import { PANEL_WIDTH_DEFAULT } from "@/lib/assistant/panel-width";
@@ -26,11 +26,17 @@ export default function AssistantChat({
   notice,
   onClearNotice,
   panelRef,
+  panelOpen,
+  initialPrompt,
+  onPromptConsumed,
 }: {
   onClose: () => void;
   notice: string | null;
   onClearNotice: () => void;
   panelRef?: RefCallback<HTMLElement>;
+  panelOpen?: boolean;
+  initialPrompt?: string | null;
+  onPromptConsumed?: () => void;
 }) {
   const { agent, isReady } = useAgent();
   const { copilotkit } = useCopilotKit();
@@ -38,6 +44,7 @@ export default function AssistantChat({
 
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const consumedPrompt = useRef<string | null>(null);
 
   const suggestionList = useMemo<ChatSuggestion[]>(() => {
     return suggestions
@@ -85,6 +92,13 @@ export default function AssistantChat({
     if (notice) onClearNotice();
   };
 
+  useEffect(() => {
+    if (!initialPrompt || initialPrompt === consumedPrompt.current) return;
+    consumedPrompt.current = initialPrompt;
+    setDraft(initialPrompt);
+    onPromptConsumed?.();
+  }, [initialPrompt, onPromptConsumed]);
+
   // Match the old sidebar's layout contract: on desktop the page keeps a
   // margin for the panel; on mobile the panel covers the viewport and the
   // page behind it must not scroll.
@@ -92,8 +106,10 @@ export default function AssistantChat({
     if (typeof window === "undefined") return;
     const previousMargin = document.body.style.marginInlineEnd;
     const previousOverflow = document.body.style.overflow;
+    const previousTransition = document.body.style.transition;
     const apply = () => {
       const mobile = window.innerWidth < 768;
+      document.body.style.transition = "margin-inline-end 300ms cubic-bezier(0.4, 0, 0.2, 1)";
       document.body.style.marginInlineEnd = mobile
         ? ""
         : `var(${PANEL_WIDTH_VAR}, ${PANEL_WIDTH_DEFAULT}px)`;
@@ -105,6 +121,7 @@ export default function AssistantChat({
       window.removeEventListener("resize", apply);
       document.body.style.marginInlineEnd = previousMargin;
       document.body.style.overflow = previousOverflow;
+      document.body.style.transition = previousTransition;
     };
   }, []);
 
@@ -119,6 +136,7 @@ export default function AssistantChat({
   return (
     <AssistantChatView
       panelRef={panelRef}
+      panelOpen={panelOpen}
       messages={agent.messages}
       suggestions={suggestionList}
       isRunning={agent.isRunning}

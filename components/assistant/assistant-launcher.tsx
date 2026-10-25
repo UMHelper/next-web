@@ -5,6 +5,8 @@ import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { OPEN_ASSISTANT_EVENT, type OpenAssistantDetail } from "@/lib/assistant/open";
+
 import { AssistantBubble } from "./assistant-bubble";
 
 const AssistantPanel = dynamic(() => import("./assistant-panel"), { ssr: false });
@@ -20,6 +22,7 @@ export default function AssistantLauncher() {
   const pathname = usePathname();
   const [enabled, setEnabled] = useState(false);
   const [opened, setOpened] = useState(false);
+  const [pendingPrompt, setPendingPrompt] = useState<string | null>(null);
 
   useEffect(() => {
     // A different user must not see the previous user's conversation or access result.
@@ -48,10 +51,30 @@ export default function AssistantLauncher() {
     };
   }, [isLoaded, isSignedIn, userId]);
 
+  useEffect(() => {
+    const onOpen = (event: Event) => {
+      const detail = (event as CustomEvent<OpenAssistantDetail>).detail;
+      if (typeof detail?.prompt === "string" && detail.prompt.trim()) {
+        setPendingPrompt(detail.prompt.trim());
+      }
+      setOpened(true);
+    };
+    window.addEventListener(OPEN_ASSISTANT_EVENT, onOpen);
+    return () => window.removeEventListener(OPEN_ASSISTANT_EVENT, onOpen);
+  }, []);
+
   if (!enabled) return null;
 
   const suppressed = isAssistantSuppressed(pathname);
-  if (opened) return <AssistantPanel suppressed={suppressed} />;
+  if (opened) {
+    return (
+      <AssistantPanel
+        suppressed={suppressed}
+        initialPrompt={pendingPrompt}
+        onPromptConsumed={() => setPendingPrompt(null)}
+      />
+    );
+  }
   if (suppressed) return null;
 
   return <AssistantBubble onClick={() => setOpened(true)} />;

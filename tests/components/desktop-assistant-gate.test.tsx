@@ -327,7 +327,7 @@ describe("DesktopAssistantGate", () => {
     await openPanel();
 
     fireEvent.click(screen.getByRole("button", { name: "close-chat" }));
-    fireEvent.click(screen.getByRole("button", BUTTON));
+    fireEvent.click(await screen.findByRole("button", BUTTON));
     pathnameRef.current = "/course/COMP1000";
     rerender(assistantTree());
 

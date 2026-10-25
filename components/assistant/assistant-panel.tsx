@@ -80,20 +80,67 @@ function AssistantTools() {
   return null;
 }
 
-export default function AssistantPanel({ suppressed }: { suppressed: boolean }) {
+export default function AssistantPanel({
+  suppressed,
+  initialPrompt,
+  onPromptConsumed,
+}: {
+  suppressed: boolean;
+  initialPrompt?: string | null;
+  onPromptConsumed?: () => void;
+}) {
   const [notice, setNotice] = useState<string | null>(null);
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
+  const [rendered, setRendered] = useState(true);
   const [mounted, setMounted] = useState(false);
+  const closeTimer = useRef<number | null>(null);
+  const closing = useRef(false);
   const panelRef = useRef<HTMLElement | null>(null);
   const attachPanel = useCallback((node: HTMLElement | null) => {
     panelRef.current = node;
   }, []);
 
-  const shown = open && !suppressed;
+  const shown = rendered && !suppressed;
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (!mounted || suppressed) return;
+    const frame = window.requestAnimationFrame(() => {
+      if (!closing.current) setOpen(true);
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [mounted, suppressed]);
+
+  useEffect(() => {
+    return () => {
+      if (closeTimer.current !== null) window.clearTimeout(closeTimer.current);
+    };
+  }, []);
+
+  const close = () => {
+    closing.current = true;
+    setNotice(null);
+    setOpen(false);
+    if (closeTimer.current !== null) window.clearTimeout(closeTimer.current);
+    closeTimer.current = window.setTimeout(() => {
+      setRendered(false);
+      closeTimer.current = null;
+    }, 300);
+  };
+
+  const reopen = () => {
+    closing.current = false;
+    if (closeTimer.current !== null) {
+      window.clearTimeout(closeTimer.current);
+      closeTimer.current = null;
+    }
+    setRendered(true);
+    setOpen(false);
+    window.requestAnimationFrame(() => setOpen(true));
+  };
 
   useLayoutEffect(() => {
     if (!shown) return;
@@ -115,17 +162,17 @@ export default function AssistantPanel({ suppressed }: { suppressed: boolean }) 
         {shown ? (
           <AssistantChat
             panelRef={attachPanel}
-            onClose={() => {
-              setNotice(null);
-              setOpen(false);
-            }}
+            panelOpen={open}
+            initialPrompt={initialPrompt}
+            onPromptConsumed={onPromptConsumed}
+            onClose={close}
             notice={notice}
             onClearNotice={() => setNotice(null)}
           />
         ) : null}
       </CopilotKitProvider>
       <ResizeHandle visible={shown} panelRef={panelRef} />
-      {open || suppressed ? null : <AssistantBubble onClick={() => setOpen(true)} />}
+      {open || suppressed ? null : <AssistantBubble onClick={reopen} />}
     </>,
     document.body,
   );

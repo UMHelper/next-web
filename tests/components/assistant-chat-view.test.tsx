@@ -69,9 +69,9 @@ describe("AssistantChatView", () => {
   it("shows the welcome intro and sends an example question", () => {
     const props = renderView();
 
-    expect(screen.getByText("How can I help?")).toBeTruthy();
+    expect(screen.getByText("想做什麼？")).toBeTruthy();
     expect(screen.getByText(/Ask about courses, professors, reviews, class times/)).toBeTruthy();
-    expect(screen.getByText(/查課程、教授、評價/)).toBeTruthy();
+    expect(screen.getAllByText(/查課程、教授、評價/).length).toBeGreaterThan(0);
     expect(screen.queryByText(/read-only|30 turns/)).toBeNull();
     expect(screen.queryByText("Beta")).toBeNull();
 
@@ -224,7 +224,7 @@ describe("AssistantChatView", () => {
       isRunning: true,
     });
 
-    expect(screen.getByText("Thinking…")).toBeTruthy();
+    expect(screen.getByText(/正在思考/)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Stop generating" }));
     expect(props.onStop).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole("button", { name: "Send" })).toBeNull();
