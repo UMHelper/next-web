@@ -19,6 +19,7 @@ export type DiscoveryPriority = (typeof discoveryPriorities)[number];
 export type DiscoveryFit = ConflictFit | "not_checked";
 
 const CODE_PREFIX_RE = /^[A-Za-z]{2,4}\d{0,3}$/i;
+const FULL_COURSE_CODE_RE = /^[A-Z]{4}\d{4}$/;
 const TIME_RE = /^(\d{1,2}):(\d{2})$/;
 
 const courseCodeField = z
@@ -26,18 +27,21 @@ const courseCodeField = z
   .trim()
   .min(1)
   .max(20)
-  .transform((value) => value.toUpperCase());
+  .transform((value) => value.toUpperCase())
+  .refine((value) => FULL_COURSE_CODE_RE.test(value), { message: "invalid course code" });
 
 const weekdaySchema = z.enum(discoveryWeekdays);
 
-const avoidWindowParameters = z.object({
-  start: z.string().describe("Window start (HH:MM)."),
-  end: z.string().describe("Window end (HH:MM); must be after start."),
-  days: z
-    .array(weekdaySchema)
-    .optional()
-    .describe("When set, the window applies only on these weekdays; otherwise every meeting day."),
-});
+const avoidWindowParameters = z
+  .object({
+    start: z.string().describe("Window start (HH:MM)."),
+    end: z.string().describe("Window end (HH:MM); must be after start."),
+    days: z
+      .array(weekdaySchema)
+      .optional()
+      .describe("When set, the window applies only on these weekdays; otherwise every meeting day."),
+  })
+  .strict();
 
 const timeRuleFields = {
   startAfter: z
@@ -169,7 +173,8 @@ function hasScopeAnchor(scope: {
   );
 }
 
-const discoveryScopeParameters = z.object({
+const discoveryScopeParameters = z
+  .object({
   courseType: z
     .enum(["GE", "Non-GE"])
     .optional()
@@ -216,36 +221,44 @@ const discoveryScopeParameters = z.object({
     .max(20)
     .optional()
     .describe("Course codes to exclude from results."),
-});
+  })
+  .strict();
 
-export const discoverCourseCandidatesParameters = z.object({
+const requiredParameters = z
+  .object({
+    ...timeRuleFields,
+    noClash: z
+      .boolean()
+      .optional()
+      .describe(
+        "required: only what the student says must happen — when true, eliminate sections that clash with the saved timetable.",
+      ),
+  })
+  .strict();
+
+const preferredParameters = z
+  .object({
+    ...timeRuleFields,
+    fewerDays: z
+      .boolean()
+      .optional()
+      .describe(
+        "preferred: soft preference — favor sections that meet on at most two distinct weekdays.",
+      ),
+  })
+  .strict();
+
+export const discoverCourseCandidatesParameters = z
+  .object({
   scope: discoveryScopeParameters.describe(
     "Course pool definition; include at least one anchor among courseType, codePrefix, faculty, department, topics, or maxSuggestedYear.",
   ),
-  required: z
-    .object({
-      ...timeRuleFields,
-      noClash: z
-        .boolean()
-        .optional()
-        .describe(
-          "required: only what the student says must happen — when true, eliminate sections that clash with the saved timetable.",
-        ),
-    })
+  required: requiredParameters
     .optional()
     .describe(
       "Hard constraints: only what the student says must or cannot happen; violations eliminate sections.",
     ),
-  preferred: z
-    .object({
-      ...timeRuleFields,
-      fewerDays: z
-        .boolean()
-        .optional()
-        .describe(
-          "preferred: soft preference — favor sections that meet on at most two distinct weekdays.",
-        ),
-    })
+  preferred: preferredParameters
     .optional()
     .describe("Soft schedule preferences used for ranking and trade-off explanations."),
   priorities: z
@@ -265,7 +278,8 @@ export const discoverCourseCandidatesParameters = z.object({
     .max(8)
     .default(5)
     .describe("Maximum distinct courses to return (default 5)."),
-});
+  })
+  .strict();
 
 export const discoverCourseCandidatesInputSchema = discoverCourseCandidatesParameters.superRefine(
   (value, ctx) => {
@@ -379,8 +393,19 @@ const candidateSchema = z
       z
         .object({
           section: z.string(),
-          meetings: z.string(),
+          meetings: z.array(z.string()),
           fit: discoveryFitSchema,
+          clashes: z
+            .array(
+              z
+                .object({
+                  with: z.string(),
+                  day: weekdaySchema,
+                  overlap: z.string(),
+                })
+                .strict(),
+            )
+            .optional(),
         })
         .strict(),
     ),
@@ -445,12 +470,46 @@ export const discoverResultSchema = z
     mutualClashes: z.array(z.tuple([z.string(), z.string()])),
     ranking: z.string(),
     notes: z.array(z.string()),
+    compaction: z
+      .object({
+        truncated: z.literal(true),
+        dropped: z.array(z.string()),
+      })
+      .strict()
+      .optional(),
   })
   .strict();
 
 export type DiscoverResult = z.infer<typeof discoverResultSchema>;
 
-const toolFailureEnvelope = z.object({ error: z.enum(["invalid_request", "temporarily_unavailable"]) }).strict();
+export type DiscoverValidationIssue = { path: string; message: string };
+
+export type DiscoverToolFailure =
+  | { error: "invalid_request"; issues?: DiscoverValidationIssue[] }
+  | { error: "temporarily_unavailable" };
+
+const toolFailureEnvelope = z
+  .object({
+    error: z.enum(["invalid_request", "temporarily_unavailable"]),
+    issues: z
+      .array(
+        z
+          .object({
+            path: z.string(),
+            message: z.string(),
+          })
+          .strict(),
+      )
+      .optional(),
+  })
+  .strict();
+
+export function discoverValidationIssues(error: z.ZodError): DiscoverValidationIssue[] {
+  return error.issues.map((issue) => ({
+    path: issue.path.length > 0 ? issue.path.join(".") : "root",
+    message: issue.message,
+  }));
+}
 
 export function parseDiscoverResult(content: unknown): DiscoverResult | null {
   let parsed: unknown = content;

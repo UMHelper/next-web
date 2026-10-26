@@ -215,6 +215,24 @@ No additional in-scope code defects confirmed beyond gate fixes committed in `2a
 
 ---
 
+## Remediation update (2026-10-26)
+
+Following audit **CHANGES REQUIRED**, code and harness fixes landed on this branch. Details: [`2026-10-26-assistant-v2-3-5-b-remediation-acceptance.md`](2026-10-26-assistant-v2-3-5-b-remediation-acceptance.md).
+
+| Item | Status |
+|---|---|
+| Deterministic defects F-01, F-03–F-09, F-11–F-13, F-16–F-18 | **Fixed / partial per matrix** |
+| Live eval harness (F-02, F-12) | **Fixed** — see `discovery-eval-lib.ts`, `discovery-baseline.eval.ts` |
+| Full Vitest / tsc / lint / build | **PASS** (2323 tests) |
+| Diagnostic live run | **PASS** — tool registered, 1 successful discovery call (`.eval-results/assistant/discovery-b-diagnostic.json`) |
+| Prior §6–§8 live metrics | **Invalid methodology** (tool was mocked away); do **not** use for acceptance |
+| Full dev/holdout/baseline rerun | **Required** before student release; use corrected eval files |
+| Browser 380/450/800 | **UNVERIFIED** — release blocker |
+
+**Verdict after remediation:** Code and deterministic acceptance **improved**; milestone **not fully accepted** until preregistered live suites and browser checklist complete.
+
+---
+
 ## Limitations (unchanged from spec)
 
 - Individual section fits do not prove a full timetable combination (V3 scope).

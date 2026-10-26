@@ -29,7 +29,7 @@ export function discoverTwoCandidateResult(plannerVersion = "v-test", fit: strin
         tradeoffs: [],
         signals: {},
         score: 1,
-        otherSections: [{ section: "001", meetings: "MON 09:00-10:15", fit: "not_checked" }],
+        otherSections: [{ section: "001", meetings: ["MON 09:00-10:15"], fit: "not_checked" }],
       },
       {
         rank: 2,

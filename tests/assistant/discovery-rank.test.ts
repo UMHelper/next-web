@@ -284,6 +284,37 @@ describe("topicScore", () => {
     });
     expect(topicScore(course, ["Macao", "history"])).toBe(0.25);
   });
+
+  it("does not match unrelated substrings for short topics like AI", () => {
+    const course = poolCourse({
+      topicTitle: "Daily life in medieval Europe",
+      topicBody: "",
+    });
+    expect(topicScore(course, ["AI"])).toBe(0);
+  });
+});
+
+describe("schedule preference unknowns", () => {
+  it("does not treat unknown meeting data as a fully satisfied soft preference", () => {
+    const section = sectionCandidate({
+      courseCode: "GEST1006",
+      section: "001",
+      meetingsComplete: false,
+      meetingLines: [],
+      meetings: [],
+    });
+    const preferred = evaluateTimeRules([], false, { startAfter: "10:00" });
+    const scored = scoreSection({
+      section,
+      preferred,
+      topicScore: 0,
+      fit: "incomplete",
+      clashWith: [],
+      weights: rankingWeights({ priorities: ["better_rated"], hasPreferred: true, hasTopics: false }),
+    });
+    expect(scored.tradeoffs.some((entry) => entry.includes("could not verify"))).toBe(true);
+    expect(scored.score).toBeLessThan(100);
+  });
 });
 
 describe("compareRanked tie-break", () => {

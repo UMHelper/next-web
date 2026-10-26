@@ -63,6 +63,53 @@ describe("gradeDiscovery", () => {
     expect(graded.pass).toBe(false);
   });
 
+  it("does not count an unavailable-tool attempt as discovery use", () => {
+    const graded = gradeDiscovery(
+      trace("Trying.", [
+        {
+          name: DISCOVER_COURSE_CANDIDATES_TOOL_NAME,
+          args: { scope: { courseType: "GE" } },
+          result: "Error: Model tried to call unavailable tool",
+        },
+      ]),
+      { discovery: "required" },
+    );
+    expect(graded.checks.discovery).toBe(false);
+  });
+
+  it("allows a code-only clash-free claim backed by check_plan_conflicts", () => {
+    const graded = gradeDiscovery(
+      trace("GEST1006 fits your timetable.", [
+        {
+          name: "check_plan_conflicts",
+          args: { courseCode: "GEST1006", section: "002" },
+          result: JSON.stringify({
+            status: "checked",
+            courseCode: "GEST1006",
+            instructor: "WONG",
+            plan: { name: "Plan", term: "2026/2027 AY Sem 1" },
+            planComplete: true,
+            unscheduled: [],
+            sectionListComplete: true,
+            plannerVersion: "v-test",
+            sections: [
+              {
+                section: "002",
+                meetings: ["TUE 11:30-12:45"],
+                conflicts: [],
+                complete: true,
+                fit: "verified_no_clash",
+              },
+            ],
+          }),
+        },
+      ]),
+      { discovery: "optional" },
+    );
+    expect(graded.falseFitClaims).toEqual([]);
+    expect(graded.pass).toBe(true);
+  });
+
   it("counts tool calls excluding present_response", () => {
     const graded = gradeDiscovery(
       trace("Done.", [

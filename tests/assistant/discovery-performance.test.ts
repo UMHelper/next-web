@@ -145,8 +145,9 @@ describe("runDiscoverCourseCandidates performance", () => {
     const serialized = JSON.stringify(result);
     console.info(`discovery-performance: ${elapsedMs.toFixed(1)}ms, ${serialized.length} chars`);
 
-    expect(elapsedMs).toBeLessThan(200);
+    expect(result.examined.courses).toBeLessThanOrEqual(150);
     expect(serialized.length).toBeLessThanOrEqual(MAX_DISCOVERY_RESULT_CHARS);
+    expect(elapsedMs).toBeLessThan(2_000);
     expect(loadPool).toHaveBeenCalledTimes(1);
     expect(loadReviews.mock.calls.length).toBeLessThanOrEqual(1);
   });

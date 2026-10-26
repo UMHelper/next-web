@@ -409,12 +409,18 @@ export function filterFixturePool(
   scope: DiscoveryScope,
   term: { year: number; sem: number } = TERM,
 ): DiscoveryPool {
+  const { courses: withoutExclude } = filterCourses({ ...scope, excludeCodes: undefined });
+  const excludeSet = new Set((scope.excludeCodes ?? []).map((code) => code.toUpperCase()));
+  const excludedCodesMatched = withoutExclude.filter((course) => excludeSet.has(course.courseCode)).length;
+
   const { courses, totalMatchingCourses, truncated } = filterCourses(scope);
   if (courses.length === 0) {
     return {
       term,
       totalMatchingCourses: 0,
       truncated: false,
+      excludedCodesMatched,
+      offersTruncated: false,
       courses: [],
       instructorRows: [],
       offers: [],
@@ -430,6 +436,8 @@ export function filterFixturePool(
     term,
     totalMatchingCourses,
     truncated,
+    excludedCodesMatched,
+    offersTruncated: false,
     courses,
     instructorRows,
     offers,

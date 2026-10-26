@@ -64,6 +64,8 @@ export function pool(partial: Partial<DiscoveryPool> = {}): DiscoveryPool {
     term: { year: 2026, sem: 1 },
     totalMatchingCourses: 1,
     truncated: false,
+    excludedCodesMatched: 0,
+    offersTruncated: false,
     courses: [],
     instructorRows: [],
     offers: [],

@@ -16,7 +16,7 @@ function results(entries: Record<string, string>): Map<string, { content?: unkno
 }
 
 describe("discoveryEvidenceFromCalls", () => {
-  it("builds catalog courses and splits other-section meetings on semicolons", () => {
+  it("builds catalog courses and preserves multi-meeting alternate sections from producer output", () => {
     const body = JSON.stringify({
       status: "ok",
       term: { year: 2026, sem: 1, label: "2026/2027 AY Sem 1" },
@@ -48,7 +48,12 @@ describe("discoveryEvidenceFromCalls", () => {
           signals: {},
           score: 1,
           otherSections: [
-            { section: "001", meetings: "MON 09:00-10:15; WED 09:00-10:15", fit: "confirmed_clash" },
+            {
+              section: "001",
+              meetings: ["MON 09:00-10:15", "WED 09:00-10:15"],
+              fit: "confirmed_clash",
+              clashes: [{ with: "CISC1001-001", day: "MON", overlap: "09:00-10:15" }],
+            },
           ],
         },
       ],

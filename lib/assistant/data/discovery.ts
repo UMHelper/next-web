@@ -1,3 +1,4 @@
+import { topicScore } from "@/lib/assistant/discovery/rank";
 import type { DiscoveryScope } from "@/lib/assistant/discovery/schema";
 import type { DiscoveryPool, PoolCourse, PoolInstructorRow, PoolOffer, ReviewTextRow } from "@/lib/assistant/discovery/pool";
 import { McpToolError } from "@/lib/mcp/errors";
@@ -7,6 +8,8 @@ import { sanitizeSearchTerm } from "./search-catalog";
 
 export const MAX_POOL_COURSES = 150;
 export const IN_CHUNK = 200;
+export const MAX_CATALOG_TOPIC_SCAN = 600;
+export const MAX_OFFER_ROWS = 8000;
 
 export type SupabaseLike = Pick<typeof supabaseServer, "from">;
 
@@ -143,7 +146,8 @@ function applyCatalogFilters(builder: any, scope: DiscoveryScope): any {
     if (orFilter) next = next.or(orFilter);
   }
   if (scope.excludeCodes?.length) {
-    next = next.not("New_code", "in", `(${scope.excludeCodes.map((code) => `"${code}"`).join(",")})`);
+    const quoted = scope.excludeCodes.map((code) => `"${code}"`).join(",");
+    next = next.not("New_code", "in", `(${quoted})`);
   }
 
   return next;
@@ -194,26 +198,64 @@ function projectOffer(row: Record<string, unknown>): PoolOffer | null {
   return { pwcId, section, meetings };
 }
 
-async function readCatalog(
+async function readCatalogPage(
   scope: DiscoveryScope,
   signal: AbortSignal,
   client: SupabaseLike,
-): Promise<{ courses: PoolCourse[]; totalMatchingCourses: number; truncated: boolean }> {
-  const includeTopics = Boolean(scope.topics?.length);
+  range: { from: number; to: number },
+  includeTopics: boolean,
+): Promise<{ rows: PoolCourse[]; totalMatchingCourses: number }> {
   const columns = includeTopics ? CATALOG_COLUMNS_WITH_TOPICS : CATALOG_COLUMNS_BASE;
-
   const builder = await applyCatalogFilters(client.from("course_catalog").select(columns, { count: "exact" }), scope)
     .order("New_code", { ascending: true })
-    .range(0, MAX_POOL_COURSES - 1)
+    .range(range.from, range.to)
     .abortSignal(signal);
 
   if (builder.error) throw new McpToolError("temporarily_unavailable");
 
   const totalMatchingCourses =
     typeof builder.count === "number" && builder.count >= 0 ? builder.count : toRows(builder.data).length;
-  const courses = toRows(builder.data)
+  const rows = toRows(builder.data)
     .map((row) => projectPoolCourse(row, includeTopics))
     .filter((course): course is PoolCourse => course !== null);
+
+  return { rows, totalMatchingCourses };
+}
+
+async function readCatalog(
+  scope: DiscoveryScope,
+  signal: AbortSignal,
+  client: SupabaseLike,
+): Promise<{ courses: PoolCourse[]; totalMatchingCourses: number; truncated: boolean }> {
+  const includeTopics = Boolean(scope.topics?.length);
+  const topics = scope.topics ?? [];
+
+  const first = await readCatalogPage(scope, signal, client, { from: 0, to: MAX_POOL_COURSES - 1 }, includeTopics);
+  let totalMatchingCourses = first.totalMatchingCourses;
+  let courses = first.rows;
+
+  if (includeTopics && topics.length > 0 && totalMatchingCourses > MAX_POOL_COURSES) {
+    const scanLimit = Math.min(totalMatchingCourses, MAX_CATALOG_TOPIC_SCAN);
+    const scanned: PoolCourse[] = [...courses];
+    for (let from = MAX_POOL_COURSES; from < scanLimit; from += MAX_POOL_COURSES) {
+      const page = await readCatalogPage(
+        scope,
+        signal,
+        client,
+        { from, to: Math.min(from + MAX_POOL_COURSES - 1, scanLimit - 1) },
+        includeTopics,
+      );
+      scanned.push(...page.rows);
+      totalMatchingCourses = page.totalMatchingCourses;
+    }
+    courses = scanned
+      .sort((left, right) => {
+        const scoreDelta = topicScore(right, topics) - topicScore(left, topics);
+        if (scoreDelta !== 0) return scoreDelta;
+        return left.courseCode.localeCompare(right.courseCode);
+      })
+      .slice(0, MAX_POOL_COURSES);
+  }
 
   return {
     courses,
@@ -272,6 +314,9 @@ async function readOffers(
     if (builder.error) throw new McpToolError("temporarily_unavailable");
 
     for (const row of toRows(builder.data)) {
+      if (offers.length >= MAX_OFFER_ROWS) {
+        return offers;
+      }
       const projected = projectOffer(row);
       if (projected) offers.push(projected);
     }
@@ -295,12 +340,25 @@ export async function loadDiscoveryPool(
   signal: AbortSignal,
   client: SupabaseLike = supabaseServer,
 ): Promise<DiscoveryPool> {
+  let excludedCodesMatched = 0;
+  if (scope.excludeCodes?.length) {
+    const { courses: withoutExcludeApplied } = await readCatalog(
+      { ...scope, excludeCodes: undefined },
+      signal,
+      client,
+    );
+    const excludeSet = new Set(scope.excludeCodes);
+    excludedCodesMatched = withoutExcludeApplied.filter((course) => excludeSet.has(course.courseCode)).length;
+  }
+
   const { courses, totalMatchingCourses, truncated } = await readCatalog(scope, signal, client);
   if (courses.length === 0) {
     return {
       term,
       totalMatchingCourses,
       truncated: false,
+      excludedCodesMatched,
+      offersTruncated: false,
       courses: [],
       instructorRows: [],
       offers: [],
@@ -309,15 +367,18 @@ export async function loadDiscoveryPool(
 
   const instructorRows = await readInstructorRows(courses, signal, client);
   const pwcIds = [...new Set(instructorRows.map((row) => row.pwcId))];
-  const offers = await readOffers(pwcIds, term, signal, client);
+  const offersBefore = await readOffers(pwcIds, term, signal, client);
+  const offersTruncated = offersBefore.length >= MAX_OFFER_ROWS;
 
   return {
     term,
     totalMatchingCourses,
     truncated,
+    excludedCodesMatched,
+    offersTruncated,
     courses,
     instructorRows,
-    offers,
+    offers: offersBefore,
   };
 }
 

@@ -444,7 +444,8 @@ describe("runDiscoverCourseCandidates exclusions and failures", () => {
   it("invalid input returns invalid_request without loading the pool", async () => {
     const deps = discoveryDeps(ciscPool());
     const result = await runDiscoverCourseCandidates(readyState([]), { scope: {} }, deps);
-    expect(result).toEqual({ error: "invalid_request" });
+    expect(result).toMatchObject({ error: "invalid_request" });
+    expect("issues" in result && Array.isArray(result.issues) && result.issues.length > 0).toBe(true);
     expect(deps.loadPool).not.toHaveBeenCalled();
   });
 
@@ -570,6 +571,8 @@ describe("runDiscoverCourseCandidates reviews and output", () => {
       "Fit is checked for each course on its own; several courses can still clash with each other—see mutualClashes.",
       "Ratings are past students' reports for this instructor's offering of the course.",
       "The site has no official exam format, prerequisite, seat or workload data.",
+      "suggestedYear is a catalog hint only; it is not official registration eligibility.",
+      "When examined.truncated is true, the search covered a bounded slice of matching courses—not every match was evaluated.",
     ]);
     expect(result.ranking.length).toBeGreaterThan(10);
   });

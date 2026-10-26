@@ -105,8 +105,10 @@ export function rankingWeights(input: {
 
 function schedulePreferenceScore(preferred: RuleOutcome[]): number {
   if (preferred.length === 0) return 1;
-  const violated = preferred.filter((outcome) => outcome.status === "violated").length;
-  return 1 - violated / preferred.length;
+  const known = preferred.filter((outcome) => outcome.status !== "unknown");
+  if (known.length === 0) return 0.5;
+  const violated = known.filter((outcome) => outcome.status === "violated").length;
+  return 1 - violated / known.length;
 }
 
 function collectRatingTradeoffs(reviews: number, tradeoffs: string[]) {
@@ -125,8 +127,25 @@ function collectScheduleOutcomes(preferred: RuleOutcome[], matched: string[], tr
       matched.push(outcome.label);
     } else if (outcome.status === "violated") {
       tradeoffs.push(outcome.label);
+    } else if (outcome.status === "unknown") {
+      tradeoffs.push(`${outcome.label} (could not verify)`);
     }
   }
+}
+
+function topicPhraseMatches(haystack: string, needle: string): boolean {
+  const normalized = needle.trim().toLowerCase();
+  if (!normalized) return false;
+  if (normalized.length <= 2) {
+    return new RegExp(`(?:^|[^a-z0-9])${normalized.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:[^a-z0-9]|$)`, "i").test(
+      haystack,
+    );
+  }
+  const tokens = normalized.split(/[^a-z0-9]+/i).filter(Boolean);
+  if (tokens.length > 1) {
+    return tokens.every((token) => topicPhraseMatches(haystack, token));
+  }
+  return new RegExp(`\\b${tokens[0]!.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(haystack);
 }
 
 export function topicScore(course: PoolCourse, topics: string[]): number {
@@ -137,11 +156,9 @@ export function topicScore(course: PoolCourse, topics: string[]): number {
 
   let sum = 0;
   for (const topic of topics) {
-    const needle = topic.trim().toLowerCase();
-    if (!needle) continue;
-    if (title.includes(needle)) {
+    if (topicPhraseMatches(title, topic)) {
       sum += 1;
-    } else if (body.includes(needle)) {
+    } else if (topicPhraseMatches(body, topic)) {
       sum += 0.5;
     }
   }

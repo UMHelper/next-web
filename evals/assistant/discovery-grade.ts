@@ -57,8 +57,19 @@ function patternsCheck(reply: string, patterns: RegExp[] | undefined, shouldMatc
   return patterns.every((pattern) => pattern.test(reply) === shouldMatch);
 }
 
-function discoveryUsed(toolCalls: readonly ToolCallRecord[]): boolean {
+export function discoverySucceeded(call: ToolCallRecord): boolean {
+  if (call.name !== DISCOVER_COURSE_CANDIDATES_TOOL_NAME || call.result === undefined) {
+    return false;
+  }
+  return parseDiscoverResult(call.result) !== null;
+}
+
+export function discoveryAttempted(toolCalls: readonly ToolCallRecord[]): boolean {
   return toolCalls.some((call) => call.name === DISCOVER_COURSE_CANDIDATES_TOOL_NAME);
+}
+
+function discoveryUsed(toolCalls: readonly ToolCallRecord[]): boolean {
+  return toolCalls.some((call) => discoverySucceeded(call));
 }
 
 function discoveryCheck(
@@ -129,8 +140,16 @@ function newestFitsFromTrace(toolCalls: readonly ToolCallRecord[]): Map<string, 
       }
       const result = checkPlanConflictsResultSchema.safeParse(parsed);
       if (!result.success || result.data.status !== "checked") continue;
-      for (const section of result.data.sections) {
-        pushFit(fits, result.data.courseCode, section.section, section.fit);
+      const sections = result.data.sections;
+      const primarySection = sections.length === 1 ? sections[0]!.section : null;
+      for (const section of sections) {
+        pushFit(
+          fits,
+          result.data.courseCode,
+          section.section,
+          section.fit,
+          primarySection !== null && section.section === primarySection,
+        );
       }
     }
   }

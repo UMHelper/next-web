@@ -87,6 +87,45 @@ describe("discoverCourseCandidatesInputSchema", () => {
     ).toBe(false);
   });
 
+  it("rejects unsupported required fields instead of stripping them", () => {
+    expect(
+      discoverCourseCandidatesInputSchema.safeParse({
+        scope: { courseType: "GE" },
+        required: { credits: 3 },
+      }).success,
+    ).toBe(false);
+    expect(
+      discoverCourseCandidatesInputSchema.safeParse({
+        scope: { courseType: "GE" },
+        required: { must: ["GE"] },
+      }).success,
+    ).toBe(false);
+    expect(
+      discoverCourseCandidatesInputSchema.safeParse({
+        scope: { courseType: "GE" },
+        preferred: { timesToAvoid: "MON 08:00-12:00" },
+      }).success,
+    ).toBe(false);
+    expect(
+      discoverCourseCandidatesInputSchema.safeParse({
+        scope: { courseType: "GE" },
+        preferred: { noClassBefore: "10:00" },
+      }).success,
+    ).toBe(false);
+  });
+
+  it("rejects missing scope anchor", () => {
+    expect(discoverCourseCandidatesInputSchema.safeParse({ scope: { credits: 3 } }).success).toBe(false);
+  });
+
+  it("rejects invalid excludeCodes", () => {
+    expect(
+      discoverCourseCandidatesInputSchema.safeParse({
+        scope: { codePrefix: "GEST", excludeCodes: ['GEST";DROP--'] },
+      }).success,
+    ).toBe(false);
+  });
+
   it("rejects more than three reviewTerms", () => {
     expect(
       discoverCourseCandidatesInputSchema.safeParse({

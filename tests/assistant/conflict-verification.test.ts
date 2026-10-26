@@ -68,8 +68,8 @@ const discoverResult = (plannerVersion: string) =>
         signals: {},
         score: 1,
         otherSections: [
-          { section: "001", meetings: "MON 09:00-10:15", fit: "confirmed_clash" },
-          { section: "003", meetings: "WED 09:00-10:15", fit: "not_checked" },
+          { section: "001", meetings: ["MON 09:00-10:15"], fit: "confirmed_clash" },
+          { section: "003", meetings: ["WED 09:00-10:15"], fit: "not_checked" },
         ],
       },
     ],

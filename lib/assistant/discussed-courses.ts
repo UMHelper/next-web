@@ -66,11 +66,65 @@ function lastSearchCatalogIndex(messages: readonly DiscussedMessage[]): number {
   return last;
 }
 
+function recommendationOrderForTurn(
+  messages: readonly DiscussedMessage[],
+  startIndex: number,
+  endIndex: number,
+): string[] {
+  const byId = new Map<string, ToolCallLike>();
+  const order: string[] = [];
+  const results = new Map<string, { content?: unknown }>();
+
+  for (let index = startIndex + 1; index < endIndex; index += 1) {
+    const message = messages[index];
+    if (message?.role === "tool" && typeof message.toolCallId === "string") {
+      results.set(message.toolCallId, { content: message.content });
+    }
+    if (message?.role !== "assistant" || !message.toolCalls?.length) continue;
+    for (const toolCall of message.toolCalls) {
+      const id = toolCall.id;
+      const name = toolCall.function?.name;
+      const argumentsJson = toolCall.function?.arguments;
+      if (typeof id !== "string" || typeof name !== "string") continue;
+      if (!byId.has(id)) order.push(id);
+      byId.set(id, {
+        id,
+        function: {
+          name,
+          arguments: typeof argumentsJson === "string" ? argumentsJson : "{}",
+        },
+      });
+    }
+  }
+
+  return activeRecommendationCourses(
+    order.map((id) => byId.get(id)!),
+    results,
+  );
+}
+
+function lastRecommendationOrderBefore(messages: readonly DiscussedMessage[], beforeIndex: number): string[] {
+  const userIndices = userMessageIndices(messages);
+  for (let turnIndex = userIndices.length - 1; turnIndex >= 0; turnIndex -= 1) {
+    const startIndex = userIndices[turnIndex]!;
+    if (startIndex >= beforeIndex) continue;
+    const endIndex = turnIndex + 1 < userIndices.length ? userIndices[turnIndex + 1]! : messages.length;
+    const order = recommendationOrderForTurn(messages, startIndex, endIndex);
+    if (order.length > 0) return order;
+  }
+  return [];
+}
+
 function validatedCodesForTurn(
   messages: readonly DiscussedMessage[],
   startIndex: number,
   endIndex: number,
 ): string[] {
+  const recommendationOrder = recommendationOrderForTurn(messages, startIndex, endIndex);
+  if (recommendationOrder.length >= 2) {
+    return recommendationOrder.slice(0, 3);
+  }
+
   const toolResultById = new Map<string, string>();
   for (let index = startIndex + 1; index < endIndex; index++) {
     const message = messages[index];
@@ -103,6 +157,14 @@ function validatedCodesForTurn(
       }
     }
   }
+  if (codes.length >= 2) {
+    return codes.slice(0, 3);
+  }
+
+  if (recommendationOrder.length === 1 && codes.length === 0) {
+    return recommendationOrder.slice(0, 3);
+  }
+
   return codes;
 }
 
@@ -132,41 +194,6 @@ function buildTurnOrder(userText: string, validatedInCallOrder: string[]): strin
   return validatedInCallOrder.slice(0, 3);
 }
 
-function recommendationOrderForLatestTurn(
-  messages: readonly DiscussedMessage[],
-  startIndex: number,
-  endIndex: number,
-): string[] {
-  const byId = new Map<string, ToolCallLike>();
-  const order: string[] = [];
-  const results = new Map<string, { content?: unknown }>();
-
-  for (let index = startIndex + 1; index < endIndex; index += 1) {
-    const message = messages[index];
-    if (message?.role === "tool" && typeof message.toolCallId === "string") {
-      results.set(message.toolCallId, { content: message.content });
-    }
-    if (message?.role !== "assistant" || !message.toolCalls?.length) continue;
-    for (const toolCall of message.toolCalls) {
-      const id = toolCall.id;
-      const name = toolCall.function?.name;
-      const argumentsJson = toolCall.function?.arguments;
-      if (typeof id !== "string" || typeof name !== "string") continue;
-      if (!byId.has(id)) order.push(id);
-      byId.set(id, {
-        id,
-        function: {
-          name,
-          arguments: typeof argumentsJson === "string" ? argumentsJson : "{}",
-        },
-      });
-    }
-  }
-
-  const calls = order.map((id) => byId.get(id)!);
-  return activeRecommendationCourses(calls, results);
-}
-
 export function summarizeDiscussedCourses(messages: readonly DiscussedMessage[]): string {
   const userIndices = userMessageIndices(messages);
   const lastCatalogIndex = lastSearchCatalogIndex(messages);
@@ -193,7 +220,10 @@ export function summarizeDiscussedCourses(messages: readonly DiscussedMessage[])
   if (userIndices.length > 0) {
     const latestStart = userIndices[userIndices.length - 1]!;
     const latestEnd = messages.length;
-    const recommendationOrder = recommendationOrderForLatestTurn(messages, latestStart, latestEnd);
+    let recommendationOrder = recommendationOrderForTurn(messages, latestStart, latestEnd);
+    if (recommendationOrder.length === 0) {
+      recommendationOrder = lastRecommendationOrderBefore(messages, latestStart);
+    }
     if (recommendationOrder.length > 0) {
       active = {
         id: `rec-${latestStart}`,

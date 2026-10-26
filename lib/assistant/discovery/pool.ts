@@ -33,6 +33,8 @@ export type DiscoveryPool = {
   term: { year: number; sem: number };
   totalMatchingCourses: number;
   truncated: boolean;
+  excludedCodesMatched: number;
+  offersTruncated: boolean;
   courses: PoolCourse[];
   instructorRows: PoolInstructorRow[];
   offers: PoolOffer[];

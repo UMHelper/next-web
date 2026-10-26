@@ -130,4 +130,34 @@ describe("summarizeDiscussedCourses", () => {
       newerThanCatalog: true,
     });
   });
+
+  it("carries the prior turn recommendation order into a new-turn ordinal follow-up", () => {
+    const messages: DiscussedMessage[] = [
+      { role: "user", content: "Find GE courses that fit my timetable." },
+      {
+        role: "assistant",
+        toolCalls: [
+          {
+            id: "d1",
+            function: {
+              name: DISCOVER_COURSE_CANDIDATES_TOOL_NAME,
+              arguments: '{"scope":{"courseType":"GE"}}',
+            },
+          },
+          {
+            id: "p1",
+            function: {
+              name: PRESENT_RESPONSE_TOOL_NAME,
+              arguments: '{"recommendations":{"courses":["GEST1006","GESB1013"]}}',
+            },
+          },
+        ],
+      },
+      { role: "tool", toolCallId: "d1", content: discoverTwoCandidateResult() },
+      { role: "tool", toolCallId: "p1", content: JSON.stringify({ status: "requested", items: [], note: "" }) },
+      { role: "user", content: "tell me more about the second one" },
+    ];
+    const parsed = JSON.parse(summarizeDiscussedCourses(messages));
+    expect(parsed.active?.order).toEqual(["GEST1006", "GESB1013"]);
+  });
 });

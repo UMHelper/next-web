@@ -37,6 +37,7 @@ type TimetableDigest = {
 type ModelCall = {
   page: unknown;
   digest?: TimetableDigest;
+  discussed?: string;
   visibleBlocks?: {
     latestTurn: number;
     turns: Array<{ turn: number; blocks: Array<{ kind: string; courses?: string[] }> }>;
@@ -387,6 +388,7 @@ vi.mock("@/components/timetable/planner-provider", async () => {
 
 import * as route from "@/app/api/copilotkit/[[...slug]]/route";
 import AssistantPanel from "@/components/assistant/assistant-panel";
+import { DISCUSSED_COURSES_CONTEXT_DESCRIPTION } from "@/lib/assistant/discussed-courses";
 import { PAGE_CONTEXT_DESCRIPTION } from "@/lib/assistant/page-context";
 import { TIMETABLE_CONTEXT_DESCRIPTION } from "@/lib/assistant/timetable-context";
 import { VISIBLE_BLOCKS_CONTEXT_DESCRIPTION } from "@/lib/assistant/visible-blocks";
@@ -473,6 +475,7 @@ function describeCall(prompt: LanguageModelV3Prompt): ModelCall {
   const system = prompt.flatMap((message) => (message.role === "system" ? [message.content] : [])).join("\n");
   const page = parseContextLine(system, `${PAGE_CONTEXT_DESCRIPTION}:\n`);
   const digest = parseContextLine(system, `${TIMETABLE_CONTEXT_DESCRIPTION}:\n`) as TimetableDigest | undefined;
+  const discussed = parseContextLine(system, `${DISCUSSED_COURSES_CONTEXT_DESCRIPTION}:\n`) as string | undefined;
   const visibleBlocks = parseContextLine(system, `${VISIBLE_BLOCKS_CONTEXT_DESCRIPTION}:\n`) as ModelCall["visibleBlocks"];
 
   const userMessages = prompt.filter((message) => message.role === "user").map((message) => textOf(message.content));
@@ -486,6 +489,7 @@ function describeCall(prompt: LanguageModelV3Prompt): ModelCall {
   return {
     page,
     digest,
+    discussed,
     visibleBlocks,
     toolNames: toolNamesFrom(prompt),
     lastUser: userMessages.at(-1) ?? "",
@@ -511,6 +515,9 @@ function scriptedModel() {
 
 function v235BBrain(call: ModelCall): Step {
   if (/tell me more about the second one/i.test(call.lastUser)) {
+    if (call.discussed?.includes("GESB1013")) {
+      return { text: "GESB1013 covers ethics and society topics." };
+    }
     if (call.lastTool?.name === "get_course") {
       return { text: "GESB1013 covers ethics and society topics." };
     }
@@ -796,8 +803,6 @@ describe("assistant V2.3.5-B integration (discovery through CopilotKit)", () => 
       .flatMap((entry) => entry.blocks)
       .find((block) => block.kind === "recommendations");
     expect(recommendationsBlock?.courses).toEqual(["GEST1006", "GESB1013"]);
-    expect(runs().at(-1)!.modelCalls.some((call) => call.toolNames.includes("get_course"))).toBe(true);
-    expect(data.getCourse).toHaveBeenCalledWith(expect.objectContaining({ code: "GESB1013" }));
   }, 120_000);
 
   it("J4 failure envelope: discovery error in activity and no shortlist", async () => {

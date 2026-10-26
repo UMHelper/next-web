@@ -91,7 +91,14 @@ function courseEvidenceFromDiscoverResult(
     for (const other of candidate.otherSections) {
       sections.set(
         other.section,
-        sectionEvidenceFromCandidate(code, other.section, other.meetings, other.fit, plannerVersion, undefined),
+        sectionEvidenceFromCandidate(
+          code,
+          other.section,
+          other.meetings,
+          other.fit,
+          plannerVersion,
+          other.clashes,
+        ),
       );
     }
     byCourse.set(code, {

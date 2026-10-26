@@ -15,6 +15,8 @@ import {
 import { buildSectionCandidates, type SectionCandidate } from "@/lib/assistant/discovery/sections";
 import {
   discoverCourseCandidatesInputSchema,
+  discoverValidationIssues,
+  type DiscoverToolFailure,
   discoverResultSchema,
   type DiscoverInput,
   type DiscoverResult,
@@ -22,7 +24,6 @@ import {
 } from "@/lib/assistant/discovery/schema";
 import type { DiscoveryPool, PoolCourse, PoolInstructorRow, ReviewTextRow } from "@/lib/assistant/discovery/pool";
 import type { TimetableState } from "@/lib/assistant/timetable-context";
-import type { ToolFailure } from "@/lib/assistant/tools";
 import { formatAcademicYear } from "@/lib/config/term-format";
 import { MCP_TOOL_TIMEOUT_MS } from "@/lib/mcp/constants";
 import { McpToolError } from "@/lib/mcp/errors";
@@ -69,6 +70,8 @@ const DISCOVERY_NOTES = [
   "Fit is checked for each course on its own; several courses can still clash with each other—see mutualClashes.",
   "Ratings are past students' reports for this instructor's offering of the course.",
   "The site has no official exam format, prerequisite, seat or workload data.",
+  "suggestedYear is a catalog hint only; it is not official registration eligibility.",
+  "When examined.truncated is true, the search covered a bounded slice of matching courses—not every match was evaluated.",
 ] as const;
 
 type TimetableInfo = {
@@ -272,7 +275,9 @@ function reviewEvidenceForCandidate(
       if (matches > 0) count += matches;
       if (excerpts.length < MAX_EXCERPTS) {
         const excerpt = excerptAround(text, term);
-        if (excerpt && !excerpts.includes(excerpt)) excerpts.push(excerpt);
+        if (excerpt && !excerpts.includes(excerpt)) {
+          excerpts.push(`[review] ${excerpt} [/review]`);
+        }
       }
     }
     if (count > 0) mentions[term] = count;
@@ -306,11 +311,20 @@ function mutualClashes(candidates: BuiltCandidate[]): DiscoverResult["mutualClas
   return pairs;
 }
 
+function withCompaction(result: DiscoverResult, dropped: readonly string[]): DiscoverResult {
+  if (dropped.length === 0) return result;
+  return {
+    ...result,
+    compaction: { truncated: true, dropped: [...new Set(dropped)] },
+  };
+}
+
 function shrinkDiscoverResult(result: DiscoverResult): DiscoverResult {
   let next = result;
-  const shrink = (): boolean => JSON.stringify(next).length > MAX_DISCOVERY_RESULT_CHARS;
+  const dropped: string[] = [];
+  const over = (): boolean => JSON.stringify(next).length > MAX_DISCOVERY_RESULT_CHARS;
 
-  if (!shrink()) return next;
+  if (!over()) return next;
 
   next = {
     ...next,
@@ -325,7 +339,8 @@ function shrinkDiscoverResult(result: DiscoverResult): DiscoverResult {
       };
     }),
   };
-  if (!shrink()) return next;
+  dropped.push("reviewEvidence.excerpts");
+  if (!over()) return withCompaction(next, dropped);
 
   next = {
     ...next,
@@ -334,120 +349,72 @@ function shrinkDiscoverResult(result: DiscoverResult): DiscoverResult {
       reviewEvidence: candidate.reviewEvidence
         ? { ...candidate.reviewEvidence, excerpts: [] }
         : undefined,
+      matched: [],
+      tradeoffs: [],
       otherSections: candidate.otherSections.slice(0, 1),
     })),
   };
-  if (!shrink()) return next;
+  dropped.push("matched", "tradeoffs");
+  if (!over()) return withCompaction(next, dropped);
 
   next = {
     ...next,
     candidates: next.candidates.map((candidate) => ({
       ...candidate,
+      titleEn: null,
+      titleZh: null,
       otherSections: [],
+      reviewEvidence: undefined,
     })),
+    noListedSections: [],
   };
-  if (!shrink()) return next;
+  dropped.push("titles", "otherSections", "noListedSections", "reviewEvidence");
+  if (!over()) return withCompaction(next, dropped);
+
+  let ranking = next.ranking;
+  while (over() && ranking.length > 80) {
+    ranking = ranking.slice(0, Math.max(80, Math.floor(ranking.length * 0.75)));
+    next = { ...next, ranking };
+  }
+  dropped.push("ranking");
+  if (!over()) return withCompaction(next, dropped);
+
+  while (over() && next.candidates.length > 1) {
+    next = { ...next, candidates: next.candidates.slice(0, -1) };
+    dropped.push("candidates");
+  }
+  if (!over()) return withCompaction(next, dropped);
 
   next = {
     ...next,
-    unverified: next.unverified.slice(0, Math.max(0, next.unverified.length - 1)),
+    candidates: next.candidates.map((candidate) => ({
+      ...candidate,
+      instructors: candidate.instructors.slice(0, 1),
+      meetings: candidate.meetings.slice(0, 2),
+    })),
   };
+  dropped.push("meetings", "instructors");
+  if (!over()) return withCompaction(next, dropped);
 
-  while (shrink() && next.unverified.length > 0) {
-    next = { ...next, unverified: next.unverified.slice(0, -1) };
-  }
-
-  if (shrink()) {
-    next = {
-      ...next,
-      candidates: next.candidates.map(({ reviewEvidence: _reviewEvidence, ...candidate }) => candidate),
-    };
-  }
-
-  if (shrink()) {
-    next = { ...next, noListedSections: [], mutualClashes: [] };
-  }
-
-  if (shrink()) {
-    next = {
+  next = withCompaction(
+    {
       ...next,
       candidates: next.candidates.map((candidate) => ({
         ...candidate,
-        matched: [],
-        tradeoffs: [],
-        clashes: undefined,
-        otherSections: [],
-        meetings: candidate.meetings.slice(0, 4),
+        meetings: candidate.meetings.slice(0, 1),
       })),
-    };
-  }
+    },
+    [...dropped, "meetings_detail"],
+  );
+  if (!over()) return next;
 
-  while (shrink() && next.candidates.length > 1) {
-    next = { ...next, candidates: next.candidates.slice(0, -1) };
-  }
-
-  if (shrink()) {
-    next = {
+  return withCompaction(
+    {
       ...next,
-      unverified: [],
-      notApplied: next.notApplied.slice(0, 2),
-      candidates: next.candidates.map((candidate) => ({
-        ...candidate,
-        titleEn: null,
-        titleZh: null,
-        matched: [],
-        tradeoffs: [],
-        clashes: undefined,
-        otherSections: [],
-        reviewEvidence: undefined,
-        instructors: candidate.instructors.slice(0, 1),
-        meetings: candidate.meetings.slice(0, 2),
-      })),
-    };
-  }
-
-  while (shrink() && next.candidates[0] && next.candidates[0].meetings.length > 0) {
-    const [head, ...rest] = next.candidates;
-    next = {
-      ...next,
-      candidates: [{ ...head!, meetings: head!.meetings.slice(0, -1) }, ...rest],
-    };
-  }
-
-  if (shrink()) {
-    let ranking = next.ranking;
-    while (shrink() && ranking.length > 80) {
-      ranking = ranking.slice(0, Math.max(80, Math.floor(ranking.length * 0.75)));
-      next = { ...next, ranking };
-    }
-  }
-
-  if (shrink()) {
-    next = {
-      ...next,
-      candidates: next.candidates.map((candidate) => ({
-        ...candidate,
-        titleEn: null,
-        titleZh: null,
-        instructors: candidate.instructors.slice(0, 1).map((instructor) => ({
-          ...instructor,
-          name: instructor.name.slice(0, 40),
-        })),
-        meetings: [],
-        matched: [],
-        tradeoffs: [],
-        clashes: undefined,
-        otherSections: [],
-        reviewEvidence: undefined,
-      })),
-      noListedSections: [],
-      mutualClashes: [],
-      unverified: [],
-      notApplied: [],
-    };
-  }
-
-  return next;
+      notes: next.notes.slice(0, 2),
+    },
+    [...dropped, "notes"],
+  );
 }
 
 function noClashNotAppliedMessage(status: TimetableInfo["status"]): string {
@@ -623,8 +590,9 @@ function buildCandidate(
     score: best.score,
     otherSections: alternates.slice(0, MAX_OTHER_SECTIONS).map((row) => ({
       section: row.section.section,
-      meetings: row.section.meetingLines.join(", "),
+      meetings: row.section.meetingLines,
       fit: row.fit,
+      clashes: (row.clashes ?? []).length > 0 ? row.clashes : undefined,
     })),
     planSection: best.section.planSection,
   };
@@ -635,9 +603,11 @@ export async function runDiscoverCourseCandidates(
   args: unknown,
   deps: DiscoveryDeps = defaultDiscoveryDeps,
   signal?: AbortSignal,
-): Promise<DiscoverResult | ToolFailure> {
+): Promise<DiscoverResult | DiscoverToolFailure> {
   const parsed = discoverCourseCandidatesInputSchema.safeParse(args);
-  if (!parsed.success) return { error: "invalid_request" };
+  if (!parsed.success) {
+    return { error: "invalid_request", issues: discoverValidationIssues(parsed.error) };
+  }
 
   let catalogTerm: { year: number; sem: number };
   try {
@@ -755,6 +725,15 @@ export async function runDiscoverCourseCandidates(
 
   const publicCandidates = candidates.map(({ planSection: _planSection, ...candidate }) => candidate);
 
+  if (discoveryPool.offersTruncated) {
+    notApplied.push("section offers capped; some sections may be missing from this search");
+  }
+
+  const requiredExcludedTotal = Object.values(excludedRequired).reduce((sum, count) => sum + count, 0);
+  if (publicCandidates.length === 0 && requiredExcludedTotal > 0) {
+    notApplied.push("required: no section satisfied all hard schedule rules");
+  }
+
   const result: DiscoverResult = {
     status: "ok",
     term: {
@@ -775,7 +754,7 @@ export async function runDiscoverCourseCandidates(
     },
     excluded: {
       alreadyInPlan,
-      excludedCodes: parsed.data.scope.excludeCodes?.length ?? 0,
+      excludedCodes: discoveryPool.excludedCodesMatched,
       noListedSections: noListedSections.length,
       required: excludedRequired,
     },
