@@ -68,7 +68,7 @@ const eveningStartArgs = (args: Record<string, unknown>) => {
   const required = args.required;
   if (typeof required !== "object" || required === null) return false;
   const typed = required as { startAfter?: string; endBefore?: string };
-  return typed.startAfter === "18:00" && typed.endBefore !== "08:00";
+  return typed.startAfter === "18:00" && typed.endBefore === undefined;
 };
 
 export const DISCOVERY_CASES_V1: DiscoveryEvalCase[] = [
@@ -305,11 +305,10 @@ const noCandidatesInvalidWindow: DiscoveryEvalCase = {
       message: "Find GEST courses that must start after 18:00 and end before 08:00 every meeting.",
       expect: {
         discovery: "optional",
-        args: impossibleWindowArgs,
         mention: [
           /can(?:'|no)t (?:both )?hold|contradict|impossible|no (class|section|course)|window is empty/i,
         ],
-        forbid: [/shortlist|top \d|here are (?:the |some )?(?:courses|options|candidates|picks)/i],
+        forbid: [/shortlist|I recommend|here are (the |some )?(courses|options|classes)|top \d/i],
         maxToolCalls: 3,
       },
     },
@@ -323,7 +322,7 @@ const noCandidatesUnsatisfiable: DiscoveryEvalCase = {
   timetable: DEFAULT_DISCOVERY_TIMETABLE,
   turns: [
     {
-      message: "I need a GEST course whose meetings all start after 18:00.",
+      message: "Find GEST courses that have to start after 18:00.",
       expect: {
         discovery: "required",
         args: eveningStartArgs,

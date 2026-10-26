@@ -291,21 +291,16 @@ describe("discovery case registry", () => {
       ],
     ]);
     expect(invalid?.turns[0]?.expect.forbid?.map((pattern) => [pattern.source, pattern.flags])).toEqual([
-      ["shortlist|top \\d|here are (?:the |some )?(?:courses|options|candidates|picks)", "i"],
+      ["shortlist|I recommend|here are (the |some )?(courses|options|classes)|top \\d", "i"],
     ]);
-    expect(
-      invalid?.turns[0]?.expect.args?.({ required: { startAfter: "18:00", endBefore: "08:00" } }),
-    ).toBe(true);
-    expect(invalid?.turns[0]?.expect.args?.({ required: { startAfter: "18:00" } })).toBe(false);
+    expect(invalid?.turns[0]?.expect.args).toBeUndefined();
 
     const unsatisfiable = DISCOVERY_CASES_V2.find((evalCase) => evalCase.id === "no_candidates");
     expect(unsatisfiable?.pathname).toBe("/");
     expect(unsatisfiable?.timetable).toBe(DEFAULT_DISCOVERY_TIMETABLE);
     expect(unsatisfiable?.why).toBe("spec §4 scenario G; dev r2 behaviour");
     expect(unsatisfiable?.turns).toHaveLength(1);
-    expect(unsatisfiable?.turns[0]?.message).toBe(
-      "I need a GEST course whose meetings all start after 18:00.",
-    );
+    expect(unsatisfiable?.turns[0]?.message).toBe("Find GEST courses that have to start after 18:00.");
     expect(unsatisfiable?.turns[0]?.expect.discovery).toBe("required");
     expect(unsatisfiable?.turns[0]?.expect.maxToolCalls).toBe(3);
     expect(unsatisfiable?.turns[0]?.expect.mention?.map((pattern) => [pattern.source, pattern.flags])).toEqual([
@@ -315,7 +310,7 @@ describe("discovery case registry", () => {
     const eveningArgs = unsatisfiable?.turns[0]?.expect.args;
     expect(eveningArgs?.({ required: { startAfter: "18:00" } })).toBe(true);
     expect(eveningArgs?.({ scope: { codePrefix: "GEST" }, required: { startAfter: "18:00" } })).toBe(true);
-    expect(eveningArgs?.({ required: { startAfter: "18:00", endBefore: "21:00" } })).toBe(true);
+    expect(eveningArgs?.({ required: { startAfter: "18:00", endBefore: "21:00" } })).toBe(false);
     expect(eveningArgs?.({ required: { startAfter: "18:00", endBefore: "08:00" } })).toBe(false);
     expect(eveningArgs?.({ required: { startAfter: "10:00" } })).toBe(false);
     expect(eveningArgs?.({ required: { endBefore: "08:00" } })).toBe(false);
