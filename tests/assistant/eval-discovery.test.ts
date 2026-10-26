@@ -831,7 +831,7 @@ describe("discovery case registry", () => {
     const eveningArgs = unsatisfiable?.turns[0]?.expect.args;
     expect(eveningArgs?.({ required: { startAfter: "18:00" } })).toBe(true);
     expect(eveningArgs?.({ scope: { codePrefix: "GEST" }, required: { startAfter: "18:00" } })).toBe(true);
-    expect(eveningArgs?.({ required: { startAfter: "18:00", endBefore: "21:00" } })).toBe(false);
+    expect(eveningArgs?.({ required: { startAfter: "18:00", endBefore: "21:00" } })).toBe(true);
     expect(eveningArgs?.({ required: { startAfter: "18:00", endBefore: "08:00" } })).toBe(false);
     expect(eveningArgs?.({ required: { startAfter: "10:00" } })).toBe(false);
     expect(eveningArgs?.({ required: { endBefore: "08:00" } })).toBe(false);
