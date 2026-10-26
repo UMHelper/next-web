@@ -26,9 +26,10 @@ export type ConflictFit = "verified_no_clash" | "confirmed_clash" | "incomplete"
 export function conflictFitForSection(section: {
   complete: boolean;
   conflicts: readonly unknown[];
+  planComplete: boolean;
 }): ConflictFit {
-  if (!section.complete) return "incomplete";
   if (section.conflicts.length > 0) return "confirmed_clash";
+  if (!section.complete || !section.planComplete) return "incomplete";
   return "verified_no_clash";
 }
 
@@ -127,7 +128,7 @@ const replacesForCourse = (plan: PlanSection[], courseCode: string) => {
   return saved ? sectionLabel(saved) : undefined;
 };
 
-const conflictsForCandidate = (plan: PlanSection[], candidate: PlanSection) => {
+export const conflictsForCandidate = (plan: PlanSection[], candidate: PlanSection) => {
   const base = planWithoutCourse(plan, candidate.courseCode);
   const seen = new Set<string>();
   const conflicts: SectionCheck["conflicts"] = [];
@@ -177,6 +178,7 @@ export async function runCheckPlanConflicts(
   if (resolution.status !== "resolved") return resolution;
 
   const analysis = analyzeTimetable(state.plan.sections);
+  const planCompleteForFit = analysis.complete && !state.truncated;
   const replaces = replacesForCourse(state.plan.sections, resolution.courseCode);
 
   const sections = resolution.options.map((option) => {
@@ -187,7 +189,7 @@ export async function runCheckPlanConflicts(
       meetings: option.meetings,
       conflicts,
       complete,
-      fit: conflictFitForSection({ complete, conflicts }),
+      fit: conflictFitForSection({ complete, conflicts, planComplete: planCompleteForFit }),
       ...(replaces ? { replaces } : {}),
     };
   });

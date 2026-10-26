@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { bindCourseToolArgs } from "@/lib/assistant/course-referent";
 import {
   checkPlanConflictsParameters,
+  conflictFitForSection,
   runCheckPlanConflicts,
 } from "@/lib/assistant/check-plan-conflicts";
 import type { TimetableToolDeps } from "@/lib/assistant/timetable-tools";
@@ -33,6 +34,10 @@ const readyState = (planSections = FIXTURE_PLAN.payload.sections, planTerm = { y
   version: timetableVersion(planSections),
 });
 
+const completeFixturePlan = FIXTURE_PLAN.payload.sections.filter(
+  (section) => section.courseCode !== "GEND1001",
+);
+
 const deps = (overrides?: Partial<TimetableToolDeps>): TimetableToolDeps => ({
   loadSections: async (input) => {
     const match = fixtureLookup(input.code, input.instructor);
@@ -41,6 +46,17 @@ const deps = (overrides?: Partial<TimetableToolDeps>): TimetableToolDeps => ({
   },
   loadCatalogTerm: async () => ({ year: 2026, sem: 1 }),
   ...overrides,
+});
+
+describe("conflictFitForSection", () => {
+  it.each([
+    [{ complete: true, conflicts: [], planComplete: true }, "verified_no_clash"],
+    [{ complete: true, conflicts: [], planComplete: false }, "incomplete"],
+    [{ complete: false, conflicts: [{}], planComplete: true }, "confirmed_clash"],
+    [{ complete: false, conflicts: [], planComplete: true }, "incomplete"],
+  ] as const)("returns %s → %s", (input, expected) => {
+    expect(conflictFitForSection(input)).toBe(expected);
+  });
 });
 
 describe("runCheckPlanConflicts", () => {
@@ -145,13 +161,42 @@ describe("runCheckPlanConflicts", () => {
 
   it("does not count end-to-start as a conflict", async () => {
     const result = await runCheckPlanConflicts(
+      readyState(completeFixturePlan),
+      { code: "ECON1001", instructor: "CHEUNG WAI", section: "002" },
+      deps(),
+    );
+    expect(result).toMatchObject({
+      status: "checked",
+      planComplete: true,
+      sections: [{ section: "002", conflicts: [], complete: true, fit: "verified_no_clash" }],
+    });
+  });
+
+  it("never verifies a section while the saved plan has unscheduled sections", async () => {
+    const result = await runCheckPlanConflicts(
       readyState(),
       { code: "ECON1001", instructor: "CHEUNG WAI", section: "002" },
       deps(),
     );
     expect(result).toMatchObject({
       status: "checked",
-      sections: [{ section: "002", conflicts: [], complete: true, fit: "verified_no_clash" }],
+      planComplete: false,
+      sections: [{ section: "002", conflicts: [], complete: true, fit: "incomplete" }],
+    });
+  });
+
+  it("never verifies when the timetable context was truncated", async () => {
+    const state = readyState(completeFixturePlan);
+    state.truncated = true;
+    const result = await runCheckPlanConflicts(
+      state,
+      { code: "ECON1001", instructor: "CHEUNG WAI", section: "002" },
+      deps(),
+    );
+    expect(result).toMatchObject({
+      status: "checked",
+      planComplete: true,
+      sections: [{ section: "002", conflicts: [], complete: true, fit: "incomplete" }],
     });
   });
 
