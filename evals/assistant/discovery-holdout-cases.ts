@@ -111,3 +111,5 @@ export const DISCOVERY_HOLDOUT_CASES: DiscoveryEvalCase[] = [
     ],
   },
 ];
+
+export const DISCOVERY_HOLDOUT_CASES_V1 = DISCOVERY_HOLDOUT_CASES;

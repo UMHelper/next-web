@@ -11,6 +11,12 @@ import { ASSISTANT_MAX_STEPS } from "@/lib/assistant/agent";
 import { readAssistantConfig } from "@/lib/assistant/config";
 
 import { DISCOVERY_CASES } from "./discovery-cases";
+import {
+  DISCOVERY_CASE_SETS,
+  buildDiscoveryEvalPayload,
+  discoveryPassThreshold,
+  resolveDiscoveryCaseSetId,
+} from "./discovery-case-sets";
 import { DEFAULT_DISCOVERY_TIMETABLE } from "./discovery-fixture";
 import { DISCOVERY_HOLDOUT_CASES } from "./discovery-holdout-cases";
 import { discoverySucceeded, gradeDiscovery, summarizeDiscovery, type DiscoveryGrade } from "./discovery-grade";
@@ -31,6 +37,7 @@ function discoveryEvalFingerprint(suiteCases: readonly { id: string; turns: unkn
     "evals/assistant/discovery-grade.ts",
     "evals/assistant/discovery-fixture.ts",
     "evals/assistant/discovery-cases.ts",
+    "evals/assistant/discovery-case-sets.ts",
     "evals/assistant/discovery-holdout-cases.ts",
     "evals/assistant/discovery-eval-lib.ts",
   ]) {
@@ -96,11 +103,12 @@ export async function runDiscoveryEval({ getAppConfigMock, mode, enforceThreshol
   const label = env.ASSISTANT_EVAL_LABEL ?? "run";
   const only = env.ASSISTANT_EVAL_CASES?.split(",").map((id) => id.trim());
   const suiteName = env.ASSISTANT_EVAL_SUITE ?? "dev";
+  const caseSetId = resolveDiscoveryCaseSetId(env);
 
   getAppConfigMock.mockResolvedValue({ ...DEFAULT_APP_CONFIG });
 
-  const suiteCases = SUITES[suiteName as keyof typeof SUITES];
-  expect(suiteCases, `unknown ASSISTANT_EVAL_SUITE "${suiteName}"`).toBeDefined();
+  const suiteCases = DISCOVERY_CASE_SETS[caseSetId as keyof typeof DISCOVERY_CASE_SETS];
+  expect(suiteCases, `unknown ASSISTANT_EVAL_CASE_SET "${caseSetId}"`).toBeDefined();
   const unknown = (only ?? []).filter((id) => !suiteCases.some((evalCase) => evalCase.id === id));
   expect(unknown, "ASSISTANT_EVAL_CASES names cases that are not in the suite").toEqual([]);
   expect(config.apiKey, "AI_API_KEY is not set").toBeDefined();
@@ -151,7 +159,7 @@ export async function runDiscoveryEval({ getAppConfigMock, mode, enforceThreshol
   const complete = stoppedEarly === undefined && grades.length === expectedTurns;
   const summary = summarizeDiscovery(grades, cases.map((item) => item.id));
   const noDiscovery = mode === "baseline";
-  const settings = {
+  const settingsInput = {
     model: config.model,
     thinking: config.thinking,
     maxOutputTokens: config.maxOutputTokens,
@@ -161,7 +169,7 @@ export async function runDiscoveryEval({ getAppConfigMock, mode, enforceThreshol
     noDiscovery,
     mode,
   };
-  const mismatches = requestMismatches(traces, settings);
+  const mismatches = requestMismatches(traces, settingsInput);
   const toolRegistrationViolations = assertDiscoveryToolRegistration(traces, mode);
   const discoveryAttempts = traces.reduce(
     (sum, trace) => sum + trace.toolCalls.filter((call) => call.name === DISCOVER_COURSE_CANDIDATES_TOOL_NAME).length,
@@ -179,11 +187,11 @@ export async function runDiscoveryEval({ getAppConfigMock, mode, enforceThreshol
     );
 
   const file = path.join(".eval-results", "assistant", `discovery-${label}.json`);
-  const payload = {
-    kind: "discovery" as const,
+  const payload = buildDiscoveryEvalPayload({
     label,
     suite: suiteName,
-    settings,
+    caseSetId,
+    settings: settingsInput,
     repeats,
     stepBudget,
     stepsUsed: budget.used,
@@ -198,7 +206,7 @@ export async function runDiscoveryEval({ getAppConfigMock, mode, enforceThreshol
     discoverySuccesses,
     grades,
     traces,
-  };
+  });
   mkdirSync(path.dirname(file), { recursive: true });
   writeFileSync(file, JSON.stringify(payload, null, 2));
   console.info(
@@ -229,7 +237,7 @@ export async function runDiscoveryEval({ getAppConfigMock, mode, enforceThreshol
   }
 
   if (enforceThresholds && mode === "with_discovery") {
-    const passThreshold = suiteName === "holdout" ? 0.75 : 0.8;
+    const passThreshold = discoveryPassThreshold(caseSetId);
     expect(summary.passRate, "discovery pass rate below threshold").toBeGreaterThanOrEqual(passThreshold);
     expect(summary.discoveryUse.rate, "discovery tool use below threshold").toBeGreaterThanOrEqual(0.9);
     expect(summary.falseFitClaims, "false fit claims above threshold").toBe(0);

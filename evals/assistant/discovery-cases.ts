@@ -64,7 +64,14 @@ const impossibleWindowArgs = (args: Record<string, unknown>) => {
   return typed.startAfter === "18:00" && typed.endBefore === "08:00";
 };
 
-export const DISCOVERY_CASES: DiscoveryEvalCase[] = [
+const startAfterEighteenArgs = (args: Record<string, unknown>) => {
+  const required = args.required;
+  if (typeof required !== "object" || required === null) return false;
+  const typed = required as { startAfter?: string };
+  return typed.startAfter === "18:00" && !Object.prototype.hasOwnProperty.call(required, "endBefore");
+};
+
+export const DISCOVERY_CASES_V1: DiscoveryEvalCase[] = [
   {
     id: "easy_gest",
     pathname: "/",
@@ -259,3 +266,126 @@ export const DISCOVERY_CASES: DiscoveryEvalCase[] = [
     ],
   },
 ];
+
+function cloneDiscoveryExpect(expect: DiscoveryExpect): DiscoveryExpect {
+  return {
+    discovery: expect.discovery,
+    ...(expect.args ? { args: expect.args } : {}),
+    ...(expect.mention
+      ? { mention: expect.mention.map((pattern) => new RegExp(pattern.source, pattern.flags)) }
+      : {}),
+    ...(expect.forbid
+      ? { forbid: expect.forbid.map((pattern) => new RegExp(pattern.source, pattern.flags)) }
+      : {}),
+    ...(expect.maxToolCalls !== undefined ? { maxToolCalls: expect.maxToolCalls } : {}),
+  };
+}
+
+function cloneDiscoveryCase(evalCase: DiscoveryEvalCase): DiscoveryEvalCase {
+  return {
+    id: evalCase.id,
+    pathname: evalCase.pathname,
+    why: evalCase.why,
+    ...(evalCase.timetable ? { timetable: evalCase.timetable } : {}),
+    turns: evalCase.turns.map((turn) => ({
+      message: turn.message,
+      ...(turn.timetable ? { timetable: turn.timetable } : {}),
+      expect: cloneDiscoveryExpect(turn.expect),
+    })),
+  };
+}
+
+const noCandidatesInvalidWindow: DiscoveryEvalCase = {
+  id: "no_candidates_invalid_window",
+  pathname: "/",
+  why: "spec §13; no_candidates dev r0/r1",
+  timetable: DEFAULT_DISCOVERY_TIMETABLE,
+  turns: [
+    {
+      message: "Find GEST courses that must start after 18:00 and end before 08:00 every meeting.",
+      expect: {
+        discovery: "optional",
+        mention: [
+          /can(?:'|no)t (?:both )?hold|contradict|impossible|no (class|section|course)|window is empty/i,
+        ],
+        forbid: [/shortlist|I recommend|here are (the |some )?(courses|options|classes)|top \d/i],
+        maxToolCalls: 3,
+      },
+    },
+  ],
+};
+
+const noCandidatesUnsatisfiable: DiscoveryEvalCase = {
+  id: "no_candidates",
+  pathname: "/",
+  why: "valid but unsatisfiable window (scenario G)",
+  timetable: DEFAULT_DISCOVERY_TIMETABLE,
+  turns: [
+    {
+      message: "Find GEST courses that have to start after 18:00.",
+      expect: {
+        discovery: "required",
+        args: startAfterEighteenArgs,
+        mention: [/no [^.!?]{0,30}(course|class|section|option)|nothing (matches|fits)|none/i],
+        maxToolCalls: 3,
+      },
+    },
+  ],
+};
+
+const factualLookup: DiscoveryEvalCase = {
+  id: "factual_lookup",
+  pathname: "/",
+  why: "mission §3/§8; over-selection risk of the new contract",
+  timetable: DEFAULT_DISCOVERY_TIMETABLE,
+  turns: [
+    {
+      message: "How many credits is CISC1001?",
+      expect: { discovery: "forbidden", maxToolCalls: 2 },
+    },
+  ],
+};
+
+const catalogBrowse: DiscoveryEvalCase = {
+  id: "catalog_browse",
+  pathname: "/",
+  why: "amendment 1: browsing must stay cheap",
+  timetable: DEFAULT_DISCOVERY_TIMETABLE,
+  turns: [
+    {
+      message: "List all first-year CIS courses.",
+      expect: {
+        discovery: "optional",
+        mention: [/CISC100[123]/],
+        maxToolCalls: 3,
+      },
+    },
+  ],
+};
+
+function plannerChangeV2(evalCase: DiscoveryEvalCase): DiscoveryEvalCase {
+  const cloned = cloneDiscoveryCase(evalCase);
+  const turn = cloned.turns[2];
+  cloned.turns[2] = {
+    message: turn.message,
+    ...(turn.timetable ? { timetable: turn.timetable } : {}),
+    expect: {
+      discovery: "optional",
+      mention: [/re-?check|again|updated|current plan/i],
+      maxToolCalls: 3,
+    },
+  };
+  return cloned;
+}
+
+export const DISCOVERY_CASES_V2: DiscoveryEvalCase[] = [
+  ...DISCOVERY_CASES_V1.flatMap((evalCase) => {
+    if (evalCase.id === "no_candidates") return [noCandidatesInvalidWindow, noCandidatesUnsatisfiable];
+    if (evalCase.id === "planner_change") return [plannerChangeV2(evalCase)];
+    return [cloneDiscoveryCase(evalCase)];
+  }),
+  factualLookup,
+  catalogBrowse,
+];
+
+export const DISCOVERY_CASES = DISCOVERY_CASES_V2;
