@@ -15,6 +15,8 @@ import { bindCourseToolArgs, type CourseReferentSlot } from "@/lib/assistant/cou
 import type { TimetableSlot } from "@/lib/assistant/timetable-context";
 import { CHECK_PLAN_CONFLICTS_TOOL_NAME } from "@/lib/assistant/check-plan-conflicts";
 import { PREVIEW_TIMETABLE_TOOL_NAME } from "@/lib/assistant/timetable-preview";
+import { createDiscoveryTools } from "@/lib/assistant/discovery/tool";
+import { DISCOVER_COURSE_CANDIDATES_TOOL_NAME } from "@/lib/assistant/discovery/schema";
 import { createTimetableTools, unavailableTimetableSlot } from "@/lib/assistant/timetable-tools";
 import {
   createPresentationLedger,
@@ -59,6 +61,7 @@ export const ASSISTANT_SERVER_TOOL_NAMES = [
   "get_course_reviews",
   "count_reviews",
   "get_course_sections",
+  DISCOVER_COURSE_CANDIDATES_TOOL_NAME,
   PRESENT_RESPONSE_TOOL_NAME,
   CHECK_PLAN_CONFLICTS_TOOL_NAME,
   PREVIEW_TIMETABLE_TOOL_NAME,
@@ -250,6 +253,7 @@ export function createAssistantTools(
         return trackLookup(presentationSlot.current, "get_course_sections", args, run);
       },
     }),
+    ...createDiscoveryTools(timetableSlot, presentationSlot),
     defineTool({
       name: PRESENT_RESPONSE_TOOL_NAME,
       description:

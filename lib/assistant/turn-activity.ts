@@ -1,3 +1,4 @@
+import { DISCOVER_COURSE_CANDIDATES_TOOL_NAME } from "@/lib/assistant/discovery/schema";
 import { SEARCH_CATALOG_TOOL_NAME } from "@/lib/assistant/search-catalog-ui";
 import { GET_COURSE_TOOL_NAME } from "@/lib/assistant/course-detail-ui";
 import { GET_COURSE_SECTIONS_TOOL_NAME } from "@/lib/assistant/course-sections-ui";
@@ -42,7 +43,7 @@ export function summarizeTurnActivityCounts(
     const name = call.function.name;
     const hasResult = toolMessageContent(results.get(call.id)?.content) !== undefined;
 
-    if (name === SEARCH_CATALOG_TOOL_NAME) {
+    if (name === SEARCH_CATALOG_TOOL_NAME || name === DISCOVER_COURSE_CANDIDATES_TOOL_NAME) {
       counts.catalogSearches += 1;
       if (!hasResult) counts.catalogSearchesPending += 1;
       continue;

@@ -27,6 +27,59 @@ const checkedResult = (plannerVersion: string) =>
     ],
   });
 
+const discoverResult = (plannerVersion: string) =>
+  JSON.stringify({
+    status: "ok",
+    term: { year: 2026, sem: 1, label: "2026/2027 AY Sem 1" },
+    timetable: { status: "ready", plannerVersion },
+    examined: { courses: 1, sections: 2, totalMatchingCourses: 1, truncated: false },
+    excluded: {
+      alreadyInPlan: 0,
+      excludedCodes: 0,
+      noListedSections: 0,
+      required: { startAfter: 0, endBefore: 0, avoidDays: 0, avoidWindows: 0, noClash: 0 },
+    },
+    notApplied: [],
+    candidates: [
+      {
+        rank: 1,
+        courseCode: "GEST1006",
+        titleEn: "Sample GE",
+        titleZh: null,
+        credits: 3,
+        courseType: "GE",
+        suggestedYear: 1,
+        section: "002",
+        instructors: [
+          {
+            name: "LEE KA CHUN",
+            reviews: 4,
+            difficulty: 3,
+            grade: 3.5,
+            result: 4,
+            sampleSize: 4,
+          },
+        ],
+        meetings: ["TUE 11:30-12:45"],
+        meetingsComplete: true,
+        fit: "verified_no_clash",
+        matched: [],
+        tradeoffs: [],
+        signals: {},
+        score: 1,
+        otherSections: [
+          { section: "001", meetings: "MON 09:00-10:15", fit: "confirmed_clash" },
+          { section: "003", meetings: "WED 09:00-10:15", fit: "not_checked" },
+        ],
+      },
+    ],
+    unverified: [],
+    noListedSections: [],
+    mutualClashes: [],
+    ranking: "test",
+    notes: [],
+  });
+
 describe("summarizeConflictVerifications", () => {
   it("records a successful check and leaves unchecked sections absent", () => {
     const messages: DiscussedMessage[] = [
@@ -53,6 +106,39 @@ describe("summarizeConflictVerifications", () => {
       }),
     ]);
     expect(payload.checks.some((entry) => entry.course === "GEST1019")).toBe(false);
+  });
+
+  it("records discovery candidate and otherSection fits, skipping not_checked", () => {
+    const messages: DiscussedMessage[] = [
+      { role: "user", content: "Find GE courses after 10" },
+      {
+        role: "assistant",
+        toolCalls: [
+          {
+            id: "d1",
+            function: { name: "discover_course_candidates", arguments: '{"scope":{"courseType":"GE"}}' },
+          },
+        ],
+      },
+      { role: "tool", toolCallId: "d1", content: discoverResult("aaa") },
+    ];
+
+    const current = JSON.parse(summarizeConflictVerifications(messages, "aaa")) as {
+      checks: Array<{ section: string; fit: string; stale: boolean }>;
+    };
+    expect(current.checks).toHaveLength(2);
+    expect(current.checks).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ section: "002", fit: "verified_no_clash", stale: false }),
+        expect.objectContaining({ section: "001", fit: "confirmed_clash", stale: false }),
+      ]),
+    );
+    expect(current.checks.some((entry) => entry.section === "003")).toBe(false);
+
+    const stale = JSON.parse(summarizeConflictVerifications(messages, "bbb")) as {
+      checks: Array<{ stale: boolean }>;
+    };
+    expect(stale.checks.every((entry) => entry.stale)).toBe(true);
   });
 
   it("marks checks stale after the planner version changes", () => {

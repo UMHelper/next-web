@@ -35,6 +35,12 @@ describe("turn activity helpers", () => {
     );
   });
 
+  it("counts discover_course_candidates as a catalog search", () => {
+    const calls = [call("d1", "discover_course_candidates", { scope: { courseType: "GE" } })];
+    const results = new Map([["d1", { content: "{}" }]]);
+    expect(formatTurnActivityDetail(summarizeTurnActivityCounts(calls, results))).toBe("1 search");
+  });
+
   it("excludes mounted rich tool calls from expanded activity", () => {
     const calls = [call("s1", "search_catalog", { query: "GEST" }), call("i1", "get_instructor", { name: "A" })];
     const richPlan: RichBlock[] = [{ kind: "tool", callId: "s1" }];

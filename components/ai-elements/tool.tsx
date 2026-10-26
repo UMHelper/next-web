@@ -27,6 +27,7 @@ const TOOL_LABELS: Record<string, { running: string; done: string }> = {
   get_course_reviews: { running: "Reading reviews", done: "Read reviews" },
   count_reviews: { running: "Counting reviews", done: "Counted reviews" },
   get_course_sections: { running: "Reading class times", done: "Read class times" },
+  discover_course_candidates: { running: "Finding courses", done: "Found courses" },
   check_plan_conflicts: { running: "Checking timetable", done: "Checked timetable" },
   preview_timetable: { running: "Building timetable preview", done: "Built timetable preview" },
   filter_catalog_results: { running: "Filtering results", done: "Filtered results" },

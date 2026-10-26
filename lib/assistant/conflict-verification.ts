@@ -4,6 +4,11 @@ import {
   type ConflictFit,
 } from "@/lib/assistant/check-plan-conflicts";
 import type { DiscussedMessage } from "@/lib/assistant/discussed-courses";
+import {
+  DISCOVER_COURSE_CANDIDATES_TOOL_NAME,
+  parseDiscoverResult,
+  type DiscoveryFit,
+} from "@/lib/assistant/discovery/schema";
 
 export const CONFLICT_VERIFICATION_CONTEXT_DESCRIPTION =
   "Timetable clash checks already run in this chat for the saved plan. plannerVersion is the timetable version when the check ran; stale true means the saved plan changed since then—do not treat stale rows as current evidence. Only call a section conflict-free when it appears here with fit verified_no_clash, stale false, and plannerVersion matching the timetable context plan version. fit confirmed_clash means a verified overlap; incomplete means times were not fully checked; absence means not_checked—never claim verified_no_clash without a matching row.";
@@ -46,6 +51,38 @@ function toolCallsById(messages: readonly DiscussedMessage[]): Map<string, strin
   return names;
 }
 
+function isStale(plannerVersion: string, currentPlannerVersion: string | null): boolean {
+  return (
+    currentPlannerVersion !== null &&
+    currentPlannerVersion !== "unknown" &&
+    plannerVersion !== currentPlannerVersion
+  );
+}
+
+function pushDiscoveryFit(
+  entries: ConflictVerificationEntry[],
+  options: {
+    courseCode: string;
+    instructor: string;
+    section: string;
+    fit: DiscoveryFit;
+    plannerVersion: string;
+    stale: boolean;
+    turn: number;
+  },
+) {
+  if (options.fit === "not_checked") return;
+  entries.push({
+    course: options.courseCode.trim().toUpperCase(),
+    instructor: options.instructor.trim(),
+    section: options.section,
+    fit: options.fit,
+    plannerVersion: options.plannerVersion,
+    stale: options.stale,
+    turn: options.turn,
+  });
+}
+
 function entriesFromMessages(
   messages: readonly DiscussedMessage[],
   currentPlannerVersion: string | null,
@@ -64,35 +101,67 @@ function entriesFromMessages(
   for (let index = 0; index < messages.length; index += 1) {
     const message = messages[index];
     if (message.role !== "tool" || typeof message.toolCallId !== "string") continue;
-    if (toolNames.get(message.toolCallId) !== CHECK_PLAN_CONFLICTS_TOOL_NAME) continue;
+    const toolName = toolNames.get(message.toolCallId);
     if (typeof message.content !== "string") continue;
-
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(message.content);
-    } catch {
-      continue;
-    }
-    const result = checkPlanConflictsResultSchema.safeParse(parsed);
-    if (!result.success || result.data.status !== "checked") continue;
-
-    const { courseCode, instructor, plannerVersion, sections } = result.data;
-    const stale =
-      currentPlannerVersion !== null &&
-      currentPlannerVersion !== "unknown" &&
-      plannerVersion !== currentPlannerVersion;
     const turn = turnForIndex(index);
 
-    for (const section of sections) {
-      entries.push({
-        course: courseCode.trim().toUpperCase(),
-        instructor: instructor.trim(),
-        section: section.section,
-        fit: section.fit,
-        plannerVersion,
-        stale,
-        turn,
-      });
+    if (toolName === CHECK_PLAN_CONFLICTS_TOOL_NAME) {
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(message.content);
+      } catch {
+        continue;
+      }
+      const result = checkPlanConflictsResultSchema.safeParse(parsed);
+      if (!result.success || result.data.status !== "checked") continue;
+
+      const { courseCode, instructor, plannerVersion, sections } = result.data;
+      const stale = isStale(plannerVersion, currentPlannerVersion);
+
+      for (const section of sections) {
+        entries.push({
+          course: courseCode.trim().toUpperCase(),
+          instructor: instructor.trim(),
+          section: section.section,
+          fit: section.fit,
+          plannerVersion,
+          stale,
+          turn,
+        });
+      }
+      continue;
+    }
+
+    if (toolName === DISCOVER_COURSE_CANDIDATES_TOOL_NAME) {
+      const result = parseDiscoverResult(message.content);
+      if (!result) continue;
+
+      const plannerVersion = result.timetable.plannerVersion ?? "unknown";
+      const stale = isStale(plannerVersion, currentPlannerVersion);
+
+      for (const candidate of result.candidates) {
+        const instructor = candidate.instructors[0]?.name ?? "";
+        pushDiscoveryFit(entries, {
+          courseCode: candidate.courseCode,
+          instructor,
+          section: candidate.section,
+          fit: candidate.fit,
+          plannerVersion,
+          stale,
+          turn,
+        });
+        for (const other of candidate.otherSections) {
+          pushDiscoveryFit(entries, {
+            courseCode: candidate.courseCode,
+            instructor,
+            section: other.section,
+            fit: other.fit,
+            stale,
+            turn,
+            plannerVersion,
+          });
+        }
+      }
     }
   }
 

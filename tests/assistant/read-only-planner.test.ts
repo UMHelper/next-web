@@ -28,6 +28,7 @@ const READ_ONLY_TOOL_ALLOWLIST = new Set([
   "get_course_reviews",
   "count_reviews",
   "get_course_sections",
+  "discover_course_candidates",
   "present_response",
   "check_plan_conflicts",
   "preview_timetable",

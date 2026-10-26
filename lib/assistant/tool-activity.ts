@@ -21,6 +21,10 @@ import {
   parseSearchCatalogResult,
   SEARCH_CATALOG_TOOL_NAME,
 } from "@/lib/assistant/search-catalog-ui";
+import {
+  DISCOVER_COURSE_CANDIDATES_TOOL_NAME,
+  parseDiscoverResult,
+} from "@/lib/assistant/discovery/schema";
 import { parseToolResult, readToolFailure, type ToolResultFailure } from "@/lib/assistant/tool-result";
 import { getCourseReviewsOutputSchema, getInstructorOutputSchema } from "@/lib/mcp/schemas";
 
@@ -83,6 +87,12 @@ export function classifyToolContent(toolName: string, content: string): ToolCont
       const view = parseTimetablePreviewResult(content);
       if (view.kind === "malformed") return "malformed";
       return view.data.status === "ready" || view.data.status === "needs_section" ? "success" : "domain_error";
+    }
+    case DISCOVER_COURSE_CANDIDATES_TOOL_NAME: {
+      if (parseDiscoverResult(content)) return "success";
+      const envelope = readToolFailure(content);
+      if (envelope === "malformed") return "malformed";
+      return "domain_error";
     }
     default:
       return classifyUnknown(content);

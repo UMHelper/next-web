@@ -47,6 +47,55 @@ const appliedEmptyFilter = JSON.stringify({
   scope: "loaded_results_only",
 });
 
+const minimalDiscoverResult = JSON.stringify({
+  status: "ok",
+  term: { year: 2026, sem: 1, label: "2026/2027 AY Sem 1" },
+  timetable: { status: "ready", plannerVersion: "v-test" },
+  examined: { courses: 1, sections: 2, totalMatchingCourses: 1, truncated: false },
+  excluded: {
+    alreadyInPlan: 0,
+    excludedCodes: 0,
+    noListedSections: 0,
+    required: { startAfter: 0, endBefore: 0, avoidDays: 0, avoidWindows: 0, noClash: 0 },
+  },
+  notApplied: [],
+  candidates: [
+    {
+      rank: 1,
+      courseCode: "GEST1006",
+      titleEn: "Sample GE",
+      titleZh: null,
+      credits: 3,
+      courseType: "GE",
+      suggestedYear: 1,
+      section: "002",
+      instructors: [
+        {
+          name: "CHAN TAI MAN",
+          reviews: 5,
+          difficulty: 3,
+          grade: 3.5,
+          result: 4,
+          sampleSize: 5,
+        },
+      ],
+      meetings: ["TUE 11:30-12:45 E11"],
+      meetingsComplete: true,
+      fit: "verified_no_clash",
+      matched: [],
+      tradeoffs: [],
+      signals: {},
+      score: 1,
+      otherSections: [{ section: "001", meetings: "MON 09:00-10:15", fit: "not_checked" }],
+    },
+  ],
+  unverified: [],
+  noListedSections: [],
+  mutualClashes: [],
+  ranking: "test",
+  notes: [],
+});
+
 const checkedConflict = JSON.stringify({
   status: "checked",
   courseCode: "MATH1010",
@@ -89,6 +138,7 @@ describe("classifyToolContent", () => {
     ["preview_timetable", '{"status":"not_found","courseCode":"MATH1010","instructor":"HO"}'],
     ["preview_timetable", '{"status":"invalid_request"}'],
     ["preview_timetable", '{"status":"temporarily_unavailable"}'],
+    ["discover_course_candidates", '{"error":"temporarily_unavailable"}'],
   ] as const)("classifies %s domain failure %s", (name, content) => {
     expect(classifyToolContent(name, content)).toBe("domain_error");
   });
@@ -108,6 +158,7 @@ describe("classifyToolContent", () => {
       "preview_timetable",
       '{"status":"ready","kind":"saved","plan":{"name":"My plan","year":2026,"sem":1},"term":"2026/2027 AY Sem 1","version":"abc","focusDay":"MON","sections":[],"replaced":[],"partial":[],"facts":{"conflicts":[],"unscheduled":[],"complete":true}}',
     ],
+    ["discover_course_candidates", minimalDiscoverResult],
     ["unknown_tool", '{"ok":true}'],
   ] as const)("classifies %s success %s", (name, content) => {
     expect(classifyToolContent(name, content)).toBe("success");
@@ -120,6 +171,7 @@ describe("classifyToolContent", () => {
     ["check_plan_conflicts", '{"status":"checked","extra":1}'],
     ["preview_timetable", '{"status":"ready","extra":1}'],
     ["get_instructor", ""],
+    ["discover_course_candidates", "nope"],
   ] as const)("classifies %s malformed %s", (name, content) => {
     expect(classifyToolContent(name, content)).toBe("malformed");
   });
