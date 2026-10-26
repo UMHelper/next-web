@@ -537,6 +537,23 @@ describe("gradeDiscovery", () => {
     expect(graded.pass).toBe(false);
   });
 
+  it.each([
+    "GEST1006, GESB1013, and CISC1001 all three clash with one another.",
+    "GEST1006 與 GESB1013 的上課時間互相衝突。",
+  ])("does not treat a clash statement as a mutual fit claim: %s", (reply) => {
+    const result = discoverCandidates(
+      [
+        { courseCode: "GEST1006", section: "002" },
+        { courseCode: "GESB1013", section: "001" },
+        { courseCode: "CISC1001", section: "001" },
+      ],
+      { planComplete: true, mutualClashes: [] },
+    );
+    const graded = gradeDiscovery(trace(reply, [discoveryCall(result)]), { discovery: "optional" });
+    expect(graded.falseFitClaims).toEqual([]);
+    expect(graded.pass).toBe(true);
+  });
+
   it("accepts a course-level no-clash claim when every listed section is verified", () => {
     const result = conflictResult({
       courseCode: "GEST1005",

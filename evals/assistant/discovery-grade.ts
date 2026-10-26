@@ -44,7 +44,7 @@ export type DiscoverySummary = {
 const INDIVIDUAL_FIT_CLAIM =
   /no clash|doesn't clash|won't clash|without (a )?clash|conflict-free|fits (your|the) timetable|不衝突|不冲突/i;
 
-const MUTUAL_FIT_CLAIM = /fit together|compatible with each other|all three|互相|彼此/i;
+const MUTUAL_FIT_CLAIM = /fit together|compatible with each other|互相兼容|彼此兼容/i;
 
 const CODE_IN_SENTENCE = /\b([A-Z]{2,4}\d{4})(?:-([A-Z0-9]{1,6}))?\b/g;
 
