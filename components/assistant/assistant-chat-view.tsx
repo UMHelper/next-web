@@ -244,6 +244,7 @@ function AssistantTurn({
           <RecommendationShortlist
             key={`rec-${block.presentCallId}`}
             courses={block.courses}
+            sections={block.sections}
             calls={dedupedCalls}
             results={presentationResults}
           />,

@@ -8,7 +8,7 @@ import {
   type Message,
 } from "@copilotkit/react-core/v2";
 import { usePathname } from "next/navigation";
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 
 import { describeAssistantError } from "@/lib/assistant/error-message";
@@ -19,7 +19,11 @@ import { NAVIGATE_DESCRIPTION, navigateParameters } from "@/lib/assistant/naviga
 import { PAGE_CONTEXT_DESCRIPTION, describePage } from "@/lib/assistant/page-context";
 import { useTimetableContext } from "./use-timetable-context";
 
+import { useTimetablePlanner } from "@/components/timetable/planner-provider";
+import { timetableVersion } from "@/lib/timetable/analysis";
+
 import { CatalogFilterProvider } from "./catalog-filter-store";
+import { PlannerVersionContext } from "./planner-version-context";
 import AssistantChat from "./assistant-chat";
 import { AssistantBubble } from "./assistant-bubble";
 import ResizeHandle from "./resize-handle";
@@ -77,6 +81,16 @@ function AssistantTools() {
   );
 
   return null;
+}
+
+function PlannerVersionScope({ children }: { children: ReactNode }) {
+  const { activePlan } = useTimetablePlanner();
+  const plannerVersion = useMemo(
+    () => (activePlan ? timetableVersion(activePlan.payload.sections) : null),
+    [activePlan],
+  );
+
+  return <PlannerVersionContext.Provider value={plannerVersion}>{children}</PlannerVersionContext.Provider>;
 }
 
 export default function AssistantPanel({
@@ -177,19 +191,21 @@ export default function AssistantPanel({
         onError={({ error }) => setNotice(describeAssistantError(error.message))}
       >
         <CatalogFilterProvider>
-          <AssistantTools />
-          {shown ? (
-            <AssistantChat
-              panelRef={attachPanel}
-              panelOpen={open}
-              initialPrompt={initialPrompt}
-              autoSend={autoSend}
-              onPromptConsumed={onPromptConsumed}
-              onClose={close}
-              notice={notice}
-              onClearNotice={() => setNotice(null)}
-            />
-          ) : null}
+          <PlannerVersionScope>
+            <AssistantTools />
+            {shown ? (
+              <AssistantChat
+                panelRef={attachPanel}
+                panelOpen={open}
+                initialPrompt={initialPrompt}
+                autoSend={autoSend}
+                onPromptConsumed={onPromptConsumed}
+                onClose={close}
+                notice={notice}
+                onClearNotice={() => setNotice(null)}
+              />
+            ) : null}
+          </PlannerVersionScope>
         </CatalogFilterProvider>
       </CopilotKitProvider>
       <ResizeHandle visible={shown} panelRef={panelRef} />

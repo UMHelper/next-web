@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 
 import type { CatalogCourse } from "@/lib/mcp/schemas";
 import { buildCoursePath } from "@/lib/site";
@@ -22,9 +23,11 @@ function detailParts(course: CatalogCourse): string[] {
 export function CatalogCourseRow({
   course,
   position,
+  footer,
 }: {
   course: CatalogCourse;
   position: number;
+  footer?: ReactNode;
 }) {
   const code = course.courseCode.trim().toUpperCase();
   const parts = detailParts(course);
@@ -57,6 +60,7 @@ export function CatalogCourseRow({
           </span>
         ) : null}
       </Link>
+      {footer}
     </li>
   );
 }
