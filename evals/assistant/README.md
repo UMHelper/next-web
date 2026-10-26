@@ -18,8 +18,9 @@ ASSISTANT_EVAL=1 ASSISTANT_EVAL_LABEL=closure npm run eval:assistant -- evals/as
 | `ASSISTANT_EVAL_DELAY_MS` | `500` | Pause between cases. |
 | `ASSISTANT_EVAL_MAX_OUTPUT_TOKENS` | production default (1200) | Output budget per step. A positive integer, or the run fails before any model call. |
 | `ASSISTANT_EVAL_THINKING` | `off` | `off` or `low`. Anything else fails the run before any model call. |
+| `ASSISTANT_EVAL_CASE_TIMEOUT_MS` | `120000` | Per-turn limit. The turn is aborted, recorded with `timedOut: true`, and the run continues. |
 
-`AI_API_KEY` and `AI_BASE_URL` come from the environment or `.env.local`. Model and `maxSteps` are always the production defaults.
+`AI_API_KEY` and `AI_BASE_URL` come from the environment or `.env.local`. Model and `maxSteps` are always the production defaults. `vitest.eval.config.ts` keeps `testTimeout` at `30 * 60 * 1000` for the whole file. A stalled turn is cancelled by `ASSISTANT_EVAL_CASE_TIMEOUT_MS` instead of waiting out that file timeout. The abort is passed into `createAssistantAgent`, and the harness waits for that run to settle before the next turn.
 
 Every provider request is audited (`runs[].requests` in the result file): model, `max_tokens`, `thinking`, `reasoning_effort`, tool names, and how many earlier assistant messages carried their `reasoning_content`, carried `""`, or had none. No prompt, reply or reasoning text is stored. A live run fails if any request differs from its settings (`requestMismatches`).
 
@@ -141,6 +142,26 @@ Pre-registered thresholds (fixed before the first V2.3.5-A live run):
 | Difficulty-direction cases (`evaluate`, `instructor_easier`, holdout paraphrases) | 1.00 |
 | `no_midterm` certainty violations | 0 |
 | `partial_failure` | 1.00 |
+
+## Discovery baseline
+
+The discovery artifact is rewritten after every case, then once more when the run settles. Each write uses a temporary file in the same directory and `rename`. A finished run of N cases writes N + 1 times. The record includes `complete`, `partial`, and `timedOutTurns` (`{ caseId, repeat, turn }`). Each case records `steps`, `toolCalls` (calls other than `present_response`), `discoveryAttempts`, `discoverySuccesses`, `ms`, and `elapsedMs`. `ms` and `elapsedMs` are both that case's wall time. `partial` is true when any turn timed out or the run stopped early. `complete` is true only when every expected turn finished and none timed out.
+
+Partitioned `b2-baseline` recipe:
+
+1. Run `ASSISTANT_EVAL_REPEATS=1` for each `ASSISTANT_EVAL_CASES` chunk.
+2. Then one 3-repeat attempt that keeps the incremental artifact.
+3. Use the label `b2-baseline`.
+4. If the run stalls, report the partial artifact.
+
+```bash
+ASSISTANT_EVAL=1 ASSISTANT_EVAL_REPEATS=1 ASSISTANT_EVAL_CASES=<chunk> ASSISTANT_EVAL_LABEL=b2-baseline \
+  npm run eval:assistant -- evals/assistant/discovery-baseline.eval.ts
+ASSISTANT_EVAL=1 ASSISTANT_EVAL_REPEATS=3 ASSISTANT_EVAL_LABEL=b2-baseline \
+  npm run eval:assistant -- evals/assistant/discovery-baseline.eval.ts
+```
+
+The 3-repeat command uses the same label, so it keeps writing the incremental artifact. A stalled run still leaves that file. Report it as partial evidence.
 
 ## Arm comparison
 

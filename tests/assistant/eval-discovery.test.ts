@@ -1,4 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { randomUUID } from "node:crypto";
+import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, unlinkSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
+
+import { describe, expect, it, vi } from "vitest";
 
 import {
   CASE_SET_VERSION,
@@ -24,9 +29,77 @@ import {
   DISCOVERY_HOLDOUT_CASES,
   DISCOVERY_HOLDOUT_CASES_V1,
 } from "@/evals/assistant/discovery-holdout-cases";
+import * as discoveryEvalLib from "@/evals/assistant/discovery-eval-lib";
 import type { ToolCallRecord, TurnTrace } from "@/evals/assistant/grade";
+import * as harness from "@/evals/assistant/harness";
 import { DISCOVER_COURSE_CANDIDATES_TOOL_NAME } from "@/lib/assistant/discovery/schema";
+import { withTimeout } from "@/lib/assistant/model";
 import { discoverTwoCandidateResult } from "@/tests/fixtures/discover-result";
+
+vi.mock("server-only", () => ({}));
+
+const probe = vi.hoisted(() => ({
+  script: "passthrough" as "passthrough" | "hang-first" | "immediate",
+  events: [] as string[],
+  runs: 0,
+}));
+
+vi.mock("@/lib/assistant/agent", async () => {
+  const actual = await vi.importActual<typeof import("@/lib/assistant/agent")>("@/lib/assistant/agent");
+  return {
+    ...actual,
+    createAssistantAgent: (config: Parameters<typeof actual.createAssistantAgent>[0], signal?: AbortSignal) => {
+      if (probe.script === "passthrough") return actual.createAssistantAgent(config, signal);
+      return {
+        setMessages() {},
+        async runAgent() {
+          const index = probe.runs++;
+          if (probe.script === "hang-first" && index === 0) {
+            await new Promise<never>((_resolve, reject) => {
+              const settle = () => {
+                setTimeout(() => {
+                  probe.events.push("hang-settled");
+                  const reason = signal?.reason;
+                  reject(reason instanceof Error ? reason : new DOMException("aborted", "AbortError"));
+                }, 50);
+              };
+              if (!signal) return;
+              if (signal.aborted) settle();
+              else signal.addEventListener("abort", settle, { once: true });
+            });
+          }
+          if (index > 0) probe.events.push("next-case");
+          return {
+            newMessages: [
+              {
+                id: `assistant-${index}`,
+                role: "assistant" as const,
+                content: "CISC1001 CISC1002 CISC1003",
+                toolCalls: [
+                  {
+                    id: `present-${index}`,
+                    type: "function" as const,
+                    function: { name: "present_response", arguments: "{}" },
+                  },
+                  {
+                    id: `search-${index}`,
+                    type: "function" as const,
+                    function: { name: "search_catalog", arguments: "{\"query\":\"CIS\"}" },
+                  },
+                  {
+                    id: `discover-${index}`,
+                    type: "function" as const,
+                    function: { name: "discover_course_candidates", arguments: "{\"scope\":{\"codePrefix\":\"CISC\"}}" },
+                  },
+                ],
+              },
+            ],
+          };
+        },
+      } as ReturnType<typeof actual.createAssistantAgent>;
+    },
+  };
+});
 
 const FROZEN_HOLDOUT_V1 = [
   {
@@ -1409,5 +1482,362 @@ describe("discoveryEvalStamp", () => {
     expect(discoveryPassThreshold("holdout-v1")).toBe(0.75);
     expect(discoveryPassThreshold("dev-v2")).toBe(0.8);
     expect(discoveryPassThreshold("dev-v1")).toBe(0.8);
+  });
+});
+
+const EVAL_ENV_KEYS = [
+  "AI_API_KEY",
+  "ASSISTANT_EVAL_REPEATS",
+  "ASSISTANT_EVAL_CASES",
+  "ASSISTANT_EVAL_DELAY_MS",
+  "ASSISTANT_EVAL_LABEL",
+  "ASSISTANT_EVAL_SUITE",
+  "ASSISTANT_EVAL_CASE_SET",
+  "ASSISTANT_EVAL_CASE_TIMEOUT_MS",
+  "ASSISTANT_EVAL_MAX_STEPS",
+] as const;
+
+type ArtifactCase = {
+  caseId: string;
+  repeat: number;
+  steps: number;
+  toolCalls: number;
+  discoveryAttempts: number;
+  discoverySuccesses: number;
+  ms: number;
+  elapsedMs: number;
+};
+
+type WrittenArtifact = {
+  complete: boolean;
+  partial?: boolean;
+  stoppedEarly?: string;
+  timedOutTurns?: Array<{ caseId: string; repeat: number; turn: number }>;
+  cases?: ArtifactCase[];
+  traces: TurnTrace[];
+  discoveryAttempts: number;
+  discoverySuccesses: number;
+};
+
+function resetProbe(script: "passthrough" | "hang-first" | "immediate") {
+  probe.script = script;
+  probe.events = [];
+  probe.runs = 0;
+}
+
+async function withEvalEnv<T>(
+  values: Record<(typeof EVAL_ENV_KEYS)[number], string>,
+  run: () => Promise<T>,
+): Promise<T> {
+  const previous = new Map<string, string | undefined>();
+  for (const key of EVAL_ENV_KEYS) {
+    previous.set(key, process.env[key]);
+    process.env[key] = values[key];
+  }
+  try {
+    return await run();
+  } finally {
+    for (const [key, value] of previous) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  }
+}
+
+async function untilDeadline(run: () => Promise<void>, deadlineMs: number): Promise<unknown> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const stalled = new Promise<never>((_resolve, reject) => {
+    timer = setTimeout(() => reject(new Error("stalled turn was not cancelled")), deadlineMs);
+  });
+  try {
+    await Promise.race([run(), stalled]);
+    return undefined;
+  } catch (error) {
+    return error;
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
+describe("baseline harness reliability", () => {
+  it("aborts the fetch signal when the external signal aborts", async () => {
+    const controller = new AbortController();
+    let fetchSignal: AbortSignal | undefined;
+    const fetchImpl = vi.fn((_input: RequestInfo | URL, init?: RequestInit) => {
+      fetchSignal = init?.signal ?? undefined;
+      return new Promise<Response>((_resolve, reject) => {
+        init?.signal?.addEventListener("abort", () => reject(init.signal?.reason));
+      });
+    });
+
+    const pending = withTimeout(fetchImpl, 60_000, controller.signal)("https://example.invalid/chat");
+    expect(fetchSignal?.aborted).toBe(false);
+    controller.abort(new DOMException("client went away", "AbortError"));
+
+    expect(fetchSignal?.aborted).toBe(true);
+    await expect(pending).rejects.toMatchObject({ name: "AbortError" });
+  });
+
+  it("defaults the case timeout to 120000", () => {
+    const readTimeout = (harness as { evalCaseTimeoutMs?: (value?: string) => number }).evalCaseTimeoutMs;
+    expect(typeof readTimeout).toBe("function");
+    expect(readTimeout!("")).toBe(120_000);
+    expect(readTimeout!(undefined)).toBe(120_000);
+    expect(readTimeout!("100")).toBe(100);
+  });
+
+  it("marks a stalled turn timedOut, runs the next case, and writes a partial artifact", async () => {
+    const label = `task5-hang-${randomUUID()}`;
+    const artifact = path.join(".eval-results", "assistant", `discovery-${label}.json`);
+    const existed = existsSync(artifact);
+    const snapshots: WrittenArtifact[] = [];
+    const timeoutMs = 100;
+    resetProbe("hang-first");
+    const started = Date.now();
+
+    try {
+      const thrown = await withEvalEnv(
+        {
+          AI_API_KEY: "sk-test",
+          ASSISTANT_EVAL_REPEATS: "1",
+          ASSISTANT_EVAL_CASES: "factual_lookup,catalog_browse",
+          ASSISTANT_EVAL_DELAY_MS: "0",
+          ASSISTANT_EVAL_LABEL: label,
+          ASSISTANT_EVAL_SUITE: "dev",
+          ASSISTANT_EVAL_CASE_SET: "dev-v2",
+          ASSISTANT_EVAL_CASE_TIMEOUT_MS: String(timeoutMs),
+          ASSISTANT_EVAL_MAX_STEPS: "200",
+        },
+        () =>
+          untilDeadline(
+            () =>
+              discoveryEvalLib.runDiscoveryEval({
+                getAppConfigMock: { mockResolvedValue: vi.fn() },
+                mode: "baseline",
+                enforceThresholds: false,
+                writeArtifact: (_file, body) => {
+                  snapshots.push(JSON.parse(body) as WrittenArtifact);
+                },
+              }),
+            3_000,
+          ),
+      );
+
+      expect(existsSync(artifact)).toBe(false);
+      expect(String(thrown)).toMatch(/incomplete run/);
+      expect(Date.now() - started).toBeLessThan(3_000);
+      expect(probe.events.indexOf("hang-settled")).toBeGreaterThanOrEqual(0);
+      expect(probe.events.indexOf("hang-settled")).toBeLessThan(probe.events.indexOf("next-case"));
+      expect(snapshots).toHaveLength(3);
+
+      const finalArtifact = snapshots[2]!;
+      expect(finalArtifact.partial).toBe(true);
+      expect(finalArtifact.complete).toBe(false);
+      expect(finalArtifact.timedOutTurns).toEqual([{ caseId: "factual_lookup", repeat: 0, turn: 0 }]);
+      expect(finalArtifact.cases).toEqual([
+        expect.objectContaining({
+          caseId: "factual_lookup",
+          repeat: 0,
+          steps: 0,
+          toolCalls: 0,
+          discoveryAttempts: 0,
+          discoverySuccesses: 0,
+        }),
+        expect.objectContaining({
+          caseId: "catalog_browse",
+          repeat: 0,
+          steps: 0,
+          toolCalls: 2,
+          discoveryAttempts: 1,
+          discoverySuccesses: 0,
+        }),
+      ]);
+      expect(finalArtifact.cases?.[0]?.ms).toBe(finalArtifact.cases?.[0]?.elapsedMs);
+      expect(finalArtifact.cases?.[1]?.ms).toBe(finalArtifact.cases?.[1]?.elapsedMs);
+      expect(finalArtifact.cases?.[0]?.ms).toBeLessThan(timeoutMs + 1_000);
+      expect(snapshots[0]?.cases).toHaveLength(1);
+      expect(snapshots[0]?.partial).toBe(true);
+      expect(snapshots[1]?.cases).toHaveLength(2);
+
+      const stalled = finalArtifact.traces.find((trace) => trace.caseId === "factual_lookup");
+      const next = finalArtifact.traces.find((trace) => trace.caseId === "catalog_browse");
+      expect(stalled?.timedOut).toBe(true);
+      expect(stalled?.error).toMatch(/TimeoutError/);
+      expect(next?.timedOut).not.toBe(true);
+      expect(finalArtifact.discoveryAttempts).toBe(1);
+    } finally {
+      if (!existed && existsSync(artifact)) unlinkSync(artifact);
+    }
+  });
+
+  it("writes the artifact once per case and once when the run settles", async () => {
+    const label = `task5-writes-${randomUUID()}`;
+    const artifact = path.join(".eval-results", "assistant", `discovery-${label}.json`);
+    const existed = existsSync(artifact);
+    const snapshots: WrittenArtifact[] = [];
+    resetProbe("immediate");
+
+    try {
+      await withEvalEnv(
+        {
+          AI_API_KEY: "sk-test",
+          ASSISTANT_EVAL_REPEATS: "1",
+          ASSISTANT_EVAL_CASES: "factual_lookup,catalog_browse",
+          ASSISTANT_EVAL_DELAY_MS: "0",
+          ASSISTANT_EVAL_LABEL: label,
+          ASSISTANT_EVAL_SUITE: "dev",
+          ASSISTANT_EVAL_CASE_SET: "dev-v2",
+          ASSISTANT_EVAL_CASE_TIMEOUT_MS: "120000",
+          ASSISTANT_EVAL_MAX_STEPS: "200",
+        },
+        () =>
+          discoveryEvalLib.runDiscoveryEval({
+            getAppConfigMock: { mockResolvedValue: vi.fn() },
+            mode: "baseline",
+            enforceThresholds: false,
+            writeArtifact: (_file, body) => {
+              snapshots.push(JSON.parse(body) as WrittenArtifact);
+            },
+          }),
+      );
+
+      expect(existsSync(artifact)).toBe(false);
+      expect(snapshots).toHaveLength(3);
+      const finalArtifact = snapshots[2]!;
+      expect(finalArtifact.complete).toBe(true);
+      expect(finalArtifact.partial).toBe(false);
+      expect(finalArtifact.timedOutTurns).toEqual([]);
+      expect(finalArtifact.cases?.map((entry) => entry.caseId)).toEqual(["factual_lookup", "catalog_browse"]);
+      for (const entry of finalArtifact.cases ?? []) {
+        expect(entry.ms).toBe(entry.elapsedMs);
+        expect(entry.steps).toBe(0);
+        expect(entry.toolCalls).toBe(2);
+        expect(entry.discoveryAttempts).toBe(1);
+        expect(entry.discoverySuccesses).toBe(0);
+      }
+      expect(finalArtifact.discoveryAttempts).toBe(2);
+      expect(finalArtifact.discoverySuccesses).toBe(0);
+      expect(snapshots[0]?.cases).toHaveLength(1);
+      expect(snapshots[0]?.complete).toBe(false);
+      expect(snapshots[0]?.partial).toBe(false);
+    } finally {
+      if (!existed && existsSync(artifact)) unlinkSync(artifact);
+    }
+  });
+
+  it("marks a budget stop partial without a timed out turn", async () => {
+    const label = `task5-budget-${randomUUID()}`;
+    const artifact = path.join(".eval-results", "assistant", `discovery-${label}.json`);
+    const existed = existsSync(artifact);
+    const snapshots: WrittenArtifact[] = [];
+    resetProbe("immediate");
+
+    try {
+      const thrown = await withEvalEnv(
+        {
+          AI_API_KEY: "sk-test",
+          ASSISTANT_EVAL_REPEATS: "1",
+          ASSISTANT_EVAL_CASES: "factual_lookup,catalog_browse",
+          ASSISTANT_EVAL_DELAY_MS: "0",
+          ASSISTANT_EVAL_LABEL: label,
+          ASSISTANT_EVAL_SUITE: "dev",
+          ASSISTANT_EVAL_CASE_SET: "dev-v2",
+          ASSISTANT_EVAL_CASE_TIMEOUT_MS: "120000",
+          ASSISTANT_EVAL_MAX_STEPS: "1",
+        },
+        () =>
+          untilDeadline(
+            () =>
+              discoveryEvalLib.runDiscoveryEval({
+                getAppConfigMock: { mockResolvedValue: vi.fn() },
+                mode: "baseline",
+                enforceThresholds: false,
+                writeArtifact: (_file, body) => {
+                  snapshots.push(JSON.parse(body) as WrittenArtifact);
+                },
+              }),
+            3_000,
+          ),
+      );
+
+      expect(existsSync(artifact)).toBe(false);
+      expect(String(thrown)).toMatch(/incomplete run/);
+      expect(snapshots).toHaveLength(2);
+      expect(snapshots[1]?.partial).toBe(true);
+      expect(snapshots[1]?.complete).toBe(false);
+      expect(snapshots[1]?.timedOutTurns).toEqual([]);
+      expect(snapshots[1]?.stoppedEarly).toMatch(/factual_lookup|catalog_browse/);
+      expect(snapshots[1]?.cases).toHaveLength(1);
+    } finally {
+      if (!existed && existsSync(artifact)) unlinkSync(artifact);
+    }
+  });
+
+  it("counts case steps, non-present tool calls, and one wall time for ms and elapsedMs", () => {
+    const recordCase = (
+      discoveryEvalLib as {
+        discoveryCaseRecord?: (
+          caseId: string,
+          repeat: number,
+          traces: readonly TurnTrace[],
+          elapsedMs: number,
+        ) => ArtifactCase;
+      }
+    ).discoveryCaseRecord;
+    expect(typeof recordCase).toBe("function");
+    const turn = trace("CISC1001", [
+      { name: "present_response", args: {} },
+      { name: "search_catalog", args: { query: "CIS" } },
+      { name: DISCOVER_COURSE_CANDIDATES_TOOL_NAME, args: { scope: { codePrefix: "CISC" } }, result: "not-json" },
+    ]);
+    turn.runs = [
+      {
+        continuation: false,
+        ms: 10,
+        steps: [
+          { ms: 4, finish: "stop", tools: [] },
+          { ms: 6, finish: "tool-calls", tools: ["search_catalog"] },
+        ],
+      },
+    ];
+    expect(recordCase!("easy_gest", 1, [turn], 42)).toEqual({
+      caseId: "easy_gest",
+      repeat: 1,
+      steps: 2,
+      toolCalls: 2,
+      discoveryAttempts: 1,
+      discoverySuccesses: 0,
+      ms: 42,
+      elapsedMs: 42,
+    });
+  });
+
+  it("replaces the artifact via a temp file in the same directory", () => {
+    const directory = mkdtempSync(path.join(tmpdir(), "discovery-artifact-"));
+    const file = path.join(directory, "discovery-label.json");
+    const written: string[] = [];
+    const renamed: Array<[string, string]> = [];
+    try {
+      discoveryEvalLib.writeDiscoveryArtifact(file, "{\"ok\":true}", {
+        mkdirSync() {},
+        writeFileSync(target) {
+          written.push(String(target));
+        },
+        renameSync(from, to) {
+          renamed.push([String(from), String(to)]);
+        },
+      });
+      expect(written).toHaveLength(1);
+      expect(path.dirname(written[0]!)).toBe(directory);
+      expect(written[0]).not.toBe(file);
+      expect(path.basename(written[0]!)).toMatch(/^\.discovery-label\.json\..+\.tmp$/);
+      expect(renamed).toEqual([[written[0], file]]);
+
+      discoveryEvalLib.writeDiscoveryArtifact(file, "{\"ok\":true}");
+      expect(readFileSync(file, "utf8")).toBe("{\"ok\":true}");
+      expect(readdirSync(directory)).toEqual(["discovery-label.json"]);
+    } finally {
+      rmSync(directory, { recursive: true });
+    }
   });
 });

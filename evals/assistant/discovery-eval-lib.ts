@@ -1,5 +1,5 @@
-import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { createHash, randomUUID } from "node:crypto";
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { expect } from "vitest";
@@ -86,9 +86,83 @@ export type RunDiscoveryEvalOptions = {
   getAppConfigMock: { mockResolvedValue: (value: unknown) => void };
   mode: DiscoveryEvalMode;
   enforceThresholds: boolean;
+  writeArtifact?: (file: string, body: string) => void;
 };
 
-export async function runDiscoveryEval({ getAppConfigMock, mode, enforceThresholds }: RunDiscoveryEvalOptions) {
+export type DiscoveryCaseRecord = {
+  caseId: string;
+  repeat: number;
+  steps: number;
+  toolCalls: number;
+  discoveryAttempts: number;
+  discoverySuccesses: number;
+  ms: number;
+  elapsedMs: number;
+};
+
+export function discoveryCaseRecord(
+  caseId: string,
+  repeat: number,
+  traces: readonly TurnTrace[],
+  elapsedMs: number,
+): DiscoveryCaseRecord {
+  const steps = traces.reduce(
+    (sum, trace) => sum + trace.runs.reduce((runSum, run) => runSum + run.steps.length, 0),
+    0,
+  );
+  const toolCalls = traces.reduce(
+    (sum, trace) => sum + trace.toolCalls.filter((call) => call.name !== "present_response").length,
+    0,
+  );
+  const discoveryAttempts = traces.reduce(
+    (sum, trace) =>
+      sum + trace.toolCalls.filter((call) => call.name === DISCOVER_COURSE_CANDIDATES_TOOL_NAME).length,
+    0,
+  );
+  const discoverySuccesses = traces.reduce(
+    (sum, trace) => sum + trace.toolCalls.filter((call) => discoverySucceeded(call)).length,
+    0,
+  );
+  return {
+    caseId,
+    repeat,
+    steps,
+    toolCalls,
+    discoveryAttempts,
+    discoverySuccesses,
+    ms: elapsedMs,
+    elapsedMs,
+  };
+}
+
+export function writeDiscoveryArtifact(
+  file: string,
+  body: string,
+  io?: {
+    mkdirSync: (directory: string, options: { recursive: boolean }) => void;
+    writeFileSync: (file: string, body: string) => void;
+    renameSync: (from: string, to: string) => void;
+  },
+) {
+  const directory = path.dirname(file);
+  const temporary = path.join(directory, `.${path.basename(file)}.${randomUUID()}.tmp`);
+  if (io) {
+    io.mkdirSync(directory, { recursive: true });
+    io.writeFileSync(temporary, body);
+    io.renameSync(temporary, file);
+    return;
+  }
+  mkdirSync(directory, { recursive: true });
+  writeFileSync(temporary, body);
+  renameSync(temporary, file);
+}
+
+export async function runDiscoveryEval({
+  getAppConfigMock,
+  mode,
+  enforceThresholds,
+  writeArtifact,
+}: RunDiscoveryEvalOptions) {
   const env = process.env;
   const local = readLocalEnv(["AI_API_KEY", "AI_BASE_URL"]);
   const config = readAssistantConfig({
@@ -119,16 +193,92 @@ export async function runDiscoveryEval({ getAppConfigMock, mode, enforceThreshol
   const budget: EvalBudget = { maxSteps: stepBudget, used: 0 };
   const grades: DiscoveryGrade[] = [];
   const traces: TurnTrace[] = [];
+  const caseRecords: DiscoveryCaseRecord[] = [];
   let stoppedEarly: string | undefined;
+  const expectedTurns = repeats * cases.reduce((sum, evalCase) => sum + evalCase.turns.length, 0);
+  const file = path.join(".eval-results", "assistant", `discovery-${label}.json`);
+  const write = writeArtifact ?? writeDiscoveryArtifact;
+  const noDiscovery = mode === "baseline";
+  const settingsInput = {
+    model: config.model,
+    thinking: config.thinking,
+    maxOutputTokens: config.maxOutputTokens,
+    maxSteps: ASSISTANT_MAX_STEPS,
+    prompt: PROMPT_FINGERPRINT,
+    eval: discoveryEvalFingerprint(cases),
+    noDiscovery,
+    mode,
+  };
+
+  const publish = () => {
+    const timedOutTurns = traces.flatMap((trace) =>
+      trace.timedOut === true ? [{ caseId: trace.caseId, repeat: trace.repeat, turn: trace.turn }] : [],
+    );
+    const complete = stoppedEarly === undefined && grades.length === expectedTurns && timedOutTurns.length === 0;
+    const partial = timedOutTurns.length > 0 || stoppedEarly !== undefined;
+    const summary = summarizeDiscovery(
+      grades,
+      cases.map((item) => item.id),
+    );
+    const mismatches = requestMismatches(traces, settingsInput);
+    const toolRegistrationViolations = assertDiscoveryToolRegistration(traces, mode);
+    const discoveryAttempts = traces.reduce(
+      (sum, trace) => sum + trace.toolCalls.filter((call) => call.name === DISCOVER_COURSE_CANDIDATES_TOOL_NAME).length,
+      0,
+    );
+    const discoverySuccesses = traces.reduce(
+      (sum, trace) => sum + trace.toolCalls.filter((call) => discoverySucceeded(call)).length,
+      0,
+    );
+    const failures = grades
+      .filter((grade) => !grade.pass)
+      .map(
+        (grade) =>
+          `${grade.caseId} repeat ${grade.repeat} turn ${grade.turn + 1}: checks ${JSON.stringify(grade.checks)} falseFit ${JSON.stringify(grade.falseFitClaims)}`,
+      );
+    write(
+      file,
+      JSON.stringify(
+        buildDiscoveryEvalPayload({
+          label,
+          suite: suiteName,
+          caseSetId,
+          settings: settingsInput,
+          repeats,
+          stepBudget,
+          stepsUsed: budget.used,
+          complete,
+          partial,
+          timedOutTurns,
+          cases: caseRecords,
+          expectedTurns,
+          stoppedEarly,
+          summary,
+          failures,
+          requestMismatches: mismatches,
+          toolRegistrationViolations,
+          discoveryAttempts,
+          discoverySuccesses,
+          grades,
+          traces,
+        }),
+        null,
+        2,
+      ),
+    );
+    return { summary, failures, mismatches, toolRegistrationViolations, discoveryAttempts, discoverySuccesses, complete };
+  };
 
   for (let repeat = 0; repeat < repeats && stoppedEarly === undefined; repeat++) {
     for (const evalCase of cases) {
       const options: HarnessOptions = { config, budget, repeat };
+      const caseStarted = Date.now();
       try {
         const caseTraces = await runCase(evalCase, options, {
           timetableForTurn: (turn) =>
             evalCase.turns[turn]?.timetable ?? evalCase.timetable ?? DEFAULT_DISCOVERY_TIMETABLE,
         });
+        const elapsedMs = Date.now() - caseStarted;
         for (const trace of caseTraces) {
           const turn = evalCase.turns[trace.turn]!;
           const graded = gradeDiscovery(trace, turn.expect);
@@ -147,6 +297,7 @@ export async function runDiscoveryEval({ getAppConfigMock, mode, enforceThreshol
           });
           traces.push(trace);
         }
+        caseRecords.push(discoveryCaseRecord(evalCase.id, repeat, caseTraces, elapsedMs));
       } catch (error) {
         if (error instanceof BudgetExhausted) {
           stoppedEarly = `${error.message} during ${evalCase.id} repeat ${repeat}`;
@@ -154,64 +305,14 @@ export async function runDiscoveryEval({ getAppConfigMock, mode, enforceThreshol
         }
         throw error;
       }
+      publish();
       await new Promise((resolve) => setTimeout(resolve, delayMs));
     }
   }
 
-  const expectedTurns = repeats * cases.reduce((sum, evalCase) => sum + evalCase.turns.length, 0);
-  const complete = stoppedEarly === undefined && grades.length === expectedTurns;
-  const summary = summarizeDiscovery(grades, cases.map((item) => item.id));
-  const noDiscovery = mode === "baseline";
-  const settingsInput = {
-    model: config.model,
-    thinking: config.thinking,
-    maxOutputTokens: config.maxOutputTokens,
-    maxSteps: ASSISTANT_MAX_STEPS,
-    prompt: PROMPT_FINGERPRINT,
-    eval: discoveryEvalFingerprint(cases),
-    noDiscovery,
-    mode,
-  };
-  const mismatches = requestMismatches(traces, settingsInput);
-  const toolRegistrationViolations = assertDiscoveryToolRegistration(traces, mode);
-  const discoveryAttempts = traces.reduce(
-    (sum, trace) => sum + trace.toolCalls.filter((call) => call.name === DISCOVER_COURSE_CANDIDATES_TOOL_NAME).length,
-    0,
-  );
-  const discoverySuccesses = traces.reduce(
-    (sum, trace) => sum + trace.toolCalls.filter((call) => discoverySucceeded(call)).length,
-    0,
-  );
-  const failures = grades
-    .filter((grade) => !grade.pass)
-    .map(
-      (grade) =>
-        `${grade.caseId} repeat ${grade.repeat} turn ${grade.turn + 1}: checks ${JSON.stringify(grade.checks)} falseFit ${JSON.stringify(grade.falseFitClaims)}`,
-    );
-
-  const file = path.join(".eval-results", "assistant", `discovery-${label}.json`);
-  const payload = buildDiscoveryEvalPayload({
-    label,
-    suite: suiteName,
-    caseSetId,
-    settings: settingsInput,
-    repeats,
-    stepBudget,
-    stepsUsed: budget.used,
-    complete,
-    expectedTurns,
-    stoppedEarly,
-    summary,
-    failures,
-    requestMismatches: mismatches,
-    toolRegistrationViolations,
-    discoveryAttempts,
-    discoverySuccesses,
-    grades,
-    traces,
-  });
-  mkdirSync(path.dirname(file), { recursive: true });
-  writeFileSync(file, JSON.stringify(payload, null, 2));
+  const published = publish();
+  const { summary, failures, mismatches, toolRegistrationViolations, discoveryAttempts, discoverySuccesses, complete } =
+    published;
   console.info(
     JSON.stringify(
       {
@@ -229,7 +330,9 @@ export async function runDiscoveryEval({ getAppConfigMock, mode, enforceThreshol
     ),
   );
 
-  expect(complete, `incomplete run, partial results in ${file}: ${stoppedEarly ?? "turn count mismatch"}`).toBe(true);
+  const incompleteReason =
+    stoppedEarly ?? (traces.some((trace) => trace.timedOut === true) ? "turn timed out" : "turn count mismatch");
+  expect(complete, `incomplete run, partial results in ${file}: ${incompleteReason}`).toBe(true);
   expect(mismatches, `provider requests differ from the run settings, see ${file}`).toEqual([]);
   expect(toolRegistrationViolations, `discovery tool registration violations, see ${file}`).toEqual([]);
 

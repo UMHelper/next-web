@@ -78,6 +78,8 @@ export type TurnTrace = {
   ms: number;
   runCapHit: boolean;
   error?: string;
+  /** The eval turn was aborted by ASSISTANT_EVAL_CASE_TIMEOUT_MS. */
+  timedOut?: boolean;
   /** Messages and UTF-8 JSON bytes this turn added to the history the client resends. Absent before Phase 2. */
   messagesAdded?: number;
   bytesAdded?: number;

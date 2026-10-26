@@ -12,7 +12,7 @@ import { gradeTimetableTurn } from "@/evals/assistant/timetable-grade";
 import type { TimetableContextPayload } from "@/lib/assistant/timetable-context";
 import { serializeTimetableContext } from "@/lib/assistant/timetable-context";
 
-const NAVIGATION_EVAL_FINGERPRINT = "6367df9cfa46";
+const NAVIGATION_EVAL_FINGERPRINT = "1eac27dbe969";
 
 type Step = { text: string } | { tool: string; input: Record<string, unknown> };
 

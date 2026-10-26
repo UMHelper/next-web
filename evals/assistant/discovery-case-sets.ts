@@ -72,6 +72,18 @@ export function buildDiscoveryEvalPayload<TSummary, TGrade, TTrace>(input: {
   stepBudget: number;
   stepsUsed: number;
   complete: boolean;
+  partial?: boolean;
+  timedOutTurns?: ReadonlyArray<{ caseId: string; repeat: number; turn: number }>;
+  cases?: ReadonlyArray<{
+    caseId: string;
+    repeat: number;
+    steps: number;
+    toolCalls: number;
+    discoveryAttempts: number;
+    discoverySuccesses: number;
+    ms: number;
+    elapsedMs: number;
+  }>;
   expectedTurns: number;
   stoppedEarly: string | undefined;
   summary: TSummary;
@@ -95,6 +107,9 @@ export function buildDiscoveryEvalPayload<TSummary, TGrade, TTrace>(input: {
     stepBudget: input.stepBudget,
     stepsUsed: input.stepsUsed,
     complete: input.complete,
+    partial: input.partial ?? false,
+    timedOutTurns: input.timedOutTurns ?? [],
+    cases: input.cases ?? [],
     expectedTurns: input.expectedTurns,
     stoppedEarly: input.stoppedEarly,
     summary: input.summary,

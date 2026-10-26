@@ -39,6 +39,15 @@ import { captureRequests, type RequestAudit } from "./request-audit";
 
 export const MAX_RUNS_PER_TURN = 4;
 
+export function evalCaseTimeoutMs(value: string | undefined = process.env.ASSISTANT_EVAL_CASE_TIMEOUT_MS): number {
+  if (value === undefined || value === "") return 120_000;
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    throw new Error(`ASSISTANT_EVAL_CASE_TIMEOUT_MS must be a positive integer, got "${value}"`);
+  }
+  return parsed;
+}
+
 export const PROMPT_FINGERPRINT = createHash("sha256")
   .update(ASSISTANT_PROMPT)
   .update(NAVIGATE_DESCRIPTION)
@@ -139,6 +148,7 @@ async function runOnce(
   options: HarnessOptions,
   continuation: boolean,
   timetableContext: string,
+  signal?: AbortSignal,
 ) {
   if (options.budget.used >= options.budget.maxSteps) {
     throw new BudgetExhausted(`model step budget of ${options.budget.maxSteps} used up`);
@@ -152,7 +162,7 @@ async function runOnce(
   let newMessages: Message[] = [];
   let error: string | undefined;
   try {
-    const agent = createAssistantAgent(options.config);
+    const agent = createAssistantAgent(options.config, signal);
     agent.setMessages(shapeConversation(session.messages as RunMessage[], options.config.historyTurns) as Message[]);
     const timetableState = parseTimetableContext(timetableContext);
     const currentVersion = timetableState.status === "ready" ? timetableState.version : null;
@@ -229,26 +239,46 @@ async function runTurn(
   session.messages.push({ id: randomUUID(), role: "user", content: message });
   const turnStart = session.messages.length - 1;
 
+  const controller = new AbortController();
+  const timer = setTimeout(() => {
+    controller.abort(new DOMException("Eval case timed out", "TimeoutError"));
+  }, evalCaseTimeoutMs());
+  timer.unref();
+
   const runs: RunTrace[] = [];
   let runCapHit = false;
   let error: string | undefined;
-  for (;;) {
-    if (runs.length === MAX_RUNS_PER_TURN) {
-      runCapHit = true;
-      break;
+  try {
+    for (;;) {
+      if (runs.length === MAX_RUNS_PER_TURN) {
+        runCapHit = true;
+        break;
+      }
+      // Await settlement after abort. Leaving the promise running would keep the provider request open.
+      const { trace, pending } = await runOnce(
+        session,
+        options,
+        runs.length > 0,
+        timetableContext,
+        controller.signal,
+      );
+      runs.push(trace);
+      if (controller.signal.aborted || trace.error !== undefined) {
+        error = trace.error;
+        break;
+      }
+      if (pending.length === 0) break;
+      for (const call of pending) {
+        const result = await runFrontendTool(call, session);
+        session.messages.push({ id: randomUUID(), role: "tool", toolCallId: call.id, content: JSON.stringify(result) });
+      }
     }
-    const { trace, pending } = await runOnce(session, options, runs.length > 0, timetableContext);
-    runs.push(trace);
-    if (trace.error !== undefined) {
-      error = trace.error;
-      break;
-    }
-    if (pending.length === 0) break;
-    for (const call of pending) {
-      const result = await runFrontendTool(call, session);
-      session.messages.push({ id: randomUUID(), role: "tool", toolCallId: call.id, content: JSON.stringify(result) });
-    }
+  } finally {
+    clearTimeout(timer);
   }
+
+  const timedOut = controller.signal.aborted;
+  if (timedOut && error === undefined) error = "TimeoutError: Eval case timed out";
 
   const turnMessages = session.messages.slice(turnStart);
   return {
@@ -264,6 +294,7 @@ async function runTurn(
     ms: Date.now() - started,
     runCapHit,
     error,
+    ...(timedOut ? { timedOut: true as const } : {}),
     messagesAdded: session.messages.length - lengthBefore,
     bytesAdded: historyBytes(session.messages) - bytesBefore,
   };
