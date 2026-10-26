@@ -117,24 +117,21 @@ export function discoveryAttempted(toolCalls: readonly ToolCallRecord[]): boolea
   return toolCalls.some((call) => call.name === DISCOVER_COURSE_CANDIDATES_TOOL_NAME);
 }
 
-function discoveryUsed(toolCalls: readonly ToolCallRecord[]): boolean {
-  return toolCalls.some((call) => discoverySucceeded(call));
+function firstParsedDiscovery(toolCalls: readonly ToolCallRecord[]): ToolCallRecord | undefined {
+  return toolCalls.find((call) => discoverySucceeded(call));
 }
 
 function discoveryCheck(
   toolCalls: readonly ToolCallRecord[],
   expect: DiscoveryExpect,
 ): boolean {
-  const used = discoveryUsed(toolCalls);
+  const parsed = firstParsedDiscovery(toolCalls);
   if (expect.discovery === "required") {
-    if (!used) return false;
-    if (expect.args !== undefined) {
-      const call = toolCalls.find((entry) => entry.name === DISCOVER_COURSE_CANDIDATES_TOOL_NAME);
-      if (call === undefined || !expect.args(call.args)) return false;
-    }
+    if (parsed === undefined) return false;
+    if (expect.args !== undefined && !expect.args(parsed.args)) return false;
     return true;
   }
-  if (expect.discovery === "forbidden") return !used;
+  if (expect.discovery === "forbidden") return parsed === undefined;
   return true;
 }
 
@@ -156,7 +153,7 @@ function discoveryBucketOf(
   if (expect.discovery !== "required") return null;
   const calls = toolCalls.filter((call) => call.name === DISCOVER_COURSE_CANDIDATES_TOOL_NAME);
   if (calls.length === 0) return "notCalled";
-  const succeeded = calls.find((call) => discoverySucceeded(call));
+  const succeeded = firstParsedDiscovery(calls);
   if (succeeded === undefined) return "rejected";
   if (expect.args !== undefined && !expect.args(succeeded.args)) return "succeededArgsMismatch";
   return "succeededWithArgs";

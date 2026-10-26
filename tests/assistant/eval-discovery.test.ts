@@ -937,35 +937,43 @@ describe("summarizeDiscovery", () => {
     expect(summarizeDiscovery([graded], []).discoveryArgs).toEqual({ rate: 0 });
   });
 
-  it("judges discovery args on the first parsed call when an earlier call does not parse", () => {
-    const matchArgs = { scope: { codePrefix: "GEST" } };
-    const failArgs = { scope: { codePrefix: "CISC" } };
-    const argsMatch = (args: Record<string, unknown>) =>
-      (args.scope as { codePrefix?: string } | undefined)?.codePrefix === "GEST";
-    const unparsed = "not-json";
-    const parsed = discoverCandidates([{ courseCode: "GEST1006" }]);
-    const call = (args: Record<string, unknown>, result: string): ToolCallRecord => ({
-      name: DISCOVER_COURSE_CANDIDATES_TOOL_NAME,
-      args,
-      result,
-    });
+  function discoverCallWith(args: Record<string, unknown>, result: string): ToolCallRecord {
+    return { name: DISCOVER_COURSE_CANDIDATES_TOOL_NAME, args, result };
+  }
 
-    const parsedMatch = metricGrade(
+  it("accepts a required turn when the first parsed discover call matches args", () => {
+    const graded = metricGrade(
       "Later call matches.",
-      [call(failArgs, unparsed), call(matchArgs, parsed)],
-      { discovery: "required", args: argsMatch },
+      [
+        discoverCallWith({ scope: { codePrefix: "CISC" } }, "not-json"),
+        discoverCallWith({ scope: { codePrefix: "GEST" } }, discoverCandidates([{ courseCode: "GEST1006" }])),
+      ],
+      {
+        discovery: "required",
+        args: (args) => (args.scope as { codePrefix?: string } | undefined)?.codePrefix === "GEST",
+      },
     );
-    expect(parsedMatch.checks.discovery).toBe(true);
-    expect(parsedMatch.discoveryBucket).toBe("succeededWithArgs");
 
-    const parsedMismatch = metricGrade(
+    expect(graded.checks.discovery).toBe(true);
+    expect(graded.discoveryBucket).toBe("succeededWithArgs");
+  });
+
+  it("rejects args on the first parsed discover call and still counts discovery use", () => {
+    const graded = metricGrade(
       "Later call mismatches.",
-      [call(matchArgs, unparsed), call(failArgs, parsed)],
-      { discovery: "required", args: argsMatch },
+      [
+        discoverCallWith({ scope: { codePrefix: "GEST" } }, "not-json"),
+        discoverCallWith({ scope: { codePrefix: "CISC" } }, discoverCandidates([{ courseCode: "GEST1006" }])),
+      ],
+      {
+        discovery: "required",
+        args: (args) => (args.scope as { codePrefix?: string } | undefined)?.codePrefix === "GEST",
+      },
     );
-    expect(parsedMismatch.checks.discovery).toBe(false);
-    expect(parsedMismatch.discoveryBucket).toBe("succeededArgsMismatch");
-    expect(summarizeDiscovery([parsedMismatch], []).discoveryUse).toEqual({ cases: 1, hits: 1, rate: 1 });
+
+    expect(graded.checks.discovery).toBe(false);
+    expect(graded.discoveryBucket).toBe("succeededArgsMismatch");
+    expect(summarizeDiscovery([graded], []).discoveryUse).toEqual({ cases: 1, hits: 1, rate: 1 });
   });
 
   it("partitions required turns into discovery selection and keeps optional turns out", () => {
