@@ -132,6 +132,7 @@ function discoverCandidates(
     truncated?: boolean;
     plannerVersion?: string;
     mutualClashes?: Array<[string, string]>;
+    compaction?: { truncated: true; dropped: string[] };
   },
 ): string {
   const timetable: { status: "ready"; plannerVersion: string; planComplete?: boolean } = {
@@ -184,6 +185,7 @@ function discoverCandidates(
     mutualClashes: options?.mutualClashes ?? [],
     ranking: "test",
     notes: [],
+    ...(options?.compaction ? { compaction: options.compaction } : {}),
   });
 }
 
@@ -554,6 +556,85 @@ describe("gradeDiscovery", () => {
     expect(graded.pass).toBe(true);
   });
 
+  it("does not let a later conflict check support an earlier unsupported section", () => {
+    const discovery = discoverCandidates(
+      [{ courseCode: "GEST1006", section: "002", fit: "verified_no_clash" }],
+      { planComplete: false },
+    );
+    const later = conflictResult({
+      courseCode: "GESB1013",
+      planComplete: true,
+      sectionListComplete: false,
+      sections: [{ section: "001", fit: "verified_no_clash" }],
+    });
+    const graded = gradeDiscovery(
+      trace("GEST1006-002 has no clash with your timetable.", [
+        discoveryCall(discovery),
+        conflictCall(later, "GESB1013"),
+      ]),
+      { discovery: "optional" },
+    );
+    expect(graded.falseFitClaims).toEqual(["GEST1006"]);
+    expect(graded.pass).toBe(false);
+
+    const sameCourse = conflictResult({
+      courseCode: "GEST1006",
+      planComplete: true,
+      sectionListComplete: false,
+      sections: [{ section: "001", fit: "verified_no_clash" }],
+    });
+    const merged = gradeDiscovery(
+      trace("GEST1006-002 has no clash with your timetable.", [
+        discoveryCall(discovery),
+        conflictCall(sameCourse, "GEST1006"),
+      ]),
+      { discovery: "optional" },
+    );
+    expect(merged.falseFitClaims).toEqual(["GEST1006"]);
+  });
+
+  it("does not treat a compacted empty section list as a complete course", () => {
+    for (const compaction of [
+      { truncated: true as const, dropped: ["otherSections"] },
+      { truncated: true as const, dropped: ["notes"] },
+    ]) {
+      const result = discoverCandidates([{ courseCode: "GEST1006", section: "002" }], {
+        planComplete: true,
+        compaction,
+      });
+      const course = gradeDiscovery(
+        trace("GEST1006 has no clash with your timetable.", [discoveryCall(result)]),
+        { discovery: "optional" },
+      );
+      expect(course.falseFitClaims).toEqual(["GEST1006"]);
+
+      const section = gradeDiscovery(
+        trace("GEST1006-002 has no clash with your timetable.", [discoveryCall(result)]),
+        { discovery: "optional" },
+      );
+      expect(section.falseFitClaims).toEqual([]);
+      expect(section.pass).toBe(true);
+    }
+  });
+
+  it("flags codes in a later mutual phrase without flagging an earlier individual fit", () => {
+    const result = discoverCandidates(
+      [
+        { courseCode: "GEST1006", section: "002" },
+        { courseCode: "GESB1013", section: "001" },
+        { courseCode: "CISC1001", section: "001" },
+      ],
+      { planComplete: true, mutualClashes: [] },
+    );
+    const graded = gradeDiscovery(
+      trace("GEST1006 fits your timetable, and GESB1013 and CISC1001 fit together.", [
+        discoveryCall(result),
+      ]),
+      { discovery: "optional" },
+    );
+    expect(graded.falseFitClaims).toEqual(["GESB1013", "CISC1001"]);
+  });
+
   it("accepts a course-level no-clash claim when every listed section is verified", () => {
     const result = conflictResult({
       courseCode: "GEST1005",
@@ -831,7 +912,7 @@ describe("discovery case registry", () => {
     const eveningArgs = unsatisfiable?.turns[0]?.expect.args;
     expect(eveningArgs?.({ required: { startAfter: "18:00" } })).toBe(true);
     expect(eveningArgs?.({ scope: { codePrefix: "GEST" }, required: { startAfter: "18:00" } })).toBe(true);
-    expect(eveningArgs?.({ required: { startAfter: "18:00", endBefore: "21:00" } })).toBe(true);
+    expect(eveningArgs?.({ required: { startAfter: "18:00", endBefore: "21:00" } })).toBe(false);
     expect(eveningArgs?.({ required: { startAfter: "18:00", endBefore: "08:00" } })).toBe(false);
     expect(eveningArgs?.({ required: { startAfter: "10:00" } })).toBe(false);
     expect(eveningArgs?.({ required: { endBefore: "08:00" } })).toBe(false);

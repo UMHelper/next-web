@@ -68,7 +68,7 @@ const eveningStartArgs = (args: Record<string, unknown>) => {
   const required = args.required;
   if (typeof required !== "object" || required === null) return false;
   const typed = required as { startAfter?: string; endBefore?: string };
-  return typed.startAfter === "18:00" && (typed.endBefore === undefined || typed.endBefore > "18:00");
+  return typed.startAfter === "18:00" && typed.endBefore === undefined;
 };
 
 export const DISCOVERY_CASES_V1: DiscoveryEvalCase[] = [

@@ -100,10 +100,14 @@ function countToolCalls(toolCalls: readonly ToolCallRecord[]): number {
   return toolCalls.filter((call) => call.name !== "present_response").length;
 }
 
-type CourseEvidence = {
-  sections: Map<string, string>;
-  listingComplete: boolean;
+type SectionRow = {
+  fit: string;
   supportsClaim: boolean;
+};
+
+type CourseEvidence = {
+  sections: Map<string, SectionRow>;
+  listingComplete: boolean;
 };
 
 type FitIndex = {
@@ -136,9 +140,9 @@ function writeCourse(
 ) {
   const key = courseKey(code);
   const previous = courses.get(key);
-  const sections = new Map(listingComplete ? undefined : previous?.sections);
-  for (const row of rows) sections.set(row.section, row.fit);
-  courses.set(key, { sections, listingComplete, supportsClaim });
+  const sections = new Map<string, SectionRow>(listingComplete ? undefined : previous?.sections);
+  for (const row of rows) sections.set(row.section, { fit: row.fit, supportsClaim });
+  courses.set(key, { sections, listingComplete });
 }
 
 function indexFits(courses: Map<string, CourseEvidence>): FitIndex {
@@ -146,12 +150,13 @@ function indexFits(courses: Map<string, CourseEvidence>): FitIndex {
   const sectionCompleteness = new Map<string, boolean>();
   for (const [code, course] of courses) {
     sectionCompleteness.set(code, course.listingComplete);
-    for (const [section, fit] of course.sections) {
-      fits.set(fitKey(code, section), fit);
+    for (const [section, row] of course.sections) {
+      fits.set(fitKey(code, section), row.fit);
     }
     const everySectionClear =
-      course.sections.size > 0 && [...course.sections.values()].every((fit) => fit === "verified_no_clash");
-    if (course.listingComplete && course.supportsClaim && everySectionClear) {
+      course.sections.size > 0 &&
+      [...course.sections.values()].every((row) => row.fit === "verified_no_clash" && row.supportsClaim);
+    if (course.listingComplete && everySectionClear) {
       fits.set(fitKey(code, null), "verified_no_clash");
     }
   }
@@ -170,14 +175,17 @@ function newestFitsFromTrace(
     if (call.name === DISCOVER_COURSE_CANDIDATES_TOOL_NAME) {
       const parsed = parseDiscoverResult(call.result);
       if (!parsed || evidenceIsStale(parsed.timetable.plannerVersion, options?.plannerVersion)) continue;
-      const truncated = parsed.examined.truncated === true;
-      const supportsClaim = parsed.timetable.planComplete === true && !truncated;
+      const examinedTruncated = parsed.examined.truncated === true;
+      const supportsClaim = parsed.timetable.planComplete === true && !examinedTruncated;
+      const listingDropped =
+        parsed.compaction?.truncated === true || parsed.compaction?.dropped.includes("otherSections") === true;
       for (const candidate of parsed.candidates) {
         const rows = [
           { section: candidate.section, fit: candidate.fit },
           ...candidate.otherSections.map((other) => ({ section: other.section, fit: other.fit })),
         ];
-        const listingComplete = candidate.otherSections.length === 0 && !truncated;
+        const listingComplete =
+          candidate.otherSections.length === 0 && !examinedTruncated && !listingDropped;
         writeCourse(courses, candidate.courseCode, rows, listingComplete, supportsClaim);
       }
       continue;
@@ -230,22 +238,27 @@ function codeMatches(text: string): ClaimSubject[] {
   }));
 }
 
-function idiomAt(text: string): { index: number; mutual: boolean } | null {
+function idiomHits(text: string): Array<{ index: number; end: number; mutual: boolean }> {
+  const hits: Array<{ index: number; end: number; mutual: boolean }> = [];
   const individual = text.match(INDIVIDUAL_FIT_CLAIM);
+  if (individual?.index !== undefined) {
+    hits.push({ index: individual.index, end: individual.index + individual[0].length, mutual: false });
+  }
   const mutual = text.match(MUTUAL_FIT_CLAIM);
-  const indexes = [individual?.index, mutual?.index].filter((index): index is number => index !== undefined);
-  if (indexes.length === 0) return null;
-  return { index: Math.min(...indexes), mutual: mutual !== null };
+  if (mutual?.index !== undefined) {
+    hits.push({ index: mutual.index, end: mutual.index + mutual[0].length, mutual: true });
+  }
+  hits.sort((a, b) => a.index - b.index);
+  return hits;
 }
 
 function claimSubjects(sentence: string): {
-  codes: ClaimSubject[];
+  codes: Array<ClaimSubject & { mutual: boolean }>;
   referenceCodes: string[];
-  mutual: boolean;
 } {
   const stripped = stripParentheticals(sentence);
-  const idiom = idiomAt(stripped);
-  if (!idiom) return { codes: [], referenceCodes: [], mutual: false };
+  const hits = idiomHits(stripped);
+  if (hits.length === 0) return { codes: [], referenceCodes: [] };
 
   const outside = new Set(codeMatches(stripped).map((match) => match.code));
   const referenceCodes: string[] = [];
@@ -256,25 +269,35 @@ function claimSubjects(sentence: string): {
     referenceCodes.push(match.code);
   }
 
-  const codes: ClaimSubject[] = [];
-  const seenSubjects = new Set<string>();
-  for (const match of codeMatches(stripped.slice(0, idiom.index))) {
-    const key = `${match.code}\0${match.section ?? ""}`;
-    if (seenSubjects.has(key)) continue;
-    seenSubjects.add(key);
-    codes.push(match);
+  const codes: Array<ClaimSubject & { mutual: boolean }> = [];
+  const seenSubjects = new Map<string, ClaimSubject & { mutual: boolean }>();
+  let cursor = 0;
+  for (const hit of hits) {
+    for (const match of codeMatches(stripped.slice(cursor, hit.index))) {
+      const key = `${match.code}\0${match.section ?? ""}`;
+      const existing = seenSubjects.get(key);
+      if (existing) {
+        existing.mutual = existing.mutual || hit.mutual;
+        continue;
+      }
+      const subject = { ...match, mutual: hit.mutual };
+      seenSubjects.set(key, subject);
+      codes.push(subject);
+    }
+    cursor = hit.end;
   }
 
-  return { codes, referenceCodes, mutual: idiom.mutual };
+  return { codes, referenceCodes };
 }
 
 function claimSupported(index: FitIndex, code: string, section: string | null): boolean {
   const course = index.courses.get(code);
-  if (!course?.supportsClaim) return false;
+  if (!course) return false;
   if (section === null) {
     return index.sectionCompleteness.get(code) === true && index.fits.get(fitKey(code, null)) === "verified_no_clash";
   }
-  return index.fits.get(fitKey(code, section)) === "verified_no_clash";
+  const row = course.sections.get(section);
+  return row?.fit === "verified_no_clash" && row.supportsClaim;
 }
 
 function falseFitClaimsFromTrace(
@@ -290,7 +313,7 @@ function falseFitClaimsFromTrace(
     for (const code of claim.referenceCodes) references.add(code);
     for (const subject of claim.codes) {
       // planCodes does not exempt a subject; only a reference position does.
-      if (claim.mutual || !claimSupported(index, subject.code, subject.section)) {
+      if (subject.mutual || !claimSupported(index, subject.code, subject.section)) {
         claims.add(subject.code);
       }
     }
