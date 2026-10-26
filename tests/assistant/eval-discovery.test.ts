@@ -54,6 +54,14 @@ const FROZEN_HOLDOUT_V1 = [
   },
 ] as const;
 
+function invalidWindowExpect() {
+  const turn = DISCOVERY_CASES_V2.find((evalCase) => evalCase.id === "no_candidates_invalid_window")?.turns[0];
+  if (turn === undefined) {
+    throw new Error("no_candidates_invalid_window turn missing");
+  }
+  return turn.expect;
+}
+
 function trace(reply: string, toolCalls: ToolCallRecord[]): TurnTrace {
   return {
     caseId: "test",
@@ -164,6 +172,42 @@ describe("gradeDiscovery", () => {
       { discovery: "required" },
     );
     expect(graded.toolCalls).toBe(2);
+  });
+
+  it("accepts a refusal that names the missing shortlist", () => {
+    const expectTurn = invalidWindowExpect();
+    const replies = [
+      "I can't shortlist anything once the window is empty.",
+      "The hours contradict, so no shortlist is possible.",
+      "That schedule is impossible, and there is no top result.",
+    ];
+    for (const reply of replies) {
+      const graded = gradeDiscovery(trace(reply, []), expectTurn);
+      expect({ reply, mention: graded.checks.mention, forbid: graded.checks.forbid, pass: graded.pass }).toEqual({
+        reply,
+        mention: true,
+        forbid: true,
+        pass: true,
+      });
+    }
+  });
+
+  it("rejects an affirmative shortlist on an invalid window", () => {
+    const expectTurn = invalidWindowExpect();
+    const replies = [
+      "Here's the shortlist you asked for.",
+      "I shortlisted these GEST meetings.",
+      "Top 3 courses fit a normal evening.",
+      "Here are the courses from the catalog.",
+    ];
+    for (const reply of replies) {
+      const graded = gradeDiscovery(trace(reply, []), expectTurn);
+      expect({ reply, forbid: graded.checks.forbid, pass: graded.pass }).toEqual({
+        reply,
+        forbid: false,
+        pass: false,
+      });
+    }
   });
 });
 
@@ -291,7 +335,10 @@ describe("discovery case registry", () => {
       ],
     ]);
     expect(invalid?.turns[0]?.expect.forbid?.map((pattern) => [pattern.source, pattern.flags])).toEqual([
-      ["shortlist|I recommend|here are (the |some )?(courses|options|classes)|top \\d", "i"],
+      [
+        "(?<!\\b(?:no|not|can(?:'|no)?t)\\s+)shortlist|I recommend|here are (the |some )?(courses|options|classes)|top \\d",
+        "i",
+      ],
     ]);
     expect(invalid?.turns[0]?.expect.args).toBeUndefined();
 

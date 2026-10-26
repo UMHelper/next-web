@@ -308,7 +308,9 @@ const noCandidatesInvalidWindow: DiscoveryEvalCase = {
         mention: [
           /can(?:'|no)t (?:both )?hold|contradict|impossible|no (class|section|course)|window is empty/i,
         ],
-        forbid: [/shortlist|I recommend|here are (the |some )?(courses|options|classes)|top \d/i],
+        forbid: [
+          /(?<!\b(?:no|not|can(?:'|no)?t)\s+)shortlist|I recommend|here are (the |some )?(courses|options|classes)|top \d/i,
+        ],
         maxToolCalls: 3,
       },
     },
