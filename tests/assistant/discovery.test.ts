@@ -351,6 +351,34 @@ describe("runDiscoverCourseCandidates rules and ranking", () => {
 });
 
 describe("runDiscoverCourseCandidates exclusions and failures", () => {
+  it("GEST1006-002 shows confirmed_clash after the saved plan gains an overlapping section", async () => {
+    const planWithArt = [
+      ...gegaPlan,
+      normalizePlanSection({
+        courseCode: "ART1001",
+        prof: "LAM",
+        section: "001",
+        schedules: [{ date: "TUE", time: "11:30-12:45", location: "E11" }],
+      }),
+    ];
+    const overlapPool = pool({
+      courses: [poolCourse({ courseCode: "GEST1006", courseType: "GE" })],
+      instructorRows: [pwcRow({ pwcId: 1, courseCode: "GEST1006" })],
+      offers: [offer(1, "002", ["TUE 11:30-12:45 E11", "THU 11:30-12:45 E11"])],
+    });
+    const result = await runDiscoverCourseCandidates(
+      readyState(planWithArt),
+      { scope: { courseType: "GE" } },
+      discoveryDeps(overlapPool),
+    );
+    assertOkDiscoverResult(result);
+    expect(result.candidates[0]).toMatchObject({
+      courseCode: "GEST1006",
+      section: "002",
+      fit: "confirmed_clash",
+    });
+  });
+
   it("excludes courses already in the saved plan", async () => {
     const inPlanPool = pool({
       courses: [poolCourse({ courseCode: "GEGA1000" }), poolCourse({ courseCode: "CISC1001" })],
