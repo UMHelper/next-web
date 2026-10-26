@@ -43,6 +43,7 @@ type ModelCall = {
     turns: Array<{ turn: number; blocks: Array<{ kind: string; courses?: string[] }> }>;
   };
   toolNames: string[];
+  system: string;
   lastUser: string;
   lastTool?: { name: string; output: string };
   userMessages: string[];
@@ -288,7 +289,30 @@ function wireFixtures() {
   data.countCoursesForAssistant.mockResolvedValue({ totalCount: 0 });
   data.countCourseReviews.mockResolvedValue({ totalCount: 12 });
   data.getInstructorForAssistant.mockRejectedValue(new McpToolError("not_found"));
-  data.searchCatalogForAssistant.mockRejectedValue(new McpToolError("not_found"));
+  data.searchCatalogForAssistant.mockImplementation(async (input: { type?: string; query?: string }) => {
+    if (input.type === "course" && input.query === "CISC") {
+      return {
+        type: "course" as const,
+        page: 1,
+        hasMore: false,
+        totalCount: 1,
+        results: [
+          {
+            courseCode: "CISC1001",
+            titleEn: "Programming",
+            titleZh: null,
+            faculty: "FST",
+            department: "CISC",
+            credits: "3",
+            isOffered: true,
+            aka: [] as string[],
+            url: absoluteUrl(buildCoursePath("CISC1001")),
+          },
+        ],
+      };
+    }
+    throw new McpToolError("not_found");
+  });
 
   data.getCourse.mockImplementation(async (input: { code: string }) => {
     const code = input.code.trim().toUpperCase();
@@ -492,6 +516,7 @@ function describeCall(prompt: LanguageModelV3Prompt): ModelCall {
     discussed,
     visibleBlocks,
     toolNames: toolNamesFrom(prompt),
+    system,
     lastUser: userMessages.at(-1) ?? "",
     lastTool:
       lastResult && lastResult.type === "tool-result"
@@ -514,6 +539,18 @@ function scriptedModel() {
 }
 
 function v235BBrain(call: ModelCall): Step {
+  if (/List the CIS courses/i.test(call.lastUser)) {
+    if (call.lastTool?.name === "present_response") {
+      return { text: "Here are the CIS courses in the catalog." };
+    }
+    if (call.lastTool?.name === "search_catalog") {
+      return { tool: "present_response", input: { catalog: { mode: "browse" } } };
+    }
+    if (!call.lastTool) {
+      return { tool: "search_catalog", input: { type: "course", query: "CISC" } };
+    }
+  }
+
   if (/tell me more about the second one/i.test(call.lastUser)) {
     if (call.discussed?.includes("GESB1013")) {
       return { text: "GESB1013 covers ethics and society topics." };
@@ -857,4 +894,35 @@ describe("assistant V2.3.5-B integration (discovery through CopilotKit)", () => 
     }
     expect(discoverOutputs().at(-1)!.length).toBeGreaterThan(500);
   }, 180_000);
+
+  it("J6 browsing stays a catalog list and a recommendation stays a shortlist", async () => {
+    await mountAssistant();
+    await typeAndSend("List the CIS courses.");
+
+    await waitFor(() => expect(screen.getByRole("list", { name: "Loaded courses" })).toBeTruthy(), {
+      timeout: 10000,
+    });
+    expect(screen.getByRole("link", { name: /CISC1001/ })).toBeTruthy();
+    expect(screen.queryByText("Recommended courses")).toBeNull();
+    const browseCalls = runs().at(-1)!.modelCalls;
+    expect(browseCalls.some((call) => call.toolNames.includes("search_catalog"))).toBe(true);
+    expect(browseCalls.some((call) => call.toolNames.includes(DISCOVER_COURSE_CANDIDATES_TOOL_NAME))).toBe(false);
+
+    await typeAndSend("Find GE courses that fit my timetable.");
+    await waitFor(() => expect(screen.getByText("Recommended courses")).toBeTruthy(), { timeout: 10000 });
+    expect(screen.getByRole("list", { name: "Loaded courses" })).toBeTruthy();
+
+    const instructions = browseCalls[0]?.system ?? "";
+    const selectionBullets = instructions
+      .split("\n")
+      .filter(
+        (line) =>
+          line.startsWith("- ") &&
+          line.includes("discover_course_candidates") &&
+          !line.includes("present_response"),
+      );
+    expect(selectionBullets).toEqual([
+      "- Pick the tool from the student's aim: browsing a list is search_catalog; choosing what to take, a subject or year's options, or anything shaped by constraints is discover_course_candidates, and one constraint is enough to act. Whether several picks fit together needs preview_timetable, not individual fits.",
+    ]);
+  }, 120_000);
 });
