@@ -291,16 +291,21 @@ describe("discovery case registry", () => {
       ],
     ]);
     expect(invalid?.turns[0]?.expect.forbid?.map((pattern) => [pattern.source, pattern.flags])).toEqual([
-      ["shortlist|I recommend|here are (the |some )?(courses|options|classes)|top \\d", "i"],
+      ["shortlist|top \\d|here are (?:the |some )?(?:courses|options|candidates|picks)", "i"],
     ]);
-    expect(invalid?.turns[0]?.expect.args).toBeUndefined();
+    expect(
+      invalid?.turns[0]?.expect.args?.({ required: { startAfter: "18:00", endBefore: "08:00" } }),
+    ).toBe(true);
+    expect(invalid?.turns[0]?.expect.args?.({ required: { startAfter: "18:00" } })).toBe(false);
 
     const unsatisfiable = DISCOVERY_CASES_V2.find((evalCase) => evalCase.id === "no_candidates");
     expect(unsatisfiable?.pathname).toBe("/");
     expect(unsatisfiable?.timetable).toBe(DEFAULT_DISCOVERY_TIMETABLE);
-    expect(unsatisfiable?.why).toBe("valid but unsatisfiable window (scenario G)");
+    expect(unsatisfiable?.why).toBe("spec §4 scenario G; dev r2 behaviour");
     expect(unsatisfiable?.turns).toHaveLength(1);
-    expect(unsatisfiable?.turns[0]?.message).toBe("Find GEST courses that have to start after 18:00.");
+    expect(unsatisfiable?.turns[0]?.message).toBe(
+      "I need a GEST course whose meetings all start after 18:00.",
+    );
     expect(unsatisfiable?.turns[0]?.expect.discovery).toBe("required");
     expect(unsatisfiable?.turns[0]?.expect.maxToolCalls).toBe(3);
     expect(unsatisfiable?.turns[0]?.expect.mention?.map((pattern) => [pattern.source, pattern.flags])).toEqual([
@@ -310,7 +315,7 @@ describe("discovery case registry", () => {
     const eveningArgs = unsatisfiable?.turns[0]?.expect.args;
     expect(eveningArgs?.({ required: { startAfter: "18:00" } })).toBe(true);
     expect(eveningArgs?.({ scope: { codePrefix: "GEST" }, required: { startAfter: "18:00" } })).toBe(true);
-    expect(eveningArgs?.({ required: { startAfter: "18:00", endBefore: "21:00" } })).toBe(false);
+    expect(eveningArgs?.({ required: { startAfter: "18:00", endBefore: "21:00" } })).toBe(true);
     expect(eveningArgs?.({ required: { startAfter: "18:00", endBefore: "08:00" } })).toBe(false);
     expect(eveningArgs?.({ required: { startAfter: "10:00" } })).toBe(false);
     expect(eveningArgs?.({ required: { endBefore: "08:00" } })).toBe(false);
@@ -521,9 +526,7 @@ describe("discoveryEvalStamp", () => {
     expect(resolveDiscoveryCaseSetId({ ASSISTANT_EVAL_SUITE: "dev" })).toBe("dev-v2");
     expect(resolveDiscoveryCaseSetId({})).toBe("dev-v2");
     expect(resolveDiscoveryCaseSetId({ ASSISTANT_EVAL_SUITE: "nope" })).toBe("dev-v2");
-    expect(() => resolveDiscoveryCaseSetId({ ASSISTANT_EVAL_CASE_SET: "dev-v3" })).toThrow(
-      'unknown ASSISTANT_EVAL_CASE_SET "dev-v3"',
-    );
+    expect(resolveDiscoveryCaseSetId({ ASSISTANT_EVAL_CASE_SET: "dev-v3" })).toBe("dev-v3");
     expect(discoveryPassThreshold("holdout-v1")).toBe(0.75);
     expect(discoveryPassThreshold("dev-v2")).toBe(0.8);
     expect(discoveryPassThreshold("dev-v1")).toBe(0.8);

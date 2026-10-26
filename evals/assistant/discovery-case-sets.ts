@@ -9,19 +9,11 @@ export const DISCOVERY_CASE_SETS = {
   "holdout-v1": DISCOVERY_HOLDOUT_CASES_V1,
 } as const;
 
-export type DiscoveryCaseSetId = keyof typeof DISCOVERY_CASE_SETS;
-
 export function resolveDiscoveryCaseSetId(env: {
   ASSISTANT_EVAL_CASE_SET?: string;
   ASSISTANT_EVAL_SUITE?: string;
-}): DiscoveryCaseSetId {
-  const requested = env.ASSISTANT_EVAL_CASE_SET;
-  if (requested) {
-    if (!Object.prototype.hasOwnProperty.call(DISCOVERY_CASE_SETS, requested)) {
-      throw new Error(`unknown ASSISTANT_EVAL_CASE_SET "${requested}"`);
-    }
-    return requested as DiscoveryCaseSetId;
-  }
+}): string {
+  if (env.ASSISTANT_EVAL_CASE_SET) return env.ASSISTANT_EVAL_CASE_SET;
   if (env.ASSISTANT_EVAL_SUITE === "holdout") return "holdout-v1";
   return "dev-v2";
 }

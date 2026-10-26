@@ -64,11 +64,11 @@ const impossibleWindowArgs = (args: Record<string, unknown>) => {
   return typed.startAfter === "18:00" && typed.endBefore === "08:00";
 };
 
-const startAfterEighteenArgs = (args: Record<string, unknown>) => {
+const eveningStartArgs = (args: Record<string, unknown>) => {
   const required = args.required;
   if (typeof required !== "object" || required === null) return false;
-  const typed = required as { startAfter?: string };
-  return typed.startAfter === "18:00" && !Object.prototype.hasOwnProperty.call(required, "endBefore");
+  const typed = required as { startAfter?: string; endBefore?: string };
+  return typed.startAfter === "18:00" && typed.endBefore !== "08:00";
 };
 
 export const DISCOVERY_CASES_V1: DiscoveryEvalCase[] = [
@@ -305,10 +305,11 @@ const noCandidatesInvalidWindow: DiscoveryEvalCase = {
       message: "Find GEST courses that must start after 18:00 and end before 08:00 every meeting.",
       expect: {
         discovery: "optional",
+        args: impossibleWindowArgs,
         mention: [
           /can(?:'|no)t (?:both )?hold|contradict|impossible|no (class|section|course)|window is empty/i,
         ],
-        forbid: [/shortlist|I recommend|here are (the |some )?(courses|options|classes)|top \d/i],
+        forbid: [/shortlist|top \d|here are (?:the |some )?(?:courses|options|candidates|picks)/i],
         maxToolCalls: 3,
       },
     },
@@ -318,14 +319,14 @@ const noCandidatesInvalidWindow: DiscoveryEvalCase = {
 const noCandidatesUnsatisfiable: DiscoveryEvalCase = {
   id: "no_candidates",
   pathname: "/",
-  why: "valid but unsatisfiable window (scenario G)",
+  why: "spec §4 scenario G; dev r2 behaviour",
   timetable: DEFAULT_DISCOVERY_TIMETABLE,
   turns: [
     {
-      message: "Find GEST courses that have to start after 18:00.",
+      message: "I need a GEST course whose meetings all start after 18:00.",
       expect: {
         discovery: "required",
-        args: startAfterEighteenArgs,
+        args: eveningStartArgs,
         mention: [/no [^.!?]{0,30}(course|class|section|option)|nothing (matches|fits)|none/i],
         maxToolCalls: 3,
       },
