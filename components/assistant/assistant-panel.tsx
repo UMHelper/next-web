@@ -5,12 +5,15 @@ import {
   useAgentContext,
   useConfigureSuggestions,
   useFrontendTool,
+  type Message,
 } from "@copilotkit/react-core/v2";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { describeAssistantError } from "@/lib/assistant/error-message";
+import { DEFAULT_HISTORY_TURNS, prepareRunMessages } from "@/lib/assistant/run-messages";
+import type { RunMessage } from "@/lib/assistant/conversation";
 import { EXAMPLE_QUESTIONS } from "@/lib/assistant/example-questions";
 import { NAVIGATE_DESCRIPTION, navigateParameters } from "@/lib/assistant/navigation";
 import { PAGE_CONTEXT_DESCRIPTION, describePage } from "@/lib/assistant/page-context";
@@ -27,6 +30,7 @@ import { useSearchCatalogToolRender } from "./search-catalog-tool-render";
 import { useCatalogResultsTool } from "./use-catalog-results-tool";
 import { useDiscussedCourses } from "./use-discussed-courses";
 import { useVisibleBlocks } from "./use-visible-blocks";
+import { useConflictVerification } from "./use-conflict-verification";
 import { useNavigateTool } from "./use-navigate-tool";
 
 // FloatingPlanner keys its offset off this attribute; the name is repeated literally in its Tailwind classes.
@@ -53,6 +57,7 @@ function AssistantTools() {
   useCatalogResultsTool();
   useDiscussedCourses();
   useVisibleBlocks();
+  useConflictVerification();
   useSearchCatalogToolRender();
   useCourseDetailToolRender();
   useCourseSectionsToolRender();
@@ -98,6 +103,12 @@ export default function AssistantPanel({
   const attachPanel = useCallback((node: HTMLElement | null) => {
     panelRef.current = node;
   }, []);
+
+  const messageFilter = useCallback(
+    (messages: Message[]) =>
+      prepareRunMessages(messages as RunMessage[], DEFAULT_HISTORY_TURNS) as Message[],
+    [],
+  );
 
   const shown = rendered && !suppressed;
 
@@ -162,6 +173,7 @@ export default function AssistantPanel({
       <CopilotKitProvider
         runtimeUrl="/api/copilotkit"
         enableInspector={false}
+        messageFilter={messageFilter}
         onError={({ error }) => setNotice(describeAssistantError(error.message))}
       >
         <CatalogFilterProvider>

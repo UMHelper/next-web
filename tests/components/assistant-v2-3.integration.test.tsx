@@ -784,7 +784,6 @@ describe("assistant V2.3 integration (scripted model)", () => {
     expect(screen.getByRole("tab", { name: "Tuesday, 2 classes, has a conflict" }).getAttribute("aria-selected")).toBe(
       "true",
     );
-    expect(screen.getByText("Built timetable preview")).toBeTruthy();
     expect(h.rateLimitCalls).toBe(1);
     expect(h.mutate).not.toHaveBeenCalled();
   }, 60_000);

@@ -9,6 +9,7 @@ import {
   executePresentResponse,
   parsePresentArguments,
   planRichBlocks,
+  type RichBlock,
   PRESENT_RECEIPT_NOTE,
   PRESENT_RESPONSE_TOOL_NAME,
   sectionCallIdentity,
@@ -16,6 +17,12 @@ import {
   trackLookup,
   type ToolCallLike,
 } from "@/lib/assistant/presentation";
+
+function toolBlockCallIds(blocks: RichBlock[]): string[] {
+  return blocks
+    .filter((block): block is { kind: "tool"; callId: string } => block.kind === "tool")
+    .map((block) => block.callId);
+}
 
 function call(id: string, name: string, args: unknown): ToolCallLike {
   return { id, function: { name, arguments: JSON.stringify(args) } };
@@ -180,6 +187,8 @@ describe("executePresentResponse", () => {
             { component: "course_detail", course: "CISC2002" },
             { component: "course_detail", course: "CISC2003" },
             { component: "course_sections", course: "CISC2004" },
+            { component: "course_detail", course: "CISC2005" },
+            { component: "course_detail", course: "CISC2006" },
           ],
         },
         ledger,
@@ -262,14 +271,14 @@ describe("parsePresentArguments", () => {
 describe("planRichBlocks", () => {
   const always = ALWAYS_RICH_TOOL_NAMES;
 
-  it("keeps search and filter rich, and hides course and section cards by default", () => {
+  it("hides catalog lists by default and hides course and section cards unless claimed", () => {
     const calls = [
       call("s", "search_catalog", { query: "MATH" }),
       call("g", "get_course", { code: "CISC2001" }),
       call("sec", "get_course_sections", { code: "CISC2001", instructor: "CHAN TAI MAN" }),
     ];
-    expect(planRichBlocks(calls, results({}), always, true).map((block) => block.callId)).toEqual(["s"]);
-    expect(planRichBlocks(calls, results({}), always, false).map((block) => block.callId)).toEqual([]);
+    expect(toolBlockCallIds(planRichBlocks(calls, results({}), always, true))).toEqual([]);
+    expect(toolBlockCallIds(planRichBlocks(calls, results({}), always, false))).toEqual([]);
     expect(RICH_TOOL_NAMES.has("get_course")).toBe(true);
     expect(ALWAYS_RICH_TOOL_NAMES.has("get_course")).toBe(false);
   });
@@ -302,7 +311,7 @@ describe("planRichBlocks", () => {
       argument: "CISC2001",
       canonical: "CISC2001",
     });
-    expect(planRichBlocks(calls, map, always, false).map((block) => block.callId)).toEqual(["g", "sec"]);
+    expect(toolBlockCallIds(planRichBlocks(calls, map, always, false))).toEqual(["g", "sec"]);
   });
 
   it("keeps cards when a later empty show follows a non-empty one, replaces on a later non-empty show, and ignores a later rejection", () => {
@@ -321,7 +330,7 @@ describe("planRichBlocks", () => {
       }),
       call("sec", "get_course_sections", { code: "CISC2001", instructor: "CHAN TAI MAN" }),
     ];
-    expect(planRichBlocks(nonEmptyReplace, results({}), always, false).map((block) => block.callId)).toEqual(["sec"]);
+    expect(toolBlockCallIds(planRichBlocks(nonEmptyReplace, results({}), always, false))).toEqual(["sec"]);
     const rejectedLater = [
       ...lookups,
       call("p1", PRESENT_RESPONSE_TOOL_NAME, { show: [{ component: "course_detail", course: "CISC2001" }] }),
@@ -362,7 +371,7 @@ describe("planRichBlocks", () => {
       c1: course("GELH1000"),
       c2: course("GELH1000"),
     });
-    expect(planRichBlocks(calls, map, always, false).map((block) => block.callId)).toEqual(["c1"]);
+    expect(toolBlockCallIds(planRichBlocks(calls, map, always, false))).toEqual(["c1"]);
   });
 
   it("mounts one card when an alias call and a primary call resolve to the same course", () => {
@@ -377,6 +386,6 @@ describe("planRichBlocks", () => {
       c1: course("GELH1000"),
       c2: course("GELH1000"),
     });
-    expect(planRichBlocks(calls, map, always, false).map((block) => block.callId)).toEqual(["c1"]);
+    expect(toolBlockCallIds(planRichBlocks(calls, map, always, false))).toEqual(["c1"]);
   });
 });

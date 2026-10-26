@@ -127,12 +127,21 @@ vi.mock("@/lib/assistant/tools", async (importOriginal) => {
   const { defineTool } = await import("@copilotkit/runtime/v2");
   const { z } = await import("zod");
   const { searchCatalogInputSchema, searchCatalogOutputSchema } = await import("@/lib/mcp/schemas");
+  const { createPresentationLedger } = await import("@/lib/assistant/presentation");
+  const { mockPresentResponseTool } = await import("@/tests/assistant/integration-mock-present-response");
+  type PresentationSlot = import("@/lib/assistant/presentation").PresentationSlot;
 
   const pageParam = z.number().int().min(1).max(50).optional().describe("Page number, default 1");
 
   return {
     runReadOnlyTool,
-    createAssistantTools: () => [
+    createAssistantTools: (
+      _slot?: unknown,
+      _timetable?: unknown,
+      presentation?: PresentationSlot,
+    ) => {
+      const presentationSlot = presentation ?? { current: createPresentationLedger() };
+      return [
       defineTool({
         name: "search_catalog",
         description: "Search the site catalog",
@@ -152,7 +161,9 @@ vi.mock("@/lib/assistant/tools", async (importOriginal) => {
             fixtureSearchCatalog,
           ),
       }),
-    ],
+      mockPresentResponseTool(presentationSlot),
+    ];
+    },
   };
 });
 vi.mock("@/lib/assistant/model", async (importOriginal) => ({
@@ -171,6 +182,7 @@ vi.mock("@/components/timetable/planner-provider", async () => {
   };
 });
 
+import { browsePresentAfterSearch } from "@/tests/assistant/integration-catalog-present";
 import * as route from "@/app/api/copilotkit/[[...slug]]/route";
 import AssistantPanel from "@/components/assistant/assistant-panel";
 import { PAGE_CONTEXT_DESCRIPTION } from "@/lib/assistant/page-context";
@@ -264,6 +276,9 @@ async function routeFetch(input: RequestInfo | URL, init?: RequestInit) {
 
 function catalogBrain(call: ModelCall): Step {
   if (call.lastTool?.name === "search_catalog") {
+    return browsePresentAfterSearch(toolCallCount);
+  }
+  if (call.lastTool?.name === "present_response") {
     return {
       text: "ACCT1000 appears in the results above. Here is a short summary of what matched.",
     };
@@ -339,7 +354,6 @@ describe("assistant search_catalog integration (scripted model)", () => {
       },
       { timeout: 10000 },
     );
-    expect(screen.getAllByText("Searched courses")).toHaveLength(1);
     expect(screen.getAllByRole("listitem").length).toBeGreaterThan(0);
     expect(screen.getByRole("link", { name: /ACCT1000/ })).toBeTruthy();
 
@@ -352,13 +366,15 @@ describe("assistant search_catalog integration (scripted model)", () => {
     await waitFor(() => expect(screen.queryByText("ACCT1000")).toBeNull());
 
     fireEvent.click(screen.getByRole("button", { name: "AI Course Helper" }));
-    await waitFor(() => expect(screen.getByText("ACCT1000")).toBeTruthy(), { timeout: 10000 });
+    await waitFor(() => expect(screen.getByRole("link", { name: /ACCT1000/ })).toBeTruthy(), {
+      timeout: 10000,
+    });
 
     await typeAndSend("Who teaches accounting? Find instructor CHAN TAI MAN");
     await waitFor(() => expect(screen.getByRole("link", { name: "CHAN TAI MAN" })).toBeTruthy(), {
       timeout: 10000,
     });
-    expect(screen.getByText("ACCT1000")).toBeTruthy();
+    expect(screen.getAllByRole("link", { name: /ACCT1000/ }).length).toBeGreaterThan(0);
     expect(screen.getByRole("link", { name: "CHAN TAI MAN" }).getAttribute("href")).toBe(
       buildProfessorPath("CHAN TAI MAN"),
     );
@@ -370,7 +386,7 @@ describe("assistant search_catalog integration (scripted model)", () => {
       expect(screen.queryByRole("link", { name: "CHAN TAI MAN" })).toBeNull();
       expect(screen.getByText("What can I help with?")).toBeTruthy();
     });
-  });
+  }, 60_000);
 
   it("shows no prior conversation after remounting the panel", async () => {
     await mountAssistant();

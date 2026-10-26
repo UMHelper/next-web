@@ -32,23 +32,18 @@ import { Bubble, BubbleContent } from "@/components/ai-elements/bubble";
 import {
   ConversationScrollButton,
   useConversationScroll,
+  type ConversationScrollTogglePreserver,
 } from "@/components/ai-elements/conversation";
 import { Message as ChatMessage, MessageContent } from "@/components/ai-elements/message";
 import { PromptInput } from "@/components/ai-elements/prompt-input";
 import { Response } from "@/components/ai-elements/response";
 import { dedupeCalls, ToolTrace } from "@/components/ai-elements/tool";
+import { RecommendationShortlist } from "@/components/assistant/recommendation-shortlist";
 import { EXAMPLE_QUESTIONS } from "@/lib/assistant/example-questions";
-import { parseCourseDetailResult, GET_COURSE_TOOL_NAME } from "@/lib/assistant/course-detail-ui";
-import {
-  GET_COURSE_SECTIONS_TOOL_NAME,
-  parseCourseSectionsResult,
-} from "@/lib/assistant/course-sections-ui";
 import {
   callsForActivity,
-  courseCallIdentity,
   planRichBlocks,
-  PRESENT_RESPONSE_TOOL_NAME,
-  sectionCallIdentity,
+  type PlanRichBlocksThreadContext,
 } from "@/lib/assistant/presentation";
 import { ALWAYS_RICH_TOOL_NAMES } from "@/lib/assistant/rich-tools";
 import { cn } from "@/lib/utils";
@@ -96,6 +91,32 @@ function buildTurns(messages: Message[]): Turn[] {
   return turns;
 }
 
+function threadToolContext(
+  messages: Message[],
+  toolResults: Map<string, ToolMessage>,
+): PlanRichBlocksThreadContext {
+  const calls: ToolCall[] = [];
+  for (const message of messages) {
+    if (message.role !== "assistant") continue;
+    for (const call of message.toolCalls ?? []) calls.push(call);
+  }
+  const deduped = dedupeCalls(calls, toolResults);
+  const results = new Map<string, { content?: unknown }>();
+  for (const call of deduped) {
+    const toolMessage = toolResults.get(call.id);
+    if (toolMessage) {
+      results.set(call.id, { content: toolMessage.content });
+    }
+  }
+  return {
+    calls: deduped.map((call) => ({
+      id: call.id,
+      function: { name: call.function.name, arguments: call.function.arguments },
+    })),
+    results,
+  };
+}
+
 function userText(content: UserMessage["content"]): string {
   if (typeof content === "string") return content;
   return content.map((part) => (part.type === "text" ? part.text : "")).join("");
@@ -117,48 +138,6 @@ function ThinkingRow() {
     </div>
   );
 }
-
-const SHOW_CARD_BUTTON_CLASS =
-  "inline-flex text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
-
-function readCallInstructor(call: ToolCall): string {
-  try {
-    const args = JSON.parse(call.function.arguments) as unknown;
-    if (args !== null && typeof args === "object" && !Array.isArray(args)) {
-      const instructor = (args as { instructor?: unknown }).instructor;
-      if (typeof instructor === "string") {
-        return instructor.trim();
-      }
-    }
-  } catch {
-    // ignore malformed tool arguments
-  }
-  return "";
-}
-
-function courseLookupDedupeKey(call: ToolCall, content: string | undefined): string {
-  const identity = courseCallIdentity(call, content);
-  return identity.canonical ?? identity.argument;
-}
-
-function sectionLookupDedupeKey(call: ToolCall, content: string | undefined): string {
-  const identity = sectionCallIdentity(call, content);
-  const course = identity.canonical ?? identity.argument;
-  return `${course}\0${readCallInstructor(call)}`;
-}
-
-function lookupHasShowCardData(toolName: string, content: string): boolean {
-  if (toolName === GET_COURSE_TOOL_NAME) {
-    return parseCourseDetailResult(content).kind === "course";
-  }
-  if (toolName === GET_COURSE_SECTIONS_TOOL_NAME) {
-    const parsed = parseCourseSectionsResult(content);
-    return parsed.kind === "sections" || parsed.kind === "empty";
-  }
-  return false;
-}
-
-type ShowCardOffer = { key: string; call: ToolCall; label: string };
 
 function splitAssistantProse(content: string): string[] {
   return content
@@ -202,18 +181,20 @@ function CopyAction({ text }: { text: string }) {
 function AssistantTurn({
   parts,
   results,
+  threadContext,
   isRunning,
   isLast,
   toolRenderer,
+  scrollTogglePreserver,
 }: {
   parts: AssistantPart[];
   results: Map<string, ToolMessage>;
+  threadContext: PlanRichBlocksThreadContext;
   isRunning: boolean;
   isLast: boolean;
   toolRenderer?: AssistantChatViewProps["toolRenderer"];
+  scrollTogglePreserver?: ConversationScrollTogglePreserver;
 }) {
-  const [expandedShowCards, setExpandedShowCards] = useState<Set<string>>(() => new Set());
-
   const dedupedCalls = useMemo(() => {
     const collected: ToolCall[] = [];
     for (const part of parts) {
@@ -223,11 +204,6 @@ function AssistantTurn({
     return dedupeCalls(collected, results);
   }, [parts, results]);
 
-  const dedupedIds = useMemo(
-    () => new Set(dedupedCalls.map((call) => call.id)),
-    [dedupedCalls],
-  );
-
   const dedupedById = useMemo(
     () => new Map(dedupedCalls.map((call) => [call.id, call])),
     [dedupedCalls],
@@ -236,83 +212,53 @@ function AssistantTurn({
   const streamingHere = isRunning && isLast;
 
   const activityCalls = useMemo(() => callsForActivity(dedupedCalls), [dedupedCalls]);
+
   const richPlan = useMemo(
-    () => planRichBlocks(dedupedCalls, results, ALWAYS_RICH_TOOL_NAMES, streamingHere),
-    [dedupedCalls, results, streamingHere],
+    () =>
+      planRichBlocks(
+        dedupedCalls,
+        results,
+        ALWAYS_RICH_TOOL_NAMES,
+        streamingHere,
+        threadContext,
+      ),
+    [dedupedCalls, results, streamingHere, threadContext],
   );
-  const richByCallId = useMemo(
-    () => new Map(richPlan.map((block) => [block.callId, block])),
-    [richPlan],
-  );
 
-  const mountedLookupKeys = useMemo(() => {
-    const keys = new Set<string>();
-    for (const block of richPlan) {
-      const call = dedupedById.get(block.callId);
-      if (!call) continue;
-      const rawContent = results.get(call.id)?.content;
-      const content = typeof rawContent === "string" ? rawContent : undefined;
-      if (call.function.name === GET_COURSE_TOOL_NAME) {
-        keys.add(`course:${courseLookupDedupeKey(call, content)}`);
-      } else if (call.function.name === GET_COURSE_SECTIONS_TOOL_NAME) {
-        keys.add(`sections:${sectionLookupDedupeKey(call, content)}`);
-      }
-    }
-    return keys;
-  }, [richPlan, dedupedById, results]);
-
-  const showCardOffers = useMemo((): ShowCardOffer[] => {
-    if (streamingHere || !toolRenderer) return [];
-
-    const courseWinners = new Map<string, ShowCardOffer>();
-    const sectionWinners = new Map<string, ShowCardOffer>();
-
+  const presentationResults = useMemo(() => {
+    const map = new Map<string, { content?: unknown }>();
     for (const call of dedupedCalls) {
-      const name = call.function.name;
-      if (name !== GET_COURSE_TOOL_NAME && name !== GET_COURSE_SECTIONS_TOOL_NAME) continue;
-
-      const rawContent = results.get(call.id)?.content;
-      const content = typeof rawContent === "string" ? rawContent : undefined;
-      if (content === undefined || !lookupHasShowCardData(name, content)) continue;
-      if (richByCallId.has(call.id)) continue;
-
-      if (name === GET_COURSE_TOOL_NAME) {
-        const dedupeKey = courseLookupDedupeKey(call, content);
-        const offerKey = `course:${dedupeKey}`;
-        if (mountedLookupKeys.has(offerKey) || courseWinners.has(dedupeKey)) continue;
-        const identity = courseCallIdentity(call, content);
-        const code = identity.canonical ?? identity.argument;
-        courseWinners.set(dedupeKey, {
-          key: offerKey,
-          call,
-          label: `Show ${code} details`,
-        });
-        continue;
-      }
-
-      const dedupeKey = sectionLookupDedupeKey(call, content);
-      const offerKey = `sections:${dedupeKey}`;
-      if (mountedLookupKeys.has(offerKey) || sectionWinners.has(dedupeKey)) continue;
-      const identity = sectionCallIdentity(call, content);
-      const code = identity.canonical ?? identity.argument;
-      sectionWinners.set(dedupeKey, {
-        key: offerKey,
-        call,
-        label: `Show ${code} class times`,
-      });
+      const toolMessage = results.get(call.id);
+      if (toolMessage) map.set(call.id, { content: toolMessage.content });
     }
+    return map;
+  }, [dedupedCalls, results]);
 
-    return [...courseWinners.values(), ...sectionWinners.values()];
-  }, [
-    dedupedCalls,
-    results,
-    richByCallId,
-    mountedLookupKeys,
-    streamingHere,
-    toolRenderer,
-  ]);
+  const richBlocksContent = useMemo(() => {
+    if (!toolRenderer && richPlan.every((block) => block.kind !== "recommendations")) {
+      return [];
+    }
+    return richPlan.flatMap((block) => {
+      if (block.kind === "recommendations") {
+        return [
+          <RecommendationShortlist
+            key={`rec-${block.presentCallId}`}
+            courses={block.courses}
+            calls={dedupedCalls}
+            results={presentationResults}
+          />,
+        ];
+      }
+      const call = dedupedById.get(block.callId);
+      if (!call || !toolRenderer) return [];
+      return [
+        <div key={`rich-${block.callId}`} className="space-y-1.5">
+          {toolRenderer.render(call, results.get(call.id))}
+        </div>,
+      ];
+    });
+  }, [richPlan, dedupedById, toolRenderer, results, dedupedCalls, presentationResults]);
 
-  // One action row per turn, not one under every assistant fragment.
   const lastText = useMemo(() => {
     for (let index = parts.length - 1; index >= 0; index -= 1) {
       const part = parts[index];
@@ -321,71 +267,21 @@ function AssistantTurn({
     return "";
   }, [parts]);
 
-  const seenRichIds = new Set<string>();
-
   const textParts = parts.filter(
     (part): part is AssistantMessage => part.role === "assistant" && Boolean(part.content?.trim()),
   );
 
-  const expandedShowCardBlocks = showCardOffers
-    .filter((offer) => expandedShowCards.has(offer.key))
-    .map((offer) => (
-      <div key={`show-card-${offer.key}`} className="space-y-1.5">
-        {toolRenderer?.render(offer.call, results.get(offer.call.id))}
-      </div>
-    ));
-
-  const showCardButtons = showCardOffers
-    .filter((offer) => !expandedShowCards.has(offer.key))
-    .map((offer) => (
-      <button
-        key={offer.key}
-        type="button"
-        onClick={() =>
-          setExpandedShowCards((previous) => {
-            const next = new Set(previous);
-            next.add(offer.key);
-            return next;
-          })
-        }
-        className={SHOW_CARD_BUTTON_CLASS}
-      >
-        {offer.label}
-      </button>
-    ));
-
-  const richBlocks = parts.flatMap((part) => {
-    if (part.role === "reasoning") return [];
-    return (
-      part.toolCalls?.flatMap((rawCall) => {
-        const call = dedupedById.get(rawCall.id) ?? rawCall;
-        if (call.function.name === PRESENT_RESPONSE_TOOL_NAME) return [];
-        if (!dedupedIds.has(call.id) || seenRichIds.has(call.id)) return [];
-        if (!richByCallId.has(call.id) || !toolRenderer) return [];
-        seenRichIds.add(call.id);
-        return [
-          <div key={`rich-${call.id}`} className="space-y-1.5">
-            {toolRenderer.render(call, results.get(call.id))}
-          </div>,
-        ];
-      }) ?? []
-    );
-  });
-
   return (
     <div className="flex w-full min-w-0 flex-col gap-2 animate-in fade-in duration-200">
       {activityCalls.length > 0 ? (
-        <ToolTrace calls={activityCalls} results={results} isRunning={streamingHere} />
+        <ToolTrace
+          calls={activityCalls}
+          results={results}
+          isRunning={isRunning}
+          scrollTogglePreserver={scrollTogglePreserver}
+        />
       ) : null}
-      {richBlocks.length > 0 || expandedShowCardBlocks.length > 0 ? (
-        <div className="space-y-2">
-          {richBlocks}
-          {expandedShowCardBlocks}
-        </div>
-      ) : null}
-      {showCardButtons.length > 0 ? (
-        <div className="flex flex-wrap gap-x-3 gap-y-1">{showCardButtons}</div>
-      ) : null}
+      {richBlocksContent.length > 0 ? <div className="space-y-2">{richBlocksContent}</div> : null}
       {textParts.length > 0 ? (
         <div className="w-full min-w-0 rounded-xl border border-border bg-background px-4 py-3 shadow-sm">
           <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-brand">
@@ -478,7 +374,7 @@ export function AssistantChatView({
   panelOpen = true,
   toolRenderer,
 }: AssistantChatViewProps) {
-  const { viewportRef, contentRef, showScrollButton, onScroll, scrollToBottom } =
+  const { viewportRef, contentRef, showScrollButton, onScroll, scrollToBottom, scrollTogglePreserver } =
     useConversationScroll();
 
   const turns = useMemo(() => buildTurns(messages), [messages]);
@@ -490,6 +386,17 @@ export function AssistantChatView({
     }
     return results;
   }, [messages]);
+
+  const turnThreadContexts = useMemo(() => {
+    const contexts: PlanRichBlocksThreadContext[] = [];
+    const slice: Message[] = [];
+    for (const turn of turns) {
+      if (turn.user) slice.push(turn.user);
+      slice.push(...turn.assistant);
+      contexts.push(threadToolContext(slice, toolResults));
+    }
+    return contexts;
+  }, [turns, toolResults]);
 
   const suggestionList = useMemo(() => {
     if (suggestions.length > 0) return suggestions.slice(0, 4);
@@ -583,9 +490,11 @@ export function AssistantChatView({
                         <AssistantTurn
                           parts={turn.assistant}
                           results={toolResults}
+                          threadContext={turnThreadContexts[index] ?? threadToolContext([], toolResults)}
                           isRunning={isRunning}
                           isLast={isLast}
                           toolRenderer={toolRenderer}
+                          scrollTogglePreserver={scrollTogglePreserver}
                         />
                       ) : null}
                     </div>

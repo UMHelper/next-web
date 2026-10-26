@@ -54,8 +54,17 @@ const checkedConflict = JSON.stringify({
   plan: { name: "My plan", term: "2026/2027 AY Sem 1" },
   planComplete: true,
   sectionListComplete: true,
+  plannerVersion: "v-test",
   unscheduled: [],
-  sections: [{ section: "001", meetings: ["MON 09:00-10:15 E22-3001"], conflicts: [], complete: true }],
+  sections: [
+    {
+      section: "001",
+      meetings: ["MON 09:00-10:15 E22-3001"],
+      conflicts: [],
+      complete: true,
+      fit: "verified_no_clash",
+    },
+  ],
 });
 
 describe("classifyToolContent", () => {

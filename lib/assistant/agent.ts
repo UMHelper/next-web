@@ -20,6 +20,10 @@ import {
   TIMETABLE_SCENARIO_DESCRIPTION,
   timetableScenarioFromRun,
 } from "./timetable-scenario";
+import {
+  CONFLICT_VERIFICATION_CONTEXT_DESCRIPTION,
+  summarizeConflictVerifications,
+} from "./conflict-verification";
 import { createPresentationLedger, seedLedgerFromMessages, type PresentationSlot } from "./presentation";
 import { createAssistantTools } from "./tools";
 
@@ -72,13 +76,18 @@ export function createAssistantAgent(config: AssistantConfig, signal?: AbortSign
       /* keep unknown */
     }
     const scenarioReferent = timetableScenarioFromRun({ context, messages: input.messages }, plannerVersion);
+    const conflictVerification = summarizeConflictVerifications(input.messages, plannerVersion);
+    const withoutConflictLedger = context.filter(
+      (entry) => entry.description !== CONFLICT_VERIFICATION_CONTEXT_DESCRIPTION,
+    );
     const extra = [
       replyScriptContext(input.messages),
       replyLanguageContext(input.messages),
       { description: COURSE_REFERENT_DESCRIPTION, value: JSON.stringify(slot.current) },
       { description: TIMETABLE_SCENARIO_DESCRIPTION, value: JSON.stringify(scenarioReferent) },
+      { description: CONFLICT_VERIFICATION_CONTEXT_DESCRIPTION, value: conflictVerification },
     ].filter((entry): entry is NonNullable<typeof entry> => entry !== null);
-    return next.run({ ...input, context: [...context, ...extra] });
+    return next.run({ ...input, context: [...withoutConflictLedger, ...extra] });
   });
   return agent;
 }

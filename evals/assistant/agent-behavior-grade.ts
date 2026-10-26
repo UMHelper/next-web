@@ -105,6 +105,10 @@ export function visibleBlocksFromTrace(trace: Pick<TurnTrace, "toolCalls">): Vis
   const blocks: VisibleBlock[] = [];
 
   for (const block of planned) {
+    if (block.kind === "recommendations") {
+      blocks.push({ kind: "recommendations", courses: [...block.courses] });
+      continue;
+    }
     const call = callById.get(block.callId);
     if (!call) continue;
     const rawContent = results.get(block.callId)?.content;

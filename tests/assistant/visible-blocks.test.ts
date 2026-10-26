@@ -132,6 +132,13 @@ describe("summarizeVisibleBlocks", () => {
         role: "assistant",
         toolCalls: [
           { id: "s1", function: { name: SEARCH_CATALOG_TOOL_NAME, arguments: '{"query":"CISC"}' } },
+          {
+            id: "p1",
+            function: {
+              name: PRESENT_RESPONSE_TOOL_NAME,
+              arguments: '{"catalog":{"mode":"browse","resultSetId":"s1"}}',
+            },
+          },
           { id: "t1", function: { name: PREVIEW_TIMETABLE_TOOL_NAME, arguments: "{}" } },
         ],
       },

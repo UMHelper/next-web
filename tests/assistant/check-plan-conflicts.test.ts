@@ -11,6 +11,7 @@ import { timetableVersion } from "@/lib/timetable/analysis";
 import { McpToolError } from "@/lib/mcp/errors";
 import type { GetCourseSectionsOutput } from "@/lib/mcp/schemas";
 import { FIXTURE_CATALOG_SECTIONS, FIXTURE_PLAN } from "@/tests/fixtures/timetable-plan";
+import { normalizePlanSection } from "@/lib/timetable/schema";
 
 const fixtureLookup = (code: string, instructor: string): GetCourseSectionsOutput | undefined =>
   FIXTURE_CATALOG_SECTIONS.find(
@@ -56,6 +57,69 @@ describe("runCheckPlanConflicts", () => {
     ).resolves.toMatchObject({ status: "checked", sectionListComplete: false });
   });
 
+  it("reports confirmed_clash when CISC1001-001 overlaps GEGA1000-007 on Monday and Thursday", async () => {
+    const planSections = [
+      normalizePlanSection({
+        courseCode: "GEGA1000",
+        prof: "CHAN",
+        section: "007",
+        schedules: [
+          { date: "MON", time: "14:30-15:45", location: "E11" },
+          { date: "THU", time: "14:30-15:45", location: "E11" },
+        ],
+      }),
+      normalizePlanSection({
+        courseCode: "GEST1016",
+        prof: "WONG",
+        section: "001",
+        schedules: [{ date: "TUE", time: "10:00-11:15", location: "E21" }],
+      }),
+      normalizePlanSection({
+        courseCode: "CISC1004",
+        prof: "LAM",
+        section: "001",
+        schedules: [{ date: "FRI", time: "09:00-10:15", location: "E22" }],
+      }),
+    ];
+    const ciscSections = {
+      courseCode: "CISC1001",
+      instructor: "LEE KA CHUN",
+      courseUrl: "https://umeh.top/course/CISC1001",
+      sectionDataComplete: true,
+      sections: [
+        {
+          section: "001",
+          courseUrl: "https://umeh.top/course/CISC1001",
+          schedules: [
+            { weekday: "MON", startTime: "14:30", endTime: "15:45", location: "E11" },
+            { weekday: "THU", startTime: "14:30", endTime: "15:45", location: "E11" },
+            { weekday: "WED", startTime: "08:30", endTime: "09:45", location: "E11" },
+          ],
+        },
+      ],
+    };
+    const result = await runCheckPlanConflicts(
+      readyState(planSections),
+      { code: "CISC1001", instructor: "LEE KA CHUN", section: "001" },
+      deps({
+        loadSections: async () => ciscSections,
+      }),
+    );
+    expect(result).toMatchObject({
+      status: "checked",
+      sections: [
+        {
+          section: "001",
+          fit: "confirmed_clash",
+          conflicts: [
+            { with: "GEGA1000-007", day: "MON", overlap: "14:30-15:45" },
+            { with: "GEGA1000-007", day: "THU", overlap: "14:30-15:45" },
+          ],
+        },
+      ],
+    });
+  });
+
   it("checks a named section and reports the overlap", async () => {
     const result = await runCheckPlanConflicts(
       readyState(),
@@ -72,6 +136,7 @@ describe("runCheckPlanConflicts", () => {
           section: "001",
           replaces: "MATH1010-002",
           complete: true,
+          fit: "confirmed_clash",
           conflicts: [{ with: "CISC3014-001", day: "MON", overlap: "10:00-10:15" }],
         },
       ],
@@ -86,7 +151,7 @@ describe("runCheckPlanConflicts", () => {
     );
     expect(result).toMatchObject({
       status: "checked",
-      sections: [{ section: "002", conflicts: [], complete: true }],
+      sections: [{ section: "002", conflicts: [], complete: true, fit: "verified_no_clash" }],
     });
   });
 
@@ -115,6 +180,7 @@ describe("runCheckPlanConflicts", () => {
           complete: false,
           meetings: ["SAT 09:00-12:00 E22-3001"],
           conflicts: [],
+          fit: "incomplete",
         },
       ],
     });
@@ -136,7 +202,7 @@ describe("runCheckPlanConflicts", () => {
     );
     expect(result).toMatchObject({
       status: "checked",
-      sections: [{ section: "001", complete: false, meetings: [], conflicts: [] }],
+      sections: [{ section: "001", complete: false, meetings: [], conflicts: [], fit: "incomplete" }],
     });
   });
 

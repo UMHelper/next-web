@@ -302,6 +302,7 @@ vi.mock("@/components/timetable/planner-provider", async () => {
   };
 });
 
+import { browsePresentAfterSearch } from "@/tests/assistant/integration-catalog-present";
 import * as route from "@/app/api/copilotkit/[[...slug]]/route";
 import AssistantPanel from "@/components/assistant/assistant-panel";
 import { CATALOG_RESULTS_CONTEXT_DESCRIPTION } from "@/lib/assistant/catalog-result-sets";
@@ -477,7 +478,10 @@ function v235Brain(call: ModelCall): Step {
     if (/Is this course hard/i.test(call.lastUser)) {
       return { text: "Ratings suggest moderate difficulty overall." };
     }
-    if (/Find GEST and GELH courses/i.test(call.lastUser)) {
+    if (call.lastTool.name === "search_catalog" && /Find GEST and GELH courses/i.test(call.lastUser)) {
+      return browsePresentAfterSearch(searchCallCount);
+    }
+    if (call.lastTool.name === "present_response" && /Find GEST and GELH courses/i.test(call.lastUser)) {
       return { text: "I found GELH courses, but the GEST search failed just now." };
     }
     if (/What do students say about workload for CHAN TAI MAN/i.test(call.lastUser)) {
@@ -697,7 +701,7 @@ describe("assistant V2.3.5-A integration (real tools, scripted model)", () => {
 
     await typeAndSend("What is GELH1000?");
     expect(screen.queryByRole("article", { name: "GELH1000" })).toBeNull();
-    expect(screen.getByRole("button", { name: "Show GELH1000 details" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Show GELH1000 details" })).toBeNull();
 
     await typeAndSend("I'm considering taking it.");
     await waitFor(() => expect(screen.getByRole("article", { name: "GELH1000" })).toBeTruthy(), { timeout: 10000 });
@@ -778,8 +782,8 @@ describe("assistant V2.3.5-A integration (real tools, scripted model)", () => {
     await mountAssistant();
     await typeAndSend("Compare GELH1000 and GEST1004.");
     expect(screen.getByText(/GELH1000 is humanities/i)).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Show GELH1000 details" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Show GEST1004 details" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Show GELH1000 details" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Show GEST1004 details" })).toBeNull();
     expect(screen.queryByRole("article", { name: "GELH1000" })).toBeNull();
     expect(screen.queryByRole("article", { name: "GEST1004" })).toBeNull();
     const turnResults = runs().at(-1)!.modelCalls.flatMap((call) => call.toolResults);
@@ -851,10 +855,13 @@ describe("assistant V2.3.5-A integration (real tools, scripted model)", () => {
   it("J5 partial failure: a failed search and a populated search stay distinct", async () => {
     await mountAssistant();
     await typeAndSend("Find GEST and GELH courses.");
-    await waitFor(() => expect(screen.getByRole("alert").textContent).toContain("The catalog is temporarily unavailable."), {
-      timeout: 10000,
-    });
-    expect(screen.getByRole("link", { name: /GELH1000/ })).toBeTruthy();
+    await waitFor(
+      () => {
+        expect(screen.getByRole("link", { name: /GELH1000/ })).toBeTruthy();
+        expect(screen.getByRole("link", { name: /GELH1001/ })).toBeTruthy();
+      },
+      { timeout: 10000 },
+    );
     expect(screen.getByRole("link", { name: /GELH1001/ })).toBeTruthy();
     const toolResults = runs().at(-1)!.modelCalls.flatMap((call) => call.toolResults);
     expect(toolResults.some((out) => out.includes('"error":"temporarily_unavailable"'))).toBe(true);

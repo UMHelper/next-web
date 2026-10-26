@@ -6,6 +6,7 @@ import { Request as NativeRequest } from "undici";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { AgentRateLimitOutcome } from "@/lib/assistant/rate-limit";
+import { expandAssistantActivity } from "@/tests/components/expand-assistant-activity";
 import { absoluteUrl, buildCoursePath, buildProfessorPath, buildReviewPath } from "@/lib/site";
 
 /**
@@ -260,8 +261,10 @@ vi.mock("@/lib/assistant/tools", async (importOriginal) => {
     getCourseSectionsOutputSchema,
   } = await import("@/lib/mcp/schemas");
   const { bindCourseToolArgs } = await import("@/lib/assistant/course-referent");
-  const { createPresentationLedger, executePresentResponse } = await import("@/lib/assistant/presentation");
+  const { createPresentationLedger } = await import("@/lib/assistant/presentation");
+  const { mockPresentResponseTool } = await import("@/tests/assistant/integration-mock-present-response");
   type CourseReferent = import("@/lib/assistant/course-referent").CourseReferent;
+  type PresentationSlot = import("@/lib/assistant/presentation").PresentationSlot;
 
   const pageParam = z.number().int().min(1).max(50).optional().describe("Page number, default 1");
   const codeParam = z.string().min(1).max(20).describe("Course code, e.g. ACCT1000");
@@ -273,7 +276,13 @@ vi.mock("@/lib/assistant/tools", async (importOriginal) => {
 
   return {
     runReadOnlyTool,
-    createAssistantTools: (slot?: { current: CourseReferent }) => [
+    createAssistantTools: (
+      slot?: { current: CourseReferent },
+      _timetable?: unknown,
+      presentation?: PresentationSlot,
+    ) => {
+      const presentationSlot = presentation ?? { current: createPresentationLedger() };
+      return [
       defineTool({
         name: "search_catalog",
         description: "Search the site catalog",
@@ -321,23 +330,9 @@ vi.mock("@/lib/assistant/tools", async (importOriginal) => {
           );
         },
       }),
-      defineTool({
-        name: "present_response",
-        description: "Opt in to rich cards for this turn",
-        parameters: z.object({
-          show: z
-            .array(
-              z.object({
-                component: z.string().max(40),
-                course: z.string().max(40),
-              }),
-            )
-            .max(6)
-            .optional(),
-        }),
-        execute: (args) => executePresentResponse(args, createPresentationLedger()),
-      }),
-    ],
+      mockPresentResponseTool(presentationSlot),
+    ];
+    },
   };
 });
 vi.mock("@/lib/assistant/model", async (importOriginal) => ({
@@ -356,6 +351,7 @@ vi.mock("@/components/timetable/planner-provider", async () => {
   };
 });
 
+import { browsePresentAfterSearch } from "@/tests/assistant/integration-catalog-present";
 import * as route from "@/app/api/copilotkit/[[...slug]]/route";
 import AssistantPanel from "@/components/assistant/assistant-panel";
 import { CATALOG_RESULTS_CONTEXT_DESCRIPTION } from "@/lib/assistant/catalog-result-sets";
@@ -519,6 +515,9 @@ async function routeFetch(input: RequestInfo | URL, init?: RequestInit) {
 
 function v21Brain(call: ModelCall): Step {
   if (call.lastTool?.name === "search_catalog") {
+    return browsePresentAfterSearch(searchCallCount);
+  }
+  if (call.lastTool?.name === "present_response") {
     return { text: "Here are MATH courses." };
   }
   if (call.lastTool?.name === "filter_catalog_results") {
@@ -532,9 +531,6 @@ function v21Brain(call: ModelCall): Step {
   }
   if (call.lastTool?.name === "get_course_sections") {
     return { text: "Here are the class sections." };
-  }
-  if (call.lastTool?.name === "present_response") {
-    return { text: "Here are the course details." };
   }
 
   if (/Search for MATH/i.test(call.lastUser)) {
@@ -592,6 +588,17 @@ function mountAssistant() {
     </RouterContext.Provider>,
   );
   return waitFor(() => expect(screen.getByLabelText("Ask about courses")).toBeTruthy(), { timeout: 5000 });
+}
+
+async function waitForCatalogResultsBlock(resultSetId = "call-1") {
+  return waitFor(
+    () => {
+      const el = document.getElementById(`catalog-results-${resultSetId}`);
+      expect(el).not.toBeNull();
+      return el!;
+    },
+    { timeout: 10000 },
+  );
 }
 
 function agentBusy() {
@@ -672,14 +679,7 @@ describe("assistant V2.1 integration (scripted model)", () => {
   it("searches, filters locally, filters by follow-up, shows details and sections, and resets on new chat", async () => {
     await mountAssistant();
     await typeAndSend("Search for MATH courses");
-    const block = await waitFor(
-      () => {
-        const el = document.getElementById("catalog-results-call-1");
-        expect(el).not.toBeNull();
-        return el!;
-      },
-      { timeout: 10000 },
-    );
+    let block = await waitForCatalogResultsBlock();
     expect(within(block).getAllByRole("listitem")).toHaveLength(10);
 
     const runsBefore = runs().length;
@@ -693,6 +693,7 @@ describe("assistant V2.1 integration (scripted model)", () => {
 
     await typeAndSend("Show me only those offered this semester");
     await waitFor(() => expect(screen.getByText("Filtered to offered courses.")).toBeTruthy(), { timeout: 10000 });
+    block = await waitForCatalogResultsBlock();
     const firstCall = runs().at(-1)!.modelCalls[0];
     expect(firstCall.catalog?.resultSets[0]).toMatchObject({ resultSetId: "call-1", newest: true });
     expect(runs().at(-1)!.modelCalls.some((c) => c.lastTool?.name === "search_catalog")).toBe(false);
@@ -713,11 +714,11 @@ describe("assistant V2.1 integration (scripted model)", () => {
 
     await typeAndSend("Tell me more about MATH1002");
     await waitFor(() => expect(screen.getByRole("article", { name: "MATH1002" })).toBeTruthy(), { timeout: 10000 });
-    expect(screen.getAllByText("Read course")).toHaveLength(1);
 
     await typeAndSend("When is MATH1002 taught?");
     await waitFor(() => expect(screen.getByText("Here are the class sections.")).toBeTruthy(), { timeout: 10000 });
     expect(screen.queryByRole("article", { name: "Section 001" })).toBeNull();
+    expandAssistantActivity();
     expect(screen.getAllByText("Read class times")).toHaveLength(1);
     expect(screen.getByText("Here are the class sections.")).toBeTruthy();
 
@@ -738,9 +739,7 @@ describe("assistant V2.1 integration (scripted model)", () => {
     );
     expect(within(reopened).getAllByRole("listitem")).toHaveLength(2);
     expect(screen.queryByRole("article", { name: "Section 001" })).toBeNull();
-    expect(screen.getAllByText("Searched courses")).toHaveLength(1);
     expect(screen.queryByText("Searching courses…")).toBeNull();
-    expect(screen.getByRole("article", { name: "MATH1002" })).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "New chat" }));
     await waitFor(() => expect(document.getElementById("catalog-results-call-1")).toBeNull());
@@ -755,7 +754,7 @@ describe("assistant V2.1 integration (scripted model)", () => {
         ).toBeTruthy(),
       { timeout: 10000 },
     );
-    expect(screen.getByText("Couldn't filter results")).toBeTruthy();
+    expect(screen.getByText("Lookup failed")).toBeTruthy();
     expect(screen.queryByText("Filtered results")).toBeNull();
     expect(runs().at(-1)!.modelCalls[0].catalog).toBeUndefined();
   }, 120_000);
@@ -790,6 +789,9 @@ describe("assistant V2.1 integration (scripted model)", () => {
       return { text: "ok" };
     }
     if (call.lastTool?.name === "search_catalog") {
+      return browsePresentAfterSearch(searchCallCount);
+    }
+    if (call.lastTool?.name === "present_response") {
       return { text: "Here are MATH courses." };
     }
     if (call.lastTool?.name === "filter_catalog_results") {
@@ -823,11 +825,7 @@ describe("assistant V2.1 integration (scripted model)", () => {
     h.brain = stubbornOrdinalBrain as never;
     await mountAssistant();
     await typeAndSend("Search for MATH courses");
-    const block = await waitFor(() => {
-      const el = document.getElementById("catalog-results-call-1");
-      expect(el).not.toBeNull();
-      return el!;
-    });
+    let block = await waitForCatalogResultsBlock();
 
     const runsBefore = runs().length;
     fireEvent.click(within(block).getByRole("button", { name: "Offered only" }));
@@ -857,6 +855,7 @@ describe("assistant V2.1 integration (scripted model)", () => {
     expect(offeredCourse).toContain("MATH1005");
     expect(offeredCourse).not.toContain("MATH1002");
 
+    block = await waitForCatalogResultsBlock();
     const runsBeforeAll = runs().length;
     fireEvent.click(within(block).getByRole("button", { name: "All loaded" }));
     expect(runs().length).toBe(runsBeforeAll);

@@ -1,4 +1,5 @@
 import { GET_COURSE_TOOL_NAME, parseCourseDetailResult } from "@/lib/assistant/course-detail-ui";
+import { activeRecommendationCourses, type ToolCallLike } from "@/lib/assistant/presentation";
 import { SEARCH_CATALOG_TOOL_NAME } from "@/lib/assistant/search-catalog-ui";
 
 export const DISCUSSED_COURSES_CONTEXT_DESCRIPTION =
@@ -131,6 +132,41 @@ function buildTurnOrder(userText: string, validatedInCallOrder: string[]): strin
   return validatedInCallOrder.slice(0, 3);
 }
 
+function recommendationOrderForLatestTurn(
+  messages: readonly DiscussedMessage[],
+  startIndex: number,
+  endIndex: number,
+): string[] {
+  const byId = new Map<string, ToolCallLike>();
+  const order: string[] = [];
+  const results = new Map<string, { content?: unknown }>();
+
+  for (let index = startIndex + 1; index < endIndex; index += 1) {
+    const message = messages[index];
+    if (message?.role === "tool" && typeof message.toolCallId === "string") {
+      results.set(message.toolCallId, { content: message.content });
+    }
+    if (message?.role !== "assistant" || !message.toolCalls?.length) continue;
+    for (const toolCall of message.toolCalls) {
+      const id = toolCall.id;
+      const name = toolCall.function?.name;
+      const argumentsJson = toolCall.function?.arguments;
+      if (typeof id !== "string" || typeof name !== "string") continue;
+      if (!byId.has(id)) order.push(id);
+      byId.set(id, {
+        id,
+        function: {
+          name,
+          arguments: typeof argumentsJson === "string" ? argumentsJson : "{}",
+        },
+      });
+    }
+  }
+
+  const calls = order.map((id) => byId.get(id)!);
+  return activeRecommendationCourses(calls, results);
+}
+
 export function summarizeDiscussedCourses(messages: readonly DiscussedMessage[]): string {
   const userIndices = userMessageIndices(messages);
   const lastCatalogIndex = lastSearchCatalogIndex(messages);
@@ -154,11 +190,22 @@ export function summarizeDiscussedCourses(messages: readonly DiscussedMessage[])
   }
 
   let active: DiscussedCoursesPayload["active"] = null;
-  if (turns.length > 0) {
-    const newest = turns[0];
-    const newestUserIndex = Number.parseInt(newest.id.slice("turn-".length), 10);
-    if (newestUserIndex > lastCatalogIndex) {
-      active = { id: newest.id, order: newest.order, newerThanCatalog: true };
+  if (userIndices.length > 0) {
+    const latestStart = userIndices[userIndices.length - 1]!;
+    const latestEnd = messages.length;
+    const recommendationOrder = recommendationOrderForLatestTurn(messages, latestStart, latestEnd);
+    if (recommendationOrder.length > 0) {
+      active = {
+        id: `rec-${latestStart}`,
+        order: recommendationOrder.slice(0, 5),
+        newerThanCatalog: true,
+      };
+    } else if (turns.length > 0) {
+      const newest = turns[0];
+      const newestUserIndex = Number.parseInt(newest.id.slice("turn-".length), 10);
+      if (newestUserIndex > lastCatalogIndex) {
+        active = { id: newest.id, order: newest.order, newerThanCatalog: true };
+      }
     }
   }
 

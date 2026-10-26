@@ -52,32 +52,36 @@ describe("assistant server tools", () => {
 
   it("describes present_response as a receipt-backed card request", () => {
     const tool = createAssistantTools().find((entry) => entry.name === "present_response");
-    expect(tool?.description).toContain("receipt reports for each item");
-    expect(tool?.description).toContain("missing_lookup");
-    expect(tool?.description).toContain("lookup_failed");
+    expect(tool?.description).toContain("receipt reports readiness");
+    expect(tool?.description).toContain("catalog browse");
+    expect(tool?.description).toContain("recommendations");
   });
 
   it("rejects present_response show lists longer than MAX_PRESENT_SHOW_ITEMS at the schema", () => {
     const tool = createAssistantTools().find((entry) => entry.name === "present_response");
     expect(tool?.parameters).toBeInstanceOf(z.ZodType);
     const schema = tool!.parameters as z.ZodType;
-    const four = {
+    const six = {
       show: [
         { component: "course_detail", course: "CISC2001" },
         { component: "course_detail", course: "CISC2002" },
         { component: "course_detail", course: "CISC2003" },
         { component: "course_detail", course: "CISC2004" },
+        { component: "course_detail", course: "CISC2005" },
+        { component: "course_detail", course: "CISC2006" },
       ],
     };
-    expect(schema!.safeParse(four).success).toBe(false);
-    const three = {
+    expect(schema!.safeParse(six).success).toBe(false);
+    const five = {
       show: [
         { component: "course_detail", course: "CISC2001" },
         { component: "course_detail", course: "CISC2002" },
         { component: "course_detail", course: "CISC2003" },
+        { component: "course_detail", course: "CISC2004" },
+        { component: "course_detail", course: "CISC2005" },
       ],
     };
-    expect(schema!.safeParse(three).success).toBe(true);
+    expect(schema!.safeParse(five).success).toBe(true);
   });
 
   it("validates present_response without reading academic data", async () => {
@@ -495,7 +499,7 @@ describe("tool descriptions carry moved procedures", () => {
 
   it("present_response", () => {
     const text = description("present_response");
-    expect(text).toContain("missing_lookup");
+    expect(text).toContain("catalog browse");
     expect(text).not.toContain("Default: omit");
   });
 

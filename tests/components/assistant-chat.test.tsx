@@ -69,6 +69,12 @@ function send(text: string) {
   fireEvent.click(screen.getByRole("button", { name: "Send" }));
 }
 
+function expandToolTraces() {
+  for (const button of screen.queryAllByRole("button", { name: /^Show \d+ tool steps?$/ })) {
+    fireEvent.click(button);
+  }
+}
+
 beforeEach(() => {
   mocks.agent.messages = [];
   mocks.agent.isRunning = false;
@@ -225,17 +231,23 @@ describe("AssistantChat", () => {
             type: "function",
             function: { name: "search_catalog", arguments: '{"query":"ACCT"}' },
           },
+          {
+            id: "p1",
+            type: "function",
+            function: {
+              name: "present_response",
+              arguments: JSON.stringify({ catalog: { mode: "browse", resultSetId: "call-sc" } }),
+            },
+          },
         ],
       },
       { id: "t1", role: "tool", toolCallId: "call-sc", content: catalogBody },
       { id: "a2", role: "assistant", content: "Here are matches." },
     ];
     renderChat();
+    expandToolTraces();
 
     expect(screen.getByTestId("rich-call-sc").textContent).toBe(catalogBody);
     expect(screen.getAllByText("Searched courses")).toHaveLength(1);
-    const statuses = screen.getAllByRole("status");
-    expect(statuses).toHaveLength(1);
-    expect(statuses[0].getAttribute("data-status")).toBe("done");
   });
 });

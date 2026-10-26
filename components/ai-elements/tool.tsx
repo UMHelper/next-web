@@ -1,10 +1,16 @@
+"use client";
+
 import {
   AlertCircle,
   Check,
+  ChevronRight,
   Clock,
   Loader2,
   type LucideIcon,
 } from "lucide-react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+
+import type { ConversationScrollTogglePreserver } from "@/components/ai-elements/conversation";
 
 import type { ToolCall, ToolMessage } from "@copilotkit/react-core/v2";
 
@@ -26,22 +32,6 @@ const TOOL_LABELS: Record<string, { running: string; done: string }> = {
   filter_catalog_results: { running: "Filtering results", done: "Filtered results" },
   present_response: { running: "Choosing a layout", done: "Chose a layout" },
 };
-
-const TOOL_FAILED: Record<string, string> = {
-  search_catalog: "Couldn't search courses",
-  get_course: "Couldn't read course",
-  get_instructor: "Couldn't read instructor",
-  get_course_reviews: "Couldn't read reviews",
-  get_course_sections: "Couldn't read class times",
-  check_plan_conflicts: "Couldn't check timetable",
-  preview_timetable: "Couldn't build timetable preview",
-  filter_catalog_results: "Couldn't filter results",
-  present_response: "Couldn't choose a layout",
-};
-
-function failedLabel(name: string) {
-  return TOOL_FAILED[name] ?? "Lookup failed";
-}
 
 function toolLabel(name: string) {
   return TOOL_LABELS[name] ?? { running: `Using ${name}`, done: `Used ${name}` };
@@ -67,16 +57,41 @@ const STATUS_ICON: Record<ToolActivityStatus, LucideIcon> = {
   pending: Clock,
 };
 
+export function traceSummaryLabel(
+  rows: ToolCall[],
+  results: Map<string, ToolMessage>,
+  isRunning: boolean,
+): string {
+  if (isRunning) {
+    for (const call of rows) {
+      const status = toolActivityStatus(
+        call.function.name,
+        results.get(call.id),
+        isRunning,
+      );
+      if (status === "running") {
+        return `${toolLabel(call.function.name).running}…`;
+      }
+    }
+    return "Working…";
+  }
+  const n = rows.length;
+  return n === 1 ? "1 step" : `${n} steps`;
+}
+
+export function traceToggleAriaLabel(expanded: boolean, stepCount: number): string {
+  if (expanded) return "Hide tool steps";
+  return stepCount === 1 ? "Show 1 tool step" : `Show ${stepCount} tool steps`;
+}
+
 export function ToolRow({
   call,
   result,
   isRunning,
-  announce = false,
 }: {
   call: ToolCall;
   result: ToolMessage | undefined;
   isRunning: boolean;
-  announce?: boolean;
 }) {
   const status = toolActivityStatus(call.function.name, result, isRunning);
   const Icon = STATUS_ICON[status];
@@ -86,17 +101,13 @@ export function ToolRow({
     status === "running"
       ? `${label.running}…`
       : status === "error"
-        ? failedLabel(call.function.name)
+        ? "Lookup failed"
         : status === "pending"
           ? "Not completed"
           : label.done;
 
   return (
-    <div
-      role={announce ? "status" : undefined}
-      data-status={status}
-      className="flex min-w-0 max-w-full items-center gap-2 overflow-hidden text-xs"
-    >
+    <div data-status={status} className="flex min-w-0 items-center gap-2 text-xs">
       <span
         className={cn(
           "flex h-4 w-4 shrink-0 items-center justify-center",
@@ -108,7 +119,7 @@ export function ToolRow({
         )}
       >
         <Icon
-          className={cn("h-3.5 w-3.5", status === "running" && "motion-safe:animate-spin")}
+          className={cn("h-3.5 w-3.5", status === "running" && "animate-spin")}
           aria-hidden
         />
       </span>
@@ -121,7 +132,7 @@ export function ToolRow({
         {text}
       </span>
       {detail ? (
-        <span className="min-w-0 truncate text-xs text-muted-foreground">· {detail}</span>
+        <span className="min-w-0 truncate text-xs text-muted-foreground">{detail}</span>
       ) : null}
     </div>
   );
@@ -168,29 +179,93 @@ export function dedupeCalls(
   });
 }
 
+function traceShowsRunningSpinner(
+  rows: ToolCall[],
+  results: Map<string, ToolMessage>,
+  isRunning: boolean,
+): boolean {
+  if (!isRunning) return false;
+  return rows.some(
+    (call) =>
+      toolActivityStatus(call.function.name, results.get(call.id), isRunning) ===
+      "running",
+  );
+}
+
 export function ToolTrace({
   calls,
   results,
   isRunning,
+  scrollTogglePreserver,
 }: {
   calls: ToolCall[];
   results: Map<string, ToolMessage>;
   isRunning: boolean;
+  scrollTogglePreserver?: ConversationScrollTogglePreserver;
 }) {
   const rows = dedupeCalls(calls, results);
+  const listId = useId();
+  const [expanded, setExpanded] = useState(isRunning);
+  const manualToggleRef = useRef(false);
+
+  useEffect(() => {
+    setExpanded(isRunning);
+  }, [isRunning]);
+
+  useLayoutEffect(() => {
+    if (!manualToggleRef.current) return;
+    manualToggleRef.current = false;
+    scrollTogglePreserver?.apply();
+  }, [expanded, scrollTogglePreserver]);
+
   if (rows.length === 0) return null;
 
+  const summary = expanded
+    ? rows.length === 1
+      ? "1 step"
+      : `${rows.length} steps`
+    : traceSummaryLabel(rows, results, isRunning);
+  const showSpinner = !expanded && traceShowsRunningSpinner(rows, results, isRunning);
+
   return (
-    <div className="flex flex-col gap-1.5" aria-live="polite">
-      {rows.map((call) => (
-        <ToolRow
-          key={call.id}
-          call={call}
-          result={results.get(call.id)}
-          isRunning={isRunning}
-          announce
-        />
-      ))}
+    <div className="flex flex-col gap-1.5">
+      <button
+        type="button"
+        className="inline-flex min-h-7 max-w-full items-center gap-1.5 rounded-md py-0.5 text-left text-xs text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        aria-expanded={expanded}
+        aria-controls={listId}
+        aria-label={traceToggleAriaLabel(expanded, rows.length)}
+        onClick={() => {
+          manualToggleRef.current = true;
+          scrollTogglePreserver?.lock();
+          setExpanded((open) => !open);
+        }}
+      >
+        {showSpinner ? (
+          <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-brand" aria-hidden />
+        ) : (
+          <ChevronRight
+            className={cn(
+              "h-3.5 w-3.5 shrink-0 transition-transform duration-200",
+              expanded && "rotate-90",
+            )}
+            aria-hidden
+          />
+        )}
+        <span className="min-w-0 truncate font-medium">{summary}</span>
+      </button>
+      {expanded ? (
+        <div id={listId} className="flex flex-col gap-1.5 pl-5" aria-live="polite">
+          {rows.map((call) => (
+            <ToolRow
+              key={call.id}
+              call={call}
+              result={results.get(call.id)}
+              isRunning={isRunning}
+            />
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -1,3 +1,5 @@
+import { DEFAULT_HISTORY_TURNS } from "@/lib/assistant/run-messages";
+
 export type ThinkingMode = "off" | "low";
 
 export type AssistantConfig = {
@@ -31,6 +33,6 @@ export function readAssistantConfig(
     ratePerHour: positiveInt(env.AGENT_RATE_LIMIT_PER_HOUR, 30),
     ratePerDay: positiveInt(env.AGENT_RATE_LIMIT_PER_DAY, 80),
     maxTurns: positiveInt(env.AGENT_MAX_TURNS_PER_CONVERSATION, 30),
-    historyTurns: positiveInt(env.AGENT_HISTORY_TURNS, 8),
+    historyTurns: positiveInt(env.AGENT_HISTORY_TURNS, DEFAULT_HISTORY_TURNS),
   };
 }

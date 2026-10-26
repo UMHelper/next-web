@@ -4,7 +4,12 @@ import {
   GET_COURSE_SECTIONS_TOOL_NAME,
   parseCourseSectionsResult,
 } from "@/lib/assistant/course-sections-ui";
-import { planRichBlocks, type ToolCallLike } from "@/lib/assistant/presentation";
+import { collectCatalogSearchSnapshots, visibleMountedCatalogCallIds } from "@/lib/assistant/catalog-research";
+import {
+  planRichBlocks,
+  turnHasHiddenCatalogResearch,
+  type ToolCallLike,
+} from "@/lib/assistant/presentation";
 import { ALWAYS_RICH_TOOL_NAMES } from "@/lib/assistant/rich-tools";
 import { parseSearchCatalogResult, SEARCH_CATALOG_TOOL_NAME } from "@/lib/assistant/search-catalog-ui";
 import {
@@ -21,6 +26,8 @@ export type VisibleBlock =
   | { kind: "course_detail"; course: string }
   | { kind: "course_sections"; course: string; instructor: string; sectionCount: number }
   | { kind: "course_list" | "instructor_list"; count: number }
+  | { kind: "recommendations"; courses: string[] }
+  | { kind: "research_summary"; searchCount: number }
   | { kind: "timetable_preview"; preview: "saved" | "hypothetical" };
 
 export type VisibleBlocksPayload = {
@@ -181,6 +188,10 @@ function blocksForTurn(
 
   const blocks: VisibleBlock[] = [];
   for (const block of planned) {
+    if (block.kind === "recommendations") {
+      blocks.push({ kind: "recommendations", courses: [...block.courses] });
+      continue;
+    }
     const call = callById.get(block.callId);
     if (!call) continue;
     const rawContent = results.get(block.callId)?.content;
@@ -190,8 +201,18 @@ function blocksForTurn(
       blocks.push(visible);
     }
   }
+
+  if (turnHasHiddenCatalogResearch(calls, results, false)) {
+    const searchCount = collectCatalogSearchSnapshots(calls, results).length;
+    if (searchCount > 0) {
+      blocks.push({ kind: "research_summary", searchCount });
+    }
+  }
+
   return blocks;
 }
+
+export { visibleMountedCatalogCallIds };
 
 export function summarizeVisibleBlocks(messages: readonly DiscussedMessage[]): string {
   const userIndices = userMessageIndices(messages);

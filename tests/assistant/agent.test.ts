@@ -37,6 +37,7 @@ import { plannerState } from "@/tests/helpers/planner-state";
 import { PAGE_CONTEXT_DESCRIPTION } from "@/lib/assistant/page-context";
 import { ASSISTANT_PROMPT } from "@/lib/assistant/prompt";
 import { TIMETABLE_PREVIEWS_CONTEXT_DESCRIPTION } from "@/lib/assistant/timetable-previews";
+import { CONFLICT_VERIFICATION_CONTEXT_DESCRIPTION } from "@/lib/assistant/conflict-verification";
 import { TIMETABLE_SCENARIO_DESCRIPTION } from "@/lib/assistant/timetable-scenario";
 import { PREVIEW_TIMETABLE_TOOL_NAME } from "@/lib/assistant/timetable-preview";
 
@@ -232,8 +233,9 @@ describe("createAssistantAgent", () => {
     const secondReferent = second.context.find((entry) => entry.description === COURSE_REFERENT_DESCRIPTION);
     expect(JSON.parse(firstReferent!.value)).toEqual({ kind: "page", courseCode: "CISC3014" });
     expect(JSON.parse(secondReferent!.value)).toEqual({ kind: "page", courseCode: "APAC2000" });
-    expect(first.context.at(-1)?.description).toBe(TIMETABLE_SCENARIO_DESCRIPTION);
-    expect(first.context.at(-2)?.description).toBe(COURSE_REFERENT_DESCRIPTION);
+    expect(first.context.at(-1)?.description).toBe(CONFLICT_VERIFICATION_CONTEXT_DESCRIPTION);
+    expect(first.context.at(-2)?.description).toBe(TIMETABLE_SCENARIO_DESCRIPTION);
+    expect(first.context.at(-3)?.description).toBe(COURSE_REFERENT_DESCRIPTION);
   });
 
   it("replaces the timetable context with the digest and fills the slot", () => {

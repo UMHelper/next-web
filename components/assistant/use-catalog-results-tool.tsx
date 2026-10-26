@@ -1,7 +1,8 @@
 "use client";
 
-import { useAgent, useAgentContext, useFrontendTool } from "@copilotkit/react-core/v2";
+import { useAgent, useAgentContext, useFrontendTool, useRenderTool } from "@copilotkit/react-core/v2";
 import { useMemo, useRef } from "react";
+import { z } from "zod";
 
 import {
   catalogResultsElementId,
@@ -9,7 +10,8 @@ import {
 } from "@/components/assistant/catalog-filter-store";
 import {
   CATALOG_RESULTS_CONTEXT_DESCRIPTION,
-  collectCatalogResultSets,
+  collectVisibleCatalogResultSets,
+  countCatalogSearches,
   describeFilterScope,
   FILTER_CATALOG_RESULTS_DESCRIPTION,
   FILTER_CATALOG_RESULTS_TOOL_NAME,
@@ -90,14 +92,15 @@ export function useCatalogResultsTool(): void {
   const storeRef = useRef(store);
   storeRef.current = store;
 
-  const contextValue = useMemo(
-    () =>
-      summarizeCatalogResultSets(
-        collectCatalogResultSets(agent?.messages ?? []),
-        store?.filters ?? {},
-      ),
-    [agent?.messages, store?.filters],
-  );
+  const contextValue = useMemo(() => {
+    const messages = agent?.messages ?? [];
+    const visibleSets = collectVisibleCatalogResultSets(messages);
+    const hiddenSearchCount = Math.max(
+      0,
+      countCatalogSearches(messages) - new Set(visibleSets.map((set) => set.id)).size,
+    );
+    return summarizeCatalogResultSets(visibleSets, store?.filters ?? {}, hiddenSearchCount);
+  }, [agent?.messages, store?.filters]);
 
   useAgentContext({ description: CATALOG_RESULTS_CONTEXT_DESCRIPTION, value: contextValue });
 
@@ -112,10 +115,18 @@ export function useCatalogResultsTool(): void {
           ctx?.agent?.messages ?? [],
           storeRef.current?.setFilter ?? (() => {}),
         ),
+      followUp: true,
+    },
+    [],
+  );
+
+  useRenderTool(
+    {
+      name: FILTER_CATALOG_RESULTS_TOOL_NAME,
+      parameters: z.object({}).passthrough(),
       render: ({ status, result }) => (
         <CatalogFilterToolResult status={status} result={result} />
       ),
-      followUp: true,
     },
     [],
   );

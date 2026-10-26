@@ -253,7 +253,7 @@ export function createAssistantTools(
     defineTool({
       name: PRESENT_RESPONSE_TOOL_NAME,
       description:
-        "Ask the chat to display a rich card next to your reply, for course data you looked up in this turn: course_detail for a get_course result, course_sections for get_course_sections results. Use it when a card helps the student inspect or weigh up a course; skip it when a short text answer is enough, and for comparisons (use prose or a small table). Pass the course codes you used in the lookups. The receipt reports for each item whether it can be displayed (ready), has no matching lookup in this turn (missing_lookup), or its lookup failed (lookup_failed).",
+        "Choose what rich UI accompanies your reply; data tools alone never show cards or lists. course_detail and course_sections follow get_course / get_course_sections in this turn. catalog browse mounts one interactive list (optional resultSetId). recommendations mounts a compact shortlist and sets ordinal order when every code appears in this turn's search or get_course evidence. Use presentation when it helps the goal; omit it for concise factual answers. The receipt reports readiness; it is not proof the student saw anything.",
       parameters: z.object({
         show: z
           .array(
@@ -263,6 +263,17 @@ export function createAssistantTools(
             }),
           )
           .max(MAX_PRESENT_SHOW_ITEMS)
+          .optional(),
+        catalog: z
+          .object({
+            mode: z.enum(["browse", "hidden"]),
+            resultSetId: z.string().min(1).max(128).optional(),
+          })
+          .optional(),
+        recommendations: z
+          .object({
+            courses: z.array(z.string().max(40)).max(5),
+          })
           .optional(),
       }),
       execute: (args) => executePresentResponse(args, presentationSlot.current),

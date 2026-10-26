@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { useRenderTool } from "@copilotkit/react-core/v2";
 import { z } from "zod/v4";
 
@@ -47,6 +48,8 @@ const FAILURE_COPY: Record<
 
 const FILTER_BUTTON_CLASS =
   "inline-flex min-h-8 items-center rounded-md px-2.5 py-1.5 text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+
+export const CATALOG_INITIAL_VISIBLE_ROWS = 15;
 
 function formatCourseCount(count: number) {
   return count === 1 ? "1 course" : `${count} courses`;
@@ -105,7 +108,11 @@ function SearchCatalogCoursesResult({
   resultSetId?: string;
 }) {
   const [filter, setFilter] = useCatalogFilter(resultSetId);
+  const [showAllRows, setShowAllRows] = useState(false);
   const displayedCourses = applyCatalogFilter(view.courses, filter);
+  const visibleCourses = showAllRows
+    ? displayedCourses
+    : displayedCourses.slice(0, CATALOG_INITIAL_VISIBLE_ROWS);
   const summary = describeLoadedResultSummary({
     filter,
     shown: displayedCourses.length,
@@ -122,7 +129,7 @@ function SearchCatalogCoursesResult({
       <p className="text-xs text-muted-foreground">{summary}</p>
       {displayedCourses.length > 0 ? (
         <ol aria-label="Loaded courses" className="m-0 list-none overflow-x-hidden p-0">
-          {displayedCourses.map((course, index) => (
+          {visibleCourses.map((course, index) => (
             <CatalogCourseRow
               key={course.courseCode}
               course={course}
@@ -130,6 +137,15 @@ function SearchCatalogCoursesResult({
             />
           ))}
         </ol>
+      ) : null}
+      {!showAllRows && displayedCourses.length > CATALOG_INITIAL_VISIBLE_ROWS ? (
+        <button
+          type="button"
+          className="inline-flex min-h-8 items-center rounded-md border border-border bg-background px-2.5 py-1.5 text-xs text-foreground transition-colors hover:bg-surface-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          onClick={() => setShowAllRows(true)}
+        >
+          Show more loaded courses ({displayedCourses.length - CATALOG_INITIAL_VISIBLE_ROWS} more)
+        </button>
       ) : null}
     </div>
   );

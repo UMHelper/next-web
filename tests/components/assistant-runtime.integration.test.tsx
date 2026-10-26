@@ -5,6 +5,8 @@ import { Request as NativeRequest } from "undici";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { AgentRateLimitOutcome } from "@/lib/assistant/rate-limit";
+import type { RunMessage } from "@/lib/assistant/conversation";
+import { DEFAULT_HISTORY_TURNS, prepareRunMessages } from "@/lib/assistant/run-messages";
 
 /**
  * Drives the real AssistantPanel, CopilotKitProvider, /api/copilotkit route, CopilotRuntime and
@@ -382,6 +384,14 @@ describe("assistant runtime integration (scripted model)", () => {
     expect(core()).toBe(firstCore);
     expect(h.rateLimitCalls).toBe(5);
     expect(runs().map((run) => run.modelCalls.length)).toEqual([2, 1, 1, 2, 2]);
+
+    const agent = core().getAgent("default")!;
+    const agentMessages = agent.messages as RunMessage[];
+    const prepared = prepareRunMessages(agentMessages, DEFAULT_HISTORY_TURNS);
+    expect(prepared.length).toBeLessThanOrEqual(agentMessages.length);
+    expect(
+      runs().every((run) => run.body.messages.length <= agentMessages.length),
+    ).toBe(true);
   });
 
   it("uses the manually opened page for this course and keeps an explicit code", async () => {

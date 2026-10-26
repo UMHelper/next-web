@@ -15,9 +15,11 @@ import { useCallback, useEffect, useMemo, useRef, useState, type RefCallback } f
 
 import { describeAssistantError } from "@/lib/assistant/error-message";
 import { PANEL_WIDTH_DEFAULT } from "@/lib/assistant/panel-width";
+import { FILTER_CATALOG_RESULTS_TOOL_NAME } from "@/lib/assistant/catalog-tool-names";
 import { RICH_TOOL_NAMES } from "@/lib/assistant/rich-tools";
 
 import { useCatalogFilterStore } from "./catalog-filter-store";
+import { CatalogFilterToolResult } from "./use-catalog-results-tool";
 import { AssistantChatView, type ChatSuggestion } from "./assistant-chat-view";
 import { PANEL_WIDTH_VAR } from "./resize-handle";
 
@@ -56,8 +58,20 @@ export default function AssistantChat({
   const toolRenderer = useMemo(
     () => ({
       names: RICH_TOOL_NAMES,
-      render: (call: ToolCall, result: ToolMessage | undefined) =>
-        renderToolCall({ toolCall: call, toolMessage: result }),
+      render: (call: ToolCall, result: ToolMessage | undefined) => {
+        if (call.function.name === FILTER_CATALOG_RESULTS_TOOL_NAME) {
+          const raw = result?.content;
+          const resultText =
+            typeof raw === "string" ? raw : raw !== undefined ? JSON.stringify(raw) : undefined;
+          return (
+            <CatalogFilterToolResult
+              status={resultText ? "complete" : "executing"}
+              result={resultText}
+            />
+          );
+        }
+        return renderToolCall({ toolCall: call, toolMessage: result });
+      },
     }),
     [renderToolCall],
   );

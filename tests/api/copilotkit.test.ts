@@ -199,6 +199,7 @@ describe("/api/copilotkit", () => {
 
     const runs = log.mock.calls.filter(([label]) => label === "[assistant] run").map(([, json]) => JSON.parse(json));
     expect(runs.map((run) => run.continuation)).toEqual([false, true]);
+    expect(runs[0]).toMatchObject({ wireBytes: expect.any(Number), preparedBytes: expect.any(Number) });
     expect(JSON.stringify(log.mock.calls)).not.toContain("current question");
     log.mockRestore();
   });
@@ -219,11 +220,26 @@ describe("/api/copilotkit", () => {
     expect(mocks.consumeAgentRateLimits).not.toHaveBeenCalled();
   });
 
-  it("rejects bodies over 256 KB", async () => {
+  it("rejects prepared model input over 256 KB", async () => {
     const { POST } = await loadRoute();
     const huge = { id: "u", role: "user", content: "x".repeat(300 * 1024) };
     const response = await POST(post("/agent/default/run", runBody([huge])));
     expect(response.status).toBe(413);
+    await expect(response.json()).resolves.toEqual({
+      error: {
+        code: "payload_too_large",
+        message: "This message is too large for the assistant. Start a new chat or ask a shorter question.",
+      },
+    });
+    expect(mocks.runtimeHandler).not.toHaveBeenCalled();
+  });
+
+  it("rejects wire bodies over 512 KB before rate limiting", async () => {
+    const { POST } = await loadRoute();
+    const huge = { id: "u", role: "user", content: "x".repeat(520 * 1024) };
+    const response = await POST(post("/agent/default/run", runBody([huge])));
+    expect(response.status).toBe(413);
+    expect(mocks.consumeAgentRateLimits).not.toHaveBeenCalled();
   });
 
   it("rejects a run without a message list", async () => {

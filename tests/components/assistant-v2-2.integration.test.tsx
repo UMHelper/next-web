@@ -6,6 +6,7 @@ import { Request as NativeRequest } from "undici";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { AgentRateLimitOutcome } from "@/lib/assistant/rate-limit";
+import { expandAssistantActivity } from "@/tests/components/expand-assistant-activity";
 import { absoluteUrl, buildCoursePath, buildProfessorPath, buildReviewPath } from "@/lib/site";
 
 /**
@@ -288,8 +289,10 @@ vi.mock("@/lib/assistant/tools", async (importOriginal) => {
     getInstructorOutputSchema,
   } = await import("@/lib/mcp/schemas");
   const { bindCourseToolArgs } = await import("@/lib/assistant/course-referent");
-  const { createPresentationLedger, executePresentResponse } = await import("@/lib/assistant/presentation");
+  const { createPresentationLedger } = await import("@/lib/assistant/presentation");
+  const { mockPresentResponseTool } = await import("@/tests/assistant/integration-mock-present-response");
   type CourseReferent = import("@/lib/assistant/course-referent").CourseReferent;
+  type PresentationSlot = import("@/lib/assistant/presentation").PresentationSlot;
 
   const pageParam = z.number().int().min(1).max(50).optional().describe("Page number, default 1");
   const codeParam = z.string().min(1).max(20).describe("Course code, e.g. ACCT1000");
@@ -301,7 +304,13 @@ vi.mock("@/lib/assistant/tools", async (importOriginal) => {
 
   return {
     runReadOnlyTool,
-    createAssistantTools: (slot?: { current: CourseReferent }) => [
+    createAssistantTools: (
+      slot?: { current: CourseReferent },
+      _timetable?: unknown,
+      presentation?: PresentationSlot,
+    ) => {
+      const presentationSlot = presentation ?? { current: createPresentationLedger() };
+      return [
       defineTool({
         name: "search_catalog",
         description: "Search the site catalog",
@@ -362,23 +371,9 @@ vi.mock("@/lib/assistant/tools", async (importOriginal) => {
           );
         },
       }),
-      defineTool({
-        name: "present_response",
-        description: "Opt in to rich cards for this turn",
-        parameters: z.object({
-          show: z
-            .array(
-              z.object({
-                component: z.string().max(40),
-                course: z.string().max(40),
-              }),
-            )
-            .max(6)
-            .optional(),
-        }),
-        execute: (args) => executePresentResponse(args, createPresentationLedger()),
-      }),
-    ],
+      mockPresentResponseTool(presentationSlot),
+    ];
+    },
   };
 });
 vi.mock("@/lib/assistant/model", async (importOriginal) => ({
@@ -397,6 +392,7 @@ vi.mock("@/components/timetable/planner-provider", async () => {
   };
 });
 
+import { browsePresentAfterSearch } from "@/tests/assistant/integration-catalog-present";
 import * as route from "@/app/api/copilotkit/[[...slug]]/route";
 import AssistantPanel from "@/components/assistant/assistant-panel";
 import { CATALOG_RESULTS_CONTEXT_DESCRIPTION } from "@/lib/assistant/catalog-result-sets";
@@ -560,6 +556,12 @@ async function routeFetch(input: RequestInfo | URL, init?: RequestInit) {
 }
 
 function v22Brain(call: ModelCall): Step {
+  if (call.lastTool?.name === "search_catalog") {
+    return browsePresentAfterSearch(searchCallCount);
+  }
+  if (call.lastTool?.name === "present_response") {
+    return { text: "Here is the interpretation." };
+  }
   if (call.lastTool) {
     if (/Compare CISC2001 and CISC2003 slowly/i.test(call.lastUser)) {
       return { text: "CISC2001 is hardware; CISC2003 is programming." };
@@ -756,6 +758,7 @@ describe("assistant V2.2 integration (scripted model)", () => {
   it("keeps What is CISC2001 text-first without a card", async () => {
     await mountAssistant();
     await typeAndSend("What is CISC2001?");
+    expandAssistantActivity();
     expect(screen.getAllByText("Read course").length).toBeGreaterThanOrEqual(1);
     expect(screen.queryByRole("article", { name: "CISC2001" })).toBeNull();
     expect(screen.getByText("Here is the interpretation.")).toBeTruthy();
@@ -764,6 +767,7 @@ describe("assistant V2.2 integration (scripted model)", () => {
   it("keeps a bare course code text-first without a card", async () => {
     await mountAssistant();
     await typeAndSend("CISC2001?");
+    expandAssistantActivity();
     expect(screen.getAllByText("Read course").length).toBeGreaterThanOrEqual(1);
     expect(screen.queryByRole("article", { name: "CISC2001" })).toBeNull();
     expect(screen.getByText("Here is the interpretation.")).toBeTruthy();
@@ -786,6 +790,7 @@ describe("assistant V2.2 integration (scripted model)", () => {
     await mountAssistant();
     await typeAndSend("CISC2001 vs CISC2003?");
     await waitFor(() => expect(screen.getByText("Here is the interpretation.")).toBeTruthy(), { timeout: 10000 });
+    expandAssistantActivity();
     expect(screen.getAllByText("Read course").length).toBeGreaterThanOrEqual(2);
     expect(screen.queryByRole("article", { name: "CISC2001" })).toBeNull();
     expect(screen.queryByRole("article", { name: "CISC2003" })).toBeNull();
@@ -801,6 +806,7 @@ describe("assistant V2.2 integration (scripted model)", () => {
         ).toBeTruthy(),
       { timeout: 10000 },
     );
+    expandAssistantActivity();
     expect(screen.getAllByText("Read instructor").length).toBeGreaterThanOrEqual(1);
     expect(screen.queryByTestId("course-comparison")).toBeNull();
     expect(screen.queryByTestId("instructor-comparison")).toBeNull();
@@ -833,7 +839,9 @@ describe("assistant V2.2 integration (scripted model)", () => {
   it("keeps scheduling answers text-first without section cards", async () => {
     await mountAssistant();
     await typeAndSend("When is CISC2001 taught?");
-    await waitFor(() => expect(screen.getByText("Read class times")).toBeTruthy(), { timeout: 10000 });
+    await waitFor(() => expect(screen.getByText("Here is the interpretation.")).toBeTruthy(), { timeout: 10000 });
+    expandAssistantActivity();
+    expect(screen.getByText("Read class times")).toBeTruthy();
     expect(screen.queryByRole("article", { name: "Section 001" })).toBeNull();
     expect(screen.getByText("Here is the interpretation.")).toBeTruthy();
   }, 60_000);

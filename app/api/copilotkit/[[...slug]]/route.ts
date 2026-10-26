@@ -8,12 +8,14 @@ import {
 import { apiError, readJsonBody } from "@/lib/api-response";
 import { createAssistantAgent } from "@/lib/assistant/agent";
 import { readAssistantConfig, type AssistantConfig } from "@/lib/assistant/config";
+import { countUserTurns, runInputSchema } from "@/lib/assistant/conversation";
 import {
   MAX_RUN_BODY_BYTES,
-  countUserTurns,
-  runInputSchema,
-  shapeConversation,
-} from "@/lib/assistant/conversation";
+  MAX_RUN_WIRE_BYTES,
+  estimateToolResultBytes,
+  prepareRunMessages,
+  runPayloadBytes,
+} from "@/lib/assistant/run-messages";
 import { canUseAssistant } from "@/lib/assistant/access";
 import { consumeAgentRateLimits, type AgentRateLimitOutcome } from "@/lib/assistant/rate-limit";
 
@@ -76,7 +78,7 @@ function emptyEventStream() {
 }
 
 async function handleRun(request: Request, userId: string, config: AssistantConfig) {
-  const body = await readJsonBody(request, MAX_RUN_BODY_BYTES);
+  const body = await readJsonBody(request, MAX_RUN_WIRE_BYTES);
   if (!body.ok) return body.response;
 
   const parsed = runInputSchema.safeParse(body.data);
@@ -104,13 +106,36 @@ async function handleRun(request: Request, userId: string, config: AssistantConf
     return response;
   }
 
-  const messages = shapeConversation(parsed.data.messages, config.historyTurns);
+  const wireBytes = runPayloadBytes(parsed.data.messages, {
+    threadId: parsed.data.threadId,
+    runId: parsed.data.runId,
+  });
+  const messages = prepareRunMessages(parsed.data.messages, config.historyTurns);
+  const preparedBytes = runPayloadBytes(messages, {
+    threadId: parsed.data.threadId,
+    runId: parsed.data.runId,
+  });
+  if (preparedBytes > MAX_RUN_BODY_BYTES) {
+    return apiError(
+      "payload_too_large",
+      "This message is too large for the assistant. Start a new chat or ask a shorter question.",
+      413,
+    );
+  }
+
   const payload = JSON.stringify({ ...parsed.data, messages });
   // CopilotKit starts a follow-up run after each frontend tool, ending the history with its result.
   const continuation = parsed.data.messages.at(-1)?.role === "tool";
   console.log(
     "[assistant] run",
-    JSON.stringify({ turns, continuation, messages: messages.length, bytes: payload.length }),
+    JSON.stringify({
+      turns,
+      continuation,
+      messages: messages.length,
+      wireBytes,
+      preparedBytes,
+      toolResultBytes: estimateToolResultBytes(messages),
+    }),
   );
 
   const headers = new Headers(request.headers);

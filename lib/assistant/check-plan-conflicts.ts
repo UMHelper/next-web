@@ -19,7 +19,18 @@ import type { TimetableToolDeps } from "@/lib/assistant/timetable-tools";
 
 export const CHECK_PLAN_CONFLICTS_TOOL_NAME = "check_plan_conflicts";
 export const CHECK_PLAN_CONFLICTS_DESCRIPTION =
-  "Check whether sections of one instructor's offering of a course clash with the student's saved timetable, using this term's catalog class times. It needs the instructor: call get_course first when you do not know who teaches the course, then check each instructor teaching this term, at most three (list any others and ask). When the page names a course, check that code even if get_course fails, using an instructor from the page context, courseReferent or get_course_sections. Omit section to check every listed section; do that, and answer in text, when the student asks what if they take a course without naming a section. A section with complete false, or a result with sectionListComplete false, was not fully checked. Read-only; never changes the timetable.";
+  "Check whether sections of one instructor's offering of a course clash with the student's saved timetable, using this term's catalog class times. It needs the instructor: call get_course first when you do not know who teaches the course, then check each instructor teaching this term, at most three (list any others and ask). When the page names a course, check that code even if get_course fails, using an instructor from the page context, courseReferent or get_course_sections. Omit section to check every listed section; do that, and answer in text, when the student asks what if they take a course without naming a section. Each section in a checked result includes fit: verified_no_clash, confirmed_clash, or incomplete—quote only those values. sectionListComplete false means not every section was listed. Read-only; never changes the timetable.";
+
+export type ConflictFit = "verified_no_clash" | "confirmed_clash" | "incomplete";
+
+export function conflictFitForSection(section: {
+  complete: boolean;
+  conflicts: readonly unknown[];
+}): ConflictFit {
+  if (!section.complete) return "incomplete";
+  if (section.conflicts.length > 0) return "confirmed_clash";
+  return "verified_no_clash";
+}
 
 export const checkPlanConflictsParameters = z.object({
   code: z.string().min(1).max(20).describe("Course code, e.g. ECON1001"),
@@ -34,6 +45,7 @@ export type SectionCheck = {
   meetings: string[];
   conflicts: Array<{ with: string; day: Weekday; overlap: string }>;
   complete: boolean;
+  fit: ConflictFit;
   replaces?: string;
 };
 
@@ -46,6 +58,7 @@ export type CheckPlanConflictsResult =
       planComplete: boolean;
       unscheduled: string[];
       sectionListComplete: boolean;
+      plannerVersion: string;
       sections: SectionCheck[];
     }
   | { status: "no_timetable"; timetable: "no_plan" | "loading" | "unavailable" }
@@ -71,6 +84,7 @@ const sectionConflictSchema = z
       z.object({ with: z.string(), day: z.enum(["MON", "TUE", "WED", "THU", "FRI"]), overlap: z.string() }).strict(),
     ),
     complete: z.boolean(),
+    fit: z.enum(["verified_no_clash", "confirmed_clash", "incomplete"]),
     replaces: z.string().optional(),
   })
   .strict();
@@ -85,6 +99,7 @@ export const checkPlanConflictsResultSchema: z.ZodType<CheckPlanConflictsResult>
       planComplete: z.boolean(),
       unscheduled: z.array(z.string()),
       sectionListComplete: z.boolean(),
+      plannerVersion: z.string(),
       sections: z.array(sectionConflictSchema),
     })
     .strict(),
@@ -164,13 +179,18 @@ export async function runCheckPlanConflicts(
   const analysis = analyzeTimetable(state.plan.sections);
   const replaces = replacesForCourse(state.plan.sections, resolution.courseCode);
 
-  const sections = resolution.options.map((option) => ({
-    section: option.section,
-    meetings: option.meetings,
-    conflicts: conflictsForCandidate(state.plan.sections, option.planSection),
-    complete: option.meetings.length > 0 && option.unsupportedMeetings === 0,
-    ...(replaces ? { replaces } : {}),
-  }));
+  const sections = resolution.options.map((option) => {
+    const conflicts = conflictsForCandidate(state.plan.sections, option.planSection);
+    const complete = option.meetings.length > 0 && option.unsupportedMeetings === 0;
+    return {
+      section: option.section,
+      meetings: option.meetings,
+      conflicts,
+      complete,
+      fit: conflictFitForSection({ complete, conflicts }),
+      ...(replaces ? { replaces } : {}),
+    };
+  });
 
   return {
     status: "checked",
@@ -183,6 +203,7 @@ export async function runCheckPlanConflicts(
     planComplete: analysis.complete,
     unscheduled: analysis.unscheduled,
     sectionListComplete: resolution.sectionListComplete,
+    plannerVersion: state.version,
     sections,
   };
 }
