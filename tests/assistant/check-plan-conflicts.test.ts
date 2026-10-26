@@ -186,8 +186,7 @@ describe("runCheckPlanConflicts", () => {
   });
 
   it("never verifies when the timetable context was truncated", async () => {
-    const state = readyState(completeFixturePlan);
-    state.truncated = true;
+    const state = { ...readyState(completeFixturePlan), truncated: true };
     const result = await runCheckPlanConflicts(
       state,
       { code: "ECON1001", instructor: "CHEUNG WAI", section: "002" },

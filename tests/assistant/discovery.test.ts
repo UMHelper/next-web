@@ -252,6 +252,8 @@ describe("runDiscoverCourseCandidates fit", () => {
     const state = readyState();
     const result = await runDiscoverCourseCandidates(state, scopeCisc(), discoveryDeps(ciscPool()));
     assertOkDiscoverResult(result);
+    expect(state.status).toBe("ready");
+    if (state.status !== "ready") return;
     expect(result.timetable.plannerVersion).toBe(state.version);
   });
 });

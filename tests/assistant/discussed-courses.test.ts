@@ -9,7 +9,7 @@ import {
 import { GET_COURSE_TOOL_NAME } from "@/lib/assistant/course-detail-ui";
 import { DISCOVER_COURSE_CANDIDATES_TOOL_NAME } from "@/lib/assistant/discovery/schema";
 import { PRESENT_RESPONSE_TOOL_NAME } from "@/lib/assistant/presentation";
-import { discoverTwoCandidateResult } from "./discovery-evidence.test";
+import { discoverTwoCandidateResult } from "@/tests/fixtures/discover-result";
 import { SITE_URL } from "@/lib/site";
 
 function coursePayload(courseCode: string) {

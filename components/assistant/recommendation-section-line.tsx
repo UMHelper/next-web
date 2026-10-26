@@ -6,8 +6,8 @@ import { fitBadge, formatMeetingSummary } from "@/lib/assistant/discovery/fit-ba
 import { usePlannerVersion } from "./planner-version-context";
 
 const TONE_CLASS: Record<"ok" | "warn" | "muted", string> = {
-  ok: "text-emerald-700 dark:text-emerald-400",
-  warn: "text-amber-700 dark:text-amber-400",
+  ok: "text-success",
+  warn: "text-warning",
   muted: "text-muted-foreground",
 };
 

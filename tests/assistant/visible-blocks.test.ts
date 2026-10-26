@@ -6,7 +6,7 @@ import { PREVIEW_TIMETABLE_TOOL_NAME } from "@/lib/assistant/timetable-preview";
 import { SEARCH_CATALOG_TOOL_NAME } from "@/lib/assistant/search-catalog-ui";
 import { DISCOVER_COURSE_CANDIDATES_TOOL_NAME } from "@/lib/assistant/discovery/schema";
 import { PRESENT_RESPONSE_TOOL_NAME } from "@/lib/assistant/presentation";
-import { discoverTwoCandidateResult } from "./discovery-evidence.test";
+import { discoverTwoCandidateResult } from "@/tests/fixtures/discover-result";
 import {
   MAX_VISIBLE_BLOCKS_CONTEXT_CHARS,
   summarizeVisibleBlocks,

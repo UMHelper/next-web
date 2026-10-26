@@ -9,6 +9,7 @@ import {
   loadDiscoveryPool,
   loadReviewTexts,
   MAX_POOL_COURSES,
+  type SupabaseLike,
 } from "@/lib/assistant/data/discovery";
 
 type QueryResponse = {
@@ -74,8 +75,8 @@ function createRecordingClient(handlers: Partial<Record<string, QueryResponse | 
     return builder;
   }
 
-  return {
-    from,
+  const client = {
+    from: from as unknown as SupabaseLike["from"],
     fromTables,
     sessions,
     callsFor(table: string): RecordedCall[] {
@@ -85,12 +86,14 @@ function createRecordingClient(handlers: Partial<Record<string, QueryResponse | 
       return sessions.filter((entry) => entry.table === table).length;
     },
   };
+  return client;
 }
 
 const signal = new AbortController().signal;
 const term = { year: 2026, sem: 1 };
 
 const baseScope: DiscoveryScope = {
+  codePrefix: undefined,
   faculty: "FST",
 };
 
@@ -209,7 +212,7 @@ describe("loadDiscoveryPool catalog query", () => {
       course_catalog: { data: [], error: null, count: 0 },
     });
 
-    await loadDiscoveryPool({ topics: ["Macao", "a,b(c)"] }, term, signal, client);
+    await loadDiscoveryPool({ codePrefix: undefined, topics: ["Macao", "a,b(c)"] }, term, signal, client);
 
     const orCall = client.callsFor("course_catalog").find((call) => call.method === "or");
     expect(orCall?.args[0]).toContain("Macao");

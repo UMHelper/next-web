@@ -709,6 +709,7 @@ describe("assistant V2.1 integration (scripted model)", () => {
     expect(within(block).getAllByRole("listitem")).toHaveLength(2);
     expect(within(block).getByRole("button", { name: "Offered only" }).getAttribute("aria-pressed")).toBe("true");
     expect(screen.getByRole("button", { name: "Show results" })).toBeTruthy();
+    expandAssistantActivity();
     expect(screen.getAllByText("Filtered results")).toHaveLength(1);
     expect(screen.queryByText("Filtering results…")).toBeNull();
 
@@ -754,6 +755,7 @@ describe("assistant V2.1 integration (scripted model)", () => {
         ).toBeTruthy(),
       { timeout: 10000 },
     );
+    expandAssistantActivity();
     expect(screen.getByText("Lookup failed")).toBeTruthy();
     expect(screen.queryByText("Filtered results")).toBeNull();
     expect(runs().at(-1)!.modelCalls[0].catalog).toBeUndefined();

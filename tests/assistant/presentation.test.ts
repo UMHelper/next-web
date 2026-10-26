@@ -21,7 +21,7 @@ import {
   trackLookup,
   type ToolCallLike,
 } from "@/lib/assistant/presentation";
-import { discoverTwoCandidateResult } from "./discovery-evidence.test";
+import { discoverTwoCandidateResult } from "@/tests/fixtures/discover-result";
 import { SITE_URL } from "@/lib/site";
 
 function toolBlockCallIds(blocks: RichBlock[]): string[] {

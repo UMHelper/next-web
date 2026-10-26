@@ -122,17 +122,17 @@ function timetableInfo(state: TimetableState, catalogTerm: { year: number; sem: 
       checkClash: false,
     };
   }
-  if (state.status === "loading") {
+  if (state.status === "loading" || state.status === "unavailable") {
     return {
-      status: "loading",
+      status: state.status,
       planSections: [],
       planCompleteForFit: false,
       checkClash: false,
     };
   }
-  if (state.status === "unavailable") {
+  if (state.status !== "ready") {
     return {
-      status: "unavailable",
+      status: "no_plan",
       planSections: [],
       planCompleteForFit: false,
       checkClash: false,
