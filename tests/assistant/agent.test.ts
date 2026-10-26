@@ -425,6 +425,12 @@ describe("ASSISTANT_PROMPT", () => {
     ["no planner writes", "you cannot change their timetable"],
     ["language", "reply in the language of the student's latest message"],
     ["ambiguous referent", "When kind is ambiguous, ask the ask text and do not call a course tool"],
+    [
+      "goal-based discovery",
+      "discover_course_candidates once for goal-based searches without codes",
+    ],
+    ["verified clash-free", "verified_no_clash"],
+    ["mutual clashes", "mutualClashes"],
   ])("keeps the %s invariant", (_name, text) => {
     expect(ASSISTANT_PROMPT).toContain(text);
   });
