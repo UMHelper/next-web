@@ -2,7 +2,7 @@ export function discoverTwoCandidateResult(plannerVersion = "v-test", fit: strin
   return JSON.stringify({
     status: "ok",
     term: { year: 2026, sem: 1, label: "2026/2027 AY Sem 1" },
-    timetable: { status: "ready", plannerVersion },
+    timetable: { status: "ready", plannerVersion, planComplete: true },
     examined: { courses: 2, sections: 3, totalMatchingCourses: 2, truncated: false },
     excluded: {
       alreadyInPlan: 0,

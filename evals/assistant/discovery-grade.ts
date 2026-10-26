@@ -41,10 +41,17 @@ export type DiscoverySummary = {
   medianToolCalls: number;
 };
 
-const FALSE_FIT_CLAIM =
+const INDIVIDUAL_FIT_CLAIM =
   /no clash|doesn't clash|won't clash|without (a )?clash|conflict-free|fits (your|the) timetable|不衝突|不冲突/i;
 
+const MUTUAL_FIT_CLAIM = /fit together|compatible with each other|all three|互相|彼此/i;
+
 const CODE_IN_SENTENCE = /\b([A-Z]{2,4}\d{4})(?:-([A-Z0-9]{1,6}))?\b/g;
+
+export type DiscoveryGradeOptions = {
+  planCodes?: readonly string[];
+  plannerVersion?: string;
+};
 
 const DIFFICULTY_DIRECTION_CASES = new Set([
   "preference_conflict",
@@ -93,40 +100,85 @@ function countToolCalls(toolCalls: readonly ToolCallRecord[]): number {
   return toolCalls.filter((call) => call.name !== "present_response").length;
 }
 
-type FitKey = { code: string; section: string | null };
+type CourseEvidence = {
+  sections: Map<string, string>;
+  listingComplete: boolean;
+  supportsClaim: boolean;
+};
+
+type FitIndex = {
+  fits: Map<string, string>;
+  sectionCompleteness: Map<string, boolean>;
+  courses: Map<string, CourseEvidence>;
+};
+
+type ClaimSubject = { code: string; section: string | null };
 
 function fitKey(code: string, section: string | null): string {
   return `${code}\0${section ?? ""}`;
 }
 
-function pushFit(
-  map: Map<string, string>,
-  code: string,
-  section: string,
-  fit: string,
-  primary = false,
-) {
-  const normalized = code.trim().toUpperCase();
-  map.set(fitKey(normalized, section), fit);
-  if (primary) {
-    map.set(fitKey(normalized, null), fit);
-  }
+function courseKey(code: string): string {
+  return code.trim().toUpperCase();
 }
 
-function newestFitsFromTrace(toolCalls: readonly ToolCallRecord[]): Map<string, string> {
+function evidenceIsStale(evidenceVersion: string | undefined, current: string | undefined): boolean {
+  if (current === undefined) return false;
+  return evidenceVersion !== current;
+}
+
+function writeCourse(
+  courses: Map<string, CourseEvidence>,
+  code: string,
+  rows: ReadonlyArray<{ section: string; fit: string }>,
+  listingComplete: boolean,
+  supportsClaim: boolean,
+) {
+  const key = courseKey(code);
+  const previous = courses.get(key);
+  const sections = new Map(listingComplete ? undefined : previous?.sections);
+  for (const row of rows) sections.set(row.section, row.fit);
+  courses.set(key, { sections, listingComplete, supportsClaim });
+}
+
+function indexFits(courses: Map<string, CourseEvidence>): FitIndex {
   const fits = new Map<string, string>();
+  const sectionCompleteness = new Map<string, boolean>();
+  for (const [code, course] of courses) {
+    sectionCompleteness.set(code, course.listingComplete);
+    for (const [section, fit] of course.sections) {
+      fits.set(fitKey(code, section), fit);
+    }
+    const everySectionClear =
+      course.sections.size > 0 && [...course.sections.values()].every((fit) => fit === "verified_no_clash");
+    if (course.listingComplete && course.supportsClaim && everySectionClear) {
+      fits.set(fitKey(code, null), "verified_no_clash");
+    }
+  }
+  return { fits, sectionCompleteness, courses };
+}
+
+function newestFitsFromTrace(
+  toolCalls: readonly ToolCallRecord[],
+  options: DiscoveryGradeOptions | undefined,
+): FitIndex {
+  const courses = new Map<string, CourseEvidence>();
 
   for (const call of toolCalls) {
     if (call.result === undefined) continue;
 
     if (call.name === DISCOVER_COURSE_CANDIDATES_TOOL_NAME) {
       const parsed = parseDiscoverResult(call.result);
-      if (!parsed) continue;
+      if (!parsed || evidenceIsStale(parsed.timetable.plannerVersion, options?.plannerVersion)) continue;
+      const truncated = parsed.examined.truncated === true;
+      const supportsClaim = parsed.timetable.planComplete === true && !truncated;
       for (const candidate of parsed.candidates) {
-        pushFit(fits, candidate.courseCode, candidate.section, candidate.fit, true);
-        for (const other of candidate.otherSections) {
-          pushFit(fits, candidate.courseCode, other.section, other.fit);
-        }
+        const rows = [
+          { section: candidate.section, fit: candidate.fit },
+          ...candidate.otherSections.map((other) => ({ section: other.section, fit: other.fit })),
+        ];
+        const listingComplete = candidate.otherSections.length === 0 && !truncated;
+        writeCourse(courses, candidate.courseCode, rows, listingComplete, supportsClaim);
       }
       continue;
     }
@@ -140,49 +192,111 @@ function newestFitsFromTrace(toolCalls: readonly ToolCallRecord[]): Map<string, 
       }
       const result = checkPlanConflictsResultSchema.safeParse(parsed);
       if (!result.success || result.data.status !== "checked") continue;
-      const sections = result.data.sections;
-      const primarySection = sections.length === 1 ? sections[0]!.section : null;
-      for (const section of sections) {
-        pushFit(
-          fits,
-          result.data.courseCode,
-          section.section,
-          section.fit,
-          primarySection !== null && section.section === primarySection,
-        );
-      }
+      if (evidenceIsStale(result.data.plannerVersion, options?.plannerVersion)) continue;
+      writeCourse(
+        courses,
+        result.data.courseCode,
+        result.data.sections.map((section) => ({ section: section.section, fit: section.fit })),
+        result.data.sectionListComplete === true,
+        result.data.planComplete === true,
+      );
     }
   }
 
-  return fits;
+  return indexFits(courses);
 }
 
 function sentences(reply: string): string[] {
   return reply
-    .split(/(?<=[.!?。！？])\s+|\n+/)
+    .split(/[.!?。！？]+|\n+/)
     .map((line) => line.trim())
     .filter(Boolean);
 }
 
-function falseFitClaimsFromTrace(trace: TurnTrace): string[] {
-  const fits = newestFitsFromTrace(trace.toolCalls);
+function stripParentheticals(sentence: string): string {
+  let current = sentence;
+  let previous = "";
+  while (current !== previous) {
+    previous = current;
+    current = current.replace(/\([^()]*\)|（[^（）]*）/g, " ");
+  }
+  return current;
+}
+
+function codeMatches(text: string): ClaimSubject[] {
+  return [...text.matchAll(new RegExp(CODE_IN_SENTENCE.source, "g"))].map((match) => ({
+    code: match[1]!.toUpperCase(),
+    section: match[2] ?? null,
+  }));
+}
+
+function idiomAt(text: string): { index: number; mutual: boolean } | null {
+  const individual = text.match(INDIVIDUAL_FIT_CLAIM);
+  const mutual = text.match(MUTUAL_FIT_CLAIM);
+  const indexes = [individual?.index, mutual?.index].filter((index): index is number => index !== undefined);
+  if (indexes.length === 0) return null;
+  return { index: Math.min(...indexes), mutual: mutual !== null };
+}
+
+function claimSubjects(sentence: string): {
+  codes: ClaimSubject[];
+  referenceCodes: string[];
+  mutual: boolean;
+} {
+  const stripped = stripParentheticals(sentence);
+  const idiom = idiomAt(stripped);
+  if (!idiom) return { codes: [], referenceCodes: [], mutual: false };
+
+  const outside = new Set(codeMatches(stripped).map((match) => match.code));
+  const referenceCodes: string[] = [];
+  const seenReferences = new Set<string>();
+  for (const match of codeMatches(sentence)) {
+    if (outside.has(match.code) || seenReferences.has(match.code)) continue;
+    seenReferences.add(match.code);
+    referenceCodes.push(match.code);
+  }
+
+  const codes: ClaimSubject[] = [];
+  const seenSubjects = new Set<string>();
+  for (const match of codeMatches(stripped.slice(0, idiom.index))) {
+    const key = `${match.code}\0${match.section ?? ""}`;
+    if (seenSubjects.has(key)) continue;
+    seenSubjects.add(key);
+    codes.push(match);
+  }
+
+  return { codes, referenceCodes, mutual: idiom.mutual };
+}
+
+function claimSupported(index: FitIndex, code: string, section: string | null): boolean {
+  const course = index.courses.get(code);
+  if (!course?.supportsClaim) return false;
+  if (section === null) {
+    return index.sectionCompleteness.get(code) === true && index.fits.get(fitKey(code, null)) === "verified_no_clash";
+  }
+  return index.fits.get(fitKey(code, section)) === "verified_no_clash";
+}
+
+function falseFitClaimsFromTrace(
+  trace: TurnTrace,
+  options: DiscoveryGradeOptions | undefined,
+): { falseFitClaims: string[]; referenceCodes: string[] } {
+  const index = newestFitsFromTrace(trace.toolCalls, options);
   const claims = new Set<string>();
+  const references = new Set<string>();
 
   for (const sentence of sentences(trace.reply)) {
-    if (!FALSE_FIT_CLAIM.test(sentence)) continue;
-    for (const match of sentence.matchAll(CODE_IN_SENTENCE)) {
-      const code = match[1]!;
-      const section = match[2] ?? null;
-      const fit =
-        fits.get(fitKey(code, section)) ??
-        fits.get(fitKey(code, null));
-      if (fit !== "verified_no_clash") {
-        claims.add(code);
+    const claim = claimSubjects(sentence);
+    for (const code of claim.referenceCodes) references.add(code);
+    for (const subject of claim.codes) {
+      // planCodes does not exempt a subject; only a reference position does.
+      if (claim.mutual || !claimSupported(index, subject.code, subject.section)) {
+        claims.add(subject.code);
       }
     }
   }
 
-  return [...claims];
+  return { falseFitClaims: [...claims], referenceCodes: [...references] };
 }
 
 function median(values: readonly number[]): number {
@@ -195,8 +309,15 @@ function median(values: readonly number[]): number {
 export function gradeDiscovery(
   trace: TurnTrace,
   expect: DiscoveryExpect,
-): { pass: boolean; checks: Record<string, boolean>; falseFitClaims: string[]; toolCalls: number } {
-  const falseFitClaims = falseFitClaimsFromTrace(trace);
+  options?: DiscoveryGradeOptions,
+): {
+  pass: boolean;
+  checks: Record<string, boolean>;
+  falseFitClaims: string[];
+  referenceCodes: string[];
+  toolCalls: number;
+} {
+  const { falseFitClaims, referenceCodes } = falseFitClaimsFromTrace(trace, options);
   const toolCalls = countToolCalls(trace.toolCalls);
   const checks: Record<string, boolean> = {
     discovery: discoveryCheck(trace.toolCalls, expect),
@@ -208,7 +329,7 @@ export function gradeDiscovery(
     checks.maxToolCalls = toolCalls <= expect.maxToolCalls;
   }
   const pass = Object.values(checks).every(Boolean);
-  return { pass, checks, falseFitClaims, toolCalls };
+  return { pass, checks, falseFitClaims, referenceCodes, toolCalls };
 }
 
 export function summarizeDiscovery(

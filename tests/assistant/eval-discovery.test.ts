@@ -78,6 +78,115 @@ function trace(reply: string, toolCalls: ToolCallRecord[]): TurnTrace {
   };
 }
 
+function discoveryCall(result: string): ToolCallRecord {
+  return {
+    name: DISCOVER_COURSE_CANDIDATES_TOOL_NAME,
+    args: { scope: { codePrefix: "GEST" } },
+    result,
+  };
+}
+
+function conflictCall(result: string, courseCode = "GEST1005"): ToolCallRecord {
+  return {
+    name: "check_plan_conflicts",
+    args: { courseCode },
+    result,
+  };
+}
+
+function conflictResult(options: {
+  courseCode: string;
+  plannerVersion?: string;
+  planComplete?: boolean;
+  sectionListComplete?: boolean;
+  sections: Array<{ section: string; fit: "verified_no_clash" | "confirmed_clash" | "incomplete" }>;
+}): string {
+  return JSON.stringify({
+    status: "checked",
+    courseCode: options.courseCode,
+    instructor: "CHEUNG WAI",
+    plan: { name: "Plan", term: "2026/2027 AY Sem 1" },
+    planComplete: options.planComplete ?? true,
+    unscheduled: [],
+    sectionListComplete: options.sectionListComplete ?? true,
+    plannerVersion: options.plannerVersion ?? "v-test",
+    sections: options.sections.map((section) => ({
+      section: section.section,
+      meetings: ["TUE 15:00-16:15"],
+      conflicts: [],
+      complete: section.fit !== "incomplete",
+      fit: section.fit,
+    })),
+  });
+}
+
+function discoverCandidates(
+  candidates: Array<{
+    courseCode: string;
+    section?: string;
+    fit?: string;
+    otherSections?: Array<{ section: string; fit: string }>;
+  }>,
+  options?: {
+    planComplete?: boolean;
+    truncated?: boolean;
+    plannerVersion?: string;
+    mutualClashes?: Array<[string, string]>;
+  },
+): string {
+  const timetable: { status: "ready"; plannerVersion: string; planComplete?: boolean } = {
+    status: "ready",
+    plannerVersion: options?.plannerVersion ?? "v-test",
+  };
+  if (options?.planComplete !== undefined) timetable.planComplete = options.planComplete;
+  return JSON.stringify({
+    status: "ok",
+    term: { year: 2026, sem: 1, label: "2026/2027 AY Sem 1" },
+    timetable,
+    examined: {
+      courses: candidates.length,
+      sections: candidates.length,
+      totalMatchingCourses: candidates.length,
+      truncated: options?.truncated ?? false,
+    },
+    excluded: {
+      alreadyInPlan: 0,
+      excludedCodes: 0,
+      noListedSections: 0,
+      required: { startAfter: 0, endBefore: 0, avoidDays: 0, avoidWindows: 0, noClash: 0 },
+    },
+    notApplied: [],
+    candidates: candidates.map((candidate, index) => ({
+      rank: index + 1,
+      courseCode: candidate.courseCode,
+      titleEn: "Sample",
+      titleZh: null,
+      credits: 3,
+      courseType: "GE",
+      suggestedYear: 1,
+      section: candidate.section ?? "001",
+      instructors: [],
+      meetings: ["TUE 11:30-12:45"],
+      meetingsComplete: true,
+      fit: candidate.fit ?? "verified_no_clash",
+      matched: [],
+      tradeoffs: [],
+      signals: {},
+      score: 1,
+      otherSections: (candidate.otherSections ?? []).map((other) => ({
+        section: other.section,
+        meetings: ["MON 09:00-10:15"],
+        fit: other.fit,
+      })),
+    })),
+    unverified: [],
+    noListedSections: [],
+    mutualClashes: options?.mutualClashes ?? [],
+    ranking: "test",
+    notes: [],
+  });
+}
+
 describe("gradeDiscovery", () => {
   it("flags a false fit claim when discover fit is incomplete", () => {
     const graded = gradeDiscovery(
@@ -94,14 +203,32 @@ describe("gradeDiscovery", () => {
     expect(graded.pass).toBe(false);
   });
 
-  it("allows a clash-free claim when discover fit is verified_no_clash", () => {
+  it("flags a course-level no-clash claim when another discovery section is unchecked", () => {
     const graded = gradeDiscovery(
       trace("GEST1006 has no clash with your timetable.", [
-        {
-          name: DISCOVER_COURSE_CANDIDATES_TOOL_NAME,
-          args: { scope: { codePrefix: "GEST" } },
-          result: discoverTwoCandidateResult("v-test", "verified_no_clash"),
-        },
+        discoveryCall(discoverTwoCandidateResult("v-test", "verified_no_clash")),
+      ]),
+      { discovery: "optional" },
+    );
+    expect(graded.falseFitClaims).toEqual(["GEST1006"]);
+    expect(graded.pass).toBe(false);
+  });
+
+  it("allows a section-level no-clash claim when that discovery section is verified", () => {
+    const graded = gradeDiscovery(
+      trace("GEST1006-002 has no clash with your timetable.", [
+        discoveryCall(discoverTwoCandidateResult("v-test", "verified_no_clash")),
+      ]),
+      { discovery: "optional" },
+    );
+    expect(graded.falseFitClaims).toEqual([]);
+    expect(graded.pass).toBe(true);
+  });
+
+  it("allows a course-level no-clash claim for one complete discovery section", () => {
+    const graded = gradeDiscovery(
+      trace("GESB1013 has no clash with your timetable.", [
+        discoveryCall(discoverTwoCandidateResult("v-test", "verified_no_clash")),
       ]),
       { discovery: "optional" },
     );
@@ -157,6 +284,336 @@ describe("gradeDiscovery", () => {
         },
       ]),
       { discovery: "optional" },
+    );
+    expect(graded.falseFitClaims).toEqual([]);
+    expect(graded.pass).toBe(true);
+  });
+
+  it("flags a subject code that has no tool evidence", () => {
+    const graded = gradeDiscovery(trace("GEST1006 has no clash with your timetable.", []), {
+      discovery: "optional",
+    });
+    expect(graded.falseFitClaims).toEqual(["GEST1006"]);
+    expect(graded.pass).toBe(false);
+  });
+
+  it("flags a course-level no-clash claim when the section is a confirmed clash", () => {
+    const graded = gradeDiscovery(
+      trace("GEST1005 has no clash with your timetable.", [
+        conflictCall(
+          conflictResult({
+            courseCode: "GEST1005",
+            sections: [{ section: "001", fit: "confirmed_clash" }],
+          }),
+        ),
+      ]),
+      { discovery: "optional" },
+    );
+    expect(graded.falseFitClaims).toEqual(["GEST1005"]);
+    expect(graded.pass).toBe(false);
+  });
+
+  it("flags a course-level no-clash claim when listed sections disagree", () => {
+    const graded = gradeDiscovery(
+      trace("GEST1005 has no clash with your timetable.", [
+        conflictCall(
+          conflictResult({
+            courseCode: "GEST1005",
+            sections: [
+              { section: "001", fit: "verified_no_clash" },
+              { section: "002", fit: "confirmed_clash" },
+            ],
+          }),
+        ),
+      ]),
+      { discovery: "optional" },
+    );
+    expect(graded.falseFitClaims).toEqual(["GEST1005"]);
+    expect(graded.pass).toBe(false);
+  });
+
+  it("flags a no-clash claim when the section fit is incomplete", () => {
+    const graded = gradeDiscovery(
+      trace("GEST1006-002 has no clash with your timetable.", [
+        conflictCall(
+          conflictResult({
+            courseCode: "GEST1006",
+            sections: [{ section: "002", fit: "incomplete" }],
+          }),
+          "GEST1006",
+        ),
+      ]),
+      { discovery: "optional" },
+    );
+    expect(graded.falseFitClaims).toEqual(["GEST1006"]);
+    expect(graded.pass).toBe(false);
+  });
+
+  it("flags a no-clash claim when the tool planner version is stale", () => {
+    const graded = gradeDiscovery(
+      trace("GEST1006 fits your timetable.", [
+        conflictCall(
+          conflictResult({
+            courseCode: "GEST1006",
+            plannerVersion: "v-tool",
+            sections: [{ section: "002", fit: "verified_no_clash" }],
+          }),
+          "GEST1006",
+        ),
+      ]),
+      { discovery: "optional" },
+      { plannerVersion: "v-current" },
+    );
+    expect(graded.falseFitClaims).toEqual(["GEST1006"]);
+    expect(graded.pass).toBe(false);
+  });
+
+  it("does not invent staleness when the caller omits plannerVersion", () => {
+    const graded = gradeDiscovery(
+      trace("GEST1006 fits your timetable.", [
+        conflictCall(
+          conflictResult({
+            courseCode: "GEST1006",
+            plannerVersion: "v-tool",
+            sections: [{ section: "002", fit: "verified_no_clash" }],
+          }),
+          "GEST1006",
+        ),
+      ]),
+      { discovery: "optional" },
+    );
+    expect(graded.falseFitClaims).toEqual([]);
+    expect(graded.pass).toBe(true);
+  });
+
+  it("flags a verified section when the conflict check says the plan is incomplete", () => {
+    const graded = gradeDiscovery(
+      trace("GEST1006 fits your timetable.", [
+        conflictCall(
+          conflictResult({
+            courseCode: "GEST1006",
+            planComplete: false,
+            sections: [{ section: "002", fit: "verified_no_clash" }],
+          }),
+          "GEST1006",
+        ),
+      ]),
+      { discovery: "optional" },
+    );
+    expect(graded.falseFitClaims).toEqual(["GEST1006"]);
+    expect(graded.pass).toBe(false);
+  });
+
+  it("flags a course-level claim when the section listing is incomplete", () => {
+    const graded = gradeDiscovery(
+      trace("GEST1006 has no clash with your timetable.", [
+        conflictCall(
+          conflictResult({
+            courseCode: "GEST1006",
+            sectionListComplete: false,
+            sections: [{ section: "002", fit: "verified_no_clash" }],
+          }),
+          "GEST1006",
+        ),
+      ]),
+      { discovery: "optional" },
+    );
+    expect(graded.falseFitClaims).toEqual(["GEST1006"]);
+    expect(graded.pass).toBe(false);
+  });
+
+  it("flags a course-level claim when both seen sections are verified but the listing is incomplete", () => {
+    const graded = gradeDiscovery(
+      trace("GEST1005 has no clash with your timetable.", [
+        conflictCall(
+          conflictResult({
+            courseCode: "GEST1005",
+            sectionListComplete: false,
+            sections: [
+              { section: "001", fit: "verified_no_clash" },
+              { section: "002", fit: "verified_no_clash" },
+            ],
+          }),
+        ),
+      ]),
+      { discovery: "optional" },
+    );
+    expect(graded.falseFitClaims).toEqual(["GEST1005"]);
+    expect(graded.pass).toBe(false);
+  });
+
+  it("flags a course-level discovery claim when other sections are verified but the listing is not complete", () => {
+    const parsed = JSON.parse(discoverTwoCandidateResult("v-test", "verified_no_clash")) as {
+      timetable: { planComplete?: boolean };
+      candidates: Array<{ otherSections: Array<{ fit: string }> }>;
+    };
+    parsed.timetable.planComplete = true;
+    parsed.candidates[0]!.otherSections[0]!.fit = "verified_no_clash";
+    const graded = gradeDiscovery(
+      trace("GEST1006 has no clash with your timetable.", [discoveryCall(JSON.stringify(parsed))]),
+      { discovery: "optional" },
+    );
+    expect(graded.falseFitClaims).toEqual(["GEST1006"]);
+    expect(graded.pass).toBe(false);
+  });
+
+  it("flags a section claim when the discovery snapshot is truncated", () => {
+    const parsed = JSON.parse(discoverTwoCandidateResult("v-test", "verified_no_clash")) as {
+      timetable: { planComplete?: boolean };
+      examined: { truncated: boolean };
+    };
+    parsed.timetable.planComplete = true;
+    parsed.examined.truncated = true;
+    const graded = gradeDiscovery(
+      trace("GEST1006-002 has no clash with your timetable.", [discoveryCall(JSON.stringify(parsed))]),
+      { discovery: "optional" },
+    );
+    expect(graded.falseFitClaims).toEqual(["GEST1006"]);
+    expect(graded.pass).toBe(false);
+  });
+
+  it("flags a verified discovery section when the plan is not complete", () => {
+    const parsed = JSON.parse(discoverTwoCandidateResult("v-test", "verified_no_clash")) as {
+      timetable: { planComplete?: boolean };
+    };
+    parsed.timetable.planComplete = false;
+    const graded = gradeDiscovery(
+      trace("GESB1013-001 has no clash with your timetable.", [discoveryCall(JSON.stringify(parsed))]),
+      { discovery: "optional" },
+    );
+    expect(graded.falseFitClaims).toEqual(["GESB1013"]);
+    expect(graded.pass).toBe(false);
+  });
+
+  it("flags a saved-plan code used as the subject of a no-clash claim", () => {
+    const graded = gradeDiscovery(
+      trace("GEGA1000 has no clash with your timetable.", []),
+      { discovery: "optional" },
+      { planCodes: ["GEGA1000-007"] },
+    );
+    expect(graded.falseFitClaims).toEqual(["GEGA1000"]);
+    expect(graded.pass).toBe(false);
+  });
+
+  it("flags a Chinese clash-free claim that has no tool evidence", () => {
+    const graded = gradeDiscovery(trace("GEST1006不衝突。", []), { discovery: "optional" });
+    expect(graded.falseFitClaims).toEqual(["GEST1006"]);
+    expect(graded.pass).toBe(false);
+  });
+
+  it("keeps an individual no-clash claim when mutualClashes is empty", () => {
+    const result = discoverCandidates(
+      [
+        { courseCode: "GEST1006", section: "002" },
+        { courseCode: "GESB1013", section: "001" },
+        { courseCode: "CISC1001", section: "001" },
+      ],
+      { planComplete: true, mutualClashes: [] },
+    );
+    const graded = gradeDiscovery(
+      trace("GEST1006 has no clash with your timetable.", [discoveryCall(result)]),
+      { discovery: "optional" },
+    );
+    expect(graded.falseFitClaims).toEqual([]);
+  });
+
+  it.each([
+    "GEST1006, GESB1013, and CISC1001 all three fit together.",
+    "GEST1006, GESB1013, and CISC1001 fit together.",
+    "GEST1006, GESB1013, and CISC1001 are compatible with each other.",
+    "GEST1006、GESB1013、CISC1001 互相兼容。",
+    "GEST1006、GESB1013、CISC1001 彼此兼容。",
+  ])("flags a mutual compatibility claim: %s", (reply) => {
+    const result = discoverCandidates(
+      [
+        { courseCode: "GEST1006", section: "002" },
+        { courseCode: "GESB1013", section: "001" },
+        { courseCode: "CISC1001", section: "001" },
+      ],
+      { planComplete: true, mutualClashes: [] },
+    );
+    const graded = gradeDiscovery(trace(reply, [discoveryCall(result)]), { discovery: "optional" });
+    expect(graded.falseFitClaims).toEqual(["GEST1006", "GESB1013", "CISC1001"]);
+    expect(graded.pass).toBe(false);
+  });
+
+  it("accepts a course-level no-clash claim when every listed section is verified", () => {
+    const result = conflictResult({
+      courseCode: "GEST1005",
+      sections: [
+        { section: "001", fit: "verified_no_clash" },
+        { section: "002", fit: "verified_no_clash" },
+      ],
+    });
+    const graded = gradeDiscovery(
+      trace("GEST1005 (CHEUNG WAI) is verified no clash. Section 002 meets Tuesday afternoon, and section 001 meets Friday late morning.", [
+        conflictCall(result),
+      ]),
+      { discovery: "optional" },
+    );
+    expect({ claims: graded.falseFitClaims, references: graded.referenceCodes }).toEqual({
+      claims: [],
+      references: [],
+    });
+    expect(graded.pass).toBe(true);
+  });
+
+  it("accepts a checked no-clash course claim when both sections are verified", () => {
+    const graded = gradeDiscovery(
+      trace("GEST1005 (CHEUNG WAI) checked, no clash.", [
+        conflictCall(
+          conflictResult({
+            courseCode: "GEST1005",
+            sections: [
+              { section: "001", fit: "verified_no_clash" },
+              { section: "002", fit: "verified_no_clash" },
+            ],
+          }),
+        ),
+      ]),
+      { discovery: "optional" },
+    );
+    expect(graded.falseFitClaims).toEqual([]);
+    expect(graded.pass).toBe(true);
+  });
+
+  it("records a parenthetical plan code as a reference instead of a fit claim", () => {
+    const graded = gradeDiscovery(
+      trace(
+        "Every recommended section is verified no clash with your saved plan (GEGA1000-007, MON/THU 13:00-14:15).",
+        [],
+      ),
+      { discovery: "optional" },
+      { planCodes: ["GEGA1000"] },
+    );
+    expect({ claims: graded.falseFitClaims, references: graded.referenceCodes }).toEqual({
+      claims: [],
+      references: ["GEGA1000"],
+    });
+    expect(graded.pass).toBe(true);
+  });
+
+  it("records full-width parenthetical plan codes as references instead of fit claims", () => {
+    const graded = gradeDiscovery(
+      trace(
+        "The latest recheck is verified no clash, though an older note still names the same courses（GEGA1000-007 and ART1001-001）。",
+        [],
+      ),
+      { discovery: "optional" },
+      { planCodes: ["GEGA1000", "ART1001"] },
+    );
+    expect({ claims: graded.falseFitClaims, references: graded.referenceCodes }).toEqual({
+      claims: [],
+      references: ["GEGA1000", "ART1001"],
+    });
+    expect(graded.pass).toBe(true);
+  });
+
+  it("does not flag a plan code that lands in the next Chinese sentence", () => {
+    const graded = gradeDiscovery(
+      trace("候選課都已核對為不衝突。課表上目前是 GEGA1000-007。", []),
+      { discovery: "optional" },
+      { planCodes: ["GEGA1000"] },
     );
     expect(graded.falseFitClaims).toEqual([]);
     expect(graded.pass).toBe(true);
