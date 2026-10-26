@@ -937,6 +937,37 @@ describe("summarizeDiscovery", () => {
     expect(summarizeDiscovery([graded], []).discoveryArgs).toEqual({ rate: 0 });
   });
 
+  it("judges discovery args on the first parsed call when an earlier call does not parse", () => {
+    const matchArgs = { scope: { codePrefix: "GEST" } };
+    const failArgs = { scope: { codePrefix: "CISC" } };
+    const argsMatch = (args: Record<string, unknown>) =>
+      (args.scope as { codePrefix?: string } | undefined)?.codePrefix === "GEST";
+    const unparsed = "not-json";
+    const parsed = discoverCandidates([{ courseCode: "GEST1006" }]);
+    const call = (args: Record<string, unknown>, result: string): ToolCallRecord => ({
+      name: DISCOVER_COURSE_CANDIDATES_TOOL_NAME,
+      args,
+      result,
+    });
+
+    const parsedMatch = metricGrade(
+      "Later call matches.",
+      [call(failArgs, unparsed), call(matchArgs, parsed)],
+      { discovery: "required", args: argsMatch },
+    );
+    expect(parsedMatch.checks.discovery).toBe(true);
+    expect(parsedMatch.discoveryBucket).toBe("succeededWithArgs");
+
+    const parsedMismatch = metricGrade(
+      "Later call mismatches.",
+      [call(matchArgs, unparsed), call(failArgs, parsed)],
+      { discovery: "required", args: argsMatch },
+    );
+    expect(parsedMismatch.checks.discovery).toBe(false);
+    expect(parsedMismatch.discoveryBucket).toBe("succeededArgsMismatch");
+    expect(summarizeDiscovery([parsedMismatch], []).discoveryUse).toEqual({ cases: 1, hits: 1, rate: 1 });
+  });
+
   it("partitions required turns into discovery selection and keeps optional turns out", () => {
     const matched = metricGrade("Matched.", [successfulDiscovery("GEST1005")], {
       discovery: "required",
@@ -1224,7 +1255,7 @@ describe("discovery case registry", () => {
     const eveningArgs = unsatisfiable?.turns[0]?.expect.args;
     expect(eveningArgs?.({ required: { startAfter: "18:00" } })).toBe(true);
     expect(eveningArgs?.({ scope: { codePrefix: "GEST" }, required: { startAfter: "18:00" } })).toBe(true);
-    expect(eveningArgs?.({ required: { startAfter: "18:00", endBefore: "21:00" } })).toBe(false);
+    expect(eveningArgs?.({ required: { startAfter: "18:00", endBefore: "21:00" } })).toBe(true);
     expect(eveningArgs?.({ required: { startAfter: "18:00", endBefore: "08:00" } })).toBe(false);
     expect(eveningArgs?.({ required: { startAfter: "10:00" } })).toBe(false);
     expect(eveningArgs?.({ required: { endBefore: "08:00" } })).toBe(false);
