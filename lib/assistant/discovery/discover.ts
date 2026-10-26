@@ -357,6 +357,96 @@ function shrinkDiscoverResult(result: DiscoverResult): DiscoverResult {
     next = { ...next, unverified: next.unverified.slice(0, -1) };
   }
 
+  if (shrink()) {
+    next = {
+      ...next,
+      candidates: next.candidates.map(({ reviewEvidence: _reviewEvidence, ...candidate }) => candidate),
+    };
+  }
+
+  if (shrink()) {
+    next = { ...next, noListedSections: [], mutualClashes: [] };
+  }
+
+  if (shrink()) {
+    next = {
+      ...next,
+      candidates: next.candidates.map((candidate) => ({
+        ...candidate,
+        matched: [],
+        tradeoffs: [],
+        clashes: undefined,
+        otherSections: [],
+        meetings: candidate.meetings.slice(0, 4),
+      })),
+    };
+  }
+
+  while (shrink() && next.candidates.length > 1) {
+    next = { ...next, candidates: next.candidates.slice(0, -1) };
+  }
+
+  if (shrink()) {
+    next = {
+      ...next,
+      unverified: [],
+      notApplied: next.notApplied.slice(0, 2),
+      candidates: next.candidates.map((candidate) => ({
+        ...candidate,
+        titleEn: null,
+        titleZh: null,
+        matched: [],
+        tradeoffs: [],
+        clashes: undefined,
+        otherSections: [],
+        reviewEvidence: undefined,
+        instructors: candidate.instructors.slice(0, 1),
+        meetings: candidate.meetings.slice(0, 2),
+      })),
+    };
+  }
+
+  while (shrink() && next.candidates[0] && next.candidates[0].meetings.length > 0) {
+    const [head, ...rest] = next.candidates;
+    next = {
+      ...next,
+      candidates: [{ ...head!, meetings: head!.meetings.slice(0, -1) }, ...rest],
+    };
+  }
+
+  if (shrink()) {
+    let ranking = next.ranking;
+    while (shrink() && ranking.length > 80) {
+      ranking = ranking.slice(0, Math.max(80, Math.floor(ranking.length * 0.75)));
+      next = { ...next, ranking };
+    }
+  }
+
+  if (shrink()) {
+    next = {
+      ...next,
+      candidates: next.candidates.map((candidate) => ({
+        ...candidate,
+        titleEn: null,
+        titleZh: null,
+        instructors: candidate.instructors.slice(0, 1).map((instructor) => ({
+          ...instructor,
+          name: instructor.name.slice(0, 40),
+        })),
+        meetings: [],
+        matched: [],
+        tradeoffs: [],
+        clashes: undefined,
+        otherSections: [],
+        reviewEvidence: undefined,
+      })),
+      noListedSections: [],
+      mutualClashes: [],
+      unverified: [],
+      notApplied: [],
+    };
+  }
+
   return next;
 }
 

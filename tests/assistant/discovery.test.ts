@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/supabase/server", () => ({ default: { from: vi.fn() } }));
 
-import { discoverResultSchema } from "@/lib/assistant/discovery/schema";
+import { discoverResultSchema, type DiscoverResult } from "@/lib/assistant/discovery/schema";
 import {
   defaultDiscoveryDeps,
   MAX_DISCOVERY_RESULT_CHARS,
@@ -78,8 +78,11 @@ function discoveryDeps(
   };
 }
 
-function assertValidDiscoverResult(result: unknown) {
+function assertOkDiscoverResult(result: unknown): asserts result is DiscoverResult {
   expect(discoverResultSchema.parse(result)).toBeTruthy();
+  if (result !== null && typeof result === "object" && "error" in result) {
+    throw new Error("unexpected failure");
+  }
 }
 
 function forbiddenKeyPaths(value: unknown): string[] {
@@ -116,8 +119,7 @@ describe("runDiscoverCourseCandidates fit", () => {
       scopeCisc(),
       discoveryDeps(ciscPool()),
     );
-    assertValidDiscoverResult(result);
-    if ("error" in result) throw new Error("unexpected failure");
+    assertOkDiscoverResult(result);
     const candidate = result.candidates.find((c) => c.courseCode === "CISC1001");
     expect(candidate?.fit).toBe("confirmed_clash");
     expect(candidate?.clashes?.map((c) => c.day).sort()).toEqual(["MON", "THU"]);
@@ -130,7 +132,7 @@ describe("runDiscoverCourseCandidates fit", () => {
       { ...scopeCisc(), required: { noClash: true } },
       discoveryDeps(ciscPool()),
     );
-    if ("error" in result) throw new Error("unexpected failure");
+    assertOkDiscoverResult(result);
     expect(result.candidates.some((c) => c.courseCode === "CISC1001")).toBe(false);
     expect(result.excluded.required.noClash).toBe(1);
   });
@@ -146,7 +148,7 @@ describe("runDiscoverCourseCandidates fit", () => {
       { scope: { codePrefix: "ECON" } },
       discoveryDeps(boundaryPool),
     );
-    if ("error" in result) throw new Error("unexpected failure");
+    assertOkDiscoverResult(result);
     expect(result.candidates[0]?.fit).toBe("verified_no_clash");
   });
 
@@ -165,7 +167,7 @@ describe("runDiscoverCourseCandidates fit", () => {
       { scope: { codePrefix: "MATH" } },
       discoveryDeps(clearPool),
     );
-    if ("error" in result) throw new Error("unexpected failure");
+    assertOkDiscoverResult(result);
     expect(result.candidates[0]?.fit).toBe("incomplete");
     expect(result.candidates.some((c) => c.fit === "verified_no_clash")).toBe(false);
   });
@@ -185,7 +187,7 @@ describe("runDiscoverCourseCandidates fit", () => {
       { scope: { codePrefix: "MATH" }, required: { noClash: true } },
       discoveryDeps(clearPool),
     );
-    if ("error" in result) throw new Error("unexpected failure");
+    assertOkDiscoverResult(result);
     expect(result.unverified).toContainEqual({
       courseCode: "MATH1010",
       section: "001",
@@ -204,7 +206,7 @@ describe("runDiscoverCourseCandidates fit", () => {
       { scope: { courseType: "GE" }, required: { startAfter: "10:00" } },
       discoveryDeps(satPool),
     );
-    if ("error" in result) throw new Error("unexpected failure");
+    assertOkDiscoverResult(result);
     expect(result.candidates.some((c) => c.courseCode === "GEST1000")).toBe(false);
     expect(result.unverified).toContainEqual({
       courseCode: "GEST1000",
@@ -219,7 +221,7 @@ describe("runDiscoverCourseCandidates fit", () => {
       { ...scopeCisc(), required: { noClash: true } },
       discoveryDeps(ciscPool()),
     );
-    if ("error" in result) throw new Error("unexpected failure");
+    assertOkDiscoverResult(result);
     expect(result.timetable.status).toBe("no_plan");
     expect(result.candidates.every((c) => c.fit === "not_checked")).toBe(true);
     expect(result.notApplied.some((line) => line.includes("noClash"))).toBe(true);
@@ -231,7 +233,7 @@ describe("runDiscoverCourseCandidates fit", () => {
       scopeCisc(),
       discoveryDeps(ciscPool()),
     );
-    if ("error" in result) throw new Error("unexpected failure");
+    assertOkDiscoverResult(result);
     expect(result.timetable.status).toBe("loading");
   });
 
@@ -241,7 +243,7 @@ describe("runDiscoverCourseCandidates fit", () => {
       scopeCisc(),
       discoveryDeps(ciscPool()),
     );
-    if ("error" in result) throw new Error("unexpected failure");
+    assertOkDiscoverResult(result);
     expect(result.timetable.status).toBe("term_mismatch");
     expect(result.candidates[0]?.fit).toBe("not_checked");
   });
@@ -249,7 +251,7 @@ describe("runDiscoverCourseCandidates fit", () => {
   it("plannerVersion matches state.version when ready", async () => {
     const state = readyState();
     const result = await runDiscoverCourseCandidates(state, scopeCisc(), discoveryDeps(ciscPool()));
-    if ("error" in result) throw new Error("unexpected failure");
+    assertOkDiscoverResult(result);
     expect(result.timetable.plannerVersion).toBe(state.version);
   });
 });
@@ -281,7 +283,7 @@ describe("runDiscoverCourseCandidates rules and ranking", () => {
       },
       discoveryDeps(scenarioPool),
     );
-    if ("error" in result) throw new Error("unexpected failure");
+    assertOkDiscoverResult(result);
     expect(result.excluded.required.startAfter).toBeGreaterThan(0);
     expect(result.excluded.required.avoidDays).toBeGreaterThan(0);
     for (const candidate of result.candidates) {
@@ -305,7 +307,7 @@ describe("runDiscoverCourseCandidates rules and ranking", () => {
       { scope: { codePrefix: "CISC2" } },
       discoveryDeps(twoSectionPool),
     );
-    if ("error" in result) throw new Error("unexpected failure");
+    assertOkDiscoverResult(result);
     expect(result.candidates[0]?.section).toBe("002");
     expect(result.candidates[0]?.otherSections).toContainEqual(
       expect.objectContaining({ section: "001", fit: "confirmed_clash" }),
@@ -326,7 +328,7 @@ describe("runDiscoverCourseCandidates rules and ranking", () => {
       { scope: { courseType: "GE" } },
       discoveryDeps(eqPool),
     );
-    if ("error" in result) throw new Error("unexpected failure");
+    assertOkDiscoverResult(result);
     expect(result.candidates.filter((c) => c.courseCode === "GEST1000")).toHaveLength(1);
     expect(result.candidates[0]?.instructors.length).toBeGreaterThan(1);
   });
@@ -342,7 +344,7 @@ describe("runDiscoverCourseCandidates rules and ranking", () => {
       { scope: { codePrefix: "GEST2" }, limit: 2 },
       discoveryDeps(pool({ courses, instructorRows: rows, offers: offersList })),
     );
-    if ("error" in result) throw new Error("unexpected failure");
+    assertOkDiscoverResult(result);
     expect(result.candidates).toHaveLength(2);
     expect(result.candidates.map((c) => c.rank)).toEqual([1, 2]);
   });
@@ -366,7 +368,7 @@ describe("runDiscoverCourseCandidates exclusions and failures", () => {
       { scope: { codePrefix: "CISC" } },
       discoveryDeps(inPlanPool),
     );
-    if ("error" in result) throw new Error("unexpected failure");
+    assertOkDiscoverResult(result);
     expect(result.excluded.alreadyInPlan).toBe(1);
     expect(result.candidates.every((c) => c.courseCode !== "GEGA1000")).toBe(true);
   });
@@ -377,7 +379,7 @@ describe("runDiscoverCourseCandidates exclusions and failures", () => {
       { scope: { courseType: "GE" } },
       discoveryDeps(pool({ courses: [poolCourse({ courseCode: "GEST9999" })], instructorRows: [], offers: [] })),
     );
-    if ("error" in result) throw new Error("unexpected failure");
+    assertOkDiscoverResult(result);
     expect(result.noListedSections).toContain("GEST9999");
     expect(result.candidates.some((c) => c.courseCode === "GEST9999")).toBe(false);
   });
@@ -393,7 +395,7 @@ describe("runDiscoverCourseCandidates exclusions and failures", () => {
       { scope: { codePrefix: "GEST3" }, required: { startAfter: "10:00" } },
       discoveryDeps(failPool),
     );
-    if ("error" in result) throw new Error("unexpected failure");
+    assertOkDiscoverResult(result);
     expect(result.status).toBe("ok");
     expect(result.candidates).toEqual([]);
     expect(result.examined.truncated).toBe(false);
@@ -405,7 +407,7 @@ describe("runDiscoverCourseCandidates exclusions and failures", () => {
       { scope: { courseType: "GE" } },
       discoveryDeps(pool({ truncated: true, totalMatchingCourses: 400 })),
     );
-    if ("error" in result) throw new Error("unexpected failure");
+    assertOkDiscoverResult(result);
     expect(result.examined.truncated).toBe(true);
   });
 
@@ -452,7 +454,7 @@ describe("runDiscoverCourseCandidates reviews and output", () => {
       { scope: { codePrefix: "GEST4" }, reviewTerms: ["midterm"], limit: 4 },
       discoveryDeps(reviewPool, { loadReviews }),
     );
-    if ("error" in result) throw new Error("unexpected failure");
+    assertOkDiscoverResult(result);
     expect(loadReviews).toHaveBeenCalledTimes(1);
     expect(loadReviews.mock.calls[0]?.[0]?.length).toBeLessThanOrEqual(6);
     const enriched = result.candidates.slice(0, 3);
@@ -479,7 +481,7 @@ describe("runDiscoverCourseCandidates reviews and output", () => {
         },
       }),
     );
-    if ("error" in result) throw new Error("unexpected failure");
+    assertOkDiscoverResult(result);
     expect(result.candidates[0]?.reviewEvidence).toBeUndefined();
     expect(result.notApplied).toContain("reviewTerms: reviews could not be read");
   });
@@ -499,7 +501,7 @@ describe("runDiscoverCourseCandidates reviews and output", () => {
         },
       ),
     );
-    if ("error" in result) throw new Error("unexpected failure");
+    assertOkDiscoverResult(result);
     const hits = forbiddenKeyPaths(result);
     expect(hits).toEqual([]);
   });
@@ -521,7 +523,7 @@ describe("runDiscoverCourseCandidates reviews and output", () => {
       { scope: { codePrefix: "GEST6" }, limit: 2 },
       discoveryDeps(clashPool),
     );
-    if ("error" in result) throw new Error("unexpected failure");
+    assertOkDiscoverResult(result);
     expect(result.mutualClashes.length).toBeGreaterThan(0);
     const pair = result.mutualClashes[0]!;
     expect(pair.sort()).toEqual(["GEST6001-001", "GEST6002-001"].sort());
@@ -533,7 +535,7 @@ describe("runDiscoverCourseCandidates reviews and output", () => {
       { scope: { courseType: "GE" } },
       discoveryDeps(pool({ courses: [poolCourse()] })),
     );
-    if ("error" in result) throw new Error("unexpected failure");
+    assertOkDiscoverResult(result);
     expect(result.notes).toEqual([
       "Fit is checked for each course on its own; several courses can still clash with each other—see mutualClashes.",
       "Ratings are past students' reports for this instructor's offering of the course.",
