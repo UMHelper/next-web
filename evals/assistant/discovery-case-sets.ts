@@ -14,8 +14,10 @@ export function resolveDiscoveryCaseSetId(env: {
   ASSISTANT_EVAL_SUITE?: string;
 }): string {
   if (env.ASSISTANT_EVAL_CASE_SET) return env.ASSISTANT_EVAL_CASE_SET;
-  if (env.ASSISTANT_EVAL_SUITE === "holdout") return "holdout-v1";
-  return "dev-v2";
+  const suite = env.ASSISTANT_EVAL_SUITE;
+  if (suite === undefined || suite === "dev") return "dev-v2";
+  if (suite === "holdout") return "holdout-v1";
+  throw new Error(`unknown ASSISTANT_EVAL_SUITE "${suite}"`);
 }
 
 export function discoveryPassThreshold(caseSetId: string): number {

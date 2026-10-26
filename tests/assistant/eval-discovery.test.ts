@@ -525,7 +525,9 @@ describe("discoveryEvalStamp", () => {
     expect(resolveDiscoveryCaseSetId({ ASSISTANT_EVAL_SUITE: "holdout" })).toBe("holdout-v1");
     expect(resolveDiscoveryCaseSetId({ ASSISTANT_EVAL_SUITE: "dev" })).toBe("dev-v2");
     expect(resolveDiscoveryCaseSetId({})).toBe("dev-v2");
-    expect(resolveDiscoveryCaseSetId({ ASSISTANT_EVAL_SUITE: "nope" })).toBe("dev-v2");
+    expect(() => resolveDiscoveryCaseSetId({ ASSISTANT_EVAL_SUITE: "nope" })).toThrow(
+      'unknown ASSISTANT_EVAL_SUITE "nope"',
+    );
     expect(resolveDiscoveryCaseSetId({ ASSISTANT_EVAL_CASE_SET: "dev-v3" })).toBe("dev-v3");
     expect(discoveryPassThreshold("holdout-v1")).toBe(0.75);
     expect(discoveryPassThreshold("dev-v2")).toBe(0.8);
