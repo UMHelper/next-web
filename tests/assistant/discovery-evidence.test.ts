@@ -5,6 +5,7 @@ import { DISCOVER_COURSE_CANDIDATES_TOOL_NAME } from "@/lib/assistant/discovery/
 import { hydrateRecommendationSection } from "@/lib/assistant/recommendation-hydrate";
 import type { ToolCallLike } from "@/lib/assistant/presentation";
 import { absoluteUrl, buildCoursePath } from "@/lib/site";
+import { discoverTwoCandidateResult } from "@/tests/fixtures/discover-result";
 
 function call(id: string, name: string, args: unknown): ToolCallLike {
   return { id, function: { name, arguments: JSON.stringify(args) } };
@@ -12,67 +13,6 @@ function call(id: string, name: string, args: unknown): ToolCallLike {
 
 function results(entries: Record<string, string>): Map<string, { content?: unknown }> {
   return new Map(Object.entries(entries).map(([id, content]) => [id, { content }]));
-}
-
-export function discoverTwoCandidateResult(plannerVersion = "v-test") {
-  return JSON.stringify({
-    status: "ok",
-    term: { year: 2026, sem: 1, label: "2026/2027 AY Sem 1" },
-    timetable: { status: "ready", plannerVersion },
-    examined: { courses: 2, sections: 3, totalMatchingCourses: 2, truncated: false },
-    excluded: {
-      alreadyInPlan: 0,
-      excludedCodes: 0,
-      noListedSections: 0,
-      required: { startAfter: 0, endBefore: 0, avoidDays: 0, avoidWindows: 0, noClash: 0 },
-    },
-    notApplied: [],
-    candidates: [
-      {
-        rank: 1,
-        courseCode: "GEST1006",
-        titleEn: "Sample GE",
-        titleZh: null,
-        credits: 3,
-        courseType: "GE",
-        suggestedYear: 1,
-        section: "002",
-        instructors: [],
-        meetings: ["TUE 11:30-12:45 E11"],
-        meetingsComplete: true,
-        fit: "verified_no_clash",
-        matched: [],
-        tradeoffs: [],
-        signals: {},
-        score: 1,
-        otherSections: [{ section: "001", meetings: "MON 09:00-10:15", fit: "not_checked" }],
-      },
-      {
-        rank: 2,
-        courseCode: "GESB1013",
-        titleEn: "Another GE",
-        titleZh: null,
-        credits: 3,
-        courseType: "GE",
-        suggestedYear: 1,
-        section: "001",
-        instructors: [],
-        meetings: ["WED 10:00-11:15"],
-        meetingsComplete: true,
-        fit: "verified_no_clash",
-        matched: [],
-        tradeoffs: [],
-        signals: {},
-        score: 0.9,
-        otherSections: [],
-      },
-    ],
-    unverified: [],
-    noListedSections: [],
-    mutualClashes: [],
-    ranking: "test",
-    notes: [],
-  });
 }
 
 describe("discoveryEvidenceFromCalls", () => {
