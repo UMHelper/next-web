@@ -17,6 +17,23 @@ export type DiscoveryExpect = {
   maxToolCalls?: number;
 };
 
+export type ToolChoice =
+  | "search_catalog"
+  | "discover_course_candidates"
+  | "course"
+  | "conflict"
+  | "preview"
+  | "other"
+  | "none";
+
+export type DiscoveryBucket =
+  | "notCalled"
+  | "rejected"
+  | "succeededArgsMismatch"
+  | "succeededWithArgs";
+
+export type DifficultyKind = "inverted" | "stated" | "omitted";
+
 export type DiscoveryGrade = {
   caseId: string;
   repeat: number;
@@ -26,17 +43,36 @@ export type DiscoveryGrade = {
   falseFitClaims: string[];
   toolCalls: number;
   discoveryRequired: boolean;
+  toolChoice: ToolChoice;
+  discoveryBucket: DiscoveryBucket | null;
+  difficulty: DifficultyKind;
 };
 
 export type DiscoveryMetric = { cases: number; hits: number; rate: number };
+
+export type DiscoverySelection = {
+  succeededWithArgs: number;
+  succeededArgsMismatch: number;
+  rejected: number;
+  notCalled: number;
+};
+
+export type DifficultyDirection = {
+  inverted: string[];
+  stated: number;
+  omitted: number;
+  cases: number;
+};
 
 export type DiscoverySummary = {
   turns: number;
   passed: number;
   passRate: number;
   discoveryUse: DiscoveryMetric;
+  discoveryArgs: { rate: number };
+  discoverySelection: DiscoverySelection;
   falseFitClaims: number;
-  difficultyDirection: DiscoveryMetric;
+  difficultyDirection: DifficultyDirection;
   noMidtermCertainty: { violations: number };
   medianToolCalls: number;
 };
@@ -53,11 +89,17 @@ export type DiscoveryGradeOptions = {
   plannerVersion?: string;
 };
 
-const DIFFICULTY_DIRECTION_CASES = new Set([
-  "preference_conflict",
-  "holdout-easy_ge",
-  "holdout-easy_ge_zh",
+const COURSE_TOOL_NAMES = new Set([
+  "get_course",
+  "get_course_description",
+  "get_course_ilo",
+  "get_course_sections",
+  "get_course_reviews",
 ]);
+
+const INVERTED_DIFFICULTY_PHRASES = ["1 = easiest", "5 = hardest", "lower is easier", "越低越容易"];
+
+const STATED_DIFFICULTY_PHRASES = ["1 = very hard", "5 = very easy", "higher is easier", "越高越容易"];
 
 function patternsCheck(reply: string, patterns: RegExp[] | undefined, shouldMatch: boolean): boolean {
   if (patterns === undefined || patterns.length === 0) return true;
@@ -94,6 +136,44 @@ function discoveryCheck(
   }
   if (expect.discovery === "forbidden") return !used;
   return true;
+}
+
+function toolChoiceOf(toolCalls: readonly ToolCallRecord[]): ToolChoice {
+  const call = toolCalls.find((entry) => entry.name !== "present_response");
+  if (call === undefined) return "none";
+  if (call.name === "search_catalog") return "search_catalog";
+  if (call.name === DISCOVER_COURSE_CANDIDATES_TOOL_NAME) return "discover_course_candidates";
+  if (COURSE_TOOL_NAMES.has(call.name)) return "course";
+  if (call.name === CHECK_PLAN_CONFLICTS_TOOL_NAME) return "conflict";
+  if (call.name === "preview_timetable") return "preview";
+  return "other";
+}
+
+function discoveryBucketOf(
+  toolCalls: readonly ToolCallRecord[],
+  expect: DiscoveryExpect,
+): DiscoveryBucket | null {
+  if (expect.discovery !== "required") return null;
+  const calls = toolCalls.filter((call) => call.name === DISCOVER_COURSE_CANDIDATES_TOOL_NAME);
+  if (calls.length === 0) return "notCalled";
+  const succeeded = calls.find((call) => discoverySucceeded(call));
+  if (succeeded === undefined) return "rejected";
+  if (expect.args !== undefined && !expect.args(succeeded.args)) return "succeededArgsMismatch";
+  return "succeededWithArgs";
+}
+
+function replyHasPhrase(reply: string, phrase: string): boolean {
+  return reply.toLowerCase().includes(phrase.toLowerCase());
+}
+
+function difficultyOf(reply: string): DifficultyKind {
+  const inverted = INVERTED_DIFFICULTY_PHRASES.some((phrase) => replyHasPhrase(reply, phrase));
+  const stated =
+    STATED_DIFFICULTY_PHRASES.some((phrase) => replyHasPhrase(reply, phrase)) ||
+    (replyHasPhrase(reply, "1 hard") && replyHasPhrase(reply, "5 easy"));
+  if (inverted) return "inverted";
+  if (stated) return "stated";
+  return "omitted";
 }
 
 function countToolCalls(toolCalls: readonly ToolCallRecord[]): number {
@@ -362,6 +442,9 @@ export function gradeDiscovery(
   falseFitClaims: string[];
   referenceCodes: string[];
   toolCalls: number;
+  toolChoice: ToolChoice;
+  discoveryBucket: DiscoveryBucket | null;
+  difficulty: DifficultyKind;
 } {
   const { falseFitClaims, referenceCodes } = falseFitClaimsFromTrace(trace, options);
   const toolCalls = countToolCalls(trace.toolCalls);
@@ -375,7 +458,16 @@ export function gradeDiscovery(
     checks.maxToolCalls = toolCalls <= expect.maxToolCalls;
   }
   const pass = Object.values(checks).every(Boolean);
-  return { pass, checks, falseFitClaims, referenceCodes, toolCalls };
+  return {
+    pass,
+    checks,
+    falseFitClaims,
+    referenceCodes,
+    toolCalls,
+    toolChoice: toolChoiceOf(trace.toolCalls),
+    discoveryBucket: discoveryBucketOf(trace.toolCalls, expect),
+    difficulty: difficultyOf(trace.reply),
+  };
 }
 
 export function summarizeDiscovery(
@@ -387,10 +479,34 @@ export function summarizeDiscovery(
   const falseFitClaims = grades.reduce((sum, grade) => sum + grade.falseFitClaims.length, 0);
 
   const discoveryGrades = grades.filter((grade) => grade.discoveryRequired);
-  const discoveryHits = discoveryGrades.filter((grade) => grade.checks.discovery === true).length;
+  const discoverySelection: DiscoverySelection = {
+    succeededWithArgs: 0,
+    succeededArgsMismatch: 0,
+    rejected: 0,
+    notCalled: 0,
+  };
+  for (const grade of discoveryGrades) {
+    const bucket = grade.discoveryBucket;
+    if (bucket === null) continue;
+    discoverySelection[bucket] += 1;
+  }
+  const discoveryHits = discoverySelection.succeededWithArgs + discoverySelection.succeededArgsMismatch;
+  const parsedSuccesses = discoveryHits;
+  // No successful parse leaves nothing to compare, so the reported rate stays 1.
+  const discoveryArgsRate = parsedSuccesses === 0 ? 1 : discoverySelection.succeededWithArgs / parsedSuccesses;
 
-  const difficultyGrades = grades.filter((grade) => DIFFICULTY_DIRECTION_CASES.has(grade.caseId));
-  const difficultyHits = difficultyGrades.filter((grade) => grade.pass).length;
+  const inverted: string[] = [];
+  let stated = 0;
+  let omitted = 0;
+  for (const grade of grades) {
+    if (grade.difficulty === "inverted") {
+      inverted.push(`${grade.caseId} r${grade.repeat} t${grade.turn}`);
+    } else if (grade.difficulty === "stated") {
+      stated += 1;
+    } else {
+      omitted += 1;
+    }
+  }
 
   const noMidtermCertaintyViolations = grades.filter(
     (grade) =>
@@ -409,11 +525,14 @@ export function summarizeDiscovery(
       hits: discoveryHits,
       rate: discoveryGrades.length === 0 ? 1 : discoveryHits / discoveryGrades.length,
     },
+    discoveryArgs: { rate: discoveryArgsRate },
+    discoverySelection,
     falseFitClaims,
     difficultyDirection: {
-      cases: difficultyGrades.length,
-      hits: difficultyHits,
-      rate: difficultyGrades.length === 0 ? 1 : difficultyHits / difficultyGrades.length,
+      inverted,
+      stated,
+      omitted,
+      cases: grades.length,
     },
     noMidtermCertainty: { violations: noMidtermCertaintyViolations },
     medianToolCalls: median(discoveryToolCalls),

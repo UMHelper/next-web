@@ -17,6 +17,7 @@ import { DEFAULT_DISCOVERY_TIMETABLE } from "@/evals/assistant/discovery-fixture
 import {
   gradeDiscovery,
   summarizeDiscovery,
+  type DiscoveryExpect,
   type DiscoveryGrade,
 } from "@/evals/assistant/discovery-grade";
 import {
@@ -845,6 +846,38 @@ describe("gradeDiscovery", () => {
 });
 
 
+function metricGrade(
+  reply: string,
+  toolCalls: ToolCallRecord[],
+  expectTurn: DiscoveryExpect,
+  identity: { caseId?: string; repeat?: number; turn?: number } = {},
+): DiscoveryGrade {
+  const turnTrace: TurnTrace = {
+    ...trace(reply, toolCalls),
+    caseId: identity.caseId ?? "test",
+    repeat: identity.repeat ?? 0,
+    turn: identity.turn ?? 0,
+  };
+  const graded = gradeDiscovery(turnTrace, expectTurn);
+  return {
+    caseId: turnTrace.caseId,
+    repeat: turnTrace.repeat,
+    turn: turnTrace.turn,
+    pass: graded.pass,
+    checks: graded.checks,
+    falseFitClaims: graded.falseFitClaims,
+    toolCalls: graded.toolCalls,
+    discoveryRequired: expectTurn.discovery === "required",
+    toolChoice: graded.toolChoice,
+    discoveryBucket: graded.discoveryBucket,
+    difficulty: graded.difficulty,
+  };
+}
+
+function successfulDiscovery(courseCode = "GEST1006"): ToolCallRecord {
+  return discoveryCall(discoverCandidates([{ courseCode }]));
+}
+
 describe("summarizeDiscovery", () => {
   it("computes median tool calls on discovery turns", () => {
     const grade = (toolCalls: number): DiscoveryGrade => ({
@@ -856,6 +889,9 @@ describe("summarizeDiscovery", () => {
       falseFitClaims: [],
       toolCalls,
       discoveryRequired: true,
+      toolChoice: "discover_course_candidates",
+      discoveryBucket: "succeededWithArgs",
+      difficulty: "omitted",
     });
 
     const summary = summarizeDiscovery([grade(1), grade(1), grade(3)], []);
@@ -872,12 +908,208 @@ describe("summarizeDiscovery", () => {
       falseFitClaims: [],
       toolCalls: 2,
       discoveryRequired: true,
+      toolChoice: "discover_course_candidates",
+      discoveryBucket: "succeededWithArgs",
+      difficulty: "omitted",
     });
 
     expect(summarizeDiscovery([grade(false)], []).noMidtermCertainty.violations).toBe(1);
     expect(summarizeDiscovery([grade(true)], []).noMidtermCertainty.violations).toBe(0);
   });
 
+  it("counts a successful discover parse toward discovery use when arguments do not match", () => {
+    const graded = metricGrade(
+      "GEST1006 is one option.",
+      [successfulDiscovery()],
+      { discovery: "required", args: () => false },
+      { caseId: "easy_gest" },
+    );
+
+    expect(graded.checks.discovery).toBe(false);
+    expect(graded.pass).toBe(false);
+    expect(summarizeDiscovery([graded], []).discoveryUse).toEqual({ cases: 1, hits: 1, rate: 1 });
+    expect(summarizeDiscovery([graded], []).discoverySelection).toEqual({
+      succeededWithArgs: 0,
+      succeededArgsMismatch: 1,
+      rejected: 0,
+      notCalled: 0,
+    });
+    expect(summarizeDiscovery([graded], []).discoveryArgs).toEqual({ rate: 0 });
+  });
+
+  it("partitions required turns into discovery selection and keeps optional turns out", () => {
+    const matched = metricGrade("Matched.", [successfulDiscovery("GEST1005")], {
+      discovery: "required",
+      args: (args) => args.scope !== undefined,
+    });
+    const unmatchedArgs = metricGrade("Unmatched.", [successfulDiscovery("GEST1006")], {
+      discovery: "required",
+      args: () => false,
+    });
+    const noArgsExpect = metricGrade("No args expect.", [successfulDiscovery("GEST1007")], {
+      discovery: "required",
+    });
+    const rejected = metricGrade(
+      "Rejected.",
+      [
+        {
+          name: DISCOVER_COURSE_CANDIDATES_TOOL_NAME,
+          args: { scope: { courseType: "GE" } },
+          result: "Error: Model tried to call unavailable tool",
+        },
+      ],
+      { discovery: "required" },
+    );
+    const notCalled = metricGrade("Not called.", [], { discovery: "required" });
+    const optional = metricGrade("Optional.", [successfulDiscovery("GEST1008")], {
+      discovery: "optional",
+      args: () => false,
+    });
+    const forbidden = metricGrade("Forbidden.", [successfulDiscovery("GEST1009")], {
+      discovery: "forbidden",
+    });
+
+    const summary = summarizeDiscovery(
+      [matched, unmatchedArgs, noArgsExpect, rejected, notCalled, optional, forbidden],
+      [],
+    );
+
+    expect(summary.discoverySelection).toEqual({
+      succeededWithArgs: 2,
+      succeededArgsMismatch: 1,
+      rejected: 1,
+      notCalled: 1,
+    });
+    expect(
+      summary.discoverySelection.succeededWithArgs +
+        summary.discoverySelection.succeededArgsMismatch +
+        summary.discoverySelection.rejected +
+        summary.discoverySelection.notCalled,
+    ).toBe(5);
+    expect(summary.discoveryUse).toEqual({ cases: 5, hits: 3, rate: 0.6 });
+    expect(summary.discoveryArgs).toEqual({ rate: 2 / 3 });
+    expect(matched.checks.discovery).toBe(true);
+    expect(noArgsExpect.checks.discovery).toBe(true);
+    expect(unmatchedArgs.checks.discovery).toBe(false);
+    expect(optional.discoveryBucket).toBeNull();
+    expect(forbidden.discoveryBucket).toBeNull();
+  });
+
+  it("reports discoveryArgs.rate of 1 when no required turn parsed", () => {
+    const summary = summarizeDiscovery(
+      [
+        metricGrade("Missing.", [], { discovery: "required" }),
+        metricGrade(
+          "Bad.",
+          [{ name: DISCOVER_COURSE_CANDIDATES_TOOL_NAME, args: {}, result: "not-json" }],
+          { discovery: "required" },
+        ),
+      ],
+      [],
+    );
+
+    expect(summary.discoveryUse).toEqual({ cases: 2, hits: 0, rate: 0 });
+    expect(summary.discoveryArgs).toEqual({ rate: 1 });
+    expect(summary.discoverySelection).toEqual({
+      succeededWithArgs: 0,
+      succeededArgsMismatch: 0,
+      rejected: 1,
+      notCalled: 1,
+    });
+  });
+
+  it("records the family of the first tool call that is not present_response", () => {
+    const present = { name: "present_response", args: {} };
+    const search = { name: "search_catalog", args: {} };
+    const discover = successfulDiscovery();
+
+    expect(metricGrade("search", [present, search], { discovery: "optional" }).toolChoice).toBe("search_catalog");
+    expect(metricGrade("discover", [discover], { discovery: "optional" }).toolChoice).toBe(
+      "discover_course_candidates",
+    );
+    expect(metricGrade("search first", [search, discover], { discovery: "optional" }).toolChoice).toBe(
+      "search_catalog",
+    );
+    for (const name of [
+      "get_course",
+      "get_course_description",
+      "get_course_ilo",
+      "get_course_sections",
+      "get_course_reviews",
+    ]) {
+      expect(metricGrade(name, [present, { name, args: {} }], { discovery: "optional" }).toolChoice).toBe("course");
+    }
+    expect(
+      metricGrade("conflict", [{ name: "check_plan_conflicts", args: {} }], { discovery: "optional" }).toolChoice,
+    ).toBe("conflict");
+    expect(
+      metricGrade("preview", [{ name: "preview_timetable", args: {} }], { discovery: "optional" }).toolChoice,
+    ).toBe("preview");
+    expect(
+      metricGrade("other", [{ name: "count_reviews", args: {} }], { discovery: "optional" }).toolChoice,
+    ).toBe("other");
+    expect(metricGrade("none", [present], { discovery: "optional" }).toolChoice).toBe("none");
+    expect(metricGrade("empty", [], { discovery: "optional" }).toolChoice).toBe("none");
+  });
+
+  it("classifies difficulty from the reply and scans every graded turn once", () => {
+    const grades = [
+      metricGrade("1 = very hard", [], { discovery: "optional" }, { caseId: "preference_conflict", repeat: 0, turn: 0 }),
+      metricGrade("5 = very easy", [], { discovery: "optional" }, { caseId: "preference_conflict", repeat: 0, turn: 1 }),
+      metricGrade("higher is easier", [], { discovery: "optional" }, { caseId: "holdout-easy_ge", repeat: 0, turn: 0 }),
+      metricGrade("越高越容易", [], { discovery: "optional" }, { caseId: "holdout-easy_ge_zh", repeat: 0, turn: 0 }),
+      metricGrade("I treat 1 hard and 5 easy.", [], { discovery: "optional" }, { caseId: "easy_gest", repeat: 0, turn: 0 }),
+      metricGrade("1 = easiest", [], { discovery: "optional" }, { caseId: "preference_conflict", repeat: 1, turn: 2 }),
+      metricGrade("5 = hardest", [], { discovery: "optional" }, { caseId: "preference_conflict", repeat: 2, turn: 0 }),
+      metricGrade("lower is easier", [], { discovery: "optional" }, { caseId: "holdout-easy_ge", repeat: 1, turn: 0 }),
+      metricGrade("越低越容易", [], { discovery: "optional" }, { caseId: "holdout-easy_ge_zh", repeat: 1, turn: 0 }),
+      metricGrade("1 = very hard, though 1 = easiest", [], { discovery: "optional" }, {
+        caseId: "preference_conflict",
+        repeat: 0,
+        turn: 3,
+      }),
+      metricGrade("higher is easier, but 越低越容易", [], { discovery: "optional" }, {
+        caseId: "easy_gest",
+        repeat: 2,
+        turn: 1,
+      }),
+      metricGrade("GEST1006 looks manageable.", [], { discovery: "optional" }, { caseId: "easy_gest", repeat: 1, turn: 0 }),
+      metricGrade("1 hard", [], { discovery: "optional" }, { caseId: "factual_lookup", repeat: 0, turn: 0 }),
+      metricGrade("5 easy", [], { discovery: "optional" }, { caseId: "catalog_browse", repeat: 0, turn: 0 }),
+    ];
+
+    expect(grades[5]?.pass).toBe(true);
+    expect(grades[5]?.difficulty).toBe("inverted");
+    expect(grades[12]?.pass).toBe(true);
+    expect(grades[12]?.difficulty).toBe("omitted");
+    expect(grades[4]?.difficulty).toBe("stated");
+
+    const mentioned = gradeDiscovery(trace("1 = easiest", []), { discovery: "optional", mention: [/GEST/] });
+    expect(mentioned.checks.mention).toBe(false);
+    expect(mentioned.pass).toBe(false);
+    expect(mentioned.difficulty).toBe("inverted");
+
+    const summary = summarizeDiscovery(grades, []);
+    expect(summary.difficultyDirection).toEqual({
+      inverted: [
+        "preference_conflict r1 t2",
+        "preference_conflict r2 t0",
+        "holdout-easy_ge r1 t0",
+        "holdout-easy_ge_zh r1 t0",
+        "preference_conflict r0 t3",
+        "easy_gest r2 t1",
+      ],
+      stated: 5,
+      omitted: 3,
+      cases: 14,
+    });
+    expect(
+      summary.difficultyDirection.inverted.length +
+        summary.difficultyDirection.stated +
+        summary.difficultyDirection.omitted,
+    ).toBe(summary.difficultyDirection.cases);
+    expect(summary.difficultyDirection.cases).toBe(grades.length);
+  });
 });
 
 describe("discovery case registry", () => {
@@ -1089,8 +1321,15 @@ describe("discoveryEvalStamp", () => {
       passed: 1,
       passRate: 1,
       discoveryUse: { cases: 1, hits: 1, rate: 1 },
+      discoveryArgs: { rate: 1 },
+      discoverySelection: {
+        succeededWithArgs: 1,
+        succeededArgsMismatch: 0,
+        rejected: 0,
+        notCalled: 0,
+      },
       falseFitClaims: 0,
-      difficultyDirection: { cases: 0, hits: 0, rate: 1 },
+      difficultyDirection: { inverted: [], stated: 0, omitted: 1, cases: 1 },
       noMidtermCertainty: { violations: 0 },
       medianToolCalls: 1,
     };

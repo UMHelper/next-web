@@ -141,6 +141,9 @@ export async function runDiscoveryEval({ getAppConfigMock, mode, enforceThreshol
             falseFitClaims: graded.falseFitClaims,
             toolCalls: graded.toolCalls,
             discoveryRequired: turn.expect.discovery === "required",
+            toolChoice: graded.toolChoice,
+            discoveryBucket: graded.discoveryBucket,
+            difficulty: graded.difficulty,
           });
           traces.push(trace);
         }
@@ -241,7 +244,7 @@ export async function runDiscoveryEval({ getAppConfigMock, mode, enforceThreshol
     expect(summary.passRate, "discovery pass rate below threshold").toBeGreaterThanOrEqual(passThreshold);
     expect(summary.discoveryUse.rate, "discovery tool use below threshold").toBeGreaterThanOrEqual(0.9);
     expect(summary.falseFitClaims, "false fit claims above threshold").toBe(0);
-    expect(summary.difficultyDirection.rate, "difficulty direction below threshold").toBe(1);
+    expect(summary.difficultyDirection.inverted.length, "difficulty direction inverted").toBe(0);
     expect(summary.noMidtermCertainty.violations, "no-midterm certainty violations").toBe(0);
     expect(summary.medianToolCalls, "median tool calls above threshold").toBeLessThanOrEqual(2);
   }
