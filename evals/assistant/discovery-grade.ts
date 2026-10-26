@@ -108,6 +108,7 @@ type SectionRow = {
 type CourseEvidence = {
   sections: Map<string, SectionRow>;
   listingComplete: boolean;
+  supportsClaim: boolean;
 };
 
 type FitIndex = {
@@ -137,12 +138,12 @@ function writeCourse(
   rows: ReadonlyArray<{ section: string; fit: string }>,
   listingComplete: boolean,
   supportsClaim: boolean,
+  rowSupportsClaim = supportsClaim,
 ) {
   const key = courseKey(code);
-  const previous = courses.get(key);
-  const sections = new Map<string, SectionRow>(listingComplete ? undefined : previous?.sections);
-  for (const row of rows) sections.set(row.section, { fit: row.fit, supportsClaim });
-  courses.set(key, { sections, listingComplete });
+  const sections = new Map<string, SectionRow>();
+  for (const row of rows) sections.set(row.section, { fit: row.fit, supportsClaim: rowSupportsClaim });
+  courses.set(key, { sections, listingComplete, supportsClaim });
 }
 
 function indexFits(courses: Map<string, CourseEvidence>): FitIndex {
@@ -156,7 +157,7 @@ function indexFits(courses: Map<string, CourseEvidence>): FitIndex {
     const everySectionClear =
       course.sections.size > 0 &&
       [...course.sections.values()].every((row) => row.fit === "verified_no_clash" && row.supportsClaim);
-    if (course.listingComplete && everySectionClear) {
+    if (course.listingComplete && course.supportsClaim && everySectionClear) {
       fits.set(fitKey(code, null), "verified_no_clash");
     }
   }
@@ -176,17 +177,25 @@ function newestFitsFromTrace(
       const parsed = parseDiscoverResult(call.result);
       if (!parsed || evidenceIsStale(parsed.timetable.plannerVersion, options?.plannerVersion)) continue;
       const examinedTruncated = parsed.examined.truncated === true;
-      const supportsClaim = parsed.timetable.planComplete === true && !examinedTruncated;
-      const listingDropped =
-        parsed.compaction?.truncated === true || parsed.compaction?.dropped.includes("otherSections") === true;
+      const otherSectionsDropped = parsed.compaction?.dropped.includes("otherSections") === true;
+      const rowSupportsClaim = parsed.timetable.planComplete === true && !examinedTruncated;
+      const supportsClaim =
+        rowSupportsClaim && !(parsed.compaction?.truncated === true && otherSectionsDropped);
       for (const candidate of parsed.candidates) {
         const rows = [
           { section: candidate.section, fit: candidate.fit },
           ...candidate.otherSections.map((other) => ({ section: other.section, fit: other.fit })),
         ];
         const listingComplete =
-          candidate.otherSections.length === 0 && !examinedTruncated && !listingDropped;
-        writeCourse(courses, candidate.courseCode, rows, listingComplete, supportsClaim);
+          candidate.otherSections.length === 0 && !examinedTruncated && !otherSectionsDropped;
+        writeCourse(
+          courses,
+          candidate.courseCode,
+          rows,
+          listingComplete,
+          supportsClaim,
+          rowSupportsClaim,
+        );
       }
       continue;
     }
@@ -238,15 +247,27 @@ function codeMatches(text: string): ClaimSubject[] {
   }));
 }
 
-function idiomHits(text: string): Array<{ index: number; end: number; mutual: boolean }> {
-  const hits: Array<{ index: number; end: number; mutual: boolean }> = [];
-  const individual = text.match(INDIVIDUAL_FIT_CLAIM);
-  if (individual?.index !== undefined) {
-    hits.push({ index: individual.index, end: individual.index + individual[0].length, mutual: false });
+function mutualIdiomNegated(text: string, index: number): boolean {
+  const before = text.slice(0, index);
+  if (before.endsWith("不")) return true;
+  return /(?:don't|do not)\s+$/i.test(before);
+}
+
+function idiomHits(text: string): Array<{ index: number; end: number; mutual: boolean; negated: boolean }> {
+  const hits: Array<{ index: number; end: number; mutual: boolean; negated: boolean }> = [];
+  for (const match of text.matchAll(new RegExp(INDIVIDUAL_FIT_CLAIM.source, "gi"))) {
+    if (match.index === undefined) continue;
+    hits.push({ index: match.index, end: match.index + match[0].length, mutual: false, negated: false });
   }
-  const mutual = text.match(MUTUAL_FIT_CLAIM);
-  if (mutual?.index !== undefined) {
-    hits.push({ index: mutual.index, end: mutual.index + mutual[0].length, mutual: true });
+  for (const match of text.matchAll(new RegExp(MUTUAL_FIT_CLAIM.source, "gi"))) {
+    if (match.index === undefined) continue;
+    const negated = mutualIdiomNegated(text, match.index);
+    hits.push({
+      index: match.index,
+      end: match.index + match[0].length,
+      mutual: !negated,
+      negated,
+    });
   }
   hits.sort((a, b) => a.index - b.index);
   return hits;
@@ -273,18 +294,20 @@ function claimSubjects(sentence: string): {
   const seenSubjects = new Map<string, ClaimSubject & { mutual: boolean }>();
   let cursor = 0;
   for (const hit of hits) {
-    for (const match of codeMatches(stripped.slice(cursor, hit.index))) {
-      const key = `${match.code}\0${match.section ?? ""}`;
-      const existing = seenSubjects.get(key);
-      if (existing) {
-        existing.mutual = existing.mutual || hit.mutual;
-        continue;
+    if (!hit.negated) {
+      for (const match of codeMatches(stripped.slice(cursor, hit.index))) {
+        const key = `${match.code}\0${match.section ?? ""}`;
+        const existing = seenSubjects.get(key);
+        if (existing) {
+          existing.mutual = existing.mutual || hit.mutual;
+          continue;
+        }
+        const subject = { ...match, mutual: hit.mutual };
+        seenSubjects.set(key, subject);
+        codes.push(subject);
       }
-      const subject = { ...match, mutual: hit.mutual };
-      seenSubjects.set(key, subject);
-      codes.push(subject);
     }
-    cursor = hit.end;
+    cursor = Math.max(cursor, hit.end);
   }
 
   return { codes, referenceCodes };
