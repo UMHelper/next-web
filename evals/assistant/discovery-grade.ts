@@ -1,3 +1,5 @@
+import path from "node:path";
+
 import {
   CHECK_PLAN_CONFLICTS_TOOL_NAME,
   checkPlanConflictsResultSchema,
@@ -7,6 +9,8 @@ import {
   parseDiscoverResult,
 } from "@/lib/assistant/discovery/schema";
 
+import { DISCOVERY_CASE_SETS } from "./discovery-case-sets";
+import type { DiscoveryEvalCase } from "./discovery-cases";
 import type { ToolCallRecord, TurnTrace } from "./grade";
 
 export type DiscoveryExpect = {
@@ -510,5 +514,150 @@ export function summarizeDiscovery(
     },
     noMidtermCertainty: { violations: noMidtermCertaintyViolations },
     medianToolCalls: median(discoveryToolCalls),
+  };
+}
+
+const CONTRADICTORY_WINDOW_MESSAGE =
+  "Find GEST courses that must start after 18:00 and end before 08:00 every meeting.";
+
+export type DiscoverySavedGrade = {
+  caseId: string;
+  repeat: number;
+  turn: number;
+  pass: boolean;
+  checks: Record<string, boolean>;
+};
+
+export type DiscoverySavedArtifact = {
+  label: string;
+  suite?: string;
+  grades: readonly DiscoverySavedGrade[];
+  traces: readonly TurnTrace[];
+};
+
+export type DiscoveryRegradeDiff = {
+  caseId: string;
+  repeat: number;
+  turn: number;
+  was: "pass" | "fail";
+  now: "pass" | "fail";
+  changedChecks: string[];
+};
+
+export type DiscoveryRegradeRecord = {
+  kind: "discovery-regrade";
+  source: string;
+  sourceLabel: string;
+  rubricVersion: "b2-v2";
+  sourceRubricVersion: "b1";
+  summary: DiscoverySummary;
+  diffs: DiscoveryRegradeDiff[];
+  regradedPass: number;
+  regradedFail: number;
+};
+
+function discoveryRegradeOutputPath(label: string): string {
+  const safe = label.replace(/[^A-Za-z0-9._-]/g, "-");
+  return path.resolve(".eval-results", "assistant", `discovery-regrade-b2-${safe}.json`);
+}
+
+function caseSetForSuite(suite: string | undefined): readonly DiscoveryEvalCase[] {
+  if (suite === "holdout") return DISCOVERY_CASE_SETS["holdout-v1"];
+  return DISCOVERY_CASE_SETS["dev-v2"];
+}
+
+function expectForTrace(trace: TurnTrace, caseSet: readonly DiscoveryEvalCase[]): DiscoveryExpect {
+  if (trace.caseId === "no_candidates" && trace.message === CONTRADICTORY_WINDOW_MESSAGE) {
+    const turn = caseSet.find((item) => item.id === "no_candidates_invalid_window")?.turns[0];
+    if (!turn) {
+      throw new Error("no_candidates_invalid_window turn 0 is not in the selected case set");
+    }
+    return turn.expect;
+  }
+  const turn = caseSet.find((item) => item.id === trace.caseId)?.turns[trace.turn];
+  if (!turn) throw new Error(`no case for ${trace.caseId} turn ${trace.turn}`);
+  return turn.expect;
+}
+
+function changedChecks(saved: Record<string, boolean>, next: Record<string, boolean>): string[] {
+  const names = [...Object.keys(next)];
+  for (const name of Object.keys(saved)) {
+    if (!(name in next)) names.push(name);
+  }
+  return names.filter((name) => saved[name] !== next[name]);
+}
+
+function savedGradeFor(grades: readonly DiscoverySavedGrade[], trace: TurnTrace): DiscoverySavedGrade {
+  const saved = grades.find(
+    (grade) => grade.caseId === trace.caseId && grade.repeat === trace.repeat && grade.turn === trace.turn,
+  );
+  if (!saved) {
+    throw new Error(`no saved grade for ${trace.caseId} repeat ${trace.repeat} turn ${trace.turn}`);
+  }
+  return saved;
+}
+
+function discoveryGradeFrom(trace: TurnTrace, expect: DiscoveryExpect): DiscoveryGrade {
+  const graded = gradeDiscovery(trace, expect);
+  return {
+    caseId: trace.caseId,
+    repeat: trace.repeat,
+    turn: trace.turn,
+    pass: graded.pass,
+    checks: graded.checks,
+    falseFitClaims: graded.falseFitClaims,
+    toolCalls: graded.toolCalls,
+    discoveryRequired: expect.discovery === "required",
+    toolChoice: graded.toolChoice,
+    discoveryBucket: graded.discoveryBucket,
+    difficulty: graded.difficulty,
+  };
+}
+
+export function regradeDiscoveryArtifact(
+  sourcePath: string,
+  artifact: DiscoverySavedArtifact,
+): { outputPath: string; record: DiscoveryRegradeRecord } {
+  const outputPath = discoveryRegradeOutputPath(artifact.label);
+  if (path.resolve(sourcePath) === outputPath) {
+    throw new Error(`discovery regrade refused to overwrite the source file: ${outputPath}`);
+  }
+
+  const caseSet = caseSetForSuite(artifact.suite);
+  const grades: DiscoveryGrade[] = [];
+  const diffs: DiscoveryRegradeDiff[] = [];
+  for (const trace of artifact.traces) {
+    const expect = expectForTrace(trace, caseSet);
+    const saved = savedGradeFor(artifact.grades, trace);
+    const grade = discoveryGradeFrom(trace, expect);
+    grades.push(grade);
+    diffs.push({
+      caseId: trace.caseId,
+      repeat: trace.repeat,
+      turn: trace.turn,
+      was: saved.pass ? "pass" : "fail",
+      now: grade.pass ? "pass" : "fail",
+      changedChecks: changedChecks(saved.checks, grade.checks),
+    });
+  }
+
+  const regradedPass = diffs.filter((diff) => diff.now === "pass").length;
+  const regradedFail = diffs.length - regradedPass;
+  return {
+    outputPath,
+    record: {
+      kind: "discovery-regrade",
+      source: sourcePath,
+      sourceLabel: artifact.label,
+      rubricVersion: "b2-v2",
+      sourceRubricVersion: "b1",
+      summary: summarizeDiscovery(
+        grades,
+        caseSet.map((item) => item.id),
+      ),
+      diffs,
+      regradedPass,
+      regradedFail,
+    },
   };
 }
