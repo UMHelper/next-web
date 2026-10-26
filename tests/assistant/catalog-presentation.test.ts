@@ -48,7 +48,7 @@ describe("parsePresentRequest catalog and recommendations", () => {
       }),
     ).toEqual({
       show: [],
-      recommendations: { courses: ["GEST1000", "GEST1001"] },
+      recommendations: { courses: ["GEST1000", "GEST1001"], sections: {} },
     });
   });
 });
@@ -96,7 +96,7 @@ describe("planRichBlocks catalog presentation", () => {
     ];
     const results = new Map([["s1", { content: catalogBody(["CISC3023", "CISC3014"]) }]]);
     expect(planRichBlocks(calls, results, always, false)).toEqual([
-      { kind: "recommendations", presentCallId: "p1", courses: ["CISC3023", "CISC3014"] },
+      { kind: "recommendations", presentCallId: "p1", courses: ["CISC3023", "CISC3014"], sections: {} },
     ]);
   });
 

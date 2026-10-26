@@ -257,7 +257,7 @@ export function createAssistantTools(
     defineTool({
       name: PRESENT_RESPONSE_TOOL_NAME,
       description:
-        "Choose what rich UI accompanies your reply; data tools alone never show cards or lists. course_detail and course_sections follow get_course / get_course_sections in this turn. catalog browse mounts one interactive list (optional resultSetId). recommendations mounts a compact shortlist and sets ordinal order when every code appears in this turn's search or get_course evidence. Use presentation when it helps the goal; omit it for concise factual answers. The receipt reports readiness; it is not proof the student saw anything.",
+        "Choose what rich UI accompanies your reply; data tools alone never show cards or lists. course_detail and course_sections follow get_course / get_course_sections in this turn. catalog browse mounts one interactive list (optional resultSetId). recommendations mounts a compact shortlist and sets ordinal order when every code appears in this turn's search, get_course, or discover_course_candidates evidence; use CODE-SECTION for a specific discovered section. Use presentation when it helps the goal; omit it for concise factual answers. The receipt reports readiness; it is not proof the student saw anything.",
       parameters: z.object({
         show: z
           .array(
@@ -276,7 +276,10 @@ export function createAssistantTools(
           .optional(),
         recommendations: z
           .object({
-            courses: z.array(z.string().max(40)).max(5),
+            courses: z
+              .array(z.string().max(40))
+              .max(5)
+              .describe("Course codes, or CODE-SECTION from discover_course_candidates"),
           })
           .optional(),
       }),

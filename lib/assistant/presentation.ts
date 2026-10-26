@@ -11,6 +11,11 @@ import {
   GET_COURSE_SECTIONS_TOOL_NAME,
   parseCourseSectionsResult,
 } from "@/lib/assistant/course-sections-ui";
+import {
+  discoveryEvidenceFromCalls,
+  sectionsByCourseFromDiscoverContent,
+} from "@/lib/assistant/discovery/evidence";
+import { DISCOVER_COURSE_CANDIDATES_TOOL_NAME } from "@/lib/assistant/discovery/schema";
 import { SEARCH_CATALOG_TOOL_NAME } from "@/lib/assistant/search-catalog-ui";
 
 export const PRESENT_RESPONSE_TOOL_NAME = "present_response";
@@ -23,7 +28,7 @@ export type PresentCatalog = { mode: "browse"; resultSetId?: string } | { mode: 
 export type PresentRequest = {
   show: PresentShow[];
   catalog?: PresentCatalog;
-  recommendations?: { courses: string[] };
+  recommendations?: { courses: string[]; sections: Record<string, string> };
 };
 export type PresentEligibility = "ready" | "missing_lookup" | "lookup_failed";
 export type CatalogPresentEligibility = "ready" | "missing_search" | "lookup_failed";
@@ -42,13 +47,14 @@ export type CatalogSearchRecord = CatalogSearchSnapshot;
 export type PresentationLedger = {
   lookups: LookupRecord[];
   catalogSearches: CatalogSearchRecord[];
+  discoveries: Array<{ sectionsByCourse: Record<string, string[]> }>;
   pending: Set<Promise<unknown>>;
 };
 export type PresentationSlot = { current: PresentationLedger };
 export type ToolCallLike = { id: string; function: { name: string; arguments: string } };
 export type RichBlock =
   | { kind: "tool"; callId: string }
-  | { kind: "recommendations"; presentCallId: string; courses: string[] };
+  | { kind: "recommendations"; presentCallId: string; courses: string[]; sections: Record<string, string> };
 
 export function toolMessageContent(raw: unknown): string | undefined {
   if (typeof raw === "string") return raw;
@@ -61,9 +67,10 @@ export function toolMessageContent(raw: unknown): string | undefined {
 }
 
 export const PRESENT_RECEIPT_NOTE =
-  "ready means the chat will display this card with your reply; it does not confirm the student has seen it, so never describe it as shown above. missing_lookup means no matching lookup ran in this turn: call get_course or get_course_sections for that course first, then present again, or answer in text. lookup_failed means the lookup did not return data, so no card will appear. catalog ready means a browse list can mount for the resolved resultSetId; missing_search means no matching search_catalog ran in this turn. recommendations ready means the course appeared in this turn's search or get_course evidence.";
+  "ready means the chat will display this card with your reply; it does not confirm the student has seen it, so never describe it as shown above. missing_lookup means no matching lookup ran in this turn: call get_course or get_course_sections for that course first, then present again, or answer in text. lookup_failed means the lookup did not return data, so no card will appear. catalog ready means a browse list can mount for the resolved resultSetId; missing_search means no matching search_catalog ran in this turn. recommendations ready means the course appeared in this turn's search, get_course, or discover_course_candidates evidence; a CODE-SECTION claim must match a section from that discovery result.";
 
 const COURSE_CODE_RE = /^[A-Z]{4}\d{4}$/;
+const RECOMMENDATION_ENTRY_RE = /^[A-Z]{4}\d{4}(-[A-Z0-9]{1,6})?$/;
 const PRESENT_COMPONENTS: ReadonlySet<string> = new Set(["course_detail", "course_sections"]);
 
 function normalizeCourseCode(raw: unknown): string | null {
@@ -182,7 +189,7 @@ function requestHasPresentationIntent(request: PresentRequest): boolean {
 }
 
 export function createPresentationLedger(): PresentationLedger {
-  return { lookups: [], catalogSearches: [], pending: new Set() };
+  return { lookups: [], catalogSearches: [], discoveries: [], pending: new Set() };
 }
 
 function parsePresentCatalog(raw: unknown): PresentCatalog | null | undefined {
@@ -206,7 +213,20 @@ function parsePresentCatalog(raw: unknown): PresentCatalog | null | undefined {
   return null;
 }
 
-function parsePresentRecommendations(raw: unknown): { courses: string[] } | null | undefined {
+function parseRecommendationEntry(raw: unknown): { code: string; section?: string } | null {
+  if (typeof raw !== "string") return null;
+  const upper = raw.trim().toUpperCase();
+  if (!RECOMMENDATION_ENTRY_RE.test(upper)) return null;
+  const dash = upper.indexOf("-");
+  if (dash === -1) {
+    return { code: upper };
+  }
+  return { code: upper.slice(0, dash), section: upper.slice(dash + 1) };
+}
+
+function parsePresentRecommendations(
+  raw: unknown,
+): { courses: string[]; sections: Record<string, string> } | null | undefined {
   if (raw === undefined) return undefined;
   if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return null;
   const record = raw as Record<string, unknown>;
@@ -214,14 +234,18 @@ function parsePresentRecommendations(raw: unknown): { courses: string[] } | null
   if (!Array.isArray(coursesRaw)) return null;
   const seen = new Set<string>();
   const courses: string[] = [];
+  const sections: Record<string, string> = {};
   for (const entry of coursesRaw) {
     if (courses.length >= MAX_PRESENT_RECOMMENDATIONS) return null;
-    const code = normalizeCourseCode(entry);
-    if (!code || seen.has(code)) return null;
-    seen.add(code);
-    courses.push(code);
+    const parsed = parseRecommendationEntry(entry);
+    if (!parsed || seen.has(parsed.code)) return null;
+    seen.add(parsed.code);
+    courses.push(parsed.code);
+    if (parsed.section !== undefined) {
+      sections[parsed.code] = parsed.section;
+    }
   }
-  return { courses };
+  return { courses, sections };
 }
 
 export function parsePresentRequest(args: unknown): PresentRequest | null {
@@ -345,6 +369,23 @@ export function catalogSearchRecordFor(
   )[0]!;
 }
 
+export function trackDiscovery<T>(ledger: PresentationLedger, run: Promise<T>): Promise<T> {
+  const tracked = run
+    .then((result) => {
+      const content = typeof result === "string" ? result : JSON.stringify(result);
+      const sectionsByCourse = sectionsByCourseFromDiscoverContent(content);
+      if (sectionsByCourse) {
+        ledger.discoveries.push({ sectionsByCourse });
+      }
+      return result;
+    })
+    .finally(() => {
+      ledger.pending.delete(tracked);
+    });
+  ledger.pending.add(tracked);
+  return tracked;
+}
+
 export function trackLookup<T>(
   ledger: PresentationLedger,
   toolName: string,
@@ -419,6 +460,14 @@ export function seedLedgerFromMessages(ledger: PresentationLedger, messages: rea
         ledger.catalogSearches.push(
           catalogSearchRecordFor(id, argumentsJson, toolContent.get(id)),
         );
+        continue;
+      }
+
+      if (name === DISCOVER_COURSE_CANDIDATES_TOOL_NAME) {
+        const sectionsByCourse = sectionsByCourseFromDiscoverContent(toolContent.get(id));
+        if (sectionsByCourse) {
+          ledger.discoveries.push({ sectionsByCourse });
+        }
       }
     }
   }
@@ -438,6 +487,16 @@ function eligibilityForItem(claim: PresentShow, ledger: PresentationLedger): Pre
   return "lookup_failed";
 }
 
+function ledgerDiscoverySections(ledger: PresentationLedger): Map<string, Set<string>> {
+  const byCourse = new Map<string, Set<string>>();
+  for (const entry of ledger.discoveries) {
+    for (const [code, sections] of Object.entries(entry.sectionsByCourse)) {
+      byCourse.set(code.trim().toUpperCase(), new Set(sections));
+    }
+  }
+  return byCourse;
+}
+
 function ledgerEvidenceCourseCodes(ledger: PresentationLedger): Set<string> {
   const codes = new Set<string>();
   for (const lookup of ledger.lookups) {
@@ -450,7 +509,22 @@ function ledgerEvidenceCourseCodes(ledger: PresentationLedger): Set<string> {
       codes.add(course.courseCode.trim().toUpperCase());
     }
   }
+  for (const code of ledgerDiscoverySections(ledger).keys()) {
+    codes.add(code);
+  }
   return codes;
+}
+
+function recommendationEligibilityForCode(
+  code: string,
+  requestedSection: string | undefined,
+  evidence: Set<string>,
+  discoverySections: Map<string, Set<string>>,
+): RecommendationEligibility {
+  if (requestedSection !== undefined) {
+    return discoverySections.get(code)?.has(requestedSection) ? "ready" : "not_in_turn_evidence";
+  }
+  return evidence.has(code) ? "ready" : "not_in_turn_evidence";
 }
 
 function catalogEligibility(
@@ -498,6 +572,7 @@ export async function executePresentResponse(
   }
 
   const evidence = ledgerEvidenceCourseCodes(ledger);
+  const discoverySections = ledgerDiscoverySections(ledger);
   const catalogStatus = catalogEligibility(request.catalog, ledger);
 
   const receipt: PresentReceipt = {
@@ -521,7 +596,12 @@ export async function executePresentResponse(
     receipt.recommendations = {
       items: request.recommendations.courses.map((course) => ({
         course,
-        eligibility: evidence.has(course) ? "ready" : "not_in_turn_evidence",
+        eligibility: recommendationEligibilityForCode(
+          course,
+          request.recommendations!.sections[course],
+          evidence,
+          discoverySections,
+        ),
       })),
     };
   }
@@ -758,10 +838,19 @@ export function planRichBlocks(
     if (requested.length > 0) {
       const validated = activeRecommendationCourses(contextCalls, contextResults);
       if (validated.length === requested.length) {
+        const requestedSections = present.request.recommendations?.sections ?? {};
+        const sections: Record<string, string> = {};
+        for (const course of validated) {
+          const section = requestedSections[course];
+          if (section !== undefined) {
+            sections[course] = section;
+          }
+        }
         blocks.push({
           kind: "recommendations",
           presentCallId: present.callId,
           courses: validated,
+          sections,
         });
       }
     }
@@ -782,6 +871,13 @@ export function activeRecommendationCourses(
   const courses = present?.request.recommendations?.courses ?? [];
   if (courses.length === 0) return [];
 
+  const requestedSections = present?.request.recommendations?.sections ?? {};
+  const discovery = discoveryEvidenceFromCalls(calls, results);
+  const discoverySections = new Map<string, Set<string>>();
+  for (const [code, entry] of discovery) {
+    discoverySections.set(code, new Set(entry.sections.keys()));
+  }
+
   const evidence = new Set<string>();
   for (const call of calls) {
     if (call.function.name === GET_COURSE_TOOL_NAME) {
@@ -797,8 +893,18 @@ export function activeRecommendationCourses(
       evidence.add(course.courseCode.trim().toUpperCase());
     }
   }
+  for (const code of discovery.keys()) {
+    evidence.add(code);
+  }
 
-  return courses.filter((course) => evidence.has(course));
+  return courses.filter((course) =>
+    recommendationEligibilityForCode(
+      course,
+      requestedSections[course],
+      evidence,
+      discoverySections,
+    ) === "ready",
+  );
 }
 
 export function turnHasHiddenCatalogResearch(

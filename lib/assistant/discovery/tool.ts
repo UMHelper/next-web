@@ -9,7 +9,7 @@ import {
   DISCOVER_COURSE_CANDIDATES_TOOL_NAME,
   discoverCourseCandidatesParameters,
 } from "@/lib/assistant/discovery/schema";
-import type { PresentationSlot } from "@/lib/assistant/presentation";
+import { trackDiscovery, type PresentationSlot } from "@/lib/assistant/presentation";
 import type { TimetableSlot } from "@/lib/assistant/timetable-context";
 import { MCP_TOOL_TIMEOUT_MS } from "@/lib/mcp/constants";
 
@@ -18,7 +18,7 @@ export const DISCOVER_COURSE_CANDIDATES_DESCRIPTION =
 
 export function createDiscoveryTools(
   timetable: TimetableSlot,
-  _presentation: PresentationSlot,
+  presentation: PresentationSlot,
   deps: DiscoveryDeps = defaultDiscoveryDeps,
 ): ReturnType<typeof defineTool>[] {
   return [
@@ -27,11 +27,14 @@ export function createDiscoveryTools(
       description: DISCOVER_COURSE_CANDIDATES_DESCRIPTION,
       parameters: discoverCourseCandidatesParameters,
       execute: (args) =>
-        runDiscoverCourseCandidates(
-          timetable.current,
-          args,
-          deps,
-          AbortSignal.timeout(MCP_TOOL_TIMEOUT_MS),
+        trackDiscovery(
+          presentation.current,
+          runDiscoverCourseCandidates(
+            timetable.current,
+            args,
+            deps,
+            AbortSignal.timeout(MCP_TOOL_TIMEOUT_MS),
+          ),
         ),
     }),
   ];

@@ -1,22 +1,28 @@
 import { describe, expect, it } from "vitest";
 
 import { ALWAYS_RICH_TOOL_NAMES, RICH_TOOL_NAMES } from "@/lib/assistant/rich-tools";
+import { DISCOVER_COURSE_CANDIDATES_TOOL_NAME } from "@/lib/assistant/discovery/schema";
 import {
   activePresent,
+  activeRecommendationCourses,
   callsForActivity,
   courseCallIdentity,
   createPresentationLedger,
   executePresentResponse,
   parsePresentArguments,
+  parsePresentRequest,
   planRichBlocks,
   type RichBlock,
   PRESENT_RECEIPT_NOTE,
   PRESENT_RESPONSE_TOOL_NAME,
   sectionCallIdentity,
   seedLedgerFromMessages,
+  trackDiscovery,
   trackLookup,
   type ToolCallLike,
 } from "@/lib/assistant/presentation";
+import { discoverTwoCandidateResult } from "./discovery-evidence.test";
+import { SITE_URL } from "@/lib/site";
 
 function toolBlockCallIds(blocks: RichBlock[]): string[] {
   return blocks
@@ -255,6 +261,143 @@ describe("executePresentResponse", () => {
         { component: "course_sections", course: "CISC2001", eligibility: "ready" },
       ],
     });
+  });
+});
+
+describe("discovery-grounded recommendations", () => {
+  const always = ALWAYS_RICH_TOOL_NAMES;
+
+  it("accepts CODE-SECTION entries and rejects duplicate codes", async () => {
+    expect(
+      parsePresentRequest({
+        recommendations: { courses: ["GEST1006-002", "GESB1013"] },
+      }),
+    ).toEqual({
+      show: [],
+      recommendations: { courses: ["GEST1006", "GESB1013"], sections: { GEST1006: "002" } },
+    });
+    const ledger = createPresentationLedger();
+    await expect(
+      executePresentResponse(
+        { recommendations: { courses: ["GEST1006-001", "GEST1006-002"] } },
+        ledger,
+      ),
+    ).resolves.toEqual({ status: "rejected", reason: "invalid_request" });
+  });
+
+  it("grounds a discovery-only shortlist with section evidence", async () => {
+    const discoverBody = discoverTwoCandidateResult();
+    const ledger = createPresentationLedger();
+    await trackDiscovery(ledger, Promise.resolve(JSON.parse(discoverBody)));
+
+    const receipt = await executePresentResponse(
+      { recommendations: { courses: ["GEST1006-002", "GESB1013"] } },
+      ledger,
+    );
+    expect(receipt).toMatchObject({
+      status: "requested",
+      recommendations: {
+        items: [
+          { course: "GEST1006", eligibility: "ready" },
+          { course: "GESB1013", eligibility: "ready" },
+        ],
+      },
+    });
+
+    const calls = [
+      call("d1", DISCOVER_COURSE_CANDIDATES_TOOL_NAME, { scope: { courseType: "GE" } }),
+      call("p1", PRESENT_RESPONSE_TOOL_NAME, {
+        recommendations: { courses: ["GEST1006-002", "GESB1013"] },
+      }),
+    ];
+    const map = results({ d1: discoverBody });
+    expect(activeRecommendationCourses(calls, map)).toEqual(["GEST1006", "GESB1013"]);
+    expect(planRichBlocks(calls, map, always, false)).toEqual([
+      {
+        kind: "recommendations",
+        presentCallId: "p1",
+        courses: ["GEST1006", "GESB1013"],
+        sections: { GEST1006: "002" },
+      },
+    ]);
+  });
+
+  it("rejects an unknown section and skips the recommendations block", async () => {
+    const discoverBody = discoverTwoCandidateResult();
+    const ledger = createPresentationLedger();
+    await trackDiscovery(ledger, Promise.resolve(JSON.parse(discoverBody)));
+    const receipt = await executePresentResponse(
+      { recommendations: { courses: ["GEST1006-009"] } },
+      ledger,
+    );
+    expect(receipt).toMatchObject({
+      recommendations: { items: [{ course: "GEST1006", eligibility: "not_in_turn_evidence" }] },
+    });
+
+    const calls = [
+      call("d1", DISCOVER_COURSE_CANDIDATES_TOOL_NAME, { scope: { courseType: "GE" } }),
+      call("p1", PRESENT_RESPONSE_TOOL_NAME, { recommendations: { courses: ["GEST1006-009"] } }),
+    ];
+    expect(planRichBlocks(calls, results({ d1: discoverBody }), always, false)).toEqual([]);
+  });
+
+  it("seeds discovery sections from messages in the current turn", () => {
+    const ledger = createPresentationLedger();
+    seedLedgerFromMessages(ledger, [
+      { role: "user", content: "Find GE courses" },
+      {
+        role: "assistant",
+        toolCalls: [
+          {
+            id: "d1",
+            function: {
+              name: DISCOVER_COURSE_CANDIDATES_TOOL_NAME,
+              arguments: '{"scope":{"courseType":"GE"}}',
+            },
+          },
+        ],
+      },
+      { role: "tool", toolCallId: "d1", content: discoverTwoCandidateResult() },
+    ]);
+    expect(ledger.discoveries).toEqual([
+      { sectionsByCourse: { GEST1006: ["002", "001"], GESB1013: ["001"] } },
+    ]);
+  });
+
+  it("still accepts search-only recommendations without sections", () => {
+    const calls = [
+      call("s1", "search_catalog", { query: "AI" }),
+      call("p1", PRESENT_RESPONSE_TOOL_NAME, {
+        recommendations: { courses: ["CISC3023", "CISC3014"] },
+      }),
+    ];
+    const map = results({
+      s1: JSON.stringify({
+        type: "course",
+        page: 1,
+        hasMore: false,
+        totalCount: 2,
+        results: ["CISC3023", "CISC3014"].map((courseCode) => ({
+          courseCode,
+          titleEn: courseCode,
+          titleZh: null,
+          faculty: null,
+          department: null,
+          credits: "3",
+          isOffered: true,
+          aka: [],
+          url: `${SITE_URL}/course/${courseCode}`,
+        })),
+      }),
+    });
+    expect(planRichBlocks(calls, map, always, false)).toEqual([
+      {
+        kind: "recommendations",
+        presentCallId: "p1",
+        courses: ["CISC3023", "CISC3014"],
+        sections: {},
+      },
+    ]);
   });
 });
 

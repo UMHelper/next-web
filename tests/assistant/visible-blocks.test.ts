@@ -4,7 +4,9 @@ import type { DiscussedMessage } from "@/lib/assistant/discussed-courses";
 import { GET_COURSE_TOOL_NAME } from "@/lib/assistant/course-detail-ui";
 import { PREVIEW_TIMETABLE_TOOL_NAME } from "@/lib/assistant/timetable-preview";
 import { SEARCH_CATALOG_TOOL_NAME } from "@/lib/assistant/search-catalog-ui";
+import { DISCOVER_COURSE_CANDIDATES_TOOL_NAME } from "@/lib/assistant/discovery/schema";
 import { PRESENT_RESPONSE_TOOL_NAME } from "@/lib/assistant/presentation";
+import { discoverTwoCandidateResult } from "./discovery-evidence.test";
 import {
   MAX_VISIBLE_BLOCKS_CONTEXT_CHARS,
   summarizeVisibleBlocks,
@@ -234,5 +236,36 @@ describe("summarizeVisibleBlocks", () => {
     expect(parsed.latestTurn).toBe(6);
     expect(parsed.turns.length).toBeLessThan(6);
     expect(parsed.turns[0]?.turn).toBeGreaterThan(parsed.turns.at(-1)?.turn ?? 0);
+  });
+
+  it("lists discovery shortlist courses in presented order", () => {
+    const messages: DiscussedMessage[] = [
+      { role: "user", content: "Suggest GE courses" },
+      {
+        role: "assistant",
+        toolCalls: [
+          {
+            id: "d1",
+            function: {
+              name: DISCOVER_COURSE_CANDIDATES_TOOL_NAME,
+              arguments: '{"scope":{"courseType":"GE"}}',
+            },
+          },
+          {
+            id: "p1",
+            function: {
+              name: PRESENT_RESPONSE_TOOL_NAME,
+              arguments: '{"recommendations":{"courses":["GEST1006-002","GESB1013"]}}',
+            },
+          },
+        ],
+      },
+      { role: "tool", toolCallId: "d1", content: discoverTwoCandidateResult() },
+      { role: "tool", toolCallId: "p1", content: JSON.stringify({ status: "requested", items: [], note: "" }) },
+    ];
+    expect(JSON.parse(summarizeVisibleBlocks(messages))).toEqual({
+      latestTurn: 1,
+      turns: [{ turn: 1, blocks: [{ kind: "recommendations", courses: ["GEST1006", "GESB1013"] }] }],
+    });
   });
 });

@@ -1,4 +1,8 @@
 import { collectCatalogSearchSnapshots } from "@/lib/assistant/catalog-research";
+import {
+  discoveryEvidenceFromCalls,
+  type DiscoverySectionEvidence,
+} from "@/lib/assistant/discovery/evidence";
 import { courseCallIdentity, lookupOk, type ToolCallLike, toolMessageContent } from "@/lib/assistant/presentation";
 import { GET_COURSE_TOOL_NAME, parseCourseDetailResult } from "@/lib/assistant/course-detail-ui";
 import type { CatalogCourse } from "@/lib/mcp/schemas";
@@ -58,7 +62,21 @@ export function hydrateRecommendationCourse(
     }
   }
 
-  return null;
+  const discovery = discoveryEvidenceFromCalls(calls, results).get(normalized);
+  return discovery?.course ?? null;
+}
+
+export function hydrateRecommendationSection(
+  code: string,
+  section: string | undefined,
+  calls: readonly ToolCallLike[],
+  results: Map<string, { content?: unknown }>,
+): DiscoverySectionEvidence | null {
+  const normalized = code.trim().toUpperCase();
+  const discovery = discoveryEvidenceFromCalls(calls, results).get(normalized);
+  if (!discovery) return null;
+  const targetSection = section ?? discovery.bestSection;
+  return discovery.sections.get(targetSection) ?? null;
 }
 
 export function hydrateRecommendationCourses(
