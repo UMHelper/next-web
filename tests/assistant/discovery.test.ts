@@ -579,6 +579,65 @@ describe("runDiscoverCourseCandidates reviews and output", () => {
   });
 });
 
+describe("oversized discovery compaction", () => {
+  function buildOversizedPool(): DiscoveryPool {
+    const courses = Array.from({ length: 8 }, (_, index) =>
+      poolCourse({
+        courseCode: `BIG${1000 + index}`,
+        titleEn: `Oversized discovery course ${index} `.repeat(20),
+        titleZh: `超長標題${index}`.repeat(10),
+        topicBody: "Macao history and workload detail ".repeat(120),
+      }),
+    );
+    const instructorRows = courses.flatMap((course, index) => [
+      pwcRow({ pwcId: 9000 + index * 2, courseCode: course.courseCode, reviews: 40 }),
+      pwcRow({ pwcId: 9000 + index * 2 + 1, courseCode: course.courseCode, reviews: 5 }),
+    ]);
+    const offers = courses.flatMap((course, index) => [
+      offer(9000 + index * 2, "001", [
+        "MON 10:00-11:15 E11",
+        "WED 10:00-11:15 E11",
+        "FRI 10:00-11:15 E11",
+      ]),
+      offer(9000 + index * 2, "002", ["TUE 14:00-15:15 E11", "THU 14:00-15:15 E11"]),
+    ]);
+    return pool({ courses, instructorRows, offers });
+  }
+
+  it("shrinks oversized payloads while keeping safety fields and honest fit claims", async () => {
+    const result = await runDiscoverCourseCandidates(
+      readyState([]),
+      {
+        scope: { codePrefix: "BIG" },
+        reviewTerms: ["midterm", "workload"],
+        limit: 8,
+      },
+      discoveryDeps(buildOversizedPool(), {
+        loadReviews: async (ids) =>
+          ids.map((pwcId) => ({
+            pwcId,
+            texts: [`Review ${pwcId} mentions midterm workload repeatedly. `.repeat(30)],
+          })),
+      }),
+    );
+    assertOkDiscoverResult(result);
+    const serialized = JSON.stringify(result);
+    expect(serialized.length).toBeLessThanOrEqual(MAX_DISCOVERY_RESULT_CHARS);
+    expect(result.compaction?.truncated).toBe(true);
+    expect(result.compaction?.dropped.length).toBeGreaterThan(0);
+    expect(result.mutualClashes).toBeDefined();
+    expect(result.timetable).toBeDefined();
+    expect(result.notes.some((note) => note.startsWith("required.noClash"))).toBe(true);
+    expect(result.notes.some((note) => note.startsWith("mutualClashes"))).toBe(true);
+    expect(result.notes.some((note) => note.startsWith("The site has no official"))).toBe(true);
+    expect(result.notes.some((note) => note.startsWith("suggestedYear"))).toBe(true);
+    if (result.compaction?.downgraded) {
+      expect(result.candidates.every((candidate) => candidate.fit !== "verified_no_clash")).toBe(true);
+    }
+    expect(result.candidates.length).toBeGreaterThan(0);
+  });
+});
+
 describe("discovery contract", () => {
   it("exports MAX_DISCOVERY_RESULT_CHARS and defaultDiscoveryDeps", () => {
     expect(MAX_DISCOVERY_RESULT_CHARS).toBe(12_000);

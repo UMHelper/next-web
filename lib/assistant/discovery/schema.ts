@@ -476,6 +476,7 @@ export const discoverResultSchema = z
       .object({
         truncated: z.literal(true),
         dropped: z.array(z.string()),
+        downgraded: z.boolean().optional(),
       })
       .strict()
       .optional(),

@@ -313,12 +313,50 @@ function mutualClashes(candidates: BuiltCandidate[]): DiscoverResult["mutualClas
   return pairs;
 }
 
-function withCompaction(result: DiscoverResult, dropped: readonly string[]): DiscoverResult {
-  if (dropped.length === 0) return result;
+function withCompaction(
+  result: DiscoverResult,
+  dropped: readonly string[],
+  downgraded = false,
+): DiscoverResult {
+  if (dropped.length === 0 && !downgraded) return result;
   return {
     ...result,
-    compaction: { truncated: true, dropped: [...new Set(dropped)] },
+    compaction: {
+      truncated: true,
+      dropped: [...new Set(dropped)],
+      ...(downgraded ? { downgraded: true } : {}),
+    },
   };
+}
+
+const FIT_SUPPORT_DROPS = new Set([
+  "matched",
+  "tradeoffs",
+  "reviewEvidence",
+  "titles",
+  "otherSections",
+  "reviewEvidence.excerpts",
+]);
+
+function downgradeUnsupportedFitClaims(result: DiscoverResult): DiscoverResult {
+  return {
+    ...result,
+    candidates: result.candidates.map((candidate) =>
+      candidate.fit === "verified_no_clash" ? { ...candidate, fit: "incomplete" } : candidate,
+    ),
+  };
+}
+
+function finalizeCompaction(result: DiscoverResult, dropped: readonly string[]): DiscoverResult {
+  const uniqueDropped = [...new Set(dropped)];
+  const needsDowngrade = uniqueDropped.some((entry) => FIT_SUPPORT_DROPS.has(entry));
+  const downgraded = needsDowngrade ? downgradeUnsupportedFitClaims(result) : result;
+  return withCompaction(downgraded, uniqueDropped, needsDowngrade);
+}
+
+function stripRatingsNote(notes: readonly string[]): { notes: string[]; removed: boolean } {
+  const next = notes.filter((note) => !note.startsWith("Ratings are"));
+  return { notes: next, removed: next.length < notes.length };
 }
 
 function shrinkDiscoverResult(result: DiscoverResult): DiscoverResult {
@@ -342,7 +380,7 @@ function shrinkDiscoverResult(result: DiscoverResult): DiscoverResult {
     }),
   };
   dropped.push("reviewEvidence.excerpts");
-  if (!over()) return withCompaction(next, dropped);
+  if (!over()) return finalizeCompaction(next, dropped);
 
   next = {
     ...next,
@@ -357,7 +395,7 @@ function shrinkDiscoverResult(result: DiscoverResult): DiscoverResult {
     })),
   };
   dropped.push("matched", "tradeoffs");
-  if (!over()) return withCompaction(next, dropped);
+  if (!over()) return finalizeCompaction(next, dropped);
 
   next = {
     ...next,
@@ -371,7 +409,7 @@ function shrinkDiscoverResult(result: DiscoverResult): DiscoverResult {
     noListedSections: [],
   };
   dropped.push("titles", "otherSections", "noListedSections", "reviewEvidence");
-  if (!over()) return withCompaction(next, dropped);
+  if (!over()) return finalizeCompaction(next, dropped);
 
   let ranking = next.ranking;
   while (over() && ranking.length > 80) {
@@ -379,13 +417,13 @@ function shrinkDiscoverResult(result: DiscoverResult): DiscoverResult {
     next = { ...next, ranking };
   }
   dropped.push("ranking");
-  if (!over()) return withCompaction(next, dropped);
+  if (!over()) return finalizeCompaction(next, dropped);
 
   while (over() && next.candidates.length > 1) {
     next = { ...next, candidates: next.candidates.slice(0, -1) };
     dropped.push("candidates");
   }
-  if (!over()) return withCompaction(next, dropped);
+  if (!over()) return finalizeCompaction(next, dropped);
 
   next = {
     ...next,
@@ -396,24 +434,37 @@ function shrinkDiscoverResult(result: DiscoverResult): DiscoverResult {
     })),
   };
   dropped.push("meetings", "instructors");
-  if (!over()) return withCompaction(next, dropped);
+  if (!over()) return finalizeCompaction(next, dropped);
 
-  next = withCompaction(
+  next = {
+    ...next,
+    candidates: next.candidates.map((candidate) => ({
+      ...candidate,
+      meetings: candidate.meetings.slice(0, 1),
+    })),
+  };
+  dropped.push("meetings_detail");
+  if (!over()) return finalizeCompaction(next, dropped);
+
+  const ratingsTrim = stripRatingsNote(next.notes);
+  if (ratingsTrim.removed) {
+    next = { ...next, notes: ratingsTrim.notes };
+    dropped.push("notes.ratings");
+    if (!over()) return finalizeCompaction(next, dropped);
+  }
+
+  return finalizeCompaction(
     {
       ...next,
-      candidates: next.candidates.map((candidate) => ({
-        ...candidate,
-        meetings: candidate.meetings.slice(0, 1),
-      })),
-    },
-    [...dropped, "meetings_detail"],
-  );
-  if (!over()) return next;
-
-  return withCompaction(
-    {
-      ...next,
-      notes: next.notes.slice(0, 2),
+      notes: next.notes.filter(
+        (note) =>
+          note.startsWith("required.noClash") ||
+          note.startsWith("mutualClashes") ||
+          note.startsWith("The site has no official") ||
+          note.startsWith("suggestedYear") ||
+          note.startsWith("When examined.truncated") ||
+          note.startsWith("Topic match was broadened"),
+      ),
     },
     [...dropped, "notes"],
   );
