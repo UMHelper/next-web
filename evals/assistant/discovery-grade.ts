@@ -93,6 +93,9 @@ const LIST_GLUE = /^\s*(?:(?:,|，)\s*)?(?:and|or|和|及|與|与)\s*$|^\s*[、/
 
 const OBJECT_MARKER = /\b(?:with|than|versus|vs\.?|against|over)\s*$/i;
 
+const CLAUSE_BREAK =
+  /[,;]\s*(?:so|but|yet|however|while|whereas|although|though)\b|—\s*(?:so|but|yet|however)\b|，\s*(?:但是|不過|不过|所以|然而|但)/gi;
+
 export type DiscoveryGradeOptions = {
   planCodes?: readonly string[];
   plannerVersion?: string;
@@ -106,9 +109,19 @@ const COURSE_TOOL_NAMES = new Set([
   "get_course_reviews",
 ]);
 
-const INVERTED_DIFFICULTY_PHRASES = ["1 = easiest", "5 = hardest", "lower is easier", "越低越容易"];
+const INVERTED_DIFFICULTY_PATTERNS = [
+  /(?<![\d.])1\s*=\s*easiest/i,
+  /(?<![\d.])5\s*=\s*hardest/i,
+  /lower is easier/i,
+  /越低越容易/,
+];
 
-const STATED_DIFFICULTY_PHRASES = ["1 = very hard", "5 = very easy", "higher is easier", "越高越容易"];
+const STATED_DIFFICULTY_PATTERNS = [
+  /(?<![\d.])1\s*=\s*very hard/i,
+  /(?<![\d.])5\s*=\s*very easy/i,
+  /higher is easier/i,
+  /越高越容易/,
+];
 
 function patternsCheck(reply: string, patterns: RegExp[] | undefined, shouldMatch: boolean): boolean {
   if (patterns === undefined || patterns.length === 0) return true;
@@ -168,15 +181,11 @@ function discoveryBucketOf(
   return "succeededWithArgs";
 }
 
-function replyHasPhrase(reply: string, phrase: string): boolean {
-  return reply.toLowerCase().includes(phrase.toLowerCase());
-}
-
 function difficultyOf(reply: string): DifficultyKind {
-  const inverted = INVERTED_DIFFICULTY_PHRASES.some((phrase) => replyHasPhrase(reply, phrase));
+  const inverted = INVERTED_DIFFICULTY_PATTERNS.some((pattern) => pattern.test(reply));
   const stated =
-    STATED_DIFFICULTY_PHRASES.some((phrase) => replyHasPhrase(reply, phrase)) ||
-    (replyHasPhrase(reply, "1 hard") && replyHasPhrase(reply, "5 easy"));
+    STATED_DIFFICULTY_PATTERNS.some((pattern) => pattern.test(reply)) ||
+    (/(?<![\d.])1\s+hard/i.test(reply) && /(?<![\d.])5\s+easy/i.test(reply));
   if (inverted) return "inverted";
   if (stated) return "stated";
   return "omitted";
@@ -378,6 +387,15 @@ function idiomHits(text: string): Array<{ index: number; end: number; mutual: bo
   return hits;
 }
 
+function clauseStart(text: string, from: number, to: number): number {
+  const slice = text.slice(from, to);
+  let start = 0;
+  for (const match of slice.matchAll(CLAUSE_BREAK)) {
+    start = (match.index ?? 0) + match[0].length;
+  }
+  return from + start;
+}
+
 function claimSubjects(sentence: string): {
   codes: Array<ClaimSubject & { mutual: boolean }>;
   referenceCodes: string[];
@@ -400,7 +418,8 @@ function claimSubjects(sentence: string): {
   let cursor = 0;
   for (const hit of hits) {
     if (!hit.negated) {
-      const span = stripped.slice(cursor, hit.index);
+      const start = clauseStart(stripped, cursor, hit.index);
+      const span = stripped.slice(start, hit.index);
       const matches = codeMatches(span);
       const subjects = hit.mutual ? matches : subjectRun(matches, span);
       for (const match of subjects) {

@@ -403,6 +403,53 @@ describe("gradeDiscovery", () => {
     expect(graded.pass).toBe(false);
   });
 
+  it("keeps a saved-plan reference out of the subject when a comma clause starts", () => {
+    const result = discoverCandidates([
+      {
+        courseCode: "GEST1006",
+        section: "002",
+        fit: "verified_no_clash",
+        otherSections: [{ section: "001", fit: "confirmed_clash" }],
+      },
+    ], { planComplete: true });
+    const graded = gradeDiscovery(
+      trace(
+        'Your plan currently holds only GEGA1000-007, so "no clash" here means no clash with that one section.',
+        [discoveryCall(result)],
+      ),
+      { discovery: "optional" },
+    );
+    expect(graded.falseFitClaims).toEqual([]);
+    expect(graded.pass).toBe(true);
+  });
+
+  it("does not attribute a clause-final no-clash claim to the course it was compared with", () => {
+    const result = discoverCandidates([
+      { courseCode: "GESB1015", section: "001", fit: "verified_no_clash" },
+    ], { planComplete: true });
+    const graded = gradeDiscovery(
+      trace(
+        "GESB1015 runs TUE 13:00–14:15, which is the same slot as your GEGA1000 but on a free day, so no clash.",
+        [discoveryCall(result)],
+      ),
+      { discovery: "optional" },
+    );
+    expect(graded.falseFitClaims).toEqual([]);
+    expect(graded.pass).toBe(true);
+  });
+
+  it("attributes a genuine claim after a comma clause break to its own course", () => {
+    const result = discoverCandidates([
+      { courseCode: "GEST1006", section: "002", fit: "verified_no_clash" },
+    ], { planComplete: true });
+    const graded = gradeDiscovery(
+      trace("GEGA1000-007 is in your plan, so GEST1007 has no clash.", [discoveryCall(result)]),
+      { discovery: "optional" },
+    );
+    expect(graded.falseFitClaims).toEqual(["GEST1007"]);
+    expect(graded.pass).toBe(false);
+  });
+
   it("allows a two-code conjunction claim when both sections are verified", () => {
     const result = discoverCandidates([
       { courseCode: "GEST1006", section: "002", fit: "verified_no_clash" },
@@ -1374,6 +1421,21 @@ describe("summarizeDiscovery", () => {
         summary.difficultyDirection.omitted,
     ).toBe(summary.difficultyDirection.cases);
     expect(summary.difficultyDirection.cases).toBe(grades.length);
+  });
+
+  it("does not read a decimal score as a scale legend", () => {
+    expect(metricGrade("GESB1012 is the highest difficulty score (4.1 = easiest).", [], { discovery: "optional" }).difficulty).toBe(
+      "omitted",
+    );
+    expect(metricGrade("The hardest option is 4.5 = hardest on this scale.", [], { discovery: "optional" }).difficulty).toBe(
+      "omitted",
+    );
+    expect(metricGrade("The weakest is 4.1 = very hard.", [], { discovery: "optional" }).difficulty).toBe("omitted");
+    expect(metricGrade("The strongest is 4.5 = very easy.", [], { discovery: "optional" }).difficulty).toBe("omitted");
+    expect(metricGrade("1 = easiest", [], { discovery: "optional" }).difficulty).toBe("inverted");
+    expect(metricGrade("5 = hardest", [], { discovery: "optional" }).difficulty).toBe("inverted");
+    expect(metricGrade("1 = very hard", [], { discovery: "optional" }).difficulty).toBe("stated");
+    expect(metricGrade("5 = very easy", [], { discovery: "optional" }).difficulty).toBe("stated");
   });
 });
 

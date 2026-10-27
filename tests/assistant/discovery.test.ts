@@ -614,7 +614,7 @@ describe("runDiscoverCourseCandidates reviews and output", () => {
     });
   });
 
-  it("marks candidates beyond the review budget incomplete instead of leaving the field absent", async () => {
+  it("marks candidates beyond the review budget incomplete and capped", async () => {
     const codes = ["GEST5401", "GEST5402", "GEST5403", "GEST5404", "GEST5405"];
     const reviewPool = pool({
       courses: codes.map((code) => poolCourse({ courseCode: code })),
@@ -643,6 +643,7 @@ describe("runDiscoverCourseCandidates reviews and output", () => {
         reviewCount: 4,
         mentions: {},
         excerpts: [],
+        truncated: true,
       });
     }
   });

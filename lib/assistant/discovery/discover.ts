@@ -336,6 +336,7 @@ function unsearchedReviewEvidence(
     reviewCount: sectionReviewCount(section),
     mentions: {},
     excerpts: [],
+    truncated: true,
   };
 }
 
