@@ -120,7 +120,7 @@ describe("fixture topic retrieval", () => {
   });
 
   it("treats a credit target as a scope anchor on its own", () => {
-    const pool = filterFixturePool({ credits: 3 });
+    const pool = filterFixturePool({ codePrefix: undefined, credits: 3 });
     expect(pool.totalMatchingCourses).toBeGreaterThan(0);
     expect(pool.courses.every((course) => course.credits === "3")).toBe(true);
   });
