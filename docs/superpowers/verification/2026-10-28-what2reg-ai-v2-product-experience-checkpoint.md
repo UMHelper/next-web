@@ -3,7 +3,7 @@
 Date: 2026-10-28
 Worktree: `.worktrees/assistant-v2-3-5-b2`
 Branch: `feat/assistant-v2-3-5-b2-remediation`
-Implementation SHA: `5cb1509` (code fix `468b102`; audit preservation `5cb1509`). The remote branch also contains this report and any later docs-only commit.
+Implementation HEAD: `64d8b64` (referent fix `468b102`, audit preservation `5cb1509`, last-reference guard `64d8b64`). This report is a docs-only commit after the implementation.
 Audit: [V2 Implementation Reality & Project Status Audit](../audits/2026-10-28-what2reg-ai-v2-implementation-reality-audit.md)
 
 This checkpoint completes the audit's three immediate actions: establish the
@@ -14,10 +14,10 @@ acceptance. It does not start V2.3.5-C, V2.4, V3, or a broad stabilization cycle
 
 | Location | Branch | HEAD | Relationship |
 |---|---|---|---|
-| `.worktrees/assistant-v2-3-5-b2` | `feat/assistant-v2-3-5-b2-remediation` | **`5cb1509`** implementation; later docs commit | Canonical V2 candidate (code `468b102`) |
+| `.worktrees/assistant-v2-3-5-b2` | `feat/assistant-v2-3-5-b2-remediation` | **`64d8b64`** implementation; later docs commit | Canonical V2 candidate |
 | Primary `/Users/thomaswu/Workspace/next-web` | `feat/assistant-v2-3-5-b-discovery` | `718afd8` | **48 commits behind** the B.3 worktree |
 | `.worktrees/assistant-v2-1-ux` | `feat/assistant-v2-1-ux-refinement` | `2760617` | Older UX line |
-| `origin/feat/assistant-v2-3-5-b2-remediation` | remote branch | `5cb1509` + docs | Created in this checkpoint, non-force |
+| `origin/feat/assistant-v2-3-5-b2-remediation` | remote branch | `64d8b64` + docs | Created in this checkpoint, non-force |
 | `origin/feat/global-assistant-v2` | remote branch | `221e73b` | Older, not canonical |
 | `origin/main` | remote branch | `0ff1e7a` | Does not contain V2; B.3 is 165 commits ahead |
 
@@ -26,8 +26,9 @@ contains discovery at `718afd8` and lacks the B.2/B.3 remediation commits.
 Opening the repository root does **not** show the canonical implementation.
 
 `2f79726` is no longer the latest canonical B.3 implementation. `468b102` adds
-the referent fix and `5cb1509` preserves the 2026-10-28 audit. This checkpoint
-report is a docs-only commit after `5cb1509`.
+the referent fix, `5cb1509` preserves the 2026-10-28 audit, and `64d8b64` adds
+the last-reference boundary. This checkpoint report is a docs-only commit after
+the implementation.
 
 ## 2. Backup and remote status
 
@@ -36,7 +37,7 @@ report is a docs-only commit after `5cb1509`.
   - `backup/b2-pre-recovery-69a94e7`
 - New non-destructive checkpoint: `backup/v2-checkpoint-2f79726`.
 - Review branch pushed normally:
-  `origin/feat/assistant-v2-3-5-b2-remediation`, containing `5cb1509` and this
+  `origin/feat/assistant-v2-3-5-b2-remediation`, containing `64d8b64` and this
   docs-only checkpoint report.
 - Local branch now tracks that remote branch.
 - No force-push, reset, history rewrite, worktree deletion, merge, or deployment.
@@ -53,8 +54,8 @@ were not printed.
 | `localhost:3000` (existing) | primary checkout | `718afd8` | Serves the **stale** primary checkout, not B.3; signed-out (`x-clerk-auth-status: signed-out`) |
 | `localhost:3001` (started for this check) | B.3 worktree | `5cb1509` | Booted and returned HTTP 200; signed-out; stopped after the check |
 
-Automated tests and the targeted live follow-up ran against code commit
-**`5cb1509`**; the only later commit is this report.
+Automated tests and the targeted live follow-up ran against the implementation
+at **`64d8b64`**; the only later commit is this report.
 No browser session was signed in. Browser behavior is **UNVERIFIED**; do not
 attribute the stale `718afd8` server to B.3.
 
@@ -125,7 +126,7 @@ Focused tests for modified files:
   - there is no `needs_clarification`;
   - the final answer renders the instructor.
 
-Targeted live follow-up (`eff-detail_followup`, 1 repeat, code SHA `5cb1509`):
+Targeted live follow-up (`eff-detail_followup`, 1 repeat, implementation SHA `64d8b64`):
 
 - Turn 1 presented five GEST options; turn 2 resolved “second option” to
   **GEST1005**.
@@ -153,12 +154,12 @@ does not change that protocol result.
 
 | Gate | Result |
 |---|---|
-| Full Vitest | **282 files / 2465 tests passed** |
+| Full Vitest | **282 files / 2466 tests passed** |
 | `npx tsc --noEmit` | exit 0 |
 | `npm run lint` | exit 0, no warnings |
 | `npm run build` | exit 0 |
 
-Logs: `.eval-results/assistant/v2-referent-{vitest,tsc,lint,build}.log`.
+Logs: `.eval-results/assistant/v2-referent-final-{vitest,tsc,lint,build}.log`.
 
 ## 8. Real-browser acceptance — UNVERIFIED
 
@@ -173,7 +174,7 @@ No authenticated browser session was available:
 Therefore none of the required student journey was browser-tested. This is an
 **UNVERIFIED** result, not a pass.
 
-Manual checklist for the exact build `5cb1509`, at desktop viewport
+Manual checklist for the exact build `64d8b64`, at desktop viewport
 **1440×900 and 1280×800** (assistant is hidden below 1024px):
 
 1. Sign in as an authorized tester; open the assistant on `/`.
@@ -230,6 +231,6 @@ labels.**
 | Controlled-pilot readiness | **Conditional** — desktop viewport ≥1024px, authorized testers, browser checklist, canonical `5cb1509` |
 | Broad-deployment readiness | **Not ready** — browser runtime, viewport policy, durable state, and operational visibility remain |
 
-The canonical implementation candidate is `5cb1509`; the remote branch also
+The canonical implementation candidate is `64d8b64`; the remote branch also
 contains this report commit on `origin/feat/assistant-v2-3-5-b2-remediation`. No merge was performed. Do not
 start V2.3.5-C, V2.4, or V3 from this checkpoint without a separate decision.
