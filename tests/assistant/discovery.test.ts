@@ -412,6 +412,8 @@ describe("runDiscoverCourseCandidates exclusions and failures", () => {
     assertOkDiscoverResult(result);
     expect(result.noListedSections).toContain("GEST9999");
     expect(result.candidates.some((c) => c.courseCode === "GEST9999")).toBe(false);
+    expect(result.notes.some((note) => note.includes("no listed sections"))).toBe(true);
+    expect(result.notes.some((note) => note.includes("complete no-match"))).toBe(false);
   });
 
   it("returns empty candidates when every section fails required rules", async () => {
@@ -431,6 +433,23 @@ describe("runDiscoverCourseCandidates exclusions and failures", () => {
     expect(result.examined.truncated).toBe(false);
     expect(result.notes.some((note) => note.includes("complete no-match for this scope"))).toBe(true);
     expect(result.notes.some((note) => note.includes("do not repeat the same search"))).toBe(true);
+  });
+
+  it("does not call an all-in-plan result a catalog no-match", async () => {
+    const inPlanOnly = pool({
+      courses: [poolCourse({ courseCode: "GEGA1000" })],
+      instructorRows: [pwcRow({ pwcId: 63, courseCode: "GEGA1000" })],
+      offers: [offer(63, "007", ["MON 13:00-14:15 E11"])],
+    });
+    const result = await runDiscoverCourseCandidates(
+      readyState(),
+      { scope: { codePrefix: "GEGA" } },
+      discoveryDeps(inPlanOnly),
+    );
+    assertOkDiscoverResult(result);
+    expect(result.candidates).toEqual([]);
+    expect(result.notes.some((note) => note.includes("already in the saved plan"))).toBe(true);
+    expect(result.notes.some((note) => note.includes("complete no-match"))).toBe(false);
   });
 
   it("does not call a zero-match complete when the pool was truncated", async () => {

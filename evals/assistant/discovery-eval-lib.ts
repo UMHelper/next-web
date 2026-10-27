@@ -48,6 +48,7 @@ function discoveryEvalFingerprint(
     "lib/assistant/timetable-preview.ts",
     "lib/assistant/discovery/tool.ts",
     "lib/assistant/discovery/discover.ts",
+    "lib/assistant/discovery/schema.ts",
   ];
   // The shadow set is fingerprinted on its own so the release-gate fingerprints stay unchanged.
   if (caseSetId === "shadow-v1") files.push("evals/assistant/discovery-shadow-cases.ts");

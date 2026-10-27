@@ -91,6 +91,12 @@ const NO_MATCH_COMPLETE_NOTE =
 const NO_MATCH_TRUNCATED_NOTE =
   "No candidate matched every applied constraint, but examined.truncated is true: the pool was bounded, so some matching courses were not evaluated. Do not claim no course exists; relax a constraint or change the scope.";
 
+const ALL_IN_PLAN_NOTE =
+  "Every matching course is already in the saved plan, so there is no new candidate to return. This is not a catalog no-match; do not relax constraints or claim the course is unavailable.";
+
+const NO_LISTED_SECTIONS_NOTE =
+  "No candidate was returned because the matching courses have no listed sections this term, so they could not be fit-checked. This is not proof the courses do not exist; do not claim a catalog no-match.";
+
 type TimetableInfo = {
   status: DiscoverResult["timetable"]["status"];
   plannerVersion?: string;
@@ -530,6 +536,8 @@ function shrinkDiscoverResult(result: DiscoverResult): DiscoverResult {
           note.startsWith("suggestedYear") ||
           note.startsWith("When examined.truncated") ||
           note.startsWith("No candidate matched") ||
+          note.startsWith("Every matching course") ||
+          note.startsWith("No candidate was returned because") ||
           note.startsWith("reviewEvidence") ||
           note.startsWith("Topic match was broadened"),
       ),
@@ -915,9 +923,17 @@ export async function runDiscoverCourseCandidates(
     notes: [
       ...DISCOVERY_NOTES,
       ...(parsed.data.reviewTerms?.length ? [REVIEW_EVIDENCE_NOTE] : []),
-      ...(publicCandidates.length === 0
-        ? [discoveryPool.truncated ? NO_MATCH_TRUNCATED_NOTE : NO_MATCH_COMPLETE_NOTE]
-        : []),
+      ...(publicCandidates.length > 0
+        ? []
+        : [
+            alreadyInPlan > 0 && examinedCourses.length === 0
+              ? ALL_IN_PLAN_NOTE
+              : noListedSections.length > 0
+                ? NO_LISTED_SECTIONS_NOTE
+                : discoveryPool.truncated
+                  ? NO_MATCH_TRUNCATED_NOTE
+                  : NO_MATCH_COMPLETE_NOTE,
+          ]),
       ...(discoveryPool.topicFallback
         ? [
             "Topic match was broadened to keyword-level hits because fewer than three courses matched the full topic phrases.",
