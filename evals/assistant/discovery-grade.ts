@@ -86,7 +86,12 @@ const INDIVIDUAL_FIT_CLAIM =
 
 const MUTUAL_FIT_CLAIM = /fit together|compatible with each other|互相兼容|彼此兼容/i;
 
-const CODE_IN_SENTENCE = /\b([A-Z]{2,4}\d{4})(?:-([A-Z0-9]{1,6}))?\b/g;
+const CODE_IN_SENTENCE =
+  /\b([A-Z]{2,4}\d{4})(?:-([A-Z0-9]{1,6})\b|\s*(?:§|#)\s*([A-Z0-9]{1,6})\b|\s+(?:[Ss]ection|[Ss]ec\.?|[Ss]ect\.?)\s*([A-Z0-9]{1,6})\b)?/g;
+
+const LIST_GLUE = /^\s*(?:(?:,|，)\s*)?(?:and|or|和|及|與|与)\s*$|^\s*[、/&+]\s*$/i;
+
+const OBJECT_MARKER = /\b(?:with|than|versus|vs\.?|against|over)\s*$/i;
 
 export type DiscoveryGradeOptions = {
   planCodes?: readonly string[];
@@ -306,7 +311,7 @@ function newestFitsFromTrace(
 
 function sentences(reply: string): string[] {
   return reply
-    .split(/[.!?。！？]+|\n+/)
+    .split(/[.!?。！？;；]+|\n+/)
     .map((line) => line.trim())
     .filter(Boolean);
 }
@@ -321,11 +326,30 @@ function stripParentheticals(sentence: string): string {
   return current;
 }
 
-function codeMatches(text: string): ClaimSubject[] {
+function codeMatches(text: string): Array<ClaimSubject & { index: number; end: number }> {
   return [...text.matchAll(new RegExp(CODE_IN_SENTENCE.source, "g"))].map((match) => ({
     code: match[1]!.toUpperCase(),
-    section: match[2] ?? null,
+    section: (match[2] ?? match[3] ?? match[4] ?? null)?.toUpperCase() ?? null,
+    index: match.index ?? 0,
+    end: (match.index ?? 0) + match[0].length,
   }));
+}
+
+function subjectRun(
+  matches: Array<ClaimSubject & { index: number; end: number }>,
+  span: string,
+): Array<ClaimSubject & { index: number; end: number }> {
+  if (matches.length === 0) return [];
+  const run = [matches[matches.length - 1]!];
+  for (let index = matches.length - 1; index > 0; index -= 1) {
+    const previous = matches[index - 1]!;
+    const current = matches[index]!;
+    const between = span.slice(previous.end, current.index);
+    const before = span.slice(0, previous.index);
+    if (!LIST_GLUE.test(between) || OBJECT_MARKER.test(before)) break;
+    run.unshift(previous);
+  }
+  return run;
 }
 
 function mutualIdiomNegated(text: string, index: number): boolean {
@@ -376,14 +400,17 @@ function claimSubjects(sentence: string): {
   let cursor = 0;
   for (const hit of hits) {
     if (!hit.negated) {
-      for (const match of codeMatches(stripped.slice(cursor, hit.index))) {
+      const span = stripped.slice(cursor, hit.index);
+      const matches = codeMatches(span);
+      const subjects = hit.mutual ? matches : subjectRun(matches, span);
+      for (const match of subjects) {
         const key = `${match.code}\0${match.section ?? ""}`;
         const existing = seenSubjects.get(key);
         if (existing) {
           existing.mutual = existing.mutual || hit.mutual;
           continue;
         }
-        const subject = { ...match, mutual: hit.mutual };
+        const subject = { code: match.code, section: match.section, mutual: hit.mutual };
         seenSubjects.set(key, subject);
         codes.push(subject);
       }
@@ -394,13 +421,28 @@ function claimSubjects(sentence: string): {
   return { codes, referenceCodes };
 }
 
+function numericSection(value: string): string | null {
+  return /^\d+$/.test(value) ? String(Number(value)) : null;
+}
+
+function resolveSection(course: CourseEvidence, section: string): SectionRow | undefined {
+  const exact = course.sections.get(section);
+  if (exact) return exact;
+  const numeric = numericSection(section);
+  if (numeric === null) return undefined;
+  const matches = [...course.sections.entries()].filter(
+    ([key]) => numericSection(key) === numeric,
+  );
+  return matches.length === 1 ? matches[0]![1] : undefined;
+}
+
 function claimSupported(index: FitIndex, code: string, section: string | null): boolean {
   const course = index.courses.get(code);
   if (!course) return false;
   if (section === null) {
     return index.sectionCompleteness.get(code) === true && index.fits.get(fitKey(code, null)) === "verified_no_clash";
   }
-  const row = course.sections.get(section);
+  const row = resolveSection(course, section);
   return row?.fit === "verified_no_clash" && row.supportsClaim;
 }
 

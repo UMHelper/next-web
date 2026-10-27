@@ -301,6 +301,120 @@ describe("gradeDiscovery", () => {
     expect(graded.pass).toBe(true);
   });
 
+  it.each([
+    "GEST1006 §002 is confirmed conflict-free.",
+    "GEST1006 §2 is confirmed conflict-free.",
+    "GEST1006 #002 is confirmed conflict-free.",
+    "GEST1006 Section 2 is confirmed conflict-free.",
+    "GEST1006 section 002 is confirmed conflict-free.",
+    "GEST1006 sec. 2 has no clash with your timetable.",
+    "GEST1006-2 has no clash with your timetable.",
+    "So of the options discussed, only GEST1006 §002 is confirmed conflict-free.",
+  ])("supports a verified section written as %s", (reply) => {
+    const result = discoverCandidates([
+      {
+        courseCode: "GEST1006",
+        section: "002",
+        fit: "verified_no_clash",
+        otherSections: [{ section: "001", fit: "confirmed_clash" }],
+      },
+    ], { planComplete: true });
+    const graded = gradeDiscovery(trace(reply, [discoveryCall(result)]), { discovery: "optional" });
+    expect(graded.falseFitClaims).toEqual([]);
+    expect(graded.pass).toBe(true);
+  });
+
+  it.each([
+    "GEST1006 §003 is confirmed conflict-free.",
+    "GEST1006 Section 3 is confirmed conflict-free.",
+  ])("flags a section with no evidence written as %s", (reply) => {
+    const result = discoverCandidates([
+      {
+        courseCode: "GEST1006",
+        section: "002",
+        fit: "verified_no_clash",
+        otherSections: [{ section: "001", fit: "confirmed_clash" }],
+      },
+    ], { planComplete: true });
+    const graded = gradeDiscovery(trace(reply, [discoveryCall(result)]), { discovery: "optional" });
+    expect(graded.falseFitClaims).toEqual(["GEST1006"]);
+    expect(graded.pass).toBe(false);
+  });
+
+  it("keeps a saved-plan reference out of the subject when a semicolon starts a new clause", () => {
+    const result = discoverCandidates([
+      {
+        courseCode: "GEST1006",
+        section: "002",
+        fit: "verified_no_clash",
+        otherSections: [{ section: "001", fit: "confirmed_clash" }],
+      },
+    ], { planComplete: true });
+    const graded = gradeDiscovery(
+      trace(
+        "§001 Mon & Thu 13:30–14:45 clashes with GEGA1000-007; §002 Tue & Thu 11:30–12:45 is verified conflict-free, but is late morning.",
+        [discoveryCall(result)],
+      ),
+      { discovery: "optional" },
+    );
+    expect(graded.falseFitClaims).toEqual([]);
+    expect(graded.pass).toBe(true);
+  });
+
+  it("attributes a genuine claim after a saved-plan reference instead of the reference", () => {
+    const result = discoverCandidates([
+      { courseCode: "GEST1005", section: "001", fit: "confirmed_clash" },
+    ], { planComplete: true });
+    const graded = gradeDiscovery(
+      trace("GEGA1000-007 clashes with GEST1005, and GEST1006 is verified conflict-free.", [
+        discoveryCall(result),
+      ]),
+      { discovery: "optional" },
+    );
+    expect(graded.falseFitClaims).toEqual(["GEST1006"]);
+    expect(graded.pass).toBe(false);
+  });
+
+  it("does not flag the saved-plan reference when the genuine claim is supported", () => {
+    const result = discoverCandidates([
+      { courseCode: "GEST1005", section: "001", fit: "confirmed_clash" },
+      { courseCode: "GEST1006", section: "002", fit: "verified_no_clash" },
+    ], { planComplete: true });
+    const graded = gradeDiscovery(
+      trace("GEGA1000-007 clashes with GEST1005, and GEST1006 is verified conflict-free.", [
+        discoveryCall(result),
+      ]),
+      { discovery: "optional" },
+    );
+    expect(graded.falseFitClaims).toEqual([]);
+    expect(graded.pass).toBe(true);
+  });
+
+  it("splits Chinese semicolon clauses before attributing a fit claim", () => {
+    const result = discoverCandidates([
+      { courseCode: "GEST1006", section: "002", fit: "verified_no_clash" },
+    ], { planComplete: true });
+    const graded = gradeDiscovery(
+      trace("GEST1006 不冲突；GEST1007 不冲突。", [discoveryCall(result)]),
+      { discovery: "optional" },
+    );
+    expect(graded.falseFitClaims).toEqual(["GEST1007"]);
+    expect(graded.pass).toBe(false);
+  });
+
+  it("allows a two-code conjunction claim when both sections are verified", () => {
+    const result = discoverCandidates([
+      { courseCode: "GEST1006", section: "002", fit: "verified_no_clash" },
+      { courseCode: "GEST1005", section: "001", fit: "verified_no_clash" },
+    ], { planComplete: true });
+    const graded = gradeDiscovery(
+      trace("GEST1006 §002 and GEST1005 §001 are conflict-free.", [discoveryCall(result)]),
+      { discovery: "optional" },
+    );
+    expect(graded.falseFitClaims).toEqual([]);
+    expect(graded.pass).toBe(true);
+  });
+
   it("allows a course-level no-clash claim for one complete discovery section", () => {
     const graded = gradeDiscovery(
       trace("GESB1013 has no clash with your timetable.", [
