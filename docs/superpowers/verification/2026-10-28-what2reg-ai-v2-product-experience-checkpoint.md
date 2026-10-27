@@ -89,6 +89,7 @@ candidate list. An unpresented discovery result is not a visible list.
 |---|---|
 | `468b102` | Bind follow-up ordinals to displayed recommendations |
 | `5cb1509` | Preserve the 2026-10-28 audit in the canonical branch |
+| `64d8b64` | Keep unrelated “last semester” text out of recommendation ordinals |
 
 Implementation:
 
@@ -111,7 +112,7 @@ Implementation:
 
 Focused tests for modified files:
 
-- `tests/assistant/course-referent.test.ts`: 41 tests, including displayed order,
+- `tests/assistant/course-referent.test.ts`: 42 tests, including displayed order,
   different internal/display order, newer list, last, explicit code, page
   precedence, unpresented discovery, and genuine ambiguity.
 - `tests/assistant/tools.test.ts`: repeated ambiguous course tool returns a
