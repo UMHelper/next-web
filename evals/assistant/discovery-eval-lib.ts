@@ -47,6 +47,7 @@ function discoveryEvalFingerprint(
   // The shadow set is fingerprinted on its own so the release-gate fingerprints stay unchanged.
   if (caseSetId === "shadow-v1") files.push("evals/assistant/discovery-shadow-cases.ts");
   if (caseSetId === "shadow-v2") files.push("evals/assistant/discovery-shadow2-cases.ts");
+  if (caseSetId === "efficiency-v1") files.push("evals/assistant/discovery-efficiency-cases.ts");
   for (const file of files) {
     hash.update(readFileSync(path.join(process.cwd(), file)));
   }

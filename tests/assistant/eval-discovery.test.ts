@@ -31,6 +31,7 @@ import {
 } from "@/evals/assistant/discovery-holdout-cases";
 import { FROZEN_SHADOW_V1, SHADOW_CASES_V1 } from "@/evals/assistant/discovery-shadow-cases";
 import { FROZEN_SHADOW_V2, SHADOW_CASES_V2 } from "@/evals/assistant/discovery-shadow2-cases";
+import { EFFICIENCY_CASES_V1, FROZEN_EFFICIENCY_V1 } from "@/evals/assistant/discovery-efficiency-cases";
 import * as discoveryEvalLib from "@/evals/assistant/discovery-eval-lib";
 import type { ToolCallRecord, TurnTrace } from "@/evals/assistant/grade";
 import * as harness from "@/evals/assistant/harness";
@@ -1474,13 +1475,14 @@ describe("discovery case registry", () => {
     expect(DISCOVERY_CASES).toBe(DISCOVERY_CASES_V2);
     expect(DISCOVERY_CASES_V2).not.toBe(DISCOVERY_CASES_V1);
 
-    expect(Object.keys(DISCOVERY_CASE_SETS)).toEqual(["dev-v1", "dev-v2", "holdout-v1", "shadow-v1", "shadow-v2"]);
+    expect(Object.keys(DISCOVERY_CASE_SETS)).toEqual(["dev-v1", "dev-v2", "holdout-v1", "shadow-v1", "shadow-v2", "efficiency-v1"]);
     expect(CASE_SET_VERSION).toBe("b2-v2");
     expect(DISCOVERY_CASE_SETS["dev-v1"]).toBe(DISCOVERY_CASES_V1);
     expect(DISCOVERY_CASE_SETS["dev-v2"]).toBe(DISCOVERY_CASES_V2);
     expect(DISCOVERY_CASE_SETS["holdout-v1"]).toBe(DISCOVERY_HOLDOUT_CASES_V1);
     expect(DISCOVERY_CASE_SETS["shadow-v1"]).toBe(SHADOW_CASES_V1);
     expect(DISCOVERY_CASE_SETS["shadow-v2"]).toBe(SHADOW_CASES_V2);
+    expect(DISCOVERY_CASE_SETS["efficiency-v1"]).toBe(EFFICIENCY_CASES_V1);
     expect(DISCOVERY_HOLDOUT_CASES_V1).toBe(DISCOVERY_HOLDOUT_CASES);
     expect(
       DISCOVERY_HOLDOUT_CASES_V1.map((evalCase) => ({
@@ -1494,6 +1496,12 @@ describe("discovery case registry", () => {
         turns: evalCase.turns.map((turn) => ({ message: turn.message, discovery: turn.expect.discovery })),
       })),
     ).toEqual(FROZEN_SHADOW_V2);
+    expect(
+      EFFICIENCY_CASES_V1.map((evalCase) => ({
+        id: evalCase.id,
+        turns: evalCase.turns.map((turn) => ({ message: turn.message, discovery: turn.expect.discovery })),
+      })),
+    ).toEqual(FROZEN_EFFICIENCY_V1);
     expect(
       SHADOW_CASES_V1.map((evalCase) => ({
         id: evalCase.id,

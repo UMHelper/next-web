@@ -198,3 +198,6 @@ Safeguards that stay in place while thinking is off: the sidebar hides reasoning
 ### Discovery shadow holdouts
 
 `ASSISTANT_EVAL_SUITE=shadow` runs the frozen `shadow-v1` set and `ASSISTANT_EVAL_SUITE=shadow2` runs the frozen `shadow-v2` replication set. Both use fixture-backed tools, write `discovery-<label>.json`, and do not enforce release thresholds. They are secondary evidence; `holdout-v1` remains the release gate.
+
+
+`ASSISTANT_EVAL_SUITE=efficiency` runs the frozen `efficiency-v1` diagnostic paraphrases. It is not a release gate.
