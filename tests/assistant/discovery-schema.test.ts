@@ -10,10 +10,12 @@ describe("discoverCourseCandidatesInputSchema", () => {
     expect(discoverCourseCandidatesInputSchema.safeParse({ scope: {} }).success).toBe(false);
   });
 
-  it("rejects scope with only credits (not a scope anchor)", () => {
-    expect(discoverCourseCandidatesInputSchema.safeParse({ scope: { credits: 3 } }).success).toBe(
-      false,
-    );
+  it("accepts scope with only credits as a bounded recommendation request", () => {
+    const parsed = discoverCourseCandidatesInputSchema.safeParse({ scope: { credits: 3 } });
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data.scope.credits).toBe(3);
+    }
   });
 
   it("upper-cases codePrefix", () => {
@@ -115,7 +117,9 @@ describe("discoverCourseCandidatesInputSchema", () => {
   });
 
   it("rejects missing scope anchor", () => {
-    expect(discoverCourseCandidatesInputSchema.safeParse({ scope: { credits: 3 } }).success).toBe(false);
+    expect(
+      discoverCourseCandidatesInputSchema.safeParse({ scope: { excludeCodes: ["GEST1001"] } }).success,
+    ).toBe(false);
   });
 
   it("rejects invalid excludeCodes", () => {

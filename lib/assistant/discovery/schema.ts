@@ -162,6 +162,7 @@ function hasScopeAnchor(scope: {
   department?: string;
   topics?: string[];
   maxSuggestedYear?: number;
+  credits?: number;
 }) {
   return Boolean(
     scope.courseType ||
@@ -169,7 +170,8 @@ function hasScopeAnchor(scope: {
       scope.faculty ||
       scope.department ||
       scope.topics?.length ||
-      scope.maxSuggestedYear !== undefined,
+      scope.maxSuggestedYear !== undefined ||
+      scope.credits !== undefined,
   );
 }
 
@@ -215,7 +217,7 @@ const discoveryScopeParameters = z
     .min(0)
     .max(12)
     .optional()
-    .describe("Exact credit value filter; not a scope anchor on its own."),
+    .describe("Exact credit value filter; a credit target is a valid anchor on its own."),
   excludeCodes: z
     .array(courseCodeField)
     .max(20)
@@ -251,7 +253,7 @@ const preferredParameters = z
 export const discoverCourseCandidatesParameters = z
   .object({
   scope: discoveryScopeParameters.describe(
-    "Course pool definition; include at least one anchor among courseType, codePrefix, faculty, department, topics, or maxSuggestedYear.",
+    "Course pool definition; include at least one anchor among courseType, codePrefix, faculty, department, topics, maxSuggestedYear, or credits.",
   ),
   required: requiredParameters
     .optional()
