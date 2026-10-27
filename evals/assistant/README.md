@@ -193,3 +193,8 @@ Production and the preview worker run with `AI_THINKING=off`. `ASSISTANT_EVAL_TH
 - Reconsider thinking, and only then build reasoning replay, if a controlled comparison on the semantic and multilingual suites shows thinking beating thinking-off by a margin fixed before the runs.
 
 Safeguards that stay in place while thinking is off: the sidebar hides reasoning messages (`reasoningMessage` slot in `components/assistant/assistant-panel.tsx`, `tests/components/assistant-reasoning-hidden.test.tsx`), reasoning tokens are logged per step (`lib/assistant/metrics.ts`), and the provider and history contracts are pinned (`tests/assistant/thinking-provider-contract.test.ts`, `tests/assistant/thinking-history-contract.test.ts`).
+
+
+### Discovery shadow holdouts
+
+`ASSISTANT_EVAL_SUITE=shadow` runs the frozen `shadow-v1` set and `ASSISTANT_EVAL_SUITE=shadow2` runs the frozen `shadow-v2` replication set. Both use fixture-backed tools, write `discovery-<label>.json`, and do not enforce release thresholds. They are secondary evidence; `holdout-v1` remains the release gate.
