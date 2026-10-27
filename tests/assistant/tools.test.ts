@@ -469,6 +469,12 @@ describe("assistant server tools", () => {
       ask: "Which course do you mean?",
     });
     expect(data.getCourse).not.toHaveBeenCalled();
+
+    await expect(call("get_course", { code: "APAC2000" }, slot)).resolves.toMatchObject({
+      status: "needs_clarification",
+      terminal: true,
+    });
+    expect(data.getCourse).not.toHaveBeenCalled();
   });
 });
 

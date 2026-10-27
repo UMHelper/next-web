@@ -30,7 +30,7 @@ import { createAssistantTools } from "./tools";
 export const ASSISTANT_MAX_STEPS = 8;
 
 export function createAssistantAgent(config: AssistantConfig, signal?: AbortSignal) {
-  const slot: CourseReferentSlot = { current: { kind: "none" } };
+  const slot: CourseReferentSlot = { current: { kind: "none" }, clarified: false };
   const timetable: TimetableSlot = { current: { status: "unavailable" } };
   const presentation: PresentationSlot = { current: createPresentationLedger() };
   const agent = new BuiltInAgent({
@@ -46,6 +46,7 @@ export function createAssistantAgent(config: AssistantConfig, signal?: AbortSign
     presentation.current = createPresentationLedger();
     seedLedgerFromMessages(presentation.current, input.messages);
     slot.current = courseReferentFromRun(input);
+    slot.clarified = false;
     const context = [...input.context];
     const timetableIndex = context.findIndex(
       (entry) => entry.description === TIMETABLE_CONTEXT_DESCRIPTION,

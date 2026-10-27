@@ -11,6 +11,7 @@ import { shapeConversation } from "@/lib/assistant/conversation";
 import { CATALOG_RESULTS_CONTEXT_DESCRIPTION } from "@/lib/assistant/catalog-result-sets";
 import { DISCUSSED_COURSES_CONTEXT_DESCRIPTION } from "@/lib/assistant/discussed-courses";
 import { PAGE_CONTEXT_DESCRIPTION } from "@/lib/assistant/page-context";
+import { VISIBLE_BLOCKS_CONTEXT_DESCRIPTION } from "@/lib/assistant/visible-blocks-context";
 import type { PageContext } from "@/lib/assistant/page-context";
 
 const page = (courseCode: string): PageContext => ({ page: "course", courseCode });
@@ -235,6 +236,231 @@ describe("resolveCourseReferent", () => {
         resultSets: [offered],
       }),
     ).toMatchObject({ kind: "ordinal", courseCode: "APAC1000", resultSetId: "call-1" });
+  });
+});
+
+function visibleRecommendations(
+  turns: Array<{ turn: number; blocks: Array<{ kind: string; courses?: string[] }> }>,
+): string {
+  return JSON.stringify({ latestTurn: turns[0]?.turn ?? 0, turns });
+}
+
+describe("courseReferentFromRun discovery recommendations", () => {
+  it("binds the second option to the second displayed recommendation", () => {
+    const referent = courseReferentFromRun({
+      context: [
+        {
+          description: VISIBLE_BLOCKS_CONTEXT_DESCRIPTION,
+          value: visibleRecommendations([
+            { turn: 1, blocks: [{ kind: "recommendations", courses: ["GEST1006", "GESB1013"] }] },
+          ]),
+        },
+      ],
+      messages: [
+        { role: "user", content: "Find an easy GEST option that does not start in the morning." },
+        { role: "assistant", content: "Here are two options." },
+        { role: "user", content: "Tell me more about the second option and who teaches it." },
+      ],
+    });
+    expect(referent).toEqual({
+      kind: "ordinal",
+      courseCode: "GESB1013",
+      position: 2,
+      resultSetId: "visible-recommendations-1",
+    });
+    expect(bindCourseToolArgs(referent, "get_course", { code: "GEST1006" })).toEqual({
+      action: "rewrite",
+      args: { code: "GESB1013" },
+    });
+  });
+
+  it("uses displayed order even when it differs from discovery candidate order", () => {
+    const referent = courseReferentFromRun({
+      context: [
+        {
+          description: VISIBLE_BLOCKS_CONTEXT_DESCRIPTION,
+          value: visibleRecommendations([
+            { turn: 1, blocks: [{ kind: "recommendations", courses: ["GESB1013", "GEST1006"] }] },
+          ]),
+        },
+      ],
+      messages: [
+        { role: "user", content: "Find GE options." },
+        { role: "assistant", content: "Here are two options." },
+        { role: "user", content: "Tell me about the second option." },
+      ],
+    });
+    expect(referent).toMatchObject({ kind: "ordinal", courseCode: "GEST1006", position: 2 });
+  });
+
+  it("uses the newest displayed recommendation list", () => {
+    const referent = courseReferentFromRun({
+      context: [
+        {
+          description: VISIBLE_BLOCKS_CONTEXT_DESCRIPTION,
+          value: visibleRecommendations([
+            { turn: 2, blocks: [{ kind: "recommendations", courses: ["ACCT1000", "ACCT2000"] }] },
+            { turn: 1, blocks: [{ kind: "recommendations", courses: ["APAC1000", "APAC2000"] }] },
+          ]),
+        },
+      ],
+      messages: [
+        { role: "user", content: "Find options." },
+        { role: "assistant", content: "First list." },
+        { role: "user", content: "Find more options." },
+        { role: "assistant", content: "Second list." },
+        { role: "user", content: "Tell me about the second option." },
+      ],
+    });
+    expect(referent).toMatchObject({ kind: "ordinal", courseCode: "ACCT2000", position: 2 });
+  });
+
+  it("binds the last displayed recommendation", () => {
+    const referent = courseReferentFromRun({
+      context: [
+        {
+          description: VISIBLE_BLOCKS_CONTEXT_DESCRIPTION,
+          value: visibleRecommendations([
+            { turn: 1, blocks: [{ kind: "recommendations", courses: ["GEST1006", "GESB1013"] }] },
+          ]),
+        },
+      ],
+      messages: [
+        { role: "user", content: "Find GE options." },
+        { role: "assistant", content: "Here are two options." },
+        { role: "user", content: "Tell me about the last recommendation." },
+      ],
+    });
+    expect(referent).toMatchObject({ kind: "ordinal", courseCode: "GESB1013", position: 2 });
+  });
+
+  it("lets an explicit code override a conversational recommendation reference", () => {
+    const referent = courseReferentFromRun({
+      context: [
+        {
+          description: VISIBLE_BLOCKS_CONTEXT_DESCRIPTION,
+          value: visibleRecommendations([
+            { turn: 1, blocks: [{ kind: "recommendations", courses: ["GEST1006", "GESB1013"] }] },
+          ]),
+        },
+      ],
+      messages: [
+        { role: "user", content: "Find GE options." },
+        { role: "assistant", content: "Here are two options." },
+        { role: "user", content: "What about GEST1005?" },
+      ],
+    });
+    expect(referent).toEqual({ kind: "explicit", courseCode: "GEST1005" });
+  });
+
+  it("keeps a fresh page course ahead of an older shown list", () => {
+    const referent = courseReferentFromRun({
+      context: [
+        { description: PAGE_CONTEXT_DESCRIPTION, value: JSON.stringify(page("CISC3014")) },
+        {
+          description: VISIBLE_BLOCKS_CONTEXT_DESCRIPTION,
+          value: visibleRecommendations([
+            { turn: 1, blocks: [{ kind: "recommendations", courses: ["GEST1006", "GESB1013"] }] },
+          ]),
+        },
+      ],
+      messages: [
+        { role: "user", content: "Find GE options." },
+        { role: "assistant", content: "Here are two options." },
+        { role: "user", content: "What sections does this course offer?" },
+      ],
+    });
+    expect(referent).toEqual({ kind: "page", courseCode: "CISC3014" });
+  });
+
+  it("binds the phrase 'second recommendation' as an ordinal", () => {
+    const referent = courseReferentFromRun({
+      context: [
+        {
+          description: VISIBLE_BLOCKS_CONTEXT_DESCRIPTION,
+          value: visibleRecommendations([
+            { turn: 1, blocks: [{ kind: "recommendations", courses: ["GEST1006", "GESB1013"] }] },
+          ]),
+        },
+      ],
+      messages: [
+        { role: "user", content: "Find GE options." },
+        { role: "assistant", content: "Here are two options." },
+        { role: "user", content: "Tell me about the second recommendation." },
+      ],
+    });
+    expect(referent).toMatchObject({ kind: "ordinal", courseCode: "GESB1013", position: 2 });
+  });
+
+  it("keeps a later course lookup ahead of an older recommendation list for its", () => {
+    const referent = courseReferentFromRun({
+      context: [
+        {
+          description: VISIBLE_BLOCKS_CONTEXT_DESCRIPTION,
+          value: visibleRecommendations([
+            { turn: 1, blocks: [{ kind: "recommendations", courses: ["GESB1013", "GEST1006"] }] },
+          ]),
+        },
+      ],
+      messages: [
+        { role: "user", content: "Find GE options." },
+        { role: "assistant", content: "Here are two options." },
+        { role: "user", content: "Tell me about GEST1006." },
+        {
+          role: "assistant",
+          toolCalls: [
+            { id: "g1", function: { name: "get_course", arguments: JSON.stringify({ code: "GEST1006" }) } },
+          ],
+        },
+        { role: "tool", toolCallId: "g1", content: JSON.stringify({ course: { courseCode: "GEST1006" } }) },
+        { role: "user", content: "When are its classes?" },
+      ],
+    });
+    expect(referent).toEqual({ kind: "conversation", courseCode: "GEST1006" });
+  });
+
+  it("does not treat an unpresented discovery result as a visible recommendation list", () => {
+    const referent = courseReferentFromRun({
+      messages: [
+        { role: "user", content: "Find an easy GEST option." },
+        {
+          role: "assistant",
+          toolCalls: [
+            { id: "d1", function: { name: "discover_course_candidates", arguments: "{}" } },
+          ],
+        },
+        {
+          role: "tool",
+          toolCallId: "d1",
+          content: JSON.stringify({ candidates: [{ courseCode: "GEST1006" }, { courseCode: "GESB1013" }] }),
+        },
+        { role: "user", content: "Tell me more about the second option." },
+      ],
+    });
+    expect(referent.kind).not.toBe("ordinal");
+  });
+
+  it("does not fall through to a stale catalog list when the newest list is recommendations", () => {
+    const referent = courseReferentFromRun({
+      context: [
+        {
+          description: CATALOG_RESULTS_CONTEXT_DESCRIPTION,
+          value: JSON.stringify({ resultSets: [offered] }),
+        },
+        {
+          description: VISIBLE_BLOCKS_CONTEXT_DESCRIPTION,
+          value: visibleRecommendations([
+            { turn: 2, blocks: [{ kind: "recommendations", courses: ["GEST1006", "GESB1013"] }] },
+          ]),
+        },
+      ],
+      messages: [
+        { role: "user", content: "Find GE options." },
+        { role: "assistant", content: "Here are two options." },
+        { role: "user", content: "Tell me about the second option." },
+      ],
+    });
+    expect(referent).toMatchObject({ kind: "ordinal", courseCode: "GESB1013", resultSetId: "visible-recommendations-2" });
   });
 });
 

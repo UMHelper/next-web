@@ -108,7 +108,17 @@ function runCourseTool(
   run: (boundArgs: unknown) => Promise<unknown>,
 ): Promise<unknown> {
   const bound = bindCourseToolArgs(slot.current, toolName, args);
-  if (bound.action === "clarify") return Promise.resolve(bound.result);
+  if (bound.action === "clarify") {
+    if (slot.clarified === true) {
+      return Promise.resolve({
+        ...bound.result,
+        terminal: true,
+        note: "Do not call another course tool this turn; wait for the student's answer.",
+      });
+    }
+    slot.clarified = true;
+    return Promise.resolve(bound.result);
+  }
   return run(bound.args);
 }
 

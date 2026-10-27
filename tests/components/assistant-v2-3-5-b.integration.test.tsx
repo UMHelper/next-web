@@ -842,6 +842,29 @@ describe("assistant V2.3.5-B integration (discovery through CopilotKit)", () => 
     expect(recommendationsBlock?.courses).toEqual(["GEST1006", "GESB1013"]);
   }, 120_000);
 
+  it("J3b follow-up actually succeeds: a wrong guessed code is rewritten to the displayed second recommendation", async () => {
+    h.brain = ((call: ModelCall) => {
+      if (/Tell me more about the second option/i.test(call.lastUser)) {
+        if (call.lastTool?.name === "get_course") {
+          return { text: "GESB1013 is taught by LEE MEI LING." };
+        }
+        return { tool: "get_course", input: { code: "GEST1006" } };
+      }
+      return v235BBrain(call);
+    }) as never;
+
+    await mountAssistant();
+    await typeAndSend("Find GE courses that fit my timetable.");
+    await typeAndSend("Tell me more about the second option and who teaches it.");
+
+    const calls = runs().flatMap((run) => run.modelCalls);
+    const lookup = calls.find((call) => call.lastTool?.name === "get_course");
+    expect(lookup?.lastTool?.output).toContain('"courseCode":"GESB1013"');
+    expect(lookup?.lastTool?.output).not.toContain("needs_clarification");
+    expect(lookup?.lastTool?.output).toContain("LEE MEI LING");
+    await waitFor(() => expect(screen.getByText(/LEE MEI LING/)).toBeTruthy());
+  }, 120_000);
+
   it("J4 failure envelope: discovery error in activity and no shortlist", async () => {
     h.discoveryFails = true;
     await mountAssistant();
