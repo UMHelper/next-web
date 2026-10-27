@@ -134,6 +134,8 @@ describe("discover_course_candidates description", () => {
     expect(description).toMatch(/reviewTerms/);
     expect(description).toMatch(/same call/i);
     expect(description).toMatch(/one course at a time/i);
+    expect(description).toMatch(/reviewEvidence\.read is 0/i);
+    expect(description).toMatch(/do not re-read/i);
   });
 
   it("warns that individual noClash is not a combined timetable fit", () => {

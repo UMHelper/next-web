@@ -83,7 +83,7 @@ const DISCOVERY_NOTES = [
 ] as const;
 
 const REVIEW_EVIDENCE_NOTE =
-  "reviewEvidence.status: evidence found a review term match; no_relevant_evidence finished without a match; incomplete means the search finished but some review text was not read (unreadable, capped or truncated); unavailable means the review read failed. A missing term is not proof about exams, workload or grading.";
+  "reviewEvidence.status: evidence found a review term match; no_relevant_evidence finished without a match; incomplete means the search finished but some review text was not read (unreadable, capped or truncated); unavailable means the review read failed. When read is 0, do not call get_course_reviews for the same instructors—report the uncertainty instead. A missing term is not proof about exams, workload or grading.";
 
 type TimetableInfo = {
   status: DiscoverResult["timetable"]["status"];

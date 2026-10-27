@@ -496,7 +496,9 @@ describe("tool descriptions carry moved procedures", () => {
   it("get_course_reviews", () => {
     expect(description("get_course_reviews")).toContain("not that none exist");
     expect(description("get_course_reviews")).toContain("use it instead of repeating the search");
+    expect(description("get_course_reviews")).toContain("do not call this tool for the same instructors");
     expect(description("get_course_reviews")).not.toContain("the search did not finish");
+    expect(description("count_reviews")).toContain("Do not use it to double-check");
   });
 
   it("present_response", () => {
