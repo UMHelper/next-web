@@ -44,7 +44,7 @@ const ANAPHORA = /\bthat course\b|\bthe one we discussed\b|\bits\b|\bit\b|那门
 
 const ENGLISH_ORDINAL_GATE = /\b(course|one|result|option|recommendation|choice|pick)s?\b/i;
 const CHINESE_ORDINAL_GATE = /课|門|门/;
-const LAST_ORDINAL = /\blast\b|最后|最後/i;
+const LAST_ORDINAL = /\blast\s+(?:course|one|option|recommendation|choice|pick)\b|最(?:后|後)(?:一)?(?:个|個|门|門|课|課|项|項)?/i;
 
 const ORDINALS: ReadonlyArray<[RegExp, number]> = [
   [/\bfirst\b|\b1st\b|第一/i, 1],

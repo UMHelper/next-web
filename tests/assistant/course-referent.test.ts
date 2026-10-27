@@ -373,6 +373,25 @@ describe("courseReferentFromRun discovery recommendations", () => {
     expect(referent).toEqual({ kind: "page", courseCode: "CISC3014" });
   });
 
+  it("does not treat an unrelated 'last semester' as a recommendation ordinal", () => {
+    const referent = courseReferentFromRun({
+      context: [
+        {
+          description: VISIBLE_BLOCKS_CONTEXT_DESCRIPTION,
+          value: visibleRecommendations([
+            { turn: 1, blocks: [{ kind: "recommendations", courses: ["GEST1006", "GESB1013"] }] },
+          ]),
+        },
+      ],
+      messages: [
+        { role: "user", content: "Find GE options." },
+        { role: "assistant", content: "Here are two options." },
+        { role: "user", content: "What did students say last semester?" },
+      ],
+    });
+    expect(referent).toEqual({ kind: "none" });
+  });
+
   it("binds the phrase 'second recommendation' as an ordinal", () => {
     const referent = courseReferentFromRun({
       context: [
