@@ -428,7 +428,7 @@ describe("ASSISTANT_PROMPT", () => {
     ["ambiguous referent", "When kind is ambiguous, ask the ask text and do not call a course tool"],
     ["objective tool selection", "browsing a list is search_catalog"],
     ["one constraint acts", "one constraint is enough to act"],
-    ["combined timetable fit", "Whether several picks fit together needs preview_timetable"],
+    ["combined timetable fit", "Combined fit needs preview_timetable, not individual fits"],
   ])("keeps the %s invariant", (_name, text) => {
     expect(ASSISTANT_PROMPT).toContain(text);
   });
