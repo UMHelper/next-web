@@ -127,9 +127,10 @@ The two raw false-fit flags were grader false positives cleared by same-clause
 attribution; one of those turns still fails its `maxToolCalls` check, the other
 now passes.
 
-Remaining dev failures (14) are routing (2× `first_year_cs`, 1× `history_ge`),
-call-budget after review enrichment, and multi-turn follow-up checks. No
-unsupported claim survives the corrected grader.
+Remaining dev failures (14): 3 are routing-only (`first_year_cs` r0/r1 t0,
+`history_ge` r2 t0); the other 11 fail the per-turn call budget after review
+enrichment (some of those also miss discovery), mostly on multi-turn follow-ups.
+No unsupported claim survives the corrected grader.
 
 ### 5.2 Frozen holdout — 3 repeats, `holdout-v1`
 
