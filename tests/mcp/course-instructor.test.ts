@@ -596,6 +596,25 @@ describe("get_course data adapter", () => {
     expect(Object.keys(output.instructors[0]).sort()).toEqual(INSTRUCTOR_SUMMARY_KEYS);
   });
 
+  it("refuses to return a different primary course than the alias resolution requested", async () => {
+    resolveAliasMock.mockResolvedValueOnce({ primaryCode: "ACCT1012", aka: [] });
+    queueCourse({ course: courseFixture({ New_code: "ACCT1004" }) });
+
+    await expect(handleGetCourse({ code: "ACCT1012" }, ctx)).rejects.toMatchObject({
+      code: "not_found",
+    });
+  });
+
+  it("resolves an old code to the primary record without treating it as a mismatch", async () => {
+    resolveAliasMock.mockResolvedValueOnce({ primaryCode: "ACCT1000", aka: ["ACCT900"] });
+    queueCourse({ course: courseFixture() });
+
+    const output = readCourseOutput(await handleGetCourse({ code: "ACCT900" }, ctx));
+
+    expect(output.course.courseCode).toBe("ACCT1000");
+    expect(output.course.aka).toContain("ACCT900");
+  });
+
   it("projects equivalent old course codes as aka", async () => {
     resolveAliasMock.mockResolvedValueOnce({ primaryCode: "ACCT1000", aka: ["ACCT900"] });
     queueCourse({ course: courseFixture() });

@@ -70,7 +70,11 @@ describe("runCheckPlanConflicts", () => {
           loadSections: async () => ({ ...sections, sectionDataComplete: false }),
         }),
       ),
-    ).resolves.toMatchObject({ status: "checked", sectionListComplete: false });
+    ).resolves.toMatchObject({
+      status: "checked",
+      sectionListComplete: false,
+      combination: "individual_only",
+    });
   });
 
   it("reports confirmed_clash when CISC1001-001 overlaps GEGA1000-007 on Monday and Thursday", async () => {

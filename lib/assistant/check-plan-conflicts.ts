@@ -19,7 +19,7 @@ import type { TimetableToolDeps } from "@/lib/assistant/timetable-tools";
 
 export const CHECK_PLAN_CONFLICTS_TOOL_NAME = "check_plan_conflicts";
 export const CHECK_PLAN_CONFLICTS_DESCRIPTION =
-  "Check whether sections of one instructor's offering of a course clash with the student's saved timetable, using this term's catalog class times. It needs the instructor: call get_course first when you do not know who teaches the course, then check each instructor teaching this term, at most three (list any others and ask). When the page names a course, check that code even if get_course fails, using an instructor from the page context or courseReferent. It loads the listed sections itself; do not call get_course_sections for the same course first. Omit section to check every listed section; do that, and answer in text, when the student asks what if they take a course without naming a section. Each section in a checked result includes fit: verified_no_clash, confirmed_clash, or incomplete—quote only those values. sectionListComplete false means not every section was listed. Read-only; never changes the timetable.";
+  "Check whether sections of one instructor's offering of a course clash with the student's saved timetable, using this term's catalog class times. It needs the instructor: call get_course first when you do not know who teaches the course, then check each instructor teaching this term, at most three (list any others and ask). When the page names a course, check that code even if get_course fails, using an instructor from the page context or courseReferent. It loads the listed sections itself; do not call get_course_sections for the same course first. Omit section to check every listed section; do that, and answer in text, when the student asks what if they take a course without naming a section. Each section in a checked result includes fit: verified_no_clash, confirmed_clash, or incomplete—quote only those values. sectionListComplete false means not every section was listed. combination is always individual_only: this result never proves that a group of sections fits together; use preview_timetable for a combined proposal. Read-only; never changes the timetable.";
 
 export type ConflictFit = "verified_no_clash" | "confirmed_clash" | "incomplete";
 
@@ -60,6 +60,7 @@ export type CheckPlanConflictsResult =
       unscheduled: string[];
       sectionListComplete: boolean;
       plannerVersion: string;
+      combination?: "individual_only";
       sections: SectionCheck[];
     }
   | { status: "no_timetable"; timetable: "no_plan" | "loading" | "unavailable" }
@@ -101,6 +102,7 @@ export const checkPlanConflictsResultSchema: z.ZodType<CheckPlanConflictsResult>
       unscheduled: z.array(z.string()),
       sectionListComplete: z.boolean(),
       plannerVersion: z.string(),
+      combination: z.literal("individual_only").optional(),
       sections: z.array(sectionConflictSchema),
     })
     .strict(),
@@ -206,6 +208,7 @@ export async function runCheckPlanConflicts(
     unscheduled: analysis.unscheduled,
     sectionListComplete: resolution.sectionListComplete,
     plannerVersion: state.version,
+    combination: "individual_only",
     sections,
   };
 }

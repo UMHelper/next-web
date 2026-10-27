@@ -770,6 +770,74 @@ describe("runDiscoverCourseCandidates reviews and output", () => {
     expect(pair.sort()).toEqual(["GEST6001-001", "GEST6002-001"].sort());
   });
 
+  it("publishes the difficulty scale with the candidate evidence", async () => {
+    const result = await runDiscoverCourseCandidates(
+      readyState([]),
+      { scope: { codePrefix: "CISC" } },
+      discoveryDeps(ciscPool()),
+    );
+    assertOkDiscoverResult(result);
+    expect(result.ratingScale?.difficulty).toContain("1 Very hard");
+    expect(result.ratingScale?.difficulty).toContain("5 Very easy");
+    expect(result.ratingScale?.difficulty).toContain("HIGHER number means EASIER");
+  });
+
+  it("marks a preferred Friday violation as a tradeoff, not a match", async () => {
+    const preferredPool = pool({
+      courses: [poolCourse({ courseCode: "GEST4001" }), poolCourse({ courseCode: "GEST4002" })],
+      instructorRows: [
+        pwcRow({ pwcId: 71, courseCode: "GEST4001" }),
+        pwcRow({ pwcId: 72, courseCode: "GEST4002" }),
+      ],
+      offers: [
+        offer(71, "001", ["FRI 10:00-11:15 E11"]),
+        offer(72, "001", ["TUE 10:00-11:15 E11"]),
+      ],
+    });
+    const result = await runDiscoverCourseCandidates(
+      readyState([]),
+      { scope: { codePrefix: "GEST4" }, preferred: { avoidDays: ["FRI"] } },
+      discoveryDeps(preferredPool),
+    );
+    assertOkDiscoverResult(result);
+    const friday = result.candidates.find((candidate) => candidate.courseCode === "GEST4001");
+    const tuesday = result.candidates.find((candidate) => candidate.courseCode === "GEST4002");
+    expect(friday?.tradeoffs).toContain("no FRI");
+    expect(friday?.matched).not.toContain("no FRI");
+    expect(tuesday?.matched).toContain("no FRI");
+    expect(result.notes.some((note) => note.includes("preferred rules are soft"))).toBe(true);
+  });
+
+  it("can rank a lower ease score first when it satisfies the preferred schedule", async () => {
+    const schedulePool = pool({
+      courses: [poolCourse({ courseCode: "GEST4101" }), poolCourse({ courseCode: "GEST4102" })],
+      instructorRows: [
+        pwcRow({ pwcId: 81, courseCode: "GEST4101", difficulty: 4.5 }),
+        pwcRow({ pwcId: 82, courseCode: "GEST4102", difficulty: 3.5 }),
+      ],
+      offers: [
+        offer(81, "001", ["FRI 10:00-11:15 E11"]),
+        offer(82, "001", ["TUE 10:00-11:15 E11"]),
+      ],
+    });
+    const result = await runDiscoverCourseCandidates(
+      readyState([]),
+      {
+        scope: { codePrefix: "GEST41" },
+        priorities: ["easier"],
+        preferred: { avoidDays: ["FRI"] },
+      },
+      discoveryDeps(schedulePool),
+    );
+    assertOkDiscoverResult(result);
+    expect(result.candidates.map((candidate) => candidate.courseCode)).toEqual(["GEST4102", "GEST4101"]);
+    const easier = result.candidates.find((candidate) => candidate.courseCode === "GEST4101")!;
+    const bestFit = result.candidates.find((candidate) => candidate.courseCode === "GEST4102")!;
+    expect(easier.instructors[0]?.difficulty).toBeGreaterThan(bestFit.instructors[0]?.difficulty ?? 0);
+    expect(easier.tradeoffs).toContain("no FRI");
+    expect(bestFit.matched).toContain("no FRI");
+  });
+
   it("uses fixed notes and ranking policy string", async () => {
     const result = await runDiscoverCourseCandidates(
       readyState([]),

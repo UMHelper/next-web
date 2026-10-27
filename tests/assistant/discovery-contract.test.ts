@@ -131,6 +131,12 @@ describe("discover_course_candidates description", () => {
     expect(description).toMatch(/relax|change one constraint/i);
   });
 
+  it("tells the model that tradeoffs are preference compromises, not matches", () => {
+    expect(description).toMatch(/tradeoffs lists violated or unverified preferences/i);
+    expect(description).toContain("no FRI");
+    expect(description).toMatch(/compromise/i);
+  });
+
   it("asks for short topic keywords and spelling variants, not sentences", () => {
     expect(description).toMatch(/short keywords/i);
     expect(description).toMatch(/spelling variants/i);

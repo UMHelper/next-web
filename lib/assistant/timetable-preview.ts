@@ -14,7 +14,7 @@ import { normalizeCourseCode, planSectionSchema, type PlanSection, type Weekday 
 
 export const PREVIEW_TIMETABLE_TOOL_NAME = "preview_timetable";
 export const PREVIEW_TIMETABLE_DESCRIPTION =
-  "Show the student a read-only visual preview of their saved timetable, or of it with up to three hypothetical sections added; a section of a course already in the timetable replaces that course in the preview only. Call when the student asks to see or show their timetable or week, to see where a conflict is on the grid, or to preview what-if they take or switch to specific sections (pass each in add with code, instructor and section). Never saves anything. If it returns needs_section, list the sections it returned and ask which one; never pick one. Do not call it again just to focus on one day or re-check clashes of a preview already shown. This tool resolves and validates the named sections itself; do not call get_course_sections for them first. When two or more named sections are in question, preview them together: do not call check_plan_conflicts first for the same sections, because individual check_plan_conflicts results do not prove mutual compatibility; the preview already includes conflicts with the saved plan and between the added sections.";
+  "Show the student a read-only visual preview of their saved timetable, or of it with up to three hypothetical sections added; a section of a course already in the timetable replaces that course in the preview only. Call when the student asks to see or show their timetable or week, to see where a conflict is on the grid, or to preview what-if they take or switch to specific sections (pass each in add with code, instructor and section). Never saves anything. If it returns needs_section, list the sections it returned and ask which one; never pick one. Do not call it again just to focus on one day or re-check clashes of a preview already shown. This tool resolves and validates the named sections itself; do not call get_course_sections for them first. When two or more named sections are in question, preview them together: do not call check_plan_conflicts first for the same sections, because individual check_plan_conflicts results do not prove mutual compatibility; the preview already includes conflicts with the saved plan and between the added sections. facts.week is the deterministic weekly schedule; use it instead of reconstructing days or times from prose.";
 export const MAX_PREVIEW_ADDITIONS = 3;
 
 const weekdaySchema = z.enum(["MON", "TUE", "WED", "THU", "FRI"]);
@@ -49,7 +49,12 @@ export type TimetablePreviewResult =
       sections: PreviewSection[];
       replaced: string[];
       partial: string[];
-      facts: { conflicts: AnalyzedConflict[]; unscheduled: string[]; complete: boolean };
+      facts: {
+        conflicts: AnalyzedConflict[];
+        unscheduled: string[];
+        complete: boolean;
+        week?: Array<{ day: Weekday; meetings: string[] }>;
+      };
     }
   | {
       status: "needs_section";
@@ -101,6 +106,16 @@ export const timetablePreviewResultSchema: z.ZodType<TimetablePreviewResult, z.Z
           conflicts: z.array(analyzedConflictSchema),
           unscheduled: z.array(z.string()),
           complete: z.boolean(),
+          week: z
+            .array(
+              z
+                .object({
+                  day: z.enum(["MON", "TUE", "WED", "THU", "FRI"]),
+                  meetings: z.array(z.string()),
+                })
+                .strict(),
+            )
+            .optional(),
         })
         .strict(),
     })
@@ -187,6 +202,10 @@ const readyPreview = (
       conflicts: analysis.conflicts,
       unscheduled: analysis.unscheduled,
       complete: analysis.complete,
+      week: analysis.days.map((day) => ({
+        day: day.day,
+        meetings: day.meetings.map((meeting) => `${meeting.label} ${meeting.start}-${meeting.end}`),
+      })),
     },
   };
 };

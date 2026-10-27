@@ -436,6 +436,16 @@ export const discoverResultSchema = z
         planComplete: z.boolean().optional(),
       })
       .strict(),
+    ratingScale: z
+      .object({
+        result: z.string(),
+        grade: z.string(),
+        difficulty: z.string(),
+        reward: z.string(),
+        attendance: z.string(),
+      })
+      .strict()
+      .optional(),
     examined: z
       .object({
         courses: z.number(),

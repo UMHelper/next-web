@@ -2,7 +2,7 @@ import {
   conflictFitForSection,
   conflictsForCandidate,
 } from "@/lib/assistant/check-plan-conflicts";
-import { NOT_AVAILABLE_ON_SITE } from "@/lib/assistant/academic-facts";
+import { NOT_AVAILABLE_ON_SITE, RATING_SCALE_NOTE } from "@/lib/assistant/academic-facts";
 import type { loadDiscoveryPool, loadReviewTexts } from "@/lib/assistant/data/discovery";
 import { evaluateTimeRules, type RuleOutcome } from "@/lib/assistant/discovery/constraints";
 import {
@@ -87,6 +87,9 @@ const REVIEW_EVIDENCE_NOTE =
 
 const NO_MATCH_COMPLETE_NOTE =
   "No candidate matched every applied constraint. examined.truncated is false, so the search covered the whole matching pool; this is a complete no-match for this scope, not proof no course exists under other constraints. Relax or change one constraint; do not repeat the same search or enumerate the subject to double-check.";
+
+const PREFERENCE_NOTE =
+  "preferred rules are soft: a candidate whose tradeoffs includes a preferred label (for example 'no FRI') is a compromise, not a match for that preference. Do not title or describe a list as satisfying a preference when any candidate carries that label.";
 
 const NO_MATCH_TRUNCATED_NOTE =
   "No candidate matched every applied constraint, but examined.truncated is true: the pool was bounded, so some matching courses were not evaluated. Do not claim no course exists; relax a constraint or change the scope.";
@@ -535,6 +538,7 @@ function shrinkDiscoverResult(result: DiscoverResult): DiscoverResult {
           note.startsWith("The site has no official") ||
           note.startsWith("suggestedYear") ||
           note.startsWith("When examined.truncated") ||
+          note.startsWith("preferred rules are soft") ||
           note.startsWith("No candidate matched") ||
           note.startsWith("Every matching course") ||
           note.startsWith("No candidate was returned because") ||
@@ -908,6 +912,7 @@ export async function runDiscoverCourseCandidates(
       ...(discoveryPool.topicFallback !== undefined ? { topicFallback: discoveryPool.topicFallback } : {}),
       ...(discoveryPool.topicTier !== undefined ? { topicTier: discoveryPool.topicTier } : {}),
     },
+    ratingScale: { ...RATING_SCALE_NOTE },
     excluded: {
       alreadyInPlan,
       excludedCodes: discoveryPool.excludedCodesMatched,
@@ -923,6 +928,9 @@ export async function runDiscoverCourseCandidates(
     notes: [
       ...DISCOVERY_NOTES,
       ...(parsed.data.reviewTerms?.length ? [REVIEW_EVIDENCE_NOTE] : []),
+      ...(parsed.data.preferred && Object.keys(parsed.data.preferred).length > 0
+        ? [PREFERENCE_NOTE]
+        : []),
       ...(publicCandidates.length > 0
         ? []
         : [

@@ -80,6 +80,10 @@ describe("runPreviewTimetable", () => {
     const added = result.sections.find((section) => section.origin === "added");
     expect(added?.section).toBe("001");
     expect(added?.replaces).toBe("MATH1010-002");
+    const monday = result.facts.week?.find((day) => day.day === "MON");
+    expect(monday?.meetings).toContain("MATH1010-001 09:00-10:15");
+    const tuesday = result.facts.week?.find((day) => day.day === "TUE");
+    expect(tuesday?.meetings.some((meeting) => meeting.startsWith("MATH1010-001"))).toBe(false);
     expect(result.facts.conflicts).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ a: "CISC3014-001", b: "MATH1010-001", overlap: "10:00-10:15" }),

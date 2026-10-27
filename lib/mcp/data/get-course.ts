@@ -132,6 +132,10 @@ export async function getCourse(input: GetCourseInput): Promise<GetCourseOutput>
   // so the page is sliced from that list — exact totalCount with no extra query.
   // Historical codes resolve to the new primary code; links use that primary.
   const primaryCode = course.courseCode;
+  if (primaryCode.trim().toUpperCase() !== alias.primaryCode.trim().toUpperCase()) {
+    // Never pass a different course record through as if it answered the request.
+    throw new McpToolError("not_found");
+  }
   const allInstructors = profList
     .map((row) => projectInstructor(row, primaryCode))
     .filter((row): row is CourseInstructorSummary => row !== null);
