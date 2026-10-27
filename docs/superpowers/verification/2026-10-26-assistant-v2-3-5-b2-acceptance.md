@@ -3,7 +3,7 @@
 **Date:** 2026-10-27  
 **Canonical worktree:** `/Users/thomaswu/workspace/next-web/.worktrees/assistant-v2-3-5-b2`  
 **Branch:** `feat/assistant-v2-3-5-b2-remediation`  
-**HEAD:** `4a50394` (`fix(assistant): keep prompt within budget after B.3 guidance`)  
+**HEAD:** `b3a8e7c` (acceptance docs; implementation tip `4a50394` prompt budget fix)  
 **Recovery baseline:** `d204670`  
 **Implementation commits after recovery:** `859a66c`, `4e1fda0`, `49d1600`, `18e13f3`, `4a50394`
 

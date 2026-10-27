@@ -1,7 +1,7 @@
 # V2.3.5-B.2 — Before / After (Comparison A vs B)
 
 **Date:** 2026-10-27  
-**Branch:** `feat/assistant-v2-3-5-b2-remediation` @ `4a50394`  
+**Branch:** `feat/assistant-v2-3-5-b2-remediation` @ `b3a8e7c`  
 **Rubric:** `b2-v2` (`evals/assistant/discovery-case-sets.ts`)  
 **Prompt fingerprint (B runs):** `1d0be6222930`
 
