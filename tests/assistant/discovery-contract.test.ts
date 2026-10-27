@@ -27,7 +27,7 @@ const PROMPT_SOURCE_BASELINE_CHARS = 15_269;
 const PREVIOUS_PROMPT_FINGERPRINT = "69470b851c9e";
 
 const DISCOVERY_SELECTION_BULLET =
-  "- Pick the tool from the student's aim: browsing a list is search_catalog; choosing what to take, a subject or year's options, or anything shaped by constraints is discover_course_candidates, and one constraint is enough to act. Whether several picks fit together needs preview_timetable, not individual fits.";
+  "- Pick the tool from the student's aim: browsing a list is search_catalog; choosing what to take, a subject or year's options, or anything shaped by constraints is discover_course_candidates, and one constraint is enough to act. Whether several picks fit together needs preview_timetable, not individual fits; when reviews matter, pass reviewTerms in that discovery call instead of reading each course's reviews separately.";
 
 const SEARCH_CATALOG_DESCRIPTION_BEFORE =
   "Search courses or instructors. For courses, filter by faculty, department, exact credits, course type, programme level, suggested year and offered status; sort by code, title, credits, suggested year or offered status; use searchIn=content to search titles, descriptions and ILOs. For a subject's full course list use the code prefix (e.g. ACCT). Course results include `aka` aliases; the primary courseCode is authoritative. Returns up to 50 courses per page with totalCount and hasMore. A keyword on an English subject word may only match titles; do not present that total as the number of courses in the subject.";
@@ -168,6 +168,7 @@ describe("search_catalog description", () => {
 describe("objective tool-selection prompt", () => {
   it("replaces the discovery bullet with one selection bullet", () => {
     expect(discoverySelectionBullets(ASSISTANT_PROMPT)).toEqual([DISCOVERY_SELECTION_BULLET]);
+    expect(ASSISTANT_PROMPT).toMatch(/reviewTerms/);
     expect(ASSISTANT_PROMPT).not.toContain("once for goal-based searches without codes");
     expect(ASSISTANT_PROMPT).not.toContain("verified_no_clash");
     expect(ASSISTANT_PROMPT).not.toContain("mutualClashes");
@@ -178,7 +179,7 @@ describe("objective tool-selection prompt", () => {
     expect(source).toContain(DISCOVERY_SELECTION_BULLET);
     expect(source.length - PROMPT_SOURCE_BASELINE_CHARS).toBeLessThanOrEqual(220);
     expect(promptFingerprint()).not.toBe(PREVIOUS_PROMPT_FINGERPRINT);
-    expect(promptFingerprint()).toMatchInlineSnapshot(`"2da9ef31c668"`);
+    expect(promptFingerprint()).toMatchInlineSnapshot(`"369f238641a9"`);
   });
 });
 

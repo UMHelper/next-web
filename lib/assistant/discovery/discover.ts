@@ -68,7 +68,8 @@ export const defaultDiscoveryDeps: DiscoveryDeps = {
 };
 
 const DISCOVERY_NOTES = [
-  "Fit is checked for each course on its own; several courses can still clash with each other—see mutualClashes.",
+  "required.noClash checks each returned section against the saved plan separately; two individually compatible sections can still clash—use preview_timetable for a combined check.",
+  "mutualClashes lists overlaps among the returned best sections only; it is not proof they all fit together.",
   "Ratings are past students' reports for this instructor's offering of the course.",
   "The site has no official exam format, prerequisite, seat or workload data.",
   "suggestedYear is a catalog hint only; it is not official registration eligibility.",
