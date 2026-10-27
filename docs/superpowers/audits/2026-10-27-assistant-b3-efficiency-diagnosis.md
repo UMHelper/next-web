@@ -30,13 +30,13 @@ Exceeding a benchmark call limit is not treated as a defect by itself.
 
 | Turn | Intent | Calls observed (baseline) | Necessary | Redundant / recovery | Evidence already sufficient? | Latency / steps | Smallest correction |
 |---|---|---|---|---:|---|---|---|
-| dev `no_candidates` r2 | Find GEST classes after 18:00; complete zero-match | `discover`, `search_catalog`, 8×`get_course`, 9×`get_course_sections` = 19 | discovery only | 18 redundant: enumerated every course/section after a complete no-match | Yes: `candidates: []`, `examined.truncated: false`, `notApplied` said no section met the rules | 8.9 s, 5 steps | Make complete vs bounded zero-match explicit in the result and discovery contract |
+| dev `no_candidates` r2 (B.2 intermediate) | Find GEST classes after 18:00; complete zero-match | `discover`, `search_catalog`, 8×`get_course`, 9×`get_course_sections` = 19 in `discovery-b2-patch2-dev.json` | discovery only | 18 redundant: enumerated every course/section after a complete no-match | Yes: `candidates: []`, `examined.truncated: false`, `notApplied` said no section met the rules | 8.9 s, 5 steps | Make complete vs bounded zero-match explicit in the result and discovery contract |
 | shadow-v2 `first_year_ge_listing` | Browse first-year GE catalog | 3×`search_catalog` + 3×`count_courses` = 6 | final `search_catalog` | 2 wrong `faculty: GECOURSE` searches + 3 `count_courses` confirmations; `search_catalog` already returned `totalCount` | Yes | 7.9 s, 4 steps | Say `courseType` is GE/Non-GE, faculty/department are academic units; do not re-count a result with `totalCount` |
 | shadow-v2 `cis_intro_advice` | First-year CISC recommendation | `discover`, `search_catalog`, 3×`get_course_description`, `get_course` = 6 | discovery, descriptions, one `get_course` for the year-2 course | `search_catalog` repeated the CISC codes discovery already returned | Partly: discovery had codes/ratings; descriptions added real evidence | 8.1 s, 4 steps | Do not re-run catalog for the same codes; keep the fallback when the student asks to broaden |
 | shadow-v2 `combined_sections` | Two named sections vs each other and saved plan | 2×`get_course`, 2×`get_course_sections`, `check_plan_conflicts` ×1 + 2 retries = 7 | 2×`get_course` for instructors; combined check | 2 section fetches (preview resolves them), individual checks, and a retry; no `preview_timetable` | No: individual fits cannot prove mutual compatibility | 6.8 s, 5 steps | Preview named sections directly; preview includes saved-plan and mutual conflicts; do not pre-check individuals |
 | dev `easy_gest` t4 | Do prior picks clash with saved plan? | 2×`get_course_sections` + 2×`check_plan_conflicts` = 4 | conflict checks | 2 section fetches; `check_plan_conflicts` resolves sections itself | Yes | 3.9 s, 2 steps | Say `check_plan_conflicts` loads sections itself; do not fetch sections first |
 | efficiency `detail_followup` t2 | Tell me about the second pick | `get_course` (needs_clarification), `search_catalog`, `get_course` (needs_clarification) = 3 | one targeted course lookup | recovery, but the tool asked “Which course?” twice for an explicit `GEST1005` | Not from the referent path | 6.2 s, 4 steps | No efficiency change: this is a referent-binding correctness defect, reported separately |
-| efficiency `cis_advice` r1 | First-year CISC recommendation | discovery, search, `get_course`, description, 2×ILO, 2×reviews, discovery, search, present = 11 | discovery + one description path | repeated discovery/catalog and ILO/reviews after evidence was sufficient | Yes after the first discovery | 11.0 s, 5 steps | Model-variance issue; not fixed in this pass |
+| efficiency `cis_advice` r1 | First-year CISC recommendation | discovery, search, `get_course`, description, 2×ILO, 2×reviews, discovery, search, present = 11 raw / 10 non-present | discovery + one description path | repeated discovery/catalog and ILO/reviews after evidence was sufficient | Yes after the first discovery | 11.0 s, 5 steps | Model-variance issue; not fixed in this pass |
 
 ## 3. What was fixed
 
@@ -47,7 +47,11 @@ Exceeding a benchmark call limit is not treated as a defect by itself.
      - truncated pool → “pool was bounded … do not claim no course exists.”
    - The discovery description says the same.
    - After the change, dev `no_candidates` ran 1, 1, and 2 calls in three
-     repeats (baseline worst case: 19).
+     repeats (`discovery-b3-no-candidates-check.json`). The 19-call case is a
+     B.2 intermediate trace (`discovery-b2-patch2-dev.json`), not a B.3
+     baseline; one intermediate B.3 run hit 18 calls before this note landed
+     (`discovery-b3-efficiency-after.json`). The reduction is therefore
+     trace-backed but not a clean same-run before/after.
 2. **Catalog listing is one scoped call.**
    - `search_catalog` now states that `courseType` is GE/Non-GE, that
      faculty/department are academic units, that it has no time/weekday filter,
@@ -79,7 +83,7 @@ not holdout wording):
 | Catalog browse calls | 6 | 1 non-presentation |
 | Combined check calls | 7 | 3 |
 | No-match evening calls | 2 (search + discovery) | 1 (discovery) |
-| CIS advice calls | 6 | 1 and 6 (stochastic) |
+| CIS advice non-present calls | 5 | 1 and 6 (stochastic) |
 | Detail follow-up calls | 3 | 1 and 8 (stochastic) |
 
 ## 5. What was not fixed

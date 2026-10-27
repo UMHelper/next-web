@@ -3,7 +3,7 @@
 Date: 2026-10-27
 Worktree: `.worktrees/assistant-v2-3-5-b2`
 Branch: `feat/assistant-v2-3-5-b2-remediation`
-Verified HEAD: `e5f8ffa` (code) plus this documentation commit
+Verified HEAD: `33d487d` (code) plus this documentation commit
 Protocol: `b2-v2` / frozen `holdout-v1`
 Semantic rubric: `b2-semantic-v1` (proposed separate gate)
 Efficiency diagnostic: frozen `efficiency-v1`
@@ -26,6 +26,7 @@ protocol pass is not evidence that the browser experience is ready.
 - B.3 commits:
   - `e5eb130` — frozen `efficiency-v1` diagnostic paraphrases.
   - `e5f8ffa` — conclusive empty-discovery and combined-preview evidence.
+  - `33d487d` — in-plan and no-section zero-match reasons; fingerprint includes the schema.
 - No upstream is configured for this branch; no push or merge was performed.
 - Recovery backups and reviewed B.2 commits are untouched.
 - Single-writer workflow preserved; no parallel writer entered the worktree.
@@ -38,7 +39,7 @@ protocol pass is not evidence that the browser experience is ready.
 | Catalog browse | `search_catalog` explains `courseType` vs faculty/department, no time filter, one scoped call with `totalCount`; `count_courses` is not for re-confirming a result | Prevent wrong `faculty: GECOURSE` searches and repeated counts |
 | Combined check | `preview_timetable` resolves sections itself, includes saved-plan and mutual conflicts; individual checks are not mutual proof; `check_plan_conflicts` loads sections itself | Remove section pre-fetch and individual-check preflight |
 | Time parsing | `startAfter` example: “no class before 10:00” → `10:00` | Prevent a hard-constraint miss |
-| Measurement | Discovery eval fingerprint now includes the model-facing tool and result files | Tool-description changes no longer look like identical runs |
+| Measurement | Discovery eval fingerprint now includes the model-facing tool and result files, including `discovery/schema.ts` | Tool-description changes no longer look like identical runs; the B.3 baseline pairing predates this fingerprint change, so traces—not `settings.eval`—are the comparison evidence there |
 
 No new tool, router, orchestration framework, database, embedding, persistence,
 runtime call cap, or larger runtime budget. System-prompt size is unchanged.
@@ -49,13 +50,13 @@ Final run on `e5f8ffa` plus tests:
 
 | Gate | Result |
 |---|---|
-| Focused discovery/timetable/integration | 20 files, 346 tests passed |
-| Full Vitest | **282 files / 2453 tests passed** |
+| Focused discovery/timetable/integration | 19 files, 259 tests passed |
+| Full Vitest | **282 files / 2454 tests passed** |
 | `npx tsc --noEmit` | exit 0 |
 | `npm run lint` | exit 0, no warnings |
 | `npm run build` | exit 0 |
 
-Logs: `.eval-results/assistant/b3-final2-{vitest,tsc,lint,build}.log`.
+Logs: `.eval-results/assistant/b3-final3-{vitest,tsc,lint,build}.log`.
 
 ## 4. Historical protocol — unchanged
 
@@ -122,13 +123,16 @@ Frozen `efficiency-v1` (new paraphrases, not holdout wording):
 | Catalog browse | 6 calls | 1 non-presentation call |
 | Combined check | 7 calls, no preview | 3 calls, preview |
 | No-match evening | 2 calls | 1 call |
-| CIS advice | 6 calls | 1 and 6 calls |
+| CIS advice (non-present) | 5 calls | 1 and 6 calls |
 | Detail follow-up | 3 calls | 1 and 8 calls |
 
 Targeted rechecks:
 
 - Dev `no_candidates` after the no-match evidence change: **1, 1, 2 calls**
-  (prior worst case: 19).
+  (`discovery-b3-no-candidates-check.json`). The 19-call loop is a B.2
+  intermediate trace (`discovery-b2-patch2-dev.json`), not a B.3 baseline; one
+  intermediate B.3 run hit 18 calls before the note landed. The improvement is
+  trace-backed but not a clean same-run before/after.
 - Dev `easy_gest` t4 after the section-loading guidance: **2–3 calls** in most
   repeats, with 4–12 when `check_plan_conflicts` returns
   `temporarily_unavailable` and the model retries.
@@ -141,7 +145,7 @@ Targeted rechecks:
 
 | Dimension | Result |
 |---|---|
-| Holdout truthfulness | 18/18 turns manually read; 0 T1–T6 violations found |
+| Holdout truthfulness | Semantic review of the 18 holdout turns found 0 T1–T6 violations; the four failures were routing or call-budget only |
 | Holdout semantic intent | 18/18 (three ambiguous listings scored on truth/answer) |
 | Shadow-v2 semantic | 8/8 |
 | Combined verification | Post-change combined turn used `preview_timetable`; no mutual claim from individual checks |
@@ -192,7 +196,8 @@ Capture screenshots and the exact viewport for each scenario.
 
 1. **Browser acceptance is UNVERIFIED** for all scenarios A–H and all three
    widths. This blocks student-facing deployment.
-2. **Efficiency variance remains.** `cis_advice` ranged from 1 to 11 calls;
+2. **Efficiency variance remains.** `cis_advice` ranged from 1 to 6
+   non-present calls in the final run (an intermediate run reached 10);
    detail follow-ups ranged from 1 to 8; transient `temporarily_unavailable`
    responses still cause `check_plan_conflicts` retries.
 3. **Referent-binding defect.** A follow-up naming “the second option” can make
@@ -238,5 +243,32 @@ Capture screenshots and the exact viewport for each scenario.
 
 ## 12. Independent review
 
-A separate read-only reviewer assessed the four dimensions in the mission. The
-review record is appended after the review completes.
+A separate read-only reviewer assessed the four dimensions in the mission.
+
+Scope limitation: the reviewer reported the launch HEAD as `718afd8` and could
+not inspect the committed range; it reviewed the HEAD file contents, the two
+documents, and the named artifacts. No files were modified.
+
+Findings and resolutions:
+
+| Severity | Finding | Resolution |
+|---|---|---|
+| P1 | The 19-call no-match comparison came from a stale B.2 intermediate run, not a B.3 baseline. | Provenance corrected in both documents; the intermediate 18-call B.3 run is disclosed. |
+| P2 | The eval fingerprint omitted `discovery/schema.ts`, and the baseline pairing predates the fingerprint change. | `schema.ts` added; the documents now say traces, not the fingerprint, are the baseline comparison evidence. |
+| P2 | A zero-candidate result caused only by all matching courses being in the saved plan was labelled a complete no-match. | Added in-plan and no-listed-sections notes; regression tests added. |
+| P2 | The CIS-advice baseline was stated as 6 calls when the artifact has 5 non-present calls. | Corrected to 5; the 11-raw/10-non-present intermediate run is labelled. |
+| P2 | The review section was a placeholder. | Replaced with this record. |
+
+The reviewer's dimensions:
+
+- **Academic correctness:** no finding beyond the P2 note; hard rules stay hard,
+  ranking/offering semantics unchanged, uncertainty hedging preserved.
+- **Semantic behavior:** no finding; over-selection and referent-binding
+  residuals are disclosed.
+- **Operational reliability:** no code finding; retries and call-budget variance
+  are declared; all final artifacts are complete with no timeouts.
+- **Student-facing UX:** no finding; browser stays UNVERIFIED with the checklist
+  and is flagged as a deployment blocker.
+
+Merge verdict from the reviewer: **OK with notes**, conditional on the
+provenance and note-firing corrections, which are applied.
