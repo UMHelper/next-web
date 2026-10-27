@@ -499,7 +499,9 @@ describe("runDiscoverCourseCandidates reviews and output", () => {
       }
     }
     expect(result.candidates[3]?.reviewEvidence?.status).toBe("incomplete");
-    expect(result.notes.some((note) => note.startsWith("reviewEvidence"))).toBe(true);
+    const reviewNote = result.notes.find((note) => note.startsWith("reviewEvidence"));
+    expect(reviewNote).toContain("the search finished");
+    expect(reviewNote).not.toContain("the search did not finish");
   });
 
   it("marks review evidence unavailable when loadReviews fails", async () => {
