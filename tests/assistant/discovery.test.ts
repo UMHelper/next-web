@@ -429,6 +429,28 @@ describe("runDiscoverCourseCandidates exclusions and failures", () => {
     expect(result.status).toBe("ok");
     expect(result.candidates).toEqual([]);
     expect(result.examined.truncated).toBe(false);
+    expect(result.notes.some((note) => note.includes("complete no-match for this scope"))).toBe(true);
+    expect(result.notes.some((note) => note.includes("do not repeat the same search"))).toBe(true);
+  });
+
+  it("does not call a zero-match complete when the pool was truncated", async () => {
+    const failPool = pool({
+      truncated: true,
+      totalMatchingCourses: 400,
+      courses: [poolCourse({ courseCode: "GEST3101" })],
+      instructorRows: [pwcRow({ pwcId: 62, courseCode: "GEST3101" })],
+      offers: [offer(62, "001", ["MON 08:00-09:15 E11"])],
+    });
+    const result = await runDiscoverCourseCandidates(
+      readyState([]),
+      { scope: { codePrefix: "GEST31" }, required: { startAfter: "10:00" } },
+      discoveryDeps(failPool),
+    );
+    assertOkDiscoverResult(result);
+    expect(result.candidates).toEqual([]);
+    expect(result.examined.truncated).toBe(true);
+    expect(result.notes.some((note) => note.includes("pool was bounded"))).toBe(true);
+    expect(result.notes.some((note) => note.includes("complete no-match"))).toBe(false);
   });
 
   it("surfaces pool truncation in examined.truncated", async () => {
@@ -732,8 +754,8 @@ describe("runDiscoverCourseCandidates reviews and output", () => {
   it("uses fixed notes and ranking policy string", async () => {
     const result = await runDiscoverCourseCandidates(
       readyState([]),
-      { scope: { courseType: "GE" } },
-      discoveryDeps(pool({ courses: [poolCourse()] })),
+      { scope: { codePrefix: "CISC" } },
+      discoveryDeps(ciscPool()),
     );
     assertOkDiscoverResult(result);
     expect(result.notes).toEqual([

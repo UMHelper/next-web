@@ -124,7 +124,7 @@ export function createAssistantTools(
     defineTool({
       name: "search_catalog",
       description:
-        "Search courses or instructors. For courses, filter by faculty, department, exact credits, course type, programme level, suggested year and offered status; sort by code, title, credits, suggested year or offered status; use searchIn=content to search titles, descriptions and ILOs. For a subject's full course list use the code prefix (e.g. ACCT). Course results include `aka` aliases; the primary courseCode is authoritative. Returns up to 50 courses per page with totalCount and hasMore. A keyword on an English subject word may only match titles; do not present that total as the number of courses in the subject. Browsing or listing catalog entries belongs here; recommending what to take is discover_course_candidates.",
+        "Search courses or instructors. For courses, filter by faculty, department, exact credits, course type, programme level, suggested year and offered status; sort by code, title, credits, suggested year or offered status; use searchIn=content to search titles, descriptions and ILOs. For a subject's full course list use the code prefix (e.g. ACCT). Course results include `aka` aliases; the primary courseCode is authoritative. Returns up to 50 courses per page with totalCount and hasMore. A keyword on an English subject word may only match titles; do not present that total as the number of courses in the subject. Browsing or listing catalog entries belongs here; recommending what to take is discover_course_candidates. Use courseType for GE or Non-GE and faculty/department for academic units. It has no meeting-time or weekday filter; use discover_course_candidates for schedule constraints. One scoped search returns up to 50 rows with totalCount; do not repeat it with count_courses or split the same filters by code prefix.",
       parameters: searchCatalogToolParametersSchema,
       execute: (args) =>
         runReadOnlyTool(
@@ -138,7 +138,7 @@ export function createAssistantTools(
     defineTool({
       name: "count_courses",
       description:
-        "Return only the number of courses matching the same query and filters as search_catalog. Use it for 'how many courses' questions instead of counting rows yourself.",
+        "Return only the number of courses matching the same query and filters as search_catalog. Use it for 'how many courses' questions instead of counting rows yourself. Do not call it to confirm a search_catalog result that already returned totalCount.",
       parameters: countCoursesParametersSchema,
       execute: (args) =>
         runReadOnlyTool(

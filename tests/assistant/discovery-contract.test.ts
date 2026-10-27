@@ -124,6 +124,13 @@ describe("discover_course_candidates description", () => {
     expect(description).toMatch(/do not ask for a department first/i);
   });
 
+  it("treats an empty complete candidate list as a conclusive no-match", () => {
+    expect(description).toMatch(/candidates is empty/i);
+    expect(description).toMatch(/complete no-match/i);
+    expect(description).toMatch(/do not repeat/i);
+    expect(description).toMatch(/relax|change one constraint/i);
+  });
+
   it("asks for short topic keywords and spelling variants, not sentences", () => {
     expect(description).toMatch(/short keywords/i);
     expect(description).toMatch(/spelling variants/i);
@@ -158,13 +165,18 @@ describe("discover_course_candidates description", () => {
 });
 
 describe("search_catalog description", () => {
-  it("keeps the existing catalog description and adds one browse-versus-recommend clause", () => {
+  it("keeps the existing catalog description and adds browse-versus-recommend guidance", () => {
     const description = searchCatalogDescription();
     expect(description.startsWith(SEARCH_CATALOG_DESCRIPTION_BEFORE)).toBe(true);
     const added = description.slice(SEARCH_CATALOG_DESCRIPTION_BEFORE.length).trim();
     expect(added).toMatch(/\bbrowsing\b|\blisting\b/i);
     expect(added).toContain("discover_course_candidates");
-    expect(added.split(/[.!?]/).filter((part) => part.trim().length > 0)).toHaveLength(1);
+    expect(added).toContain("courseType");
+    expect(added).toMatch(/faculty|department/);
+    expect(added).toMatch(/one scoped search|one scoped call/i);
+    expect(added).toMatch(/count_courses/);
+    expect(added).toMatch(/no meeting-time or weekday filter/i);
+    expect(added).toMatch(/schedule constraints/i);
   });
 });
 
@@ -222,5 +234,30 @@ describe("tool-selection contract boundaries", () => {
     const browse = DISCOVERY_CASES_V2.find((entry) => entry.id === "catalog_browse");
     expect(browse?.turns).toHaveLength(1);
     expect(browse?.turns[0]?.expect.discovery).toBe("optional");
+  });
+});
+
+
+describe("efficiency guidance", () => {
+  it("does not use count_courses to confirm a search result that already has totalCount", () => {
+    const countTool = createAssistantTools().find((tool) => tool.name === "count_courses");
+    expect(countTool?.description).toMatch(/do not call it to confirm/i);
+    expect(countTool?.description).toMatch(/totalCount/);
+  });
+
+  it("says check_plan_conflicts loads sections itself", async () => {
+    const { CHECK_PLAN_CONFLICTS_DESCRIPTION } = await import("@/lib/assistant/check-plan-conflicts");
+    expect(CHECK_PLAN_CONFLICTS_DESCRIPTION).toMatch(/loads the listed sections itself/i);
+    expect(CHECK_PLAN_CONFLICTS_DESCRIPTION).toMatch(/do not call get_course_sections/i);
+  });
+
+  it("previews named sections directly and keeps combined vs individual distinct", async () => {
+    const { PREVIEW_TIMETABLE_DESCRIPTION } = await import("@/lib/assistant/timetable-preview");
+    expect(PREVIEW_TIMETABLE_DESCRIPTION).toMatch(/resolves and validates/i);
+    expect(PREVIEW_TIMETABLE_DESCRIPTION).toMatch(/do not call get_course_sections/i);
+    expect(PREVIEW_TIMETABLE_DESCRIPTION).toMatch(/individual check_plan_conflicts/i);
+    expect(PREVIEW_TIMETABLE_DESCRIPTION).toMatch(/mutual compatibility/i);
+    expect(PREVIEW_TIMETABLE_DESCRIPTION).toMatch(/includes conflicts with the saved plan/i);
+    expect(PREVIEW_TIMETABLE_DESCRIPTION).toMatch(/do not call check_plan_conflicts first/i);
   });
 });

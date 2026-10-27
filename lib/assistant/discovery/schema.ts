@@ -48,7 +48,7 @@ const timeRuleFields = {
     .string()
     .optional()
     .describe(
-      "HH:MM — every meeting must start at or after this time. In required: hard elimination; in preferred: soft ranking only.",
+      "HH:MM — every meeting must start at or after this time. In required: hard elimination; in preferred: soft ranking only. For 'no class before 10:00', use 10:00.",
     ),
   endBefore: z
     .string()

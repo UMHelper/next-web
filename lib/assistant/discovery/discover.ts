@@ -85,6 +85,12 @@ const DISCOVERY_NOTES = [
 const REVIEW_EVIDENCE_NOTE =
   "reviewEvidence.status: evidence found a review term match; no_relevant_evidence finished without a match; incomplete means the search finished but some review text was not read (unreadable, capped or truncated); unavailable means the review read failed. When read is 0, do not call get_course_reviews for any candidate in this result—report the missing evidence once instead. reviewCount is 0 means the course has no review text; it is not proof that no reviews or midterms exist. A missing term is not proof about exams, workload or grading.";
 
+const NO_MATCH_COMPLETE_NOTE =
+  "No candidate matched every applied constraint. examined.truncated is false, so the search covered the whole matching pool; this is a complete no-match for this scope, not proof no course exists under other constraints. Relax or change one constraint; do not repeat the same search or enumerate the subject to double-check.";
+
+const NO_MATCH_TRUNCATED_NOTE =
+  "No candidate matched every applied constraint, but examined.truncated is true: the pool was bounded, so some matching courses were not evaluated. Do not claim no course exists; relax a constraint or change the scope.";
+
 type TimetableInfo = {
   status: DiscoverResult["timetable"]["status"];
   plannerVersion?: string;
@@ -523,6 +529,7 @@ function shrinkDiscoverResult(result: DiscoverResult): DiscoverResult {
           note.startsWith("The site has no official") ||
           note.startsWith("suggestedYear") ||
           note.startsWith("When examined.truncated") ||
+          note.startsWith("No candidate matched") ||
           note.startsWith("reviewEvidence") ||
           note.startsWith("Topic match was broadened"),
       ),
@@ -908,6 +915,9 @@ export async function runDiscoverCourseCandidates(
     notes: [
       ...DISCOVERY_NOTES,
       ...(parsed.data.reviewTerms?.length ? [REVIEW_EVIDENCE_NOTE] : []),
+      ...(publicCandidates.length === 0
+        ? [discoveryPool.truncated ? NO_MATCH_TRUNCATED_NOTE : NO_MATCH_COMPLETE_NOTE]
+        : []),
       ...(discoveryPool.topicFallback
         ? [
             "Topic match was broadened to keyword-level hits because fewer than three courses matched the full topic phrases.",
