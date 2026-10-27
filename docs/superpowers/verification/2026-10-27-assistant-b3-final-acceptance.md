@@ -222,7 +222,7 @@ Capture screenshots and the exact viewport for each scenario.
 
 | Gate | Result | Evidence | Blocking? |
 |---|---|---|---|
-| Deterministic correctness | **PASS** | 2453/2453 Vitest, tsc, lint, build | No |
+| Deterministic correctness | **PASS** | 2454/2454 Vitest, tsc, lint, build | No |
 | Semantic product acceptance | **PASS with limitations** | Holdout 18/18 manual; shadow-v2 8/8; 0 confirmed unsupported claims | No, if `b2-semantic-v1` adopted |
 | Historical protocol | **FAIL** | Holdout discovery use 15/18 (83.3%) < 90%; pass 14/18 ≥ 75% | Yes under the existing gate |
 | Tool efficiency | **PARTIAL** | Targeted fixes pass; variance and retries remain | Yes for broad rollout |
