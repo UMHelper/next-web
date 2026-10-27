@@ -3,7 +3,7 @@
 Date: 2026-10-28
 Worktree: `.worktrees/assistant-v2-3-5-b2`
 Branch: `feat/assistant-v2-3-5-b2-remediation`
-Canonical HEAD: `47065a0` (code fix `468b102`; audit preservation `5cb1509`; report `47065a0`)
+Implementation SHA: `5cb1509` (code fix `468b102`; audit preservation `5cb1509`). The remote branch also contains this report and any later docs-only commit.
 Audit: [V2 Implementation Reality & Project Status Audit](../audits/2026-10-28-what2reg-ai-v2-implementation-reality-audit.md)
 
 This checkpoint completes the audit's three immediate actions: establish the
@@ -14,10 +14,10 @@ acceptance. It does not start V2.3.5-C, V2.4, V3, or a broad stabilization cycle
 
 | Location | Branch | HEAD | Relationship |
 |---|---|---|---|
-| `.worktrees/assistant-v2-3-5-b2` | `feat/assistant-v2-3-5-b2-remediation` | **`47065a0`** | Canonical V2 candidate (code `468b102`) |
+| `.worktrees/assistant-v2-3-5-b2` | `feat/assistant-v2-3-5-b2-remediation` | **`5cb1509`** implementation; later docs commit | Canonical V2 candidate (code `468b102`) |
 | Primary `/Users/thomaswu/Workspace/next-web` | `feat/assistant-v2-3-5-b-discovery` | `718afd8` | **48 commits behind** the B.3 worktree |
 | `.worktrees/assistant-v2-1-ux` | `feat/assistant-v2-1-ux-refinement` | `2760617` | Older UX line |
-| `origin/feat/assistant-v2-3-5-b2-remediation` | remote branch | **`47065a0`** | Created in this checkpoint, non-force |
+| `origin/feat/assistant-v2-3-5-b2-remediation` | remote branch | `5cb1509` + docs | Created in this checkpoint, non-force |
 | `origin/feat/global-assistant-v2` | remote branch | `221e73b` | Older, not canonical |
 | `origin/main` | remote branch | `0ff1e7a` | Does not contain V2; B.3 is 165 commits ahead |
 
@@ -25,9 +25,9 @@ The primary checkout is the repository root, but it is not the newest code. It
 contains discovery at `718afd8` and lacks the B.2/B.3 remediation commits.
 Opening the repository root does **not** show the canonical implementation.
 
-`2f79726` is no longer the latest canonical B.3 commit. `468b102` adds the
-referent fix, `5cb1509` preserves the 2026-10-28 audit, and `47065a0` records
-this checkpoint.
+`2f79726` is no longer the latest canonical B.3 implementation. `468b102` adds
+the referent fix and `5cb1509` preserves the 2026-10-28 audit. This checkpoint
+report is a docs-only commit after `5cb1509`.
 
 ## 2. Backup and remote status
 
@@ -36,7 +36,8 @@ this checkpoint.
   - `backup/b2-pre-recovery-69a94e7`
 - New non-destructive checkpoint: `backup/v2-checkpoint-2f79726`.
 - Review branch pushed normally:
-  `origin/feat/assistant-v2-3-5-b2-remediation` at `47065a0`.
+  `origin/feat/assistant-v2-3-5-b2-remediation`, containing `5cb1509` and this
+  docs-only checkpoint report.
 - Local branch now tracks that remote branch.
 - No force-push, reset, history rewrite, worktree deletion, merge, or deployment.
 - Primary checkout’s untracked audit/plan documents were not discarded; the
@@ -229,6 +230,6 @@ labels.**
 | Controlled-pilot readiness | **Conditional** — desktop viewport ≥1024px, authorized testers, browser checklist, canonical `5cb1509` |
 | Broad-deployment readiness | **Not ready** — browser runtime, viewport policy, durable state, and operational visibility remain |
 
-The canonical candidate is `47065a0` on
-`origin/feat/assistant-v2-3-5-b2-remediation`. No merge was performed. Do not
+The canonical implementation candidate is `5cb1509`; the remote branch also
+contains this report commit on `origin/feat/assistant-v2-3-5-b2-remediation`. No merge was performed. Do not
 start V2.3.5-C, V2.4, or V3 from this checkpoint without a separate decision.
