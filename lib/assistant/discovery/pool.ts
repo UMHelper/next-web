@@ -46,3 +46,5 @@ export type ReviewTextRow = {
   pwcId: number;
   texts: string[];
 };
+
+export const REVIEW_ROWS_PER_INSTRUCTOR = 8;

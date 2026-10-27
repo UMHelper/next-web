@@ -411,9 +411,12 @@ const candidateSchema = z
     ),
     reviewEvidence: z
       .object({
+        status: z.enum(["evidence", "no_relevant_evidence", "incomplete", "unavailable"]).optional(),
         read: z.number(),
+        reviewCount: z.number().optional(),
         mentions: z.record(z.string(), z.number()),
         excerpts: z.array(z.string()),
+        truncated: z.boolean().optional(),
       })
       .strict()
       .optional(),

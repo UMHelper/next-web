@@ -23,7 +23,13 @@ import {
   type DiscoverResult,
   type DiscoveryFit,
 } from "@/lib/assistant/discovery/schema";
-import type { DiscoveryPool, PoolCourse, PoolInstructorRow, ReviewTextRow } from "@/lib/assistant/discovery/pool";
+import {
+  REVIEW_ROWS_PER_INSTRUCTOR,
+  type DiscoveryPool,
+  type PoolCourse,
+  type PoolInstructorRow,
+  type ReviewTextRow,
+} from "@/lib/assistant/discovery/pool";
 import type { TimetableState } from "@/lib/assistant/timetable-context";
 import { formatAcademicYear } from "@/lib/config/term-format";
 import { MCP_TOOL_TIMEOUT_MS } from "@/lib/mcp/constants";
@@ -75,6 +81,9 @@ const DISCOVERY_NOTES = [
   "suggestedYear is a catalog hint only; it is not official registration eligibility.",
   "When examined.truncated is true, the search covered a bounded slice of matching courses—not every match was evaluated.",
 ] as const;
+
+const REVIEW_EVIDENCE_NOTE =
+  "reviewEvidence.status: evidence found a review term match, no_relevant_evidence finished without a match, and incomplete or unavailable means the search did not finish; a missing term is not proof about exams, workload or grading.";
 
 type TimetableInfo = {
   status: DiscoverResult["timetable"]["status"];
@@ -259,14 +268,27 @@ function excerptAround(text: string, term: string): string | null {
   return chars.slice(start, end).join("").trim();
 }
 
+function sectionReviewCount(section: SectionCandidate): number {
+  const seen = new Set<number>();
+  let total = 0;
+  for (const instructor of section.instructors) {
+    if (seen.has(instructor.pwcId)) continue;
+    seen.add(instructor.pwcId);
+    total += instructor.reviews;
+  }
+  return total;
+}
+
 function reviewEvidenceForCandidate(
   section: SectionCandidate,
   reviewTerms: string[],
   reviewRows: ReviewTextRow[],
+  searchedPwcIds: ReadonlySet<number>,
 ): DiscoverResult["candidates"][number]["reviewEvidence"] {
   const texts = reviewRows.flatMap((row) =>
     section.instructors.some((instructor) => instructor.pwcId === row.pwcId) ? row.texts : [],
   );
+  const reviewCount = sectionReviewCount(section);
   const mentions: Record<string, number> = {};
   const excerpts: string[] = [];
 
@@ -285,10 +307,47 @@ function reviewEvidenceForCandidate(
     if (count > 0) mentions[term] = count;
   }
 
+  const truncated =
+    !section.instructors.every((instructor) => searchedPwcIds.has(instructor.pwcId)) ||
+    section.instructors.some((instructor) => instructor.reviews > REVIEW_ROWS_PER_INSTRUCTOR);
+  const hasMentions = Object.keys(mentions).length > 0;
+  const status = hasMentions
+    ? "evidence"
+    : truncated || (texts.length === 0 && reviewCount > 0)
+      ? "incomplete"
+      : "no_relevant_evidence";
+
   return {
+    status,
     read: texts.length,
+    reviewCount,
     mentions,
     excerpts: excerpts.slice(0, MAX_EXCERPTS),
+    ...(truncated ? { truncated: true } : {}),
+  };
+}
+
+function unsearchedReviewEvidence(
+  section: SectionCandidate,
+): DiscoverResult["candidates"][number]["reviewEvidence"] {
+  return {
+    status: "incomplete",
+    read: 0,
+    reviewCount: sectionReviewCount(section),
+    mentions: {},
+    excerpts: [],
+  };
+}
+
+function unavailableReviewEvidence(
+  section: SectionCandidate,
+): DiscoverResult["candidates"][number]["reviewEvidence"] {
+  return {
+    status: "unavailable",
+    read: 0,
+    reviewCount: sectionReviewCount(section),
+    mentions: {},
+    excerpts: [],
   };
 }
 
@@ -463,6 +522,7 @@ function shrinkDiscoverResult(result: DiscoverResult): DiscoverResult {
           note.startsWith("The site has no official") ||
           note.startsWith("suggestedYear") ||
           note.startsWith("When examined.truncated") ||
+          note.startsWith("reviewEvidence") ||
           note.startsWith("Topic match was broadened"),
       ),
     },
@@ -758,8 +818,15 @@ export async function runDiscoverCourseCandidates(
       if (pwcIds.length >= REVIEW_PWC_LIMIT) break;
     }
 
+    for (let index = REVIEW_CANDIDATE_LIMIT; index < candidates.length; index += 1) {
+      const built = candidates[index];
+      if (!built) continue;
+      candidates[index] = { ...built, reviewEvidence: unsearchedReviewEvidence(winners[index]!.section) };
+    }
+
     try {
       const reviewRows = await deps.loadReviews(pwcIds, abortSignal);
+      const searchedPwcIds = new Set(pwcIds);
       for (let index = 0; index < Math.min(REVIEW_CANDIDATE_LIMIT, candidates.length); index += 1) {
         const built = candidates[index];
         if (!built) continue;
@@ -767,12 +834,18 @@ export async function runDiscoverCourseCandidates(
           winners[index]!.section,
           parsed.data.reviewTerms,
           reviewRows,
+          searchedPwcIds,
         );
         candidates[index] = { ...built, reviewEvidence: evidence };
       }
     } catch (error) {
       if (error instanceof McpToolError) {
         notApplied.push("reviewTerms: reviews could not be read");
+        for (let index = 0; index < candidates.length; index += 1) {
+          const built = candidates[index];
+          if (!built) continue;
+          candidates[index] = { ...built, reviewEvidence: unavailableReviewEvidence(winners[index]!.section) };
+        }
       } else {
         throw error;
       }
@@ -824,6 +897,7 @@ export async function runDiscoverCourseCandidates(
     ranking: RANKING_NOTE,
     notes: [
       ...DISCOVERY_NOTES,
+      ...(parsed.data.reviewTerms?.length ? [REVIEW_EVIDENCE_NOTE] : []),
       ...(discoveryPool.topicFallback
         ? [
             "Topic match was broadened to keyword-level hits because fewer than three courses matched the full topic phrases.",

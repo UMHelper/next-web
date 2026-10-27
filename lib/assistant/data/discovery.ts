@@ -1,7 +1,14 @@
 import { topicScore } from "@/lib/assistant/discovery/rank";
 import { buildTopicSearchTerms, filterCoursesByTopicMatch } from "@/lib/assistant/discovery/topic-match";
 import type { DiscoveryScope } from "@/lib/assistant/discovery/schema";
-import type { DiscoveryPool, PoolCourse, PoolInstructorRow, PoolOffer, ReviewTextRow } from "@/lib/assistant/discovery/pool";
+import {
+  REVIEW_ROWS_PER_INSTRUCTOR,
+  type DiscoveryPool,
+  type PoolCourse,
+  type PoolInstructorRow,
+  type PoolOffer,
+  type ReviewTextRow,
+} from "@/lib/assistant/discovery/pool";
 import { McpToolError } from "@/lib/mcp/errors";
 import supabaseServer from "@/lib/supabase/server";
 
@@ -423,7 +430,7 @@ export async function loadReviewTexts(
         .is("replyto", null)
         .neq("hidden", 1)
         .order("pub_time", { ascending: false })
-        .limit(8)
+        .limit(REVIEW_ROWS_PER_INSTRUCTOR)
         .abortSignal(signal);
 
       if (builder.error) throw new McpToolError("temporarily_unavailable");

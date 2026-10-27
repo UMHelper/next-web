@@ -468,7 +468,7 @@ describe("runDiscoverCourseCandidates reviews and output", () => {
     const reviewPool = pool({
       courses: ["GEST4001", "GEST4002", "GEST4003", "GEST4004"].map((code) => poolCourse({ courseCode: code })),
       instructorRows: ["GEST4001", "GEST4002", "GEST4003", "GEST4004"].map((code, index) =>
-        pwcRow({ pwcId: 70 + index, courseCode: code, reviews: 10 }),
+        pwcRow({ pwcId: 70 + index, courseCode: code, reviews: 5 }),
       ),
       offers: ["GEST4001", "GEST4002", "GEST4003", "GEST4004"].map((code, index) =>
         offer(70 + index, "001", ["TUE 11:00-12:15 E11"]),
@@ -489,15 +489,20 @@ describe("runDiscoverCourseCandidates reviews and output", () => {
     expect(loadReviews).toHaveBeenCalledTimes(1);
     expect(loadReviews.mock.calls[0]?.[0]?.length).toBeLessThanOrEqual(6);
     const enriched = result.candidates.slice(0, 3);
-    expect(enriched.every((c) => c.reviewEvidence?.mentions.midterm !== undefined)).toBe(true);
+    expect(enriched.every((c) => c.reviewEvidence?.status === "evidence")).toBe(true);
+    expect(enriched.every((c) => c.reviewEvidence?.read === 1)).toBe(true);
+    expect(enriched.every((c) => c.reviewEvidence?.reviewCount === 5)).toBe(true);
+    expect(enriched.every((c) => c.reviewEvidence?.mentions.midterm === 1)).toBe(true);
     for (const candidate of enriched) {
       for (const excerpt of candidate.reviewEvidence?.excerpts ?? []) {
         expect([...excerpt].length).toBeLessThanOrEqual(120);
       }
     }
+    expect(result.candidates[3]?.reviewEvidence?.status).toBe("incomplete");
+    expect(result.notes.some((note) => note.startsWith("reviewEvidence"))).toBe(true);
   });
 
-  it("continues without reviewEvidence when loadReviews fails", async () => {
+  it("marks review evidence unavailable when loadReviews fails", async () => {
     const reviewPool = pool({
       courses: [poolCourse({ courseCode: "GEST5001" })],
       instructorRows: [pwcRow({ pwcId: 80, courseCode: "GEST5001", reviews: 5 })],
@@ -513,8 +518,165 @@ describe("runDiscoverCourseCandidates reviews and output", () => {
       }),
     );
     assertOkDiscoverResult(result);
-    expect(result.candidates[0]?.reviewEvidence).toBeUndefined();
+    expect(result.candidates[0]?.reviewEvidence).toEqual({
+      status: "unavailable",
+      read: 0,
+      reviewCount: 5,
+      mentions: {},
+      excerpts: [],
+    });
     expect(result.notApplied).toContain("reviewTerms: reviews could not be read");
+  });
+
+  it("distinguishes completed review searches with and without a term match", async () => {
+    const reviewPool = pool({
+      courses: [poolCourse({ courseCode: "GEST5101" }), poolCourse({ courseCode: "GEST5102" })],
+      instructorRows: [
+        pwcRow({ pwcId: 82, courseCode: "GEST5101", reviews: 3 }),
+        pwcRow({ pwcId: 83, courseCode: "GEST5102", reviews: 0 }),
+      ],
+      offers: [
+        offer(82, "001", ["TUE 11:00-12:15 E11"]),
+        offer(83, "001", ["WED 11:00-12:15 E11"]),
+      ],
+    });
+    const result = await runDiscoverCourseCandidates(
+      readyState([]),
+      { scope: { codePrefix: "GEST51" }, reviewTerms: ["midterm"] },
+      discoveryDeps(reviewPool, {
+        loadReviews: async (ids) =>
+          ids.map((pwcId) => ({
+            pwcId,
+            texts: pwcId === 82 ? ["The final was long but fair."] : [],
+          })),
+      }),
+    );
+    assertOkDiscoverResult(result);
+    const matched = result.candidates.find((c) => c.reviewEvidence?.reviewCount === 3);
+    const empty = result.candidates.find((c) => c.reviewEvidence?.reviewCount === 0);
+    expect(matched?.reviewEvidence).toMatchObject({
+      status: "no_relevant_evidence",
+      read: 1,
+      mentions: {},
+      excerpts: [],
+    });
+    expect(empty?.reviewEvidence).toMatchObject({
+      status: "no_relevant_evidence",
+      read: 0,
+      mentions: {},
+    });
+  });
+
+  it("marks a review search incomplete when review rows exist but no text was read", async () => {
+    const reviewPool = pool({
+      courses: [poolCourse({ courseCode: "GEST5201" })],
+      instructorRows: [pwcRow({ pwcId: 84, courseCode: "GEST5201", reviews: 8 })],
+      offers: [offer(84, "001", ["TUE 11:00-12:15 E11"])],
+    });
+    const result = await runDiscoverCourseCandidates(
+      readyState([]),
+      { scope: { codePrefix: "GEST52" }, reviewTerms: ["midterm"] },
+      discoveryDeps(reviewPool, {
+        loadReviews: async () => [{ pwcId: 84, texts: [] }],
+      }),
+    );
+    assertOkDiscoverResult(result);
+    expect(result.candidates[0]?.reviewEvidence).toMatchObject({
+      status: "incomplete",
+      read: 0,
+      reviewCount: 8,
+    });
+    expect(result.notApplied).not.toContain("reviewTerms: reviews could not be read");
+  });
+
+  it("marks matching evidence truncated when an instructor has more reviews than were read", async () => {
+    const reviewPool = pool({
+      courses: [poolCourse({ courseCode: "GEST5301" })],
+      instructorRows: [pwcRow({ pwcId: 85, courseCode: "GEST5301", reviews: 12 })],
+      offers: [offer(85, "001", ["TUE 11:00-12:15 E11"])],
+    });
+    const result = await runDiscoverCourseCandidates(
+      readyState([]),
+      { scope: { codePrefix: "GEST53" }, reviewTerms: ["midterm"] },
+      discoveryDeps(reviewPool, {
+        loadReviews: async () => [{ pwcId: 85, texts: ["The midterm was fair."] }],
+      }),
+    );
+    assertOkDiscoverResult(result);
+    expect(result.candidates[0]?.reviewEvidence).toMatchObject({
+      status: "evidence",
+      read: 1,
+      reviewCount: 12,
+      truncated: true,
+    });
+  });
+
+  it("marks candidates beyond the review budget incomplete instead of leaving the field absent", async () => {
+    const codes = ["GEST5401", "GEST5402", "GEST5403", "GEST5404", "GEST5405"];
+    const reviewPool = pool({
+      courses: codes.map((code) => poolCourse({ courseCode: code })),
+      instructorRows: codes.map((code, index) =>
+        pwcRow({ pwcId: 86 + index, courseCode: code, reviews: 4 }),
+      ),
+      offers: codes.map((code, index) => offer(86 + index, "001", ["TUE 11:00-12:15 E11"])),
+    });
+    const result = await runDiscoverCourseCandidates(
+      readyState([]),
+      { scope: { codePrefix: "GEST54" }, reviewTerms: ["midterm"], limit: 5 },
+      discoveryDeps(reviewPool, {
+        loadReviews: async (ids) =>
+          ids.map((pwcId) => ({ pwcId, texts: [`midterm notes for ${pwcId}`] })),
+      }),
+    );
+    assertOkDiscoverResult(result);
+    expect(result.candidates).toHaveLength(5);
+    for (const candidate of result.candidates.slice(0, 3)) {
+      expect(candidate.reviewEvidence?.status).toBe("evidence");
+    }
+    for (const candidate of result.candidates.slice(3)) {
+      expect(candidate.reviewEvidence).toEqual({
+        status: "incomplete",
+        read: 0,
+        reviewCount: 4,
+        mentions: {},
+        excerpts: [],
+      });
+    }
+  });
+
+  it("marks evidence truncated when the instructor fetch cap leaves part of a candidate unsearched", async () => {
+    const firstIds = [90, 91, 92, 93];
+    const secondIds = [94, 95, 96, 97];
+    const firstRows = firstIds.map((pwcId) =>
+      pwcRow({ pwcId, courseCode: "GEST5501", reviews: 2 }),
+    );
+    const secondRows = secondIds.map((pwcId) =>
+      pwcRow({ pwcId, courseCode: "GEST5502", reviews: 2 }),
+    );
+    const reviewPool = pool({
+      courses: [poolCourse({ courseCode: "GEST5501" }), poolCourse({ courseCode: "GEST5502" })],
+      instructorRows: [...firstRows, ...secondRows],
+      offers: [...firstIds, ...secondIds].map((pwcId) => offer(pwcId, "001", ["TUE 11:00-12:15 E11"])),
+    });
+    const loadReviews = vi.fn(async (ids: number[]) =>
+      ids.map((pwcId) => ({ pwcId, texts: [`midterm notes for ${pwcId}`] })),
+    );
+    const result = await runDiscoverCourseCandidates(
+      readyState([]),
+      { scope: { codePrefix: "GEST55" }, reviewTerms: ["midterm"], limit: 2 },
+      discoveryDeps(reviewPool, { loadReviews }),
+    );
+    assertOkDiscoverResult(result);
+    expect(loadReviews.mock.calls[0]?.[0]).toHaveLength(6);
+    const second = result.candidates.find(
+      (candidate) => candidate.reviewEvidence?.reviewCount === 8 && candidate.reviewEvidence.truncated === true,
+    );
+    expect(second?.reviewEvidence).toMatchObject({
+      status: "evidence",
+      reviewCount: 8,
+      truncated: true,
+    });
+    expect(result.notApplied).not.toContain("reviewTerms: reviews could not be read");
   });
 
   it("does not expose forbidden key names outside allowed paths", async () => {

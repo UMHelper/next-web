@@ -332,6 +332,44 @@ describe("gradeDiscovery", () => {
     expect(graded.checks.discovery).toBe(false);
   });
 
+  it("excludes presentation from the call count while leaving the raw trace intact", () => {
+    const reviewCalls: ToolCallRecord[] = ["GEST1006", "GEST1005", "GEST1008"].map((courseCode) => ({
+      name: "get_course_reviews",
+      args: { courseCode },
+      result: JSON.stringify({ courseCode, reviews: [] }),
+    }));
+    const withPresentation: ToolCallRecord[] = [
+      discoveryCall(discoverTwoCandidateResult("v-test")),
+      ...reviewCalls,
+      { name: "present_response", args: {}, result: JSON.stringify({ ok: true }) },
+    ];
+    const graded = gradeDiscovery(trace("Recommendations ready.", withPresentation), {
+      discovery: "required",
+      maxToolCalls: 3,
+    });
+    expect(withPresentation).toHaveLength(5);
+    expect(graded.toolCalls).toBe(4);
+    expect(graded.checks.maxToolCalls).toBe(false);
+
+    const withoutPresentation = gradeDiscovery(
+      trace("Recommendations ready.", [discoveryCall(discoverTwoCandidateResult("v-test")), ...reviewCalls]),
+      { discovery: "required", maxToolCalls: 3 },
+    );
+    expect(withoutPresentation.toolCalls).toBe(4);
+    expect(withoutPresentation.checks.maxToolCalls).toBe(false);
+
+    const withinBudget = gradeDiscovery(
+      trace("Recommendations ready.", [
+        discoveryCall(discoverTwoCandidateResult("v-test")),
+        reviewCalls[0]!,
+        reviewCalls[1]!,
+      ]),
+      { discovery: "required", maxToolCalls: 3 },
+    );
+    expect(withinBudget.toolCalls).toBe(3);
+    expect(withinBudget.checks.maxToolCalls).toBe(true);
+  });
+
   it("allows a code-only clash-free claim backed by check_plan_conflicts", () => {
     const graded = gradeDiscovery(
       trace("GEST1006 fits your timetable.", [
