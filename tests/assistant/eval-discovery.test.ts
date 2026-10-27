@@ -1463,6 +1463,9 @@ describe("discovery case registry", () => {
       "no_candidates",
       "planner_change",
       "no_midterm",
+      "credit_only_en",
+      "credit_only_zh_hans",
+      "credit_only_zh_hant",
       "factual_lookup",
       "catalog_browse",
     ]);

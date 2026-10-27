@@ -922,7 +922,7 @@ describe("assistant V2.3.5-B integration (discovery through CopilotKit)", () => 
           !line.includes("present_response"),
       );
     expect(selectionBullets).toEqual([
-      "- Pick the tool from the student's aim: browsing a list is search_catalog; choosing what to take, a subject or year's options, or anything shaped by constraints is discover_course_candidates, and one constraint is enough to act. Combined fit needs preview_timetable, not individual fits; when reviews matter, pass reviewTerms in that call, not get_course_reviews per course.",
+      "- Pick the tool from the student's aim: browsing a list is search_catalog; choosing what to take, a subject or year's options, or anything shaped by constraints is discover_course_candidates. Combined fit needs preview_timetable, not individual fits; when reviews matter, pass reviewTerms in that call, not get_course_reviews per course.",
     ]);
   }, 120_000);
 });

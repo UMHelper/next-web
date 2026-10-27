@@ -348,6 +348,60 @@ const factualLookup: DiscoveryEvalCase = {
   ],
 };
 
+const creditOnlyEn: DiscoveryEvalCase = {
+  id: "credit_only_en",
+  pathname: "/",
+  why: "B.2 priority 2: a credit target alone is actionable; do not ask for a direction first.",
+  timetable: DEFAULT_DISCOVERY_TIMETABLE,
+  turns: [
+    {
+      message: "I need three more credits this term—recommend some 3-credit courses.",
+      expect: {
+        discovery: "required",
+        args: threeCreditScope,
+        mention: [/credit|3|three/i],
+        maxToolCalls: 3,
+      },
+    },
+  ],
+};
+
+const creditOnlyZhHans: DiscoveryEvalCase = {
+  id: "credit_only_zh_hans",
+  pathname: "/",
+  why: "B.2 priority 2: the same credit-only action in Simplified Chinese.",
+  timetable: DEFAULT_DISCOVERY_TIMETABLE,
+  turns: [
+    {
+      message: "我下学期还差3个学分，能推荐一些三学分的课程吗？",
+      expect: {
+        discovery: "required",
+        args: threeCreditScope,
+        mention: [/学分|學分|credit/i],
+        maxToolCalls: 3,
+      },
+    },
+  ],
+};
+
+const creditOnlyZhHant: DiscoveryEvalCase = {
+  id: "credit_only_zh_hant",
+  pathname: "/",
+  why: "B.2 priority 2: the same credit-only action in Traditional Chinese.",
+  timetable: DEFAULT_DISCOVERY_TIMETABLE,
+  turns: [
+    {
+      message: "我下學期仲差三個學分，可唔可以推介啲三學分嘅科目？",
+      expect: {
+        discovery: "required",
+        args: threeCreditScope,
+        mention: [/學分|credit/i],
+        maxToolCalls: 3,
+      },
+    },
+  ],
+};
+
 const catalogBrowse: DiscoveryEvalCase = {
   id: "catalog_browse",
   pathname: "/",
@@ -386,6 +440,9 @@ export const DISCOVERY_CASES_V2: DiscoveryEvalCase[] = [
     if (evalCase.id === "planner_change") return [plannerChangeV2(evalCase)];
     return [cloneDiscoveryCase(evalCase)];
   }),
+  creditOnlyEn,
+  creditOnlyZhHans,
+  creditOnlyZhHant,
   factualLookup,
   catalogBrowse,
 ];

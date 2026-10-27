@@ -503,6 +503,8 @@ describe("runDiscoverCourseCandidates reviews and output", () => {
     expect(reviewNote).toContain("the search finished");
     expect(reviewNote).not.toContain("the search did not finish");
     expect(reviewNote).toContain("When read is 0, do not call get_course_reviews");
+    expect(reviewNote).toMatch(/any candidate in this result/i);
+    expect(reviewNote).toMatch(/reviewCount is 0/i);
   });
 
   it("marks review evidence unavailable when loadReviews fails", async () => {
@@ -590,6 +592,7 @@ describe("runDiscoverCourseCandidates reviews and output", () => {
       reviewCount: 8,
     });
     expect(result.notApplied).not.toContain("reviewTerms: reviews could not be read");
+    expect(result.notApplied).toContain("reviewTerms: review text was unreadable for the returned candidates");
   });
 
   it("marks matching evidence truncated when an instructor has more reviews than were read", async () => {

@@ -408,7 +408,7 @@ describe("ASSISTANT_PROMPT", () => {
   it.each([
     ["read-only", "You are read-only and cannot change the student's timetable"],
     ["review evidence policy", "Read reviews with get_course_reviews before you make claims about teaching"],
-    ["aggregate ratings suffice for facts", "Aggregate ratings are enough to report what the ratings are"],
+    ["aggregate ratings suffice for facts", "Aggregate ratings are enough to report ratings"],
     ["difficulty direction", "a higher difficulty number is easier"],
     ["sample size", "When sampleSize is small or none"],
     ["unsupported data", "The site has no official data on exam or assessment format"],
@@ -427,7 +427,7 @@ describe("ASSISTANT_PROMPT", () => {
     ["language", "reply in the language of the student's latest message"],
     ["ambiguous referent", "When kind is ambiguous, ask the ask text and do not call a course tool"],
     ["objective tool selection", "browsing a list is search_catalog"],
-    ["one constraint acts", "one constraint is enough to act"],
+    ["one constraint acts", "A credit target is enough: use discovery in that turn"],
     ["combined timetable fit", "Combined fit needs preview_timetable, not individual fits"],
   ])("keeps the %s invariant", (_name, text) => {
     expect(ASSISTANT_PROMPT).toContain(text);

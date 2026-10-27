@@ -27,7 +27,7 @@ const PROMPT_SOURCE_BASELINE_CHARS = 15_269;
 const PREVIOUS_PROMPT_FINGERPRINT = "69470b851c9e";
 
 const DISCOVERY_SELECTION_BULLET =
-  "- Pick the tool from the student's aim: browsing a list is search_catalog; choosing what to take, a subject or year's options, or anything shaped by constraints is discover_course_candidates, and one constraint is enough to act. Combined fit needs preview_timetable, not individual fits; when reviews matter, pass reviewTerms in that call, not get_course_reviews per course.";
+  "- Pick the tool from the student's aim: browsing a list is search_catalog; choosing what to take, a subject or year's options, or anything shaped by constraints is discover_course_candidates. Combined fit needs preview_timetable, not individual fits; when reviews matter, pass reviewTerms in that call, not get_course_reviews per course.";
 
 const SEARCH_CATALOG_DESCRIPTION_BEFORE =
   "Search courses or instructors. For courses, filter by faculty, department, exact credits, course type, programme level, suggested year and offered status; sort by code, title, credits, suggested year or offered status; use searchIn=content to search titles, descriptions and ILOs. For a subject's full course list use the code prefix (e.g. ACCT). Course results include `aka` aliases; the primary courseCode is authoritative. Returns up to 50 courses per page with totalCount and hasMore. A keyword on an English subject word may only match titles; do not present that total as the number of courses in the subject.";
@@ -136,6 +136,7 @@ describe("discover_course_candidates description", () => {
     expect(description).toMatch(/one course at a time/i);
     expect(description).toMatch(/reviewEvidence\.read is 0/i);
     expect(description).toMatch(/do not re-read/i);
+    expect(description).toMatch(/other candidates in that result|any candidate in this result/i);
   });
 
   it("warns that individual noClash is not a combined timetable fit", () => {
@@ -176,12 +177,26 @@ describe("objective tool-selection prompt", () => {
     expect(ASSISTANT_PROMPT).not.toContain("mutualClashes");
   });
 
+  it("acts on a credit target without asking for a major or department first", () => {
+    const guidance = ASSISTANT_PROMPT.split("\n").find(
+      (line) => /credit target/i.test(line) && /discover/i.test(line),
+    );
+    expect(guidance).toBeDefined();
+    expect(guidance).toMatch(/major|department/i);
+    expect(guidance).toMatch(/GE|elective/i);
+  });
+
+  it("does not retry review reads discovery already reported unreadable", () => {
+    expect(ASSISTANT_PROMPT).toMatch(/discovery already reported unreadable review text/i);
+    expect(ASSISTANT_PROMPT).toMatch(/do not retry/i);
+  });
+
   it("updates the prompt fingerprint and stays within 220 added characters", () => {
     const source = readFileSync(join(process.cwd(), "lib/assistant/prompt.ts"), "utf8");
     expect(source).toContain(DISCOVERY_SELECTION_BULLET);
     expect(source.length - PROMPT_SOURCE_BASELINE_CHARS).toBeLessThanOrEqual(220);
     expect(promptFingerprint()).not.toBe(PREVIOUS_PROMPT_FINGERPRINT);
-    expect(promptFingerprint()).toMatchInlineSnapshot(`"1d0be6222930"`);
+    expect(promptFingerprint()).toMatchInlineSnapshot(`"049342cbd828"`);
   });
 });
 

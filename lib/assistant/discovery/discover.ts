@@ -83,7 +83,7 @@ const DISCOVERY_NOTES = [
 ] as const;
 
 const REVIEW_EVIDENCE_NOTE =
-  "reviewEvidence.status: evidence found a review term match; no_relevant_evidence finished without a match; incomplete means the search finished but some review text was not read (unreadable, capped or truncated); unavailable means the review read failed. When read is 0, do not call get_course_reviews for the same instructors—report the uncertainty instead. A missing term is not proof about exams, workload or grading.";
+  "reviewEvidence.status: evidence found a review term match; no_relevant_evidence finished without a match; incomplete means the search finished but some review text was not read (unreadable, capped or truncated); unavailable means the review read failed. When read is 0, do not call get_course_reviews for any candidate in this result—report the missing evidence once instead. reviewCount is 0 means the course has no review text; it is not proof that no reviews or midterms exist. A missing term is not proof about exams, workload or grading.";
 
 type TimetableInfo = {
   status: DiscoverResult["timetable"]["status"];
@@ -838,6 +838,15 @@ export async function runDiscoverCourseCandidates(
           searchedPwcIds,
         );
         candidates[index] = { ...built, reviewEvidence: evidence };
+      }
+      const searched = candidates.slice(0, Math.min(REVIEW_CANDIDATE_LIMIT, candidates.length));
+      const unreadable = searched.some(
+        (candidate) =>
+          (candidate.reviewEvidence?.reviewCount ?? 0) > 0 && candidate.reviewEvidence?.read === 0,
+      );
+      const read = searched.some((candidate) => (candidate.reviewEvidence?.read ?? 0) > 0);
+      if (unreadable && !read) {
+        notApplied.push("reviewTerms: review text was unreadable for the returned candidates");
       }
     } catch (error) {
       if (error instanceof McpToolError) {
