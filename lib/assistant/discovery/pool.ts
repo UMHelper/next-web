@@ -35,6 +35,8 @@ export type DiscoveryPool = {
   truncated: boolean;
   excludedCodesMatched: number;
   offersTruncated: boolean;
+  topicFallback?: boolean;
+  topicTier?: 1 | 2 | 3 | null;
   courses: PoolCourse[];
   instructorRows: PoolInstructorRow[];
   offers: PoolOffer[];

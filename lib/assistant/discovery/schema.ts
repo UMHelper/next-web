@@ -437,6 +437,8 @@ export const discoverResultSchema = z
         sections: z.number(),
         totalMatchingCourses: z.number(),
         truncated: z.boolean(),
+        topicFallback: z.boolean().optional(),
+        topicTier: z.union([z.literal(1), z.literal(2), z.literal(3)]).nullable().optional(),
       })
       .strict(),
     excluded: z

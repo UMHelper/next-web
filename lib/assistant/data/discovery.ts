@@ -1,4 +1,5 @@
 import { topicScore } from "@/lib/assistant/discovery/rank";
+import { buildTopicSearchTerms, filterCoursesByTopicMatch } from "@/lib/assistant/discovery/topic-match";
 import type { DiscoveryScope } from "@/lib/assistant/discovery/schema";
 import type { DiscoveryPool, PoolCourse, PoolInstructorRow, PoolOffer, ReviewTextRow } from "@/lib/assistant/discovery/pool";
 import { McpToolError } from "@/lib/mcp/errors";
@@ -65,11 +66,11 @@ function creditVariants(value: number): string[] {
 
 function buildTopicOr(topics: string[]): string {
   const parts: string[] = [];
-  for (const raw of topics) {
-    const term = sanitizeSearchTerm(raw);
-    if (!term) continue;
+  for (const term of buildTopicSearchTerms(topics)) {
+    const sanitized = sanitizeSearchTerm(term);
+    if (!sanitized) continue;
     for (const field of TOPIC_FIELDS) {
-      parts.push(`${field}.ilike.%${term}%`);
+      parts.push(`${field}.ilike.%${sanitized}%`);
     }
   }
   return parts.join(",");
@@ -226,9 +227,17 @@ async function readCatalog(
   scope: DiscoveryScope,
   signal: AbortSignal,
   client: SupabaseLike,
-): Promise<{ courses: PoolCourse[]; totalMatchingCourses: number; truncated: boolean }> {
+): Promise<{
+  courses: PoolCourse[];
+  totalMatchingCourses: number;
+  truncated: boolean;
+  topicFallback: boolean;
+  topicTier: 1 | 2 | 3 | null;
+}> {
   const includeTopics = Boolean(scope.topics?.length);
   const topics = scope.topics ?? [];
+  let topicFallback = false;
+  let topicTier: 1 | 2 | 3 | null = null;
 
   const first = await readCatalogPage(scope, signal, client, { from: 0, to: MAX_POOL_COURSES - 1 }, includeTopics);
   let totalMatchingCourses = first.totalMatchingCourses;
@@ -248,7 +257,15 @@ async function readCatalog(
       scanned.push(...page.rows);
       totalMatchingCourses = page.totalMatchingCourses;
     }
-    courses = scanned
+    courses = scanned;
+  }
+
+  if (includeTopics && topics.length > 0) {
+    const filtered = filterCoursesByTopicMatch(courses, topics);
+    courses = filtered.courses;
+    topicFallback = filtered.topicFallback;
+    topicTier = filtered.topicTier;
+    courses = courses
       .sort((left, right) => {
         const scoreDelta = topicScore(right, topics) - topicScore(left, topics);
         if (scoreDelta !== 0) return scoreDelta;
@@ -261,6 +278,8 @@ async function readCatalog(
     courses,
     totalMatchingCourses,
     truncated: totalMatchingCourses > courses.length,
+    topicFallback,
+    topicTier,
   };
 }
 
@@ -351,7 +370,11 @@ export async function loadDiscoveryPool(
     excludedCodesMatched = withoutExcludeApplied.filter((course) => excludeSet.has(course.courseCode)).length;
   }
 
-  const { courses, totalMatchingCourses, truncated } = await readCatalog(scope, signal, client);
+  const { courses, totalMatchingCourses, truncated, topicFallback, topicTier } = await readCatalog(
+    scope,
+    signal,
+    client,
+  );
   if (courses.length === 0) {
     return {
       term,
@@ -359,6 +382,8 @@ export async function loadDiscoveryPool(
       truncated: false,
       excludedCodesMatched,
       offersTruncated: false,
+      topicFallback,
+      topicTier,
       courses: [],
       instructorRows: [],
       offers: [],
@@ -376,6 +401,8 @@ export async function loadDiscoveryPool(
     truncated,
     excludedCodesMatched,
     offersTruncated,
+    topicFallback,
+    topicTier,
     courses,
     instructorRows,
     offers: offersBefore,

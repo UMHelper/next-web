@@ -96,7 +96,7 @@ vi.mock("@/lib/assistant/agent", async () => {
             ],
           };
         },
-      } as ReturnType<typeof actual.createAssistantAgent>;
+      } as unknown as ReturnType<typeof actual.createAssistantAgent>;
     },
   };
 });

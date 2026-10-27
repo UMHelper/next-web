@@ -215,7 +215,8 @@ describe("loadDiscoveryPool catalog query", () => {
     await loadDiscoveryPool({ codePrefix: undefined, topics: ["Macao", "a,b(c)"] }, term, signal, client);
 
     const orCall = client.callsFor("course_catalog").find((call) => call.method === "or");
-    expect(orCall?.args[0]).toContain("Macao");
+    expect(orCall?.args[0]).toMatch(/macao/i);
+    expect(orCall?.args[0]).toMatch(/macau/i);
     expect(orCall?.args[0]).toContain("a b c");
     expect(orCall?.args[0]).not.toMatch(/a,b\(c\)/);
     const catalogSelect = client.callsFor("course_catalog").find((call) => call.method === "select");

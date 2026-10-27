@@ -25,6 +25,7 @@ import { absoluteUrl, buildCoursePath, buildReviewPath } from "@/lib/site";
 import { plannerCurrentTerm } from "@/lib/timetable/current-term";
 import type { LocalPlan } from "@/lib/timetable/store";
 import { normalizePlanSection } from "@/lib/timetable/schema";
+import { filterCoursesByTopicMatch, matchTopic } from "@/lib/assistant/discovery/topic-match";
 import { offer, pool, poolCourse, pwcRow } from "@/tests/fixtures/discovery-pool";
 import { plannerState } from "@/tests/helpers/planner-state";
 
@@ -321,19 +322,11 @@ function creditMatches(course: PoolCourse, credits: number): boolean {
   return variants.includes(course.credits ?? "");
 }
 
-function topicMatches(course: FixtureCourse, topics: string[]): boolean {
-  const haystack = [
-    course.course.titleEn,
-    course.course.titleZh,
-    course.description,
-    course.ilo,
-  ]
-    .join(" ")
-    .toLowerCase();
-  return topics.some((topic) => {
-    const term = sanitizeSearchTerm(topic)?.toLowerCase();
-    return term ? haystack.includes(term) : false;
-  });
+function poolCourseWithTopics(entry: FixtureCourse): PoolCourse {
+  return {
+    ...entry.course,
+    topicBody: [entry.description, entry.ilo].filter(Boolean).join(" "),
+  };
 }
 
 function scopeAnchor(scope: DiscoveryScope): boolean {
@@ -351,12 +344,16 @@ function filterCourses(scope: DiscoveryScope): {
   courses: PoolCourse[];
   totalMatchingCourses: number;
   truncated: boolean;
+  topicFallback: boolean;
+  topicTier: 1 | 2 | 3 | null;
 } {
   if (!scopeAnchor(scope)) {
-    return { courses: [], totalMatchingCourses: 0, truncated: false };
+    return { courses: [], totalMatchingCourses: 0, truncated: false, topicFallback: false, topicTier: null };
   }
 
   let filtered = FIXTURE_COURSES.map((entry) => entry.course);
+  let topicFallback = false;
+  let topicTier: 1 | 2 | 3 | null = null;
 
   if (scope.courseType) {
     filtered = filtered.filter((course) => course.courseType === scope.courseType);
@@ -380,11 +377,15 @@ function filterCourses(scope: DiscoveryScope): {
     filtered = filtered.filter((course) => creditMatches(course, scope.credits!));
   }
   if (scope.topics?.length) {
-    const topics = scope.topics;
-    filtered = filtered.filter((code) => {
-      const entry = COURSE_BY_CODE.get(code.courseCode);
-      return entry ? topicMatches(entry, topics) : false;
-    });
+    const enriched = filtered
+      .map((course) => {
+        const entry = COURSE_BY_CODE.get(course.courseCode);
+        return entry ? poolCourseWithTopics(entry) : course;
+      });
+    const topicFiltered = filterCoursesByTopicMatch(enriched, scope.topics);
+    filtered = topicFiltered.courses;
+    topicFallback = topicFiltered.topicFallback;
+    topicTier = topicFiltered.topicTier;
   }
   if (scope.excludeCodes?.length) {
     const excluded = new Set(scope.excludeCodes.map((code) => code.toUpperCase()));
@@ -402,7 +403,7 @@ function filterCourses(scope: DiscoveryScope): {
     return course;
   });
 
-  return { courses, totalMatchingCourses, truncated };
+  return { courses, totalMatchingCourses, truncated, topicFallback, topicTier };
 }
 
 export function filterFixturePool(
@@ -413,7 +414,7 @@ export function filterFixturePool(
   const excludeSet = new Set((scope.excludeCodes ?? []).map((code) => code.toUpperCase()));
   const excludedCodesMatched = withoutExclude.filter((course) => excludeSet.has(course.courseCode)).length;
 
-  const { courses, totalMatchingCourses, truncated } = filterCourses(scope);
+  const { courses, totalMatchingCourses, truncated, topicFallback, topicTier } = filterCourses(scope);
   if (courses.length === 0) {
     return {
       term,
@@ -421,6 +422,8 @@ export function filterFixturePool(
       truncated: false,
       excludedCodesMatched,
       offersTruncated: false,
+      topicFallback,
+      topicTier,
       courses: [],
       instructorRows: [],
       offers: [],
@@ -438,6 +441,8 @@ export function filterFixturePool(
     truncated,
     excludedCodesMatched,
     offersTruncated: false,
+    topicFallback,
+    topicTier,
     courses,
     instructorRows,
     offers,

@@ -177,7 +177,10 @@ export async function runDiscoveryEval({
   const label = env.ASSISTANT_EVAL_LABEL ?? "run";
   const only = env.ASSISTANT_EVAL_CASES?.split(",").map((id) => id.trim());
   const suiteName = env.ASSISTANT_EVAL_SUITE ?? "dev";
-  const caseSetId = resolveDiscoveryCaseSetId(env);
+  const caseSetId = resolveDiscoveryCaseSetId({
+    ASSISTANT_EVAL_CASE_SET: env.ASSISTANT_EVAL_CASE_SET,
+    ASSISTANT_EVAL_SUITE: env.ASSISTANT_EVAL_SUITE,
+  });
 
   getAppConfigMock.mockResolvedValue({ ...DEFAULT_APP_CONFIG });
 

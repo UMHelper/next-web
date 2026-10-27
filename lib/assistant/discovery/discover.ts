@@ -13,6 +13,7 @@ import {
   topicScore,
 } from "@/lib/assistant/discovery/rank";
 import { buildSectionCandidates, type SectionCandidate } from "@/lib/assistant/discovery/sections";
+import { topicMatchLabels, matchTopic } from "@/lib/assistant/discovery/topic-match";
 import {
   discoverCourseCandidatesInputSchema,
   discoverValidationIssues,
@@ -521,6 +522,9 @@ function evaluateSections(input: {
       weights,
     });
     const matched = [...scored.matched];
+    if (topics.length > 0) {
+      matched.push(...topicMatchLabels(matchTopic(course, topics)));
+    }
     collectRequiredMatched(requiredOutcomes, matched);
 
     const row: ScoredSection = {
@@ -751,6 +755,8 @@ export async function runDiscoverCourseCandidates(
       sections: allExaminedSections.length,
       totalMatchingCourses: discoveryPool.totalMatchingCourses,
       truncated: discoveryPool.truncated,
+      ...(discoveryPool.topicFallback !== undefined ? { topicFallback: discoveryPool.topicFallback } : {}),
+      ...(discoveryPool.topicTier !== undefined ? { topicTier: discoveryPool.topicTier } : {}),
     },
     excluded: {
       alreadyInPlan,
@@ -764,7 +770,14 @@ export async function runDiscoverCourseCandidates(
     noListedSections,
     mutualClashes: mutualClashes(candidates),
     ranking: RANKING_NOTE,
-    notes: [...DISCOVERY_NOTES],
+    notes: [
+      ...DISCOVERY_NOTES,
+      ...(discoveryPool.topicFallback
+        ? [
+            "Topic match was broadened to keyword-level hits because fewer than three courses matched the full topic phrases.",
+          ]
+        : []),
+    ],
   };
 
   return shrinkDiscoverResult(discoverResultSchema.parse(result));

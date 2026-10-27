@@ -2,6 +2,7 @@ import type { RuleOutcome } from "@/lib/assistant/discovery/constraints";
 import type { DiscoveryFit, DiscoveryPriority } from "@/lib/assistant/discovery/schema";
 import type { PoolCourse, PoolInstructorRow } from "@/lib/assistant/discovery/pool";
 import type { SectionCandidate } from "@/lib/assistant/discovery/sections";
+import { matchTopic } from "@/lib/assistant/discovery/topic-match";
 import { SMALL_REVIEW_SAMPLE } from "@/lib/assistant/rating-semantics";
 
 const PRIORITY_WEIGHTS = [0.4, 0.25, 0.15, 0.1] as const;
@@ -133,37 +134,8 @@ function collectScheduleOutcomes(preferred: RuleOutcome[], matched: string[], tr
   }
 }
 
-function topicPhraseMatches(haystack: string, needle: string): boolean {
-  const normalized = needle.trim().toLowerCase();
-  if (!normalized) return false;
-  if (normalized.length <= 2) {
-    return new RegExp(`(?:^|[^a-z0-9])${normalized.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:[^a-z0-9]|$)`, "i").test(
-      haystack,
-    );
-  }
-  const tokens = normalized.split(/[^a-z0-9]+/i).filter(Boolean);
-  if (tokens.length > 1) {
-    return tokens.every((token) => topicPhraseMatches(haystack, token));
-  }
-  return new RegExp(`\\b${tokens[0]!.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(haystack);
-}
-
 export function topicScore(course: PoolCourse, topics: string[]): number {
-  if (topics.length === 0) return 0;
-
-  const title = `${course.titleEn} ${course.titleZh} ${course.topicTitle}`.toLowerCase();
-  const body = `${course.topicBody}`.toLowerCase();
-
-  let sum = 0;
-  for (const topic of topics) {
-    if (topicPhraseMatches(title, topic)) {
-      sum += 1;
-    } else if (topicPhraseMatches(body, topic)) {
-      sum += 0.5;
-    }
-  }
-
-  return Math.min(1, sum / topics.length);
+  return matchTopic(course, topics).score;
 }
 
 export function scoreSection(input: {
