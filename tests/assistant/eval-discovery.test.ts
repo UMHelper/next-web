@@ -667,20 +667,62 @@ describe("gradeDiscovery", () => {
     expect(merged.falseFitClaims).toEqual(["GEST1006"]);
   });
 
-  it("does not treat a compacted empty section list as a complete course", () => {
-    for (const compaction of [
-      { truncated: true as const, dropped: ["otherSections"] },
-      { truncated: true as const, dropped: ["notes"] },
-    ]) {
+  it("does not inherit older section fits when a newer listing of the same course is incomplete", () => {
+    const earlier = conflictResult({
+      courseCode: "GEST1006",
+      planComplete: true,
+      sectionListComplete: true,
+      sections: [{ section: "002", fit: "verified_no_clash" }],
+    });
+    const newer = conflictResult({
+      courseCode: "GEST1006",
+      planComplete: true,
+      sectionListComplete: false,
+      sections: [{ section: "001", fit: "verified_no_clash" }],
+    });
+    const graded = gradeDiscovery(
+      trace("GEST1006-002 has no clash with your timetable.", [
+        conflictCall(earlier, "GEST1006"),
+        conflictCall(newer, "GEST1006"),
+      ]),
+      { discovery: "optional" },
+    );
+    expect(graded.falseFitClaims).toEqual(["GEST1006"]);
+    expect(graded.pass).toBe(false);
+  });
+
+  it("does not treat a compacted empty otherSections list as a complete course", () => {
+    const result = discoverCandidates([{ courseCode: "GEST1006", section: "002" }], {
+      planComplete: true,
+      compaction: { truncated: true, dropped: ["otherSections"] },
+    });
+    const course = gradeDiscovery(
+      trace("GEST1006 has no clash with your timetable.", [discoveryCall(result)]),
+      { discovery: "optional" },
+    );
+    expect(course.falseFitClaims).toEqual(["GEST1006"]);
+
+    const section = gradeDiscovery(
+      trace("GEST1006-002 has no clash with your timetable.", [discoveryCall(result)]),
+      { discovery: "optional" },
+    );
+    expect(section.falseFitClaims).toEqual([]);
+    expect(section.pass).toBe(true);
+  });
+
+  it.each([["notes"], ["excerpts"]])(
+    "keeps the primary section gradeable when compaction only drops %s",
+    (dropped) => {
       const result = discoverCandidates([{ courseCode: "GEST1006", section: "002" }], {
         planComplete: true,
-        compaction,
+        compaction: { truncated: true, dropped: [dropped] },
       });
       const course = gradeDiscovery(
         trace("GEST1006 has no clash with your timetable.", [discoveryCall(result)]),
         { discovery: "optional" },
       );
-      expect(course.falseFitClaims).toEqual(["GEST1006"]);
+      expect(course.falseFitClaims).toEqual([]);
+      expect(course.pass).toBe(true);
 
       const section = gradeDiscovery(
         trace("GEST1006-002 has no clash with your timetable.", [discoveryCall(result)]),
@@ -688,8 +730,8 @@ describe("gradeDiscovery", () => {
       );
       expect(section.falseFitClaims).toEqual([]);
       expect(section.pass).toBe(true);
-    }
-  });
+    },
+  );
 
   it("flags codes in a later mutual phrase without flagging an earlier individual fit", () => {
     const result = discoverCandidates(
@@ -707,6 +749,42 @@ describe("gradeDiscovery", () => {
       { discovery: "optional" },
     );
     expect(graded.falseFitClaims).toEqual(["GESB1013", "CISC1001"]);
+  });
+
+  it.each([
+    "GEST1006 and GESB1013 don't fit together.",
+    "GEST1006、GESB1013 不互相兼容。",
+  ])("does not treat a direct negation as a mutual fit claim: %s", (reply) => {
+    const result = discoverCandidates(
+      [
+        { courseCode: "GEST1006", section: "002" },
+        { courseCode: "GESB1013", section: "001" },
+        { courseCode: "CISC1001", section: "001" },
+      ],
+      { planComplete: true, mutualClashes: [] },
+    );
+    const graded = gradeDiscovery(trace(reply, [discoveryCall(result)]), { discovery: "optional" });
+    expect(graded.falseFitClaims).toEqual([]);
+    expect(graded.pass).toBe(true);
+  });
+
+  it("scores a later mutual idiom on its own span when an earlier one is negated", () => {
+    const result = discoverCandidates(
+      [
+        { courseCode: "GEST1006", section: "002" },
+        { courseCode: "GESB1013", section: "001" },
+        { courseCode: "CISC1001", section: "001" },
+        { courseCode: "MATH1001", section: "001" },
+      ],
+      { planComplete: true, mutualClashes: [] },
+    );
+    const graded = gradeDiscovery(
+      trace("GEST1006 and GESB1013 don't fit together, while CISC1001 and MATH1001 fit together.", [
+        discoveryCall(result),
+      ]),
+      { discovery: "optional" },
+    );
+    expect(graded.falseFitClaims).toEqual(["CISC1001", "MATH1001"]);
   });
 
   it("accepts a course-level no-clash claim when every listed section is verified", () => {
@@ -1258,7 +1336,7 @@ describe("discovery case registry", () => {
     const eveningArgs = unsatisfiable?.turns[0]?.expect.args;
     expect(eveningArgs?.({ required: { startAfter: "18:00" } })).toBe(true);
     expect(eveningArgs?.({ scope: { codePrefix: "GEST" }, required: { startAfter: "18:00" } })).toBe(true);
-    expect(eveningArgs?.({ required: { startAfter: "18:00", endBefore: "21:00" } })).toBe(false);
+    expect(eveningArgs?.({ required: { startAfter: "18:00", endBefore: "21:00" } })).toBe(true);
     expect(eveningArgs?.({ required: { startAfter: "18:00", endBefore: "08:00" } })).toBe(false);
     expect(eveningArgs?.({ required: { startAfter: "10:00" } })).toBe(false);
     expect(eveningArgs?.({ required: { endBefore: "08:00" } })).toBe(false);
