@@ -31,16 +31,22 @@ export const SUITES = {
 
 export type DiscoveryEvalMode = "with_discovery" | "baseline";
 
-function discoveryEvalFingerprint(suiteCases: readonly { id: string; turns: unknown[] }[]): string {
+function discoveryEvalFingerprint(
+  suiteCases: readonly { id: string; turns: unknown[] }[],
+  caseSetId: string,
+): string {
   const hash = createHash("sha256");
-  for (const file of [
+  const files = [
     "evals/assistant/discovery-grade.ts",
     "evals/assistant/discovery-fixture.ts",
     "evals/assistant/discovery-cases.ts",
     "evals/assistant/discovery-case-sets.ts",
     "evals/assistant/discovery-holdout-cases.ts",
     "evals/assistant/discovery-eval-lib.ts",
-  ]) {
+  ];
+  // The shadow set is fingerprinted on its own so the release-gate fingerprints stay unchanged.
+  if (caseSetId === "shadow-v1") files.push("evals/assistant/discovery-shadow-cases.ts");
+  for (const file of files) {
     hash.update(readFileSync(path.join(process.cwd(), file)));
   }
   return hash.update(JSON.stringify(suiteCases)).digest("hex").slice(0, 12);
@@ -208,7 +214,7 @@ export async function runDiscoveryEval({
     maxOutputTokens: config.maxOutputTokens,
     maxSteps: ASSISTANT_MAX_STEPS,
     prompt: PROMPT_FINGERPRINT,
-    eval: discoveryEvalFingerprint(cases),
+    eval: discoveryEvalFingerprint(cases, caseSetId),
     noDiscovery,
     mode,
   };

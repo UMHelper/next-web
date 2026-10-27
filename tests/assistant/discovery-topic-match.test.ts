@@ -118,4 +118,10 @@ describe("fixture topic retrieval", () => {
     });
     expect(pool.courses.some((course) => course.courseCode === "GEGA1000")).toBe(true);
   });
+
+  it("treats a credit target as a scope anchor on its own", () => {
+    const pool = filterFixturePool({ credits: 3 });
+    expect(pool.totalMatchingCourses).toBeGreaterThan(0);
+    expect(pool.courses.every((course) => course.credits === "3")).toBe(true);
+  });
 });

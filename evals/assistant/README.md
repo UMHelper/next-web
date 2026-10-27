@@ -163,6 +163,17 @@ ASSISTANT_EVAL=1 ASSISTANT_EVAL_REPEATS=3 ASSISTANT_EVAL_LABEL=b2-baseline \
 
 The 3-repeat command uses the same label, so it keeps writing the incremental artifact. A stalled run still leaves that file. Report it as partial evidence.
 
+### Shadow holdout (secondary evidence)
+
+```bash
+ASSISTANT_EVAL=1 ASSISTANT_EVAL_REPEATS=1 ASSISTANT_EVAL_LABEL=b2-shadow \
+  npm run eval:assistant -- evals/assistant/discovery-shadow.eval.ts
+```
+
+`discovery-shadow.eval.ts` defaults `ASSISTANT_EVAL_SUITE` to `shadow`, which resolves to the frozen `shadow-v1` set in `discovery-shadow-cases.ts`. It covers catalog browsing, personalized year/major recommendations, credit-only requests in English, Simplified Chinese and Traditional Chinese, workload-sensitive review discovery, an under-evidenced no-midterm preference, and multi-section compatibility against a saved plan.
+
+The questions and expected discovery semantics are frozen by `FROZEN_SHADOW_V1` in `tests/assistant/eval-discovery.test.ts`; change them only by starting a new shadow version. This run does not enforce thresholds and never replaces the dev/holdout release gate. Its `settings.eval` includes `discovery-shadow-cases.ts` and is separate from the release-gate fingerprints. Results: `.eval-results/assistant/discovery-<label>.json`.
+
 ## Arm comparison
 
 ```bash

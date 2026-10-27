@@ -1,5 +1,6 @@
 import { DISCOVERY_CASES_V1, DISCOVERY_CASES_V2 } from "./discovery-cases";
 import { DISCOVERY_HOLDOUT_CASES_V1 } from "./discovery-holdout-cases";
+import { SHADOW_CASES_V1 } from "./discovery-shadow-cases";
 
 export const CASE_SET_VERSION = "b2-v2";
 
@@ -7,6 +8,7 @@ export const DISCOVERY_CASE_SETS = {
   "dev-v1": DISCOVERY_CASES_V1,
   "dev-v2": DISCOVERY_CASES_V2,
   "holdout-v1": DISCOVERY_HOLDOUT_CASES_V1,
+  "shadow-v1": SHADOW_CASES_V1,
 } as const;
 
 export function resolveDiscoveryCaseSetId(env: {
@@ -17,6 +19,7 @@ export function resolveDiscoveryCaseSetId(env: {
   const suite = env.ASSISTANT_EVAL_SUITE;
   if (suite === undefined || suite === "dev") return "dev-v2";
   if (suite === "holdout") return "holdout-v1";
+  if (suite === "shadow") return "shadow-v1";
   throw new Error(`unknown ASSISTANT_EVAL_SUITE "${suite}"`);
 }
 

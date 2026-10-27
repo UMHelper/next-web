@@ -336,7 +336,8 @@ function scopeAnchor(scope: DiscoveryScope): boolean {
       scope.faculty ||
       scope.department ||
       scope.topics?.length ||
-      scope.maxSuggestedYear !== undefined,
+      scope.maxSuggestedYear !== undefined ||
+      scope.credits !== undefined,
   );
 }
 

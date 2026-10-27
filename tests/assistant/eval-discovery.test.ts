@@ -29,6 +29,7 @@ import {
   DISCOVERY_HOLDOUT_CASES,
   DISCOVERY_HOLDOUT_CASES_V1,
 } from "@/evals/assistant/discovery-holdout-cases";
+import { FROZEN_SHADOW_V1, SHADOW_CASES_V1 } from "@/evals/assistant/discovery-shadow-cases";
 import * as discoveryEvalLib from "@/evals/assistant/discovery-eval-lib";
 import type { ToolCallRecord, TurnTrace } from "@/evals/assistant/grade";
 import * as harness from "@/evals/assistant/harness";
@@ -1407,11 +1408,12 @@ describe("discovery case registry", () => {
     expect(DISCOVERY_CASES).toBe(DISCOVERY_CASES_V2);
     expect(DISCOVERY_CASES_V2).not.toBe(DISCOVERY_CASES_V1);
 
-    expect(Object.keys(DISCOVERY_CASE_SETS)).toEqual(["dev-v1", "dev-v2", "holdout-v1"]);
+    expect(Object.keys(DISCOVERY_CASE_SETS)).toEqual(["dev-v1", "dev-v2", "holdout-v1", "shadow-v1"]);
     expect(CASE_SET_VERSION).toBe("b2-v2");
     expect(DISCOVERY_CASE_SETS["dev-v1"]).toBe(DISCOVERY_CASES_V1);
     expect(DISCOVERY_CASE_SETS["dev-v2"]).toBe(DISCOVERY_CASES_V2);
     expect(DISCOVERY_CASE_SETS["holdout-v1"]).toBe(DISCOVERY_HOLDOUT_CASES_V1);
+    expect(DISCOVERY_CASE_SETS["shadow-v1"]).toBe(SHADOW_CASES_V1);
     expect(DISCOVERY_HOLDOUT_CASES_V1).toBe(DISCOVERY_HOLDOUT_CASES);
     expect(
       DISCOVERY_HOLDOUT_CASES_V1.map((evalCase) => ({
@@ -1419,6 +1421,15 @@ describe("discovery case registry", () => {
         messages: evalCase.turns.map((turn) => turn.message),
       })),
     ).toEqual(FROZEN_HOLDOUT_V1);
+    expect(
+      SHADOW_CASES_V1.map((evalCase) => ({
+        id: evalCase.id,
+        turns: evalCase.turns.map((turn) => ({
+          message: turn.message,
+          discovery: turn.expect.discovery,
+        })),
+      })),
+    ).toEqual(FROZEN_SHADOW_V1);
 
     const unchangedIds = [
       "easy_gest",
@@ -1703,6 +1714,7 @@ describe("discoveryEvalStamp", () => {
       "dev-v1",
     );
     expect(resolveDiscoveryCaseSetId({ ASSISTANT_EVAL_SUITE: "holdout" })).toBe("holdout-v1");
+    expect(resolveDiscoveryCaseSetId({ ASSISTANT_EVAL_SUITE: "shadow" })).toBe("shadow-v1");
     expect(resolveDiscoveryCaseSetId({ ASSISTANT_EVAL_SUITE: "dev" })).toBe("dev-v2");
     expect(resolveDiscoveryCaseSetId({})).toBe("dev-v2");
     expect(() => resolveDiscoveryCaseSetId({ ASSISTANT_EVAL_SUITE: "nope" })).toThrow(
