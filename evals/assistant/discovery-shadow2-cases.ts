@@ -172,9 +172,78 @@ export const SHADOW_CASES_V2: DiscoveryEvalCase[] = [
 
 type FrozenShadowTurn = { message: string; discovery: "required" | "optional" | "forbidden" };
 
-export const FROZEN_SHADOW_V2: Array<{ id: string; turns: FrozenShadowTurn[] }> = SHADOW_CASES_V2.map(
-  (evalCase) => ({
-    id: evalCase.id,
-    turns: evalCase.turns.map((turn) => ({ message: turn.message, discovery: turn.expect.discovery })),
-  }),
-);
+export const FROZEN_SHADOW_V2: Array<{ id: string; turns: FrozenShadowTurn[] }> = [
+  {
+    id: "shadow2-first_year_ge_listing",
+    turns: [
+      {
+        message: "Which first-year general education courses are listed for this term?",
+        discovery: "optional",
+      },
+    ],
+  },
+  {
+    id: "shadow2-cis_intro_advice",
+    turns: [
+      {
+        message: "I'm new to the CIS major—what intro computing courses make sense for my first year?",
+        discovery: "required",
+      },
+    ],
+  },
+  {
+    id: "shadow2-credit_short_en",
+    turns: [
+      {
+        message: "I'm three credits short of my target; which 3-credit courses do you suggest?",
+        discovery: "required",
+      },
+    ],
+  },
+  {
+    id: "shadow2-credit_short_zh_hans",
+    turns: [
+      {
+        message: "我还差三个学分，能推荐几门三学分的课吗？",
+        discovery: "required",
+      },
+    ],
+  },
+  {
+    id: "shadow2-credit_short_zh_hant",
+    turns: [
+      {
+        message: "我仲差三個學分，推介幾科三學分嘅課程俾我。",
+        discovery: "required",
+      },
+    ],
+  },
+  {
+    id: "shadow2-factual_course",
+    turns: [
+      {
+        message: "Which faculty teaches CISC1001, and how many credits is it?",
+        discovery: "forbidden",
+      },
+    ],
+  },
+  {
+    id: "shadow2-combined_sections",
+    turns: [
+      {
+        message:
+          "If I add both GEST1006 section 002 and GEST1005 section 001, would they clash with each other or with my saved plan?",
+        discovery: "forbidden",
+      },
+    ],
+  },
+  {
+    id: "shadow2-workload_reviews",
+    turns: [
+      {
+        message: "Which GEST course has the lightest workload according to reviews?",
+        discovery: "required",
+      },
+    ],
+  },
+];
