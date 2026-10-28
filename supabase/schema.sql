@@ -2279,3 +2279,80 @@ revoke all on public.assistant_testers from public, anon, authenticated;
 grant select, insert, delete on public.assistant_testers to service_role;
 
 notify pgrst, 'reload schema';
+
+-- Assistant admin ops (migration: 20261028_assistant_admin_ops.sql)
+--
+
+alter table public.app_config
+  add column if not exists ai_quota_per_hour integer
+    check (ai_quota_per_hour is null or ai_quota_per_hour between 1 and 500),
+  add column if not exists ai_quota_per_day integer
+    check (ai_quota_per_day is null or ai_quota_per_day between 1 and 2000),
+  add column if not exists ai_max_turns integer
+    check (ai_max_turns is null or ai_max_turns between 1 and 100),
+  add column if not exists ai_history_turns integer
+    check (ai_history_turns is null or ai_history_turns between 0 and 20),
+  add column if not exists ai_max_steps integer
+    check (ai_max_steps is null or ai_max_steps between 1 and 12),
+  add column if not exists ai_max_output_tokens integer
+    check (ai_max_output_tokens is null or ai_max_output_tokens between 128 and 4096),
+  add column if not exists ai_timeout_ms integer
+    check (ai_timeout_ms is null or ai_timeout_ms between 5000 and 60000);
+
+create table if not exists public.assistant_turn_charges (
+  user_hash text not null,
+  turn_key text not null,
+  charged_at timestamptz not null default now(),
+  continuations integer not null default 0,
+  primary key (user_hash, turn_key)
+);
+
+create index if not exists assistant_turn_charges_charged_at_idx
+  on public.assistant_turn_charges (charged_at);
+
+create table if not exists public.assistant_usage_events (
+  id bigint generated always as identity primary key,
+  run_key text not null unique,
+  user_hash text,
+  thread_hash text,
+  turn_key text,
+  occurred_at timestamptz not null default now(),
+  outcome text not null
+    check (outcome in (
+      'accepted',
+      'completed',
+      'provider_error',
+      'client_aborted',
+      'execution_limit',
+      'denied_quota',
+      'rejected'
+    )),
+  is_continuation boolean not null default false,
+  charged boolean not null default false,
+  duration_ms integer,
+  steps integer,
+  tool_calls integer,
+  input_tokens bigint,
+  cached_input_tokens bigint,
+  output_tokens bigint,
+  reasoning_tokens bigint,
+  error_class text
+);
+
+create index if not exists assistant_usage_events_occurred_at_idx
+  on public.assistant_usage_events (occurred_at);
+
+alter table public.assistant_turn_charges enable row level security;
+alter table public.assistant_usage_events enable row level security;
+
+revoke all on public.assistant_turn_charges from public, anon, authenticated;
+revoke all on public.assistant_usage_events from public, anon, authenticated;
+
+grant select, insert, update, delete on public.assistant_turn_charges to service_role;
+grant select, insert, update on public.assistant_usage_events to service_role;
+grant delete on public.assistant_usage_events to service_role;
+
+-- Functions: claim_assistant_turn, assistant_usage_daily, prune_assistant_telemetry
+-- are defined in supabase/migrations/20261028_assistant_admin_ops.sql.
+
+notify pgrst, 'reload schema';
