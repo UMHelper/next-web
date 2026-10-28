@@ -3,48 +3,23 @@ import "server-only";
 import { unstable_cache } from "next/cache";
 
 import { readAssistantConfig, type AssistantConfig } from "@/lib/assistant/config";
+import {
+  ASSISTANT_LIMIT_BOUNDS,
+  ASSISTANT_LIMIT_FIELDS,
+  type AssistantLimitBounds,
+  type AssistantLimitOverrides,
+} from "@/lib/assistant/limits";
 import { CACHE_TAGS } from "@/lib/cache-tags";
 import { isReadonlyPreview } from "@/lib/supabase/readonly-guard";
 import supabaseAdmin from "@/lib/supabase/admin";
 
-export type AssistantLimitKey =
-  | "ratePerHour"
-  | "ratePerDay"
-  | "maxTurns"
-  | "historyTurns"
-  | "maxSteps"
-  | "maxOutputTokens"
-  | "timeoutMs";
-
-type AssistantLimitBounds = { min: number; max: number };
-
-export const ASSISTANT_LIMIT_BOUNDS: Record<AssistantLimitKey, AssistantLimitBounds> = {
-  ratePerHour: { min: 1, max: 500 },
-  ratePerDay: { min: 1, max: 2_000 },
-  maxTurns: { min: 1, max: 100 },
-  historyTurns: { min: 0, max: 20 },
-  maxSteps: { min: 1, max: 12 },
-  maxOutputTokens: { min: 128, max: 4_096 },
-  timeoutMs: { min: 5_000, max: 60_000 },
-};
-
-export type AssistantLimitField = {
-  column: `ai_${string}`;
-  key: AssistantLimitKey;
-  env: string;
-};
-
-export const ASSISTANT_LIMIT_FIELDS: readonly AssistantLimitField[] = [
-  { column: "ai_quota_per_hour", key: "ratePerHour", env: "AGENT_RATE_LIMIT_PER_HOUR" },
-  { column: "ai_quota_per_day", key: "ratePerDay", env: "AGENT_RATE_LIMIT_PER_DAY" },
-  { column: "ai_max_turns", key: "maxTurns", env: "AGENT_MAX_TURNS_PER_CONVERSATION" },
-  { column: "ai_history_turns", key: "historyTurns", env: "AGENT_HISTORY_TURNS" },
-  { column: "ai_max_steps", key: "maxSteps", env: "AGENT_MAX_STEPS" },
-  { column: "ai_max_output_tokens", key: "maxOutputTokens", env: "AI_MAX_OUTPUT_TOKENS" },
-  { column: "ai_timeout_ms", key: "timeoutMs", env: "AI_TIMEOUT_MS" },
-];
-
-export type AssistantLimitOverrides = Partial<Record<AssistantLimitKey, number | null>>;
+export {
+  ASSISTANT_LIMIT_BOUNDS,
+  ASSISTANT_LIMIT_FIELDS,
+  type AssistantLimitField,
+  type AssistantLimitKey,
+  type AssistantLimitOverrides,
+} from "@/lib/assistant/limits";
 
 const SELECT_COLUMNS = ASSISTANT_LIMIT_FIELDS.map((field) => field.column).join(", ");
 

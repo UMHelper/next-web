@@ -157,4 +157,54 @@ describe("/api/admin/app-config", () => {
     expect(response.status).toBe(400);
     expect(update).not.toHaveBeenCalled();
   });
+
+  it("rejects assistant limit changes from a non-platform admin", async () => {
+    requireAdmin.mockResolvedValue({ ok: true, session: { userId: "user_admin", isPlatformAdmin: false } });
+    const request = new Request("http://localhost/api/admin/app-config", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ai_quota_per_hour: 60 }),
+    });
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(403);
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it("updates assistant limits and audits the previous values", async () => {
+    maybeSingle.mockResolvedValue({
+      data: { ...row, ai_quota_per_hour: 30, ai_max_steps: 6 },
+      error: null,
+    });
+    const request = new Request("http://localhost/api/admin/app-config", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ai_quota_per_hour: 60, ai_history_turns: null }),
+    });
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(200);
+    expect(update.mock.calls[0][0]).toMatchObject({ ai_quota_per_hour: 60, ai_history_turns: null });
+    expect(writeAuditLog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        before: expect.objectContaining({ ai_quota_per_hour: 30, ai_history_turns: null }),
+        after: expect.objectContaining({ ai_quota_per_hour: 60, ai_history_turns: null }),
+      }),
+    );
+  });
+
+  it("rejects assistant limits outside the allowed range", async () => {
+    const request = new Request("http://localhost/api/admin/app-config", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ai_max_steps: 13 }),
+    });
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(400);
+    expect(update).not.toHaveBeenCalled();
+  });
 });

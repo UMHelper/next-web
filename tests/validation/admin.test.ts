@@ -1,12 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
   adminGrantSchema,
+  appConfigUpdateSchema,
   commentUpdateSchema,
   courseUpdateSchema,
   profWithCourseUpdateSchema,
   reportUpdateSchema,
   syncUmSchema,
 } from "@/lib/validation/admin";
+import { ASSISTANT_LIMIT_BOUNDS } from "@/lib/assistant/limits";
 
 describe("admin validation schemas", () => {
   it("validates admin grant ids", () => {
@@ -43,5 +45,34 @@ describe("admin validation schemas", () => {
     expect(syncUmSchema.safeParse({ mode: "code" }).success).toBe(false);
     expect(syncUmSchema.safeParse({ mode: "code", code: "ACCT1000" }).success).toBe(true);
     expect(syncUmSchema.safeParse({ mode: "missing", limit: 51 }).success).toBe(false);
+  });
+
+  const limitColumns = [
+    ["ai_quota_per_hour", "ratePerHour"],
+    ["ai_quota_per_day", "ratePerDay"],
+    ["ai_max_turns", "maxTurns"],
+    ["ai_history_turns", "historyTurns"],
+    ["ai_max_steps", "maxSteps"],
+    ["ai_max_output_tokens", "maxOutputTokens"],
+    ["ai_timeout_ms", "timeoutMs"],
+  ] as const;
+
+  it.each(limitColumns)("bounds %s and accepts null", (column, key) => {
+    const { min, max } = ASSISTANT_LIMIT_BOUNDS[key];
+    expect(appConfigUpdateSchema.safeParse({ [column]: min }).success).toBe(true);
+    expect(appConfigUpdateSchema.safeParse({ [column]: max }).success).toBe(true);
+    expect(appConfigUpdateSchema.safeParse({ [column]: null }).success).toBe(true);
+    expect(appConfigUpdateSchema.safeParse({ [column]: min - 1 }).success).toBe(false);
+    expect(appConfigUpdateSchema.safeParse({ [column]: max + 1 }).success).toBe(false);
+    expect(appConfigUpdateSchema.safeParse({ [column]: 1.5 }).success).toBe(false);
+  });
+
+  it("rejects a zero quota but accepts zero history turns", () => {
+    expect(appConfigUpdateSchema.safeParse({ ai_quota_per_hour: 0 }).success).toBe(false);
+    expect(appConfigUpdateSchema.safeParse({ ai_history_turns: 0 }).success).toBe(true);
+  });
+
+  it("rejects an empty app config patch", () => {
+    expect(appConfigUpdateSchema.safeParse({}).success).toBe(false);
   });
 });
