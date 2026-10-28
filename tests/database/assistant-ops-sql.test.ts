@@ -51,4 +51,18 @@ describe("assistant admin ops migration", () => {
     expect(snapshot).toContain("assistant_turn_charges");
     expect(snapshot).toContain("assistant_usage_events");
   });
+
+  it("keeps the bootstrap snapshot runnable without replaying migrations", () => {
+    expect(snapshot).toContain("create table if not exists public.request_rate_limits");
+    expect(snapshot).toContain("create or replace function public.consume_rate_limit(");
+    expect(snapshot).toContain("create or replace function public.claim_assistant_turn(");
+    expect(snapshot).toContain("create or replace function public.assistant_usage_daily(");
+    expect(snapshot).toContain("create or replace function public.prune_assistant_telemetry(");
+    expect(snapshot).not.toContain("are defined in supabase/migrations");
+  });
+
+  it("stays compatible with the pinned Postgres 15 local stack", () => {
+    expect(snapshot).not.toContain("transaction_timeout");
+    expect(snapshot).toContain("create schema if not exists public;");
+  });
 });
