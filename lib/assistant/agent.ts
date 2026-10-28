@@ -7,6 +7,7 @@ import {
   type CourseReferentSlot,
 } from "./course-referent";
 import { withStepMetrics } from "./metrics";
+import type { RunTelemetry } from "./telemetry";
 import { createAssistantModel, thinkingProviderOptions } from "./model";
 import { ASSISTANT_PROMPT } from "./prompt";
 import { replyLanguageContext, replyScriptContext } from "./reply-script";
@@ -29,12 +30,16 @@ import { createAssistantTools } from "./tools";
 
 export const ASSISTANT_MAX_STEPS = 8;
 
-export function createAssistantAgent(config: AssistantConfig, signal?: AbortSignal) {
+export function createAssistantAgent(
+  config: AssistantConfig,
+  signal?: AbortSignal,
+  telemetry?: RunTelemetry,
+) {
   const slot: CourseReferentSlot = { current: { kind: "none" }, clarified: false };
   const timetable: TimetableSlot = { current: { status: "unavailable" } };
   const presentation: PresentationSlot = { current: createPresentationLedger() };
   const agent = new BuiltInAgent({
-    model: withStepMetrics(createAssistantModel(config, signal)),
+    model: withStepMetrics(createAssistantModel(config, signal), telemetry),
     prompt: ASSISTANT_PROMPT,
     tools: createAssistantTools(slot, timetable, presentation),
     maxSteps: config.maxSteps,
