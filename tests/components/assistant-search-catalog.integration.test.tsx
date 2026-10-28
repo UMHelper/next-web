@@ -5,7 +5,7 @@ import { MockLanguageModelV3, simulateReadableStream } from "ai/test";
 import { Request as NativeRequest } from "undici";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { AgentRateLimitOutcome } from "@/lib/assistant/rate-limit";
+import type { AgentTurnClaim } from "@/lib/assistant/rate-limit";
 import { absoluteUrl, buildCoursePath, buildProfessorPath } from "@/lib/site";
 
 /**
@@ -28,7 +28,11 @@ const h = vi.hoisted(() => ({
   brain: (() => ({ text: "ok" })) as (call: never) => unknown,
   runs: [] as unknown[],
   rateLimitCalls: 0,
-  rateLimit: { allowed: true } as AgentRateLimitOutcome,
+  rateLimit: {
+    allowed: true,
+    charged: true,
+    identity: { userHash: "user_hash", threadHash: "thread_hash", turnKey: "turn_key", isContinuation: false },
+  } as AgentTurnClaim,
   access: true,
   plan: undefined as unknown,
 }));
@@ -117,10 +121,19 @@ vi.mock("next/navigation", async () => {
 vi.mock("@clerk/nextjs/server", () => ({ auth: async () => ({ userId: "user_1" }) }));
 vi.mock("@/lib/assistant/access", () => ({ canUseAssistant: async () => h.access }));
 vi.mock("@/lib/assistant/rate-limit", () => ({
-  consumeAgentRateLimits: async () => {
+  claimAgentTurn: async () => {
     h.rateLimitCalls++;
     return h.rateLimit;
   },
+}));
+vi.mock("@/lib/assistant/settings", async () => {
+  const { readAssistantConfig } = await import("@/lib/assistant/config");
+  return { resolveAssistantConfig: async () => readAssistantConfig() };
+});
+vi.mock("@/lib/assistant/telemetry-store", () => ({
+  finalizeRunUsage: async () => {},
+  recordRejectedRun: async () => {},
+  maybePruneAssistantTelemetry: async () => {},
 }));
 vi.mock("@/lib/assistant/tools", async (importOriginal) => {
   const { runReadOnlyTool } = await importOriginal<typeof import("@/lib/assistant/tools")>();
@@ -327,7 +340,11 @@ beforeEach(() => {
   vi.stubGlobal("fetch", routeFetch);
   h.runs = [];
   h.rateLimitCalls = 0;
-  h.rateLimit = { allowed: true };
+  h.rateLimit = {
+    allowed: true,
+    charged: true,
+    identity: { userHash: "user_hash", threadHash: "thread_hash", turnKey: "turn_key", isContinuation: false },
+  };
   h.access = true;
   h.plan = undefined;
   h.brain = catalogBrain as never;

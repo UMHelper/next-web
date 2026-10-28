@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { ASSISTANT_ACCESS_MODES } from "@/lib/assistant/access-mode";
+import { ASSISTANT_LIMIT_BOUNDS, ASSISTANT_LIMIT_FIELDS } from "@/lib/assistant/limits";
 
 const clerkUserIdPattern = /^user_[A-Za-z0-9_-]+$/;
 const emailAddressPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -88,6 +89,16 @@ export const syncUmSchema = z
     }
   });
 
+const nullableLimit = (min: number, max: number) =>
+  z.union([z.null(), z.coerce.number().int().min(min).max(max)]).optional();
+
+const assistantLimitShape = Object.fromEntries(
+  ASSISTANT_LIMIT_FIELDS.map((field) => {
+    const bounds = ASSISTANT_LIMIT_BOUNDS[field.key];
+    return [field.column, nullableLimit(bounds.min, bounds.max)];
+  }),
+);
+
 export const appConfigUpdateSchema = z
   .object({
     current_year: z.coerce.number().int().min(2000).max(2100).optional(),
@@ -99,6 +110,7 @@ export const appConfigUpdateSchema = z
       .nullable()
       .optional(),
     ai_assistant_access: z.enum(ASSISTANT_ACCESS_MODES).optional(),
+    ...assistantLimitShape,
   })
   .refine((value) => Object.keys(value).length > 0, { message: "no fields to update" });
 
