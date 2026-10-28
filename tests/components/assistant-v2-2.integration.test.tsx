@@ -285,6 +285,7 @@ vi.mock("@/lib/assistant/settings", async () => {
 vi.mock("@/lib/assistant/telemetry-store", () => ({
   finalizeRunUsage: async () => {},
   recordRejectedRun: async () => {},
+  maybePruneAssistantTelemetry: async () => {},
 }));
 vi.mock("@/lib/assistant/tools", async (importOriginal) => {
   const { runReadOnlyTool } = await importOriginal<typeof import("@/lib/assistant/tools")>();

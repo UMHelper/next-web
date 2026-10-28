@@ -9,6 +9,32 @@ import type { TurnIdentity } from "@/lib/assistant/turn-key";
 import { isReadonlyPreview } from "@/lib/supabase/readonly-guard";
 import supabaseAdmin from "@/lib/supabase/admin";
 
+export const PRUNE_INTERVAL_MS = 6 * 60 * 60 * 1000;
+
+let lastPruneAt: number | null = null;
+
+/**
+ * Opportunistic retention: no scheduler exists, so an isolate prunes its
+ * service-role tables at most once every six hours after a finalized run.
+ */
+export async function maybePruneAssistantTelemetry(now: number = Date.now()): Promise<void> {
+  if (isReadonlyPreview()) return;
+  if (lastPruneAt !== null && now - lastPruneAt < PRUNE_INTERVAL_MS) return;
+  lastPruneAt = now;
+
+  try {
+    const { error } = await supabaseAdmin.rpc("prune_assistant_telemetry");
+    if (error) {
+      console.warn("[assistant-telemetry] prune failed:", error.message);
+    }
+  } catch (error) {
+    console.warn(
+      "[assistant-telemetry] prune threw:",
+      error instanceof Error ? error.message : "unknown",
+    );
+  }
+}
+
 /** Best-effort persistence. A usage write never blocks or fails a response. */
 export async function finalizeRunUsage(
   telemetry: RunTelemetry,

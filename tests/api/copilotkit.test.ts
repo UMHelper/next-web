@@ -41,6 +41,7 @@ vi.mock("@/lib/assistant/run-context", () => ({
 vi.mock("@/lib/assistant/telemetry-store", () => ({
   finalizeRunUsage: mocks.finalizeRunUsage,
   recordRejectedRun: mocks.recordRejectedRun,
+  maybePruneAssistantTelemetry: async () => {},
 }));
 
 import { readAssistantConfig, type AssistantConfig } from "@/lib/assistant/config";

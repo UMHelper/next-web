@@ -58,7 +58,7 @@ export default function AssistantUsageClient({ initial }: { initial: AssistantUs
       </div>
 
       {summary.error === "usage_unavailable" ? (
-        <p role="status" className="mt-3 rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-xs">
+        <p role="status" className="mt-3 rounded-md border border-destructive/40 bg-destructive/10 p-2 text-xs">
           Usage is temporarily unavailable. Quota enforcement is unaffected.
         </p>
       ) : null}

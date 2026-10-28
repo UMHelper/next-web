@@ -88,6 +88,7 @@ vi.mock("@/lib/assistant/settings", async () => {
 vi.mock("@/lib/assistant/telemetry-store", () => ({
   finalizeRunUsage: async () => {},
   recordRejectedRun: async () => {},
+  maybePruneAssistantTelemetry: async () => {},
 }));
 vi.mock("@/lib/assistant/navigation", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/assistant/navigation")>()),
@@ -497,7 +498,10 @@ describe("assistant runtime integration (scripted model)", () => {
     };
     const rejected = await ask("hello");
     expect(rejected[0].modelCalls).toHaveLength(0);
-    expect(await screen.findByRole("alert")).toHaveProperty("textContent", "Too many requests. Please try again later.");
+    expect(await screen.findByRole("alert")).toHaveProperty(
+      "textContent",
+      "You've used your AI allowance for now. Please try again later.",
+    );
 
     h.rateLimit = {
     allowed: true,

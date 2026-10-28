@@ -30,7 +30,7 @@ import {
   recordStreamError,
   type RunTelemetry,
 } from "@/lib/assistant/telemetry";
-import { finalizeRunUsage, recordRejectedRun } from "@/lib/assistant/telemetry-store";
+import { finalizeRunUsage, maybePruneAssistantTelemetry, recordRejectedRun } from "@/lib/assistant/telemetry-store";
 import { deriveTurnIdentity } from "@/lib/assistant/turn-key";
 
 export const dynamic = "force-dynamic";
@@ -119,6 +119,7 @@ function withUsageFinalization(response: Response, telemetry: RunTelemetry): Res
     finished = true;
     releaseRunContext(telemetry.runKey);
     await finalizeRunUsage(telemetry);
+    void maybePruneAssistantTelemetry();
   };
 
   if (!response.body) {
@@ -255,6 +256,7 @@ async function handleRun(request: Request, userId: string, config: AssistantConf
     recordStreamError(telemetry, error);
     releaseRunContext(runKey);
     await finalizeRunUsage(telemetry);
+    void maybePruneAssistantTelemetry();
     throw error;
   }
 
