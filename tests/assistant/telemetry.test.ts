@@ -4,8 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const { update, eq, insert } = vi.hoisted(() => ({
   update: vi.fn(),
-  eq: vi.fn(async () => ({ error: null })),
-  insert: vi.fn(async () => ({ error: null })),
+  eq: vi.fn(async (_value?: unknown) => ({ error: null })),
+  insert: vi.fn(async (_payload?: unknown) => ({ error: null })),
 }));
 
 vi.mock("server-only", () => ({}));
@@ -223,7 +223,7 @@ describe("run telemetry", () => {
   it("persists a rejection without identifiers or prompt text", async () => {
     await recordRejectedRun({ runKey: "run-2", identity: identity() });
 
-    const [payload] = insert.mock.calls[0] as [Array<Record<string, unknown>>];
+    const payload = insert.mock.calls[0]?.[0] as Array<Record<string, unknown>>;
     expect(payload[0]).toMatchObject({ run_key: "run-2", outcome: "rejected", charged: false });
     const serialized = JSON.stringify(payload);
     expect(serialized).not.toContain("user_1");

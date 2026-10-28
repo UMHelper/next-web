@@ -4,7 +4,7 @@ import { MockLanguageModelV3, simulateReadableStream } from "ai/test";
 import { Request as NativeRequest } from "undici";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { AgentRateLimitOutcome } from "@/lib/assistant/rate-limit";
+import type { AgentTurnClaim } from "@/lib/assistant/rate-limit";
 import type { RunMessage } from "@/lib/assistant/conversation";
 import { DEFAULT_HISTORY_TURNS, prepareRunMessages } from "@/lib/assistant/run-messages";
 
@@ -32,7 +32,11 @@ const h = vi.hoisted(() => ({
   runs: [] as unknown[],
   serverToolCodes: [] as string[],
   rateLimitCalls: 0,
-  rateLimit: { allowed: true } as AgentRateLimitOutcome,
+  rateLimit: {
+    allowed: true,
+    charged: true,
+    identity: { userHash: "user_hash", threadHash: "thread_hash", turnKey: "turn_key", isContinuation: false },
+  } as AgentTurnClaim,
   access: true,
   plan: undefined as unknown,
   core: undefined as unknown,
@@ -71,10 +75,19 @@ vi.mock("next/navigation", async () => {
 vi.mock("@clerk/nextjs/server", () => ({ auth: async () => ({ userId: "user_1" }) }));
 vi.mock("@/lib/assistant/access", () => ({ canUseAssistant: async () => h.access }));
 vi.mock("@/lib/assistant/rate-limit", () => ({
-  consumeAgentRateLimits: async () => {
+  claimAgentTurn: async () => {
     h.rateLimitCalls++;
     return h.rateLimit;
   },
+}));
+vi.mock("server-only", () => ({}));
+vi.mock("@/lib/assistant/settings", async () => {
+  const { readAssistantConfig } = await import("@/lib/assistant/config");
+  return { resolveAssistantConfig: async () => readAssistantConfig() };
+});
+vi.mock("@/lib/assistant/telemetry-store", () => ({
+  finalizeRunUsage: async () => {},
+  recordRejectedRun: async () => {},
 }));
 vi.mock("@/lib/assistant/navigation", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/assistant/navigation")>()),
@@ -299,7 +312,11 @@ beforeEach(() => {
   h.runs = [];
   h.serverToolCodes = [];
   h.rateLimitCalls = 0;
-  h.rateLimit = { allowed: true };
+  h.rateLimit = {
+    allowed: true,
+    charged: true,
+    identity: { userHash: "user_hash", threadHash: "thread_hash", turnKey: "turn_key", isContinuation: false },
+  };
   h.access = true;
   h.plan = undefined;
   h.core = undefined;
@@ -472,12 +489,21 @@ describe("assistant runtime integration (scripted model)", () => {
     h.brain = (() => ({ text: "fine" })) as never;
     await mountAssistant("/");
 
-    h.rateLimit = { allowed: false, window: "hour", retryAfter: 60 };
+    h.rateLimit = {
+      allowed: false,
+      window: "hour",
+      retryAfter: 60,
+      identity: { userHash: "user_hash", threadHash: "thread_hash", turnKey: "turn_key", isContinuation: false },
+    };
     const rejected = await ask("hello");
     expect(rejected[0].modelCalls).toHaveLength(0);
     expect(await screen.findByRole("alert")).toHaveProperty("textContent", "Too many requests. Please try again later.");
 
-    h.rateLimit = { allowed: true };
+    h.rateLimit = {
+    allowed: true,
+    charged: true,
+    identity: { userHash: "user_hash", threadHash: "thread_hash", turnKey: "turn_key", isContinuation: false },
+  };
     const retried = await ask("hello again");
     expect(retried[0].modelCalls).toHaveLength(1);
     const messages = core().getAgent("default")!.messages;
