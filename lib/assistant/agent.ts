@@ -37,7 +37,7 @@ export function createAssistantAgent(config: AssistantConfig, signal?: AbortSign
     model: withStepMetrics(createAssistantModel(config, signal)),
     prompt: ASSISTANT_PROMPT,
     tools: createAssistantTools(slot, timetable, presentation),
-    maxSteps: ASSISTANT_MAX_STEPS,
+    maxSteps: config.maxSteps,
     maxOutputTokens: config.maxOutputTokens,
     providerOptions: thinkingProviderOptions(config.thinking),
     overridableProperties: [],

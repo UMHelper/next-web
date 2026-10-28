@@ -15,6 +15,7 @@ describe("readAssistantConfig", () => {
       ratePerDay: 80,
       maxTurns: 30,
       historyTurns: 8,
+      maxSteps: 8,
     });
   });
 
@@ -30,6 +31,7 @@ describe("readAssistantConfig", () => {
       AGENT_RATE_LIMIT_PER_DAY: "20",
       AGENT_MAX_TURNS_PER_CONVERSATION: "12",
       AGENT_HISTORY_TURNS: "4",
+      AGENT_MAX_STEPS: "6",
     });
     expect(config).toEqual({
       apiKey: "sk-test",
@@ -42,6 +44,7 @@ describe("readAssistantConfig", () => {
       ratePerDay: 20,
       maxTurns: 12,
       historyTurns: 4,
+      maxSteps: 6,
     });
   });
 
@@ -51,11 +54,13 @@ describe("readAssistantConfig", () => {
       AGENT_HISTORY_TURNS: "-1",
       AI_TIMEOUT_MS: "abc",
       AGENT_RATE_LIMIT_PER_HOUR: "1.5",
+      AGENT_MAX_STEPS: "0",
     });
     expect(config.thinking).toBe("off");
     expect(config.historyTurns).toBe(8);
     expect(config.timeoutMs).toBe(30_000);
     expect(config.ratePerHour).toBe(30);
+    expect(config.maxSteps).toBe(8);
   });
 
   it("treats an empty API key as missing", () => {
