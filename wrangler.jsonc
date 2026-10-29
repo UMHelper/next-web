@@ -63,7 +63,7 @@
       "keep_vars": true,
       "upload_source_maps": true,
       "observability": {
-        "enabled": true,
+        "enabled": false,
         "head_sampling_rate": 1,
         "logs": {
           "enabled": true,
