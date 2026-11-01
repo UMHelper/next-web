@@ -5,27 +5,36 @@ import {
   useAgentContext,
   useConfigureSuggestions,
   useFrontendTool,
+  type Message,
 } from "@copilotkit/react-core/v2";
 import { usePathname } from "next/navigation";
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 
-import { useTimetablePlanner } from "@/components/timetable/planner-provider";
-import {
-  CHECK_PLAN_CONFLICTS_DESCRIPTION,
-  checkPlanConflictsParameters,
-  runCheckPlanConflicts,
-} from "@/lib/assistant/check-plan-conflicts";
 import { describeAssistantError } from "@/lib/assistant/error-message";
+import { DEFAULT_HISTORY_TURNS, prepareRunMessages } from "@/lib/assistant/run-messages";
+import type { RunMessage } from "@/lib/assistant/conversation";
 import { EXAMPLE_QUESTIONS } from "@/lib/assistant/example-questions";
 import { NAVIGATE_DESCRIPTION, navigateParameters } from "@/lib/assistant/navigation";
 import { PAGE_CONTEXT_DESCRIPTION, describePage } from "@/lib/assistant/page-context";
-import { PLAN_CONTEXT_DESCRIPTION, summarizePlan } from "@/lib/assistant/plan-summary";
-import { getSections } from "@/lib/timetable/catalog-client";
+import { useTimetableContext } from "./use-timetable-context";
 
+import { useTimetablePlanner } from "@/components/timetable/planner-provider";
+import { timetableVersion } from "@/lib/timetable/analysis";
+
+import { CatalogFilterProvider } from "./catalog-filter-store";
+import { PlannerVersionContext } from "./planner-version-context";
 import AssistantChat from "./assistant-chat";
 import { AssistantBubble } from "./assistant-bubble";
 import ResizeHandle from "./resize-handle";
+import { useCourseDetailToolRender } from "./course-detail-tool-render";
+import { useCourseSectionsToolRender } from "./course-sections-tool-render";
+import { useTimetablePreviewToolRender } from "./timetable-preview-tool-render";
+import { useSearchCatalogToolRender } from "./search-catalog-tool-render";
+import { useCatalogResultsTool } from "./use-catalog-results-tool";
+import { useDiscussedCourses } from "./use-discussed-courses";
+import { useVisibleBlocks } from "./use-visible-blocks";
+import { useConflictVerification } from "./use-conflict-verification";
 import { useNavigateTool } from "./use-navigate-tool";
 
 // FloatingPlanner keys its offset off this attribute; the name is repeated literally in its Tailwind classes.
@@ -41,29 +50,23 @@ const SUGGESTIONS = {
  * AssistantChat so closing the panel does not unregister anything.
  */
 function AssistantTools() {
-  const { activePlan } = useTimetablePlanner();
-  const planRef = useRef(activePlan);
-  planRef.current = activePlan;
-
   const pathname = usePathname();
   const page = useMemo(() => JSON.stringify(describePage(pathname)), [pathname]);
 
-  useAgentContext({ description: PLAN_CONTEXT_DESCRIPTION, value: summarizePlan(activePlan) });
+  useTimetableContext();
   useAgentContext({ description: PAGE_CONTEXT_DESCRIPTION, value: page });
   useConfigureSuggestions(SUGGESTIONS);
 
-  useFrontendTool(
-    {
-      name: "check_plan_conflicts",
-      description: CHECK_PLAN_CONFLICTS_DESCRIPTION,
-      parameters: checkPlanConflictsParameters,
-      handler: async (input) =>
-        runCheckPlanConflicts(planRef.current?.payload.sections ?? [], input, getSections),
-    },
-    [],
-  );
-
   const navigate = useNavigateTool();
+  useCatalogResultsTool();
+  useDiscussedCourses();
+  useVisibleBlocks();
+  useConflictVerification();
+  useSearchCatalogToolRender();
+  useCourseDetailToolRender();
+  useCourseSectionsToolRender();
+  useTimetablePreviewToolRender();
+
   useFrontendTool(
     {
       name: "navigate",
@@ -78,6 +81,16 @@ function AssistantTools() {
   );
 
   return null;
+}
+
+function PlannerVersionScope({ children }: { children: ReactNode }) {
+  const { activePlan } = useTimetablePlanner();
+  const plannerVersion = useMemo(
+    () => (activePlan ? timetableVersion(activePlan.payload.sections) : null),
+    [activePlan],
+  );
+
+  return <PlannerVersionContext.Provider value={plannerVersion}>{children}</PlannerVersionContext.Provider>;
 }
 
 export default function AssistantPanel({
@@ -104,6 +117,12 @@ export default function AssistantPanel({
   const attachPanel = useCallback((node: HTMLElement | null) => {
     panelRef.current = node;
   }, []);
+
+  const messageFilter = useCallback(
+    (messages: Message[]) =>
+      prepareRunMessages(messages as RunMessage[], DEFAULT_HISTORY_TURNS) as Message[],
+    [],
+  );
 
   const shown = rendered && !suppressed;
 
@@ -168,21 +187,26 @@ export default function AssistantPanel({
       <CopilotKitProvider
         runtimeUrl="/api/copilotkit"
         enableInspector={false}
+        messageFilter={messageFilter}
         onError={({ error }) => setNotice(describeAssistantError(error.message))}
       >
-        <AssistantTools />
-        {shown ? (
-          <AssistantChat
-            panelRef={attachPanel}
-            panelOpen={open}
-            initialPrompt={initialPrompt}
-            autoSend={autoSend}
-            onPromptConsumed={onPromptConsumed}
-            onClose={close}
-            notice={notice}
-            onClearNotice={() => setNotice(null)}
-          />
-        ) : null}
+        <CatalogFilterProvider>
+          <PlannerVersionScope>
+            <AssistantTools />
+            {shown ? (
+              <AssistantChat
+                panelRef={attachPanel}
+                panelOpen={open}
+                initialPrompt={initialPrompt}
+                autoSend={autoSend}
+                onPromptConsumed={onPromptConsumed}
+                onClose={close}
+                notice={notice}
+                onClearNotice={() => setNotice(null)}
+              />
+            ) : null}
+          </PlannerVersionScope>
+        </CatalogFilterProvider>
       </CopilotKitProvider>
       <ResizeHandle visible={shown} panelRef={panelRef} />
       {open || suppressed || pathname === "/" ? null : <AssistantBubble onClick={reopen} />}

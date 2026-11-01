@@ -1,4 +1,4 @@
-import { getReviewInfo } from "@/lib/database/get-prof-info";
+import { lookupReviewMapping, ReviewMappingError } from "@/lib/database/get-prof-info";
 import { McpToolError } from "@/lib/mcp/errors";
 import supabaseServer from "@/lib/supabase/server";
 
@@ -13,7 +13,15 @@ export async function countCourseReviews(
   input: CountReviewsInput,
   signal: AbortSignal,
 ): Promise<{ totalCount: number }> {
-  const mapping = await getReviewInfo(input.code, input.instructor);
+  let mapping;
+  try {
+    mapping = await lookupReviewMapping(input.code, input.instructor);
+  } catch (error) {
+    if (error instanceof ReviewMappingError) {
+      throw new McpToolError("temporarily_unavailable");
+    }
+    throw error;
+  }
   if (!mapping) throw new McpToolError("not_found");
 
   const { count, error } = await supabaseServer

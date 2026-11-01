@@ -2,12 +2,172 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ReactNode } from "react";
 
-import type { Message } from "@copilotkit/react-core/v2";
+import type { Message, ToolCall, ToolMessage } from "@copilotkit/react-core/v2";
 
 import {
   AssistantChatView,
   type AssistantChatViewProps,
 } from "@/components/assistant/assistant-chat-view";
+import { CourseDetailToolResult } from "@/components/assistant/course-detail-tool-render";
+import { TimetablePreviewToolResult } from "@/components/assistant/timetable-preview-tool-render";
+import { PREVIEW_TIMETABLE_TOOL_NAME, runPreviewTimetable } from "@/lib/assistant/timetable-preview";
+import type { TimetableToolDeps } from "@/lib/assistant/timetable-tools";
+import type { TimetableState } from "@/lib/assistant/timetable-context";
+import { timetableVersion } from "@/lib/timetable/analysis";
+import { McpToolError } from "@/lib/mcp/errors";
+import { PRESENT_RESPONSE_TOOL_NAME } from "@/lib/assistant/presentation";
+import { RICH_TOOL_NAMES } from "@/lib/assistant/rich-tools";
+import { SITE_URL } from "@/lib/site";
+import { FIXTURE_CATALOG_SECTIONS, FIXTURE_PLAN } from "@/tests/fixtures/timetable-plan";
+
+function browsePresentToolCall(id: string, resultSetId: string): ToolCall {
+  return {
+    id,
+    type: "function",
+    function: {
+      name: PRESENT_RESPONSE_TOOL_NAME,
+      arguments: JSON.stringify({ catalog: { mode: "browse", resultSetId } }),
+    },
+  };
+}
+
+function catalogBody(totalCount = 0) {
+  return JSON.stringify({
+    type: "course",
+    page: 1,
+    hasMore: false,
+    totalCount,
+    results: [],
+  });
+}
+
+const reviewsBody = JSON.stringify({
+  courseCode: "CISC1001",
+  instructor: "XU QI WEN",
+  page: 1,
+  hasMore: false,
+  url: `${SITE_URL}/reviews/CISC1001/XU%20QI%20WEN`,
+  reviews: [],
+});
+
+const emptyToolOk = JSON.stringify({});
+
+const gelhCourseBody = JSON.stringify({
+  course: {
+    courseCode: "GELH1000",
+    titleEn: "Great Books",
+    titleZh: null,
+    credits: "3",
+    faculty: null,
+    department: null,
+    programLevel: null,
+    suggestedYear: null,
+    medium: null,
+    gradingSystem: null,
+    courseType: null,
+    duration: null,
+    description: null,
+    isOffered: true,
+    url: `${SITE_URL}/course/GELH1000`,
+  },
+  page: 1,
+  hasMore: false,
+  totalCount: 0,
+  instructors: [],
+});
+
+const courseBody = JSON.stringify({
+  course: {
+    courseCode: "APAC1000",
+    titleEn: null,
+    titleZh: null,
+    credits: null,
+    faculty: null,
+    department: null,
+    programLevel: null,
+    suggestedYear: null,
+    medium: null,
+    gradingSystem: null,
+    courseType: null,
+    duration: null,
+    description: null,
+    isOffered: false,
+    url: `${SITE_URL}/course/APAC1000`,
+  },
+  page: 1,
+  hasMore: false,
+  totalCount: 0,
+  instructors: [],
+});
+
+const sectionsBody = JSON.stringify({
+  courseCode: "APAC1000",
+  instructor: "CHAN TAI MAN",
+  courseUrl: `${SITE_URL}/course/APAC1000`,
+  sections: [],
+});
+
+function fakeToolRenderer() {
+  return {
+    names: RICH_TOOL_NAMES,
+    render: (call: ToolCall, result: ToolMessage | undefined) => {
+      if (call.function.name === PREVIEW_TIMETABLE_TOOL_NAME) {
+        return (
+          <TimetablePreviewToolResult
+            status={result ? "complete" : "inProgress"}
+            result={typeof result?.content === "string" ? result.content : undefined}
+          />
+        );
+      }
+      return (
+        <div data-testid={`rich-${call.id}`}>
+          {typeof result?.content === "string" ? result.content : "loading"}
+        </div>
+      );
+    },
+  };
+}
+
+const previewDeps = (): TimetableToolDeps => ({
+  loadSections: async (input) => {
+    const match = FIXTURE_CATALOG_SECTIONS.find(
+      (entry) => entry.courseCode === input.code.toUpperCase() && entry.instructor === input.instructor,
+    );
+    if (!match) throw new McpToolError("not_found");
+    return { ...match, sectionDataComplete: true };
+  },
+  loadCatalogTerm: async () => ({ year: 2026, sem: 1 }),
+});
+
+const previewReadyState = (): TimetableState => ({
+  status: "ready",
+  plan: {
+    name: FIXTURE_PLAN.name,
+    year: FIXTURE_PLAN.year,
+    sem: FIXTURE_PLAN.sem,
+    sections: FIXTURE_PLAN.payload.sections,
+  },
+  currentTerm: { year: 2026, sem: 1 },
+  otherPlansThisTerm: 0,
+  localOnly: false,
+  truncated: false,
+  version: timetableVersion(FIXTURE_PLAN.payload.sections),
+});
+
+function expandToolTraces() {
+  for (const button of screen.queryAllByRole("button", { name: /^Show \d+ tool steps?$/ })) {
+    fireEvent.click(button);
+  }
+}
+
+function activityRows() {
+  expandToolTraces();
+  return Array.from(document.querySelectorAll<HTMLElement>("[data-status]"));
+}
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn() }),
+}));
 
 vi.mock("next/link", () => ({
   default: ({ href, children, ...props }: { href: string; children: ReactNode }) => (
@@ -31,7 +191,13 @@ const MESSAGES: Message[] = [
       },
     ],
   },
-  { id: "t1", role: "tool", toolCallId: "call-1", content: "ok" },
+  {
+    id: "t1",
+    role: "tool",
+    toolCallId: "call-1",
+    content:
+      '{"type":"course","page":1,"hasMore":false,"totalCount":0,"results":[]}',
+  },
   {
     id: "a2",
     role: "assistant",
@@ -57,6 +223,9 @@ function renderView(overrides: Partial<AssistantChatViewProps> = {}) {
     ...overrides,
   };
   render(<AssistantChatView {...props} />);
+  if (!props.isRunning) {
+    expandToolTraces();
+  }
   return props;
 }
 
@@ -98,6 +267,34 @@ describe("AssistantChatView", () => {
     expect(screen.getByText("Opened CISC3014.")).toBeTruthy();
     expect(screen.queryByText("PRIVATE-CHAIN-OF-THOUGHT")).toBeNull();
     expect(screen.queryByText("Reasoning")).toBeNull();
+  });
+
+  it("renders bold-only assistant text through markdown", () => {
+    renderView({
+      messages: [
+        { id: "u1", role: "user", content: "How many credits?" },
+        { id: "a1", role: "assistant", content: "**3 credits**" },
+      ],
+    });
+
+    expect(screen.getByText("3 credits")).toBeTruthy();
+    expect(screen.queryByText("**3 credits**")).toBeNull();
+  });
+
+  it("splits glued sentences so each is findable by getByText", () => {
+    renderView({
+      messages: [
+        { id: "u1", role: "user", content: "MATH courses" },
+        {
+          id: "a1",
+          role: "assistant",
+          content: "Here are MATH courses.Filtered to offered courses.",
+        },
+      ],
+    });
+
+    expect(screen.getByText("Here are MATH courses.")).toBeTruthy();
+    expect(screen.getByText("Filtered to offered courses.")).toBeTruthy();
   });
 
   it("renders user and assistant turns with the tool trace and markdown", () => {
@@ -146,10 +343,10 @@ describe("AssistantChatView", () => {
             },
           ],
         },
-        { id: "t1", role: "tool", toolCallId: "call-1", content: "ok" },
-        { id: "t2", role: "tool", toolCallId: "call-2", content: "ok" },
-        { id: "t3", role: "tool", toolCallId: "call-3", content: "ok" },
-        { id: "t4", role: "tool", toolCallId: "call-4", content: "ok" },
+        { id: "t1", role: "tool", toolCallId: "call-1", content: reviewsBody },
+        { id: "t2", role: "tool", toolCallId: "call-2", content: emptyToolOk },
+        { id: "t3", role: "tool", toolCallId: "call-3", content: emptyToolOk },
+        { id: "t4", role: "tool", toolCallId: "call-4", content: emptyToolOk },
       ],
     });
 
@@ -197,7 +394,13 @@ describe("AssistantChatView", () => {
             },
           ],
         },
-        { id: "t1", role: "tool", toolCallId: "call-1", content: "{}" },
+        {
+          id: "t1",
+          role: "tool",
+          toolCallId: "call-1",
+          content:
+            '{"type":"course","page":1,"hasMore":false,"totalCount":0,"results":[]}',
+        },
         {
           id: "a2",
           role: "assistant",
@@ -284,5 +487,1109 @@ describe("AssistantChatView", () => {
 
     expect(screen.getByRole("button", { name: "Q1" }).hasAttribute("disabled")).toBe(true);
     expect(screen.getByRole("button", { name: "Send" }).hasAttribute("disabled")).toBe(true);
+  });
+
+  describe("toolRenderer", () => {
+    it("renders one search activity row and the rich block when browse is claimed", () => {
+      renderView({
+        messages: [
+          { id: "u1", role: "user", content: "ACCT" },
+          {
+            id: "a1",
+            role: "assistant",
+            content: "",
+            toolCalls: [
+              {
+                id: "call-1",
+                type: "function",
+                function: { name: "search_catalog", arguments: '{"query":"ACCT"}' },
+              },
+              browsePresentToolCall("p1", "call-1"),
+            ],
+          },
+          { id: "t1", role: "tool", toolCallId: "call-1", content: catalogBody() },
+          { id: "a2", role: "assistant", content: "Found courses." },
+        ],
+        toolRenderer: fakeToolRenderer(),
+      });
+
+      expect(screen.getByTestId("rich-call-1").textContent).toBe(catalogBody());
+      expect(screen.getAllByText("Searched courses")).toHaveLength(1);
+      expect(activityRows()[0].textContent).toContain("ACCT");
+    });
+
+    it("keeps non-rich tools in ToolTrace", () => {
+      renderView({
+        messages: [
+          { id: "u1", role: "user", content: "course" },
+          {
+            id: "a1",
+            role: "assistant",
+            content: "",
+            toolCalls: [
+              {
+                id: "call-1",
+                type: "function",
+                function: { name: "get_instructor", arguments: '{"name":"CHAN TAI MAN"}' },
+              },
+            ],
+          },
+          {
+            id: "t1",
+            role: "tool",
+            toolCallId: "call-1",
+            content:
+              '{"name":"CHAN TAI MAN","page":1,"hasMore":false,"totalCount":0,"courses":[]}',
+          },
+          { id: "a2", role: "assistant", content: "Here is CHAN TAI MAN." },
+        ],
+        toolRenderer: fakeToolRenderer(),
+      });
+
+      expect(screen.getByText("Read instructor")).toBeTruthy();
+      expect(screen.queryByTestId("rich-call-1")).toBeNull();
+    });
+
+    it("pairs tool results by toolCallId only", () => {
+      renderView({
+        messages: [
+          { id: "u1", role: "user", content: "search" },
+          {
+            id: "a1",
+            role: "assistant",
+            content: "",
+            toolCalls: [
+              {
+                id: "call-1",
+                type: "function",
+                function: { name: "search_catalog", arguments: '{"query":"A"}' },
+              },
+              {
+                id: "call-x",
+                type: "function",
+                function: { name: "search_catalog", arguments: '{"query":"B"}' },
+              },
+            ],
+          },
+          { id: "t1", role: "tool", toolCallId: "call-1", content: "for-call-1" },
+          { id: "t2", role: "tool", toolCallId: "call-x", content: "for-call-x" },
+          { id: "a2", role: "assistant", content: "Done." },
+        ],
+        toolRenderer: fakeToolRenderer(),
+      });
+
+      expect(screen.queryByTestId("rich-call-1")).toBeNull();
+      expect(screen.queryByTestId("rich-call-x")).toBeNull();
+      expect(activityRows()).toHaveLength(2);
+      expect(activityRows()[0].textContent).toContain("A");
+      expect(activityRows()[1].textContent).toContain("B");
+    });
+
+    it("pairs a late tool message with the earlier call", () => {
+      renderView({
+        messages: [
+          { id: "u1", role: "user", content: "search" },
+          {
+            id: "a1",
+            role: "assistant",
+            content: "",
+            toolCalls: [
+              {
+                id: "call-1",
+                type: "function",
+                function: { name: "search_catalog", arguments: '{"query":"ACCT"}' },
+              },
+            ],
+          },
+          { id: "a2", role: "assistant", content: "Still working on it." },
+          { id: "t1", role: "tool", toolCallId: "call-1", content: catalogBody() },
+          {
+            id: "a3",
+            role: "assistant",
+            content: "All set.",
+            toolCalls: [browsePresentToolCall("p1", "call-1")],
+          },
+        ],
+        toolRenderer: fakeToolRenderer(),
+      });
+
+      expect(screen.getByTestId("rich-call-1").textContent).toBe(catalogBody());
+    });
+
+    it("renders two rich search blocks in call order", () => {
+      renderView({
+        messages: [
+          { id: "u1", role: "user", content: "two searches" },
+          {
+            id: "a1",
+            role: "assistant",
+            content: "First pass.",
+            toolCalls: [
+              {
+                id: "call-1",
+                type: "function",
+                function: { name: "search_catalog", arguments: '{"query":"ACCT"}' },
+              },
+            ],
+          },
+          { id: "t1", role: "tool", toolCallId: "call-1", content: catalogBody() },
+          {
+            id: "a2",
+            role: "assistant",
+            content: "Second pass.",
+            toolCalls: [
+              {
+                id: "call-2",
+                type: "function",
+                function: { name: "search_catalog", arguments: '{"query":"CISC"}' },
+              },
+            ],
+          },
+          { id: "t2", role: "tool", toolCallId: "call-2", content: catalogBody() },
+        ],
+        toolRenderer: fakeToolRenderer(),
+      });
+
+      expect(screen.queryAllByTestId(/^rich-call-/)).toHaveLength(0);
+      expect(screen.getAllByText("Searched courses")).toHaveLength(2);
+      expect(activityRows()[0].textContent).toContain("ACCT");
+      expect(activityRows()[1].textContent).toContain("CISC");
+    });
+
+    it("shows Not completed in trace when interrupted without a result", () => {
+      renderView({
+        messages: [
+          { id: "u1", role: "user", content: "search" },
+          {
+            id: "a1",
+            role: "assistant",
+            content: "",
+            toolCalls: [
+              {
+                id: "call-1",
+                type: "function",
+                function: { name: "search_catalog", arguments: '{"query":"ACCT"}' },
+              },
+            ],
+          },
+          { id: "a2", role: "assistant", content: "Stopped early." },
+        ],
+        isRunning: false,
+        toolRenderer: fakeToolRenderer(),
+      });
+
+      expect(screen.getAllByText("Not completed")).toHaveLength(1);
+      expect(screen.queryByTestId("rich-call-1")).toBeNull();
+    });
+
+    it("shows searching in trace while running without a browse presentation", () => {
+      renderView({
+        messages: [
+          { id: "u1", role: "user", content: "search" },
+          {
+            id: "a1",
+            role: "assistant",
+            content: "",
+            toolCalls: [
+              {
+                id: "call-1",
+                type: "function",
+                function: { name: "search_catalog", arguments: '{"query":"ACCT"}' },
+              },
+            ],
+          },
+        ],
+        isRunning: true,
+        toolRenderer: fakeToolRenderer(),
+      });
+
+      expect(screen.queryByTestId("rich-call-1")).toBeNull();
+      expect(screen.getByText("Searching courses…")).toBeTruthy();
+      expect(screen.queryByText(/AI is thinking/)).toBeNull();
+    });
+
+    it("renders two rich blocks for identical args with different ids and results", () => {
+      renderView({
+        messages: [
+          { id: "u1", role: "user", content: "two searches" },
+          {
+            id: "a1",
+            role: "assistant",
+            content: "",
+            toolCalls: [
+              {
+                id: "call-1",
+                type: "function",
+                function: { name: "search_catalog", arguments: '{"query":"ACCT"}' },
+              },
+              {
+                id: "call-2",
+                type: "function",
+                function: { name: "search_catalog", arguments: '{"query":"ACCT"}' },
+              },
+            ],
+          },
+          { id: "t1", role: "tool", toolCallId: "call-1", content: catalogBody(1) },
+          { id: "t2", role: "tool", toolCallId: "call-2", content: catalogBody(2) },
+          { id: "a2", role: "assistant", content: "Done." },
+        ],
+        toolRenderer: fakeToolRenderer(),
+      });
+
+      expect(screen.queryAllByTestId(/^rich-call-/)).toHaveLength(0);
+      expect(screen.getAllByText("Searched courses")).toHaveLength(2);
+    });
+
+    it("shows an incomplete call from a previous turn as searching while the run is active", () => {
+      renderView({
+        messages: [
+          { id: "u1", role: "user", content: "first" },
+          {
+            id: "a1",
+            role: "assistant",
+            content: "",
+            toolCalls: [
+              {
+                id: "call-old",
+                type: "function",
+                function: { name: "search_catalog", arguments: '{"query":"ACCT"}' },
+              },
+            ],
+          },
+          { id: "a2", role: "assistant", content: "Stopped." },
+          { id: "u2", role: "user", content: "second" },
+        ],
+        isRunning: true,
+        toolRenderer: fakeToolRenderer(),
+      });
+
+      expect(screen.getByText("Searching courses…")).toBeTruthy();
+      expect(screen.queryByTestId("rich-call-old")).toBeNull();
+    });
+
+    it("keeps completed rich results visible while a new turn runs", () => {
+      renderView({
+        messages: [
+          { id: "u1", role: "user", content: "first" },
+          {
+            id: "a1",
+            role: "assistant",
+            content: "",
+            toolCalls: [
+              {
+                id: "call-1",
+                type: "function",
+                function: { name: "search_catalog", arguments: '{"query":"ACCT"}' },
+              },
+            ],
+          },
+          { id: "t1", role: "tool", toolCallId: "call-1", content: catalogBody() },
+          {
+            id: "a2",
+            role: "assistant",
+            content: "Found some.",
+            toolCalls: [browsePresentToolCall("p1", "call-1")],
+          },
+          { id: "u2", role: "user", content: "follow up" },
+        ],
+        isRunning: true,
+        toolRenderer: fakeToolRenderer(),
+      });
+
+      expect(screen.getByTestId("rich-call-1").textContent).toBe(catalogBody());
+      expect(screen.getAllByText("Searched courses")).toHaveLength(1);
+      expect(screen.getByText(/AI is thinking/)).toBeTruthy();
+    });
+
+    it("dedupes a replayed empty-arg search_catalog call", () => {
+      renderView({
+        messages: [
+          { id: "u1", role: "user", content: "search" },
+          {
+            id: "a1",
+            role: "assistant",
+            content: "",
+            toolCalls: [
+              {
+                id: "call-1",
+                type: "function",
+                function: { name: "search_catalog", arguments: '{"query":"ACCT"}' },
+              },
+            ],
+          },
+          { id: "t1", role: "tool", toolCallId: "call-1", content: catalogBody() },
+          {
+            id: "a2",
+            role: "assistant",
+            content: "Looking again.",
+            toolCalls: [
+              {
+                id: "call-2",
+                type: "function",
+                function: { name: "search_catalog", arguments: "{}" },
+              },
+              browsePresentToolCall("p1", "call-1"),
+            ],
+          },
+          { id: "a3", role: "assistant", content: "Done." },
+        ],
+        toolRenderer: fakeToolRenderer(),
+      });
+
+      expect(screen.getAllByTestId(/^rich-call-/)).toHaveLength(1);
+      expect(screen.getAllByText("Searched courses")).toHaveLength(1);
+      expect(screen.queryByText("Not completed")).toBeNull();
+    });
+
+    function courseDetailToolRenderer() {
+      return {
+        names: RICH_TOOL_NAMES,
+        render: (call: ToolCall, result: ToolMessage | undefined) => {
+          if (call.function.name === "get_course") {
+            return (
+              <CourseDetailToolResult
+                status={result ? "complete" : "inProgress"}
+                result={typeof result?.content === "string" ? result.content : undefined}
+              />
+            );
+          }
+          return fakeToolRenderer().render(call, result);
+        },
+      };
+    }
+
+    it("does not mount a course card without present_response", () => {
+      renderView({
+        messages: [
+          { id: "u1", role: "user", content: "What is GELH1000?" },
+          {
+            id: "a1",
+            role: "assistant",
+            content: "GELH1000 is a great books course.",
+            toolCalls: [
+              {
+                id: "c1",
+                type: "function",
+                function: { name: "get_course", arguments: '{"code":"GELH1000"}' },
+              },
+            ],
+          },
+          { id: "t1", role: "tool", toolCallId: "c1", content: gelhCourseBody },
+        ],
+        toolRenderer: courseDetailToolRenderer(),
+      });
+
+      expect(screen.queryByRole("article", { name: "GELH1000" })).toBeNull();
+      expect(screen.queryByRole("button", { name: "Show GELH1000 details" })).toBeNull();
+    });
+
+    it("offers no button for a failed lookup or an already mounted card", () => {
+      renderView({
+        messages: [
+          { id: "u1", role: "user", content: "APAC1000" },
+          {
+            id: "a1",
+            role: "assistant",
+            content: "",
+            toolCalls: [
+              {
+                id: "call-1",
+                type: "function",
+                function: { name: "get_course", arguments: '{"code":"APAC1000"}' },
+              },
+            ],
+          },
+          { id: "t1", role: "tool", toolCallId: "call-1", content: '{"error":"not_found"}' },
+        ],
+        toolRenderer: courseDetailToolRenderer(),
+      });
+
+      expect(screen.queryByRole("button", { name: "Show APAC1000 details" })).toBeNull();
+
+      cleanup();
+
+      renderView({
+        messages: [
+          { id: "u1", role: "user", content: "Show the full details of APAC1000." },
+          {
+            id: "a1",
+            role: "assistant",
+            content: "",
+            toolCalls: [
+              { id: "g", type: "function", function: { name: "get_course", arguments: '{"code":"APAC1000"}' } },
+              {
+                id: "p",
+                type: "function",
+                function: {
+                  name: "present_response",
+                  arguments: '{"show":[{"component":"course_detail","course":"APAC1000"}]}',
+                },
+              },
+            ],
+          },
+          { id: "t1", role: "tool", toolCallId: "g", content: courseBody },
+          {
+            id: "t2",
+            role: "tool",
+            toolCallId: "p",
+            content: '{"status":"accepted","show":[{"component":"course_detail","course":"APAC1000"}]}',
+          },
+        ],
+        toolRenderer: courseDetailToolRenderer(),
+      });
+
+      expect(screen.getByRole("article", { name: "APAC1000" })).toBeTruthy();
+      expect(screen.queryByRole("button", { name: "Show APAC1000 details" })).toBeNull();
+    });
+
+    it("renders one activity row without a rich block for get_course without present_response", () => {
+      renderView({
+        messages: [
+          { id: "u1", role: "user", content: "Tell me about APAC1000." },
+          {
+            id: "a1",
+            role: "assistant",
+            content: "",
+            toolCalls: [
+              {
+                id: "call-course",
+                type: "function",
+                function: { name: "get_course", arguments: '{"code":"APAC1000"}' },
+              },
+            ],
+          },
+          { id: "t1", role: "tool", toolCallId: "call-course", content: courseBody },
+        ],
+        toolRenderer: fakeToolRenderer(),
+      });
+
+      expect(screen.getAllByText("Read course")).toHaveLength(1);
+      expect(activityRows()[0].textContent).toContain("APAC1000");
+      expect(screen.queryByTestId("rich-call-course")).toBeNull();
+    });
+
+    it("renders one activity row without a rich block for get_course_sections without present_response", () => {
+      renderView({
+        messages: [
+          { id: "u1", role: "user", content: "When is APAC1000 taught?" },
+          {
+            id: "a1",
+            role: "assistant",
+            content: "",
+            toolCalls: [
+              {
+                id: "call-sections",
+                type: "function",
+                function: {
+                  name: "get_course_sections",
+                  arguments: '{"code":"APAC1000","instructor":"CHAN TAI MAN"}',
+                },
+              },
+            ],
+          },
+          { id: "t1", role: "tool", toolCallId: "call-sections", content: sectionsBody },
+        ],
+        toolRenderer: fakeToolRenderer(),
+      });
+
+      expect(screen.getAllByText("Read class times")).toHaveLength(1);
+      expect(activityRows()[0].textContent).toContain("APAC1000");
+      expect(screen.queryByTestId("rich-call-sections")).toBeNull();
+    });
+
+    it("renders a course card only when present_response claims course_detail", () => {
+      renderView({
+        messages: [
+          { id: "u1", role: "user", content: "Show the full details of APAC1000." },
+          {
+            id: "a1",
+            role: "assistant",
+            content: "",
+            toolCalls: [
+              { id: "g", type: "function", function: { name: "get_course", arguments: '{"code":"APAC1000"}' } },
+              {
+                id: "p",
+                type: "function",
+                function: {
+                  name: "present_response",
+                  arguments: '{"show":[{"component":"course_detail","course":"APAC1000"}]}',
+                },
+              },
+            ],
+          },
+          { id: "t1", role: "tool", toolCallId: "g", content: courseBody },
+          {
+            id: "t2",
+            role: "tool",
+            toolCallId: "p",
+            content: '{"status":"accepted","show":[{"component":"course_detail","course":"APAC1000"}]}',
+          },
+        ],
+        toolRenderer: fakeToolRenderer(),
+      });
+
+      expect(screen.getByTestId("rich-g")).toBeTruthy();
+      expect(screen.getAllByText("Read course")).toHaveLength(1);
+      expect(screen.queryByText("Choosing a layout")).toBeNull();
+      expect(screen.queryByText("Chose a layout")).toBeNull();
+    });
+
+    it("renders a single course card for duplicate claimed lookups of one course", () => {
+      renderView({
+        messages: [
+          { id: "u1", role: "user", content: "Show full details of GELH1000." },
+          {
+            id: "a1",
+            role: "assistant",
+            content: "",
+            toolCalls: [
+              { id: "g1", type: "function", function: { name: "get_course", arguments: '{"code":"GELH1000"}' } },
+              { id: "g2", type: "function", function: { name: "get_course", arguments: '{"code":"GELH1000"}' } },
+              {
+                id: "p",
+                type: "function",
+                function: {
+                  name: "present_response",
+                  arguments: '{"show":[{"component":"course_detail","course":"GELH1000"}]}',
+                },
+              },
+            ],
+          },
+          { id: "t1", role: "tool", toolCallId: "g1", content: gelhCourseBody },
+          { id: "t2", role: "tool", toolCallId: "g2", content: gelhCourseBody },
+          {
+            id: "t3",
+            role: "tool",
+            toolCallId: "p",
+            content:
+              '{"status":"requested","items":[{"component":"course_detail","course":"GELH1000","eligibility":"ready"}],"note":"note"}',
+          },
+        ],
+        toolRenderer: {
+          names: RICH_TOOL_NAMES,
+          render: (call, result) => {
+            if (call.function.name === "get_course") {
+              return (
+                <CourseDetailToolResult
+                  status={result ? "complete" : "inProgress"}
+                  result={typeof result?.content === "string" ? result.content : undefined}
+                />
+              );
+            }
+            return fakeToolRenderer().render(call, result);
+          },
+        },
+      });
+
+      expect(screen.getAllByRole("article", { name: "GELH1000" })).toHaveLength(1);
+    });
+
+    it("does not mount two course cards for a comparison turn", () => {
+      renderView({
+        messages: [
+          { id: "u1", role: "user", content: "CISC2001 vs CISC2003?" },
+          {
+            id: "a1",
+            role: "assistant",
+            content: "| Attribute | A | B |\n|---|---|---|",
+            toolCalls: [
+              { id: "g1", type: "function", function: { name: "get_course", arguments: '{"code":"APAC1000"}' } },
+              { id: "g2", type: "function", function: { name: "get_course", arguments: '{"code":"APAC2000"}' } },
+            ],
+          },
+          { id: "t1", role: "tool", toolCallId: "g1", content: courseBody },
+          { id: "t2", role: "tool", toolCallId: "g2", content: courseBody },
+        ],
+        toolRenderer: fakeToolRenderer(),
+      });
+
+      expect(screen.queryByTestId("rich-g1")).toBeNull();
+      expect(screen.queryByTestId("rich-g2")).toBeNull();
+      expect(screen.getAllByText("Read course").length).toBeGreaterThan(0);
+    });
+
+    it("keeps a get_course clarification visible", () => {
+      renderView({
+        messages: [
+          { id: "u1", role: "user", content: "the second one" },
+          {
+            id: "a1",
+            role: "assistant",
+            content: "",
+            toolCalls: [{ id: "g", type: "function", function: { name: "get_course", arguments: '{"code":"APAC1000"}' } }],
+          },
+          {
+            id: "t",
+            role: "tool",
+            toolCallId: "g",
+            content: '{"status":"needs_clarification","ask":"Which course do you mean?"}',
+          },
+        ],
+        toolRenderer: fakeToolRenderer(),
+      });
+
+      expect(screen.getByTestId("rich-g")).toBeTruthy();
+    });
+
+    it("renders one activity row and the filter block", () => {
+      renderView({
+        messages: [
+          { id: "u1", role: "user", content: "Show only those offered." },
+          {
+            id: "a1",
+            role: "assistant",
+            content: "",
+            toolCalls: [
+              {
+                id: "call-1",
+                type: "function",
+                function: { name: "search_catalog", arguments: '{"query":"APAC"}' },
+              },
+              browsePresentToolCall("p1", "call-1"),
+              {
+                id: "call-filter",
+                type: "function",
+                function: {
+                  name: "filter_catalog_results",
+                  arguments: '{"resultSetId":"call-1","filter":"offered"}',
+                },
+              },
+            ],
+          },
+          { id: "t0", role: "tool", toolCallId: "call-1", content: catalogBody(10) },
+          {
+            id: "t1",
+            role: "tool",
+            toolCallId: "call-filter",
+            content:
+              '{"status":"applied","resultSetId":"call-1","filter":"offered","shownCount":2,"loadedCount":10,"totalCount":10,"hasMore":false,"shownCourseCodes":["APAC1000","APAC2000"],"scope":"loaded_results_only"}',
+          },
+        ],
+        toolRenderer: fakeToolRenderer(),
+      });
+
+      expect(screen.getByText("Filtered results")).toBeTruthy();
+      expect(screen.getByTestId("rich-call-filter").textContent).toContain("applied");
+    });
+
+    it("marks a rich domain error as failed and still renders the rich block once", () => {
+      renderView({
+        messages: [
+          { id: "u1", role: "user", content: "APAC1000" },
+          {
+            id: "a1",
+            role: "assistant",
+            content: "",
+            toolCalls: [
+              {
+                id: "call-1",
+                type: "function",
+                function: { name: "get_course", arguments: '{"code":"APAC1000"}' },
+              },
+            ],
+          },
+          { id: "t1", role: "tool", toolCallId: "call-1", content: '{"error":"not_found"}' },
+        ],
+        toolRenderer: fakeToolRenderer(),
+      });
+
+      const status = activityRows()[0];
+      expect(status.getAttribute("data-status")).toBe("error");
+      expect(status.textContent).toContain("Lookup failed");
+      expect(screen.queryByText("Read course")).toBeNull();
+      expect(screen.queryByTestId("rich-call-1")).toBeNull();
+    });
+
+    it("mounts the rich failure block when present_response claims a not_found course", () => {
+      renderView({
+        messages: [
+          { id: "u1", role: "user", content: "APAC1000" },
+          {
+            id: "a1",
+            role: "assistant",
+            content: "",
+            toolCalls: [
+              {
+                id: "call-1",
+                type: "function",
+                function: { name: "get_course", arguments: '{"code":"APAC1000"}' },
+              },
+              {
+                id: "p",
+                type: "function",
+                function: {
+                  name: "present_response",
+                  arguments: '{"show":[{"component":"course_detail","course":"APAC1000"}]}',
+                },
+              },
+            ],
+          },
+          { id: "t1", role: "tool", toolCallId: "call-1", content: '{"error":"not_found"}' },
+          {
+            id: "t2",
+            role: "tool",
+            toolCallId: "p",
+            content: '{"status":"accepted","show":[{"component":"course_detail","course":"APAC1000"}]}',
+          },
+        ],
+        toolRenderer: fakeToolRenderer(),
+      });
+
+      expect(screen.getAllByTestId("rich-call-1")).toHaveLength(1);
+    });
+
+    it("shows activity without a course card until present_response arrives on a running turn", () => {
+      const toolRenderer = fakeToolRenderer();
+      const sharedProps: AssistantChatViewProps = {
+        messages: [],
+        suggestions: [{ title: "Q1", message: "M1" }],
+        isRunning: true,
+        isReady: true,
+        draft: "",
+        alert: null,
+        onDraftChange: vi.fn(),
+        onSend: vi.fn(),
+        onStop: vi.fn(),
+        onNewChat: vi.fn(),
+        onClose: vi.fn(),
+        onClearAlert: vi.fn(),
+        toolRenderer,
+      };
+
+      const beforePresent: Message[] = [
+        { id: "u1", role: "user", content: "APAC1000 details" },
+        {
+          id: "a1",
+          role: "assistant",
+          content: "",
+          toolCalls: [
+            { id: "g", type: "function", function: { name: "get_course", arguments: '{"code":"APAC1000"}' } },
+          ],
+        },
+        { id: "t1", role: "tool", toolCallId: "g", content: courseBody },
+      ];
+
+      const { rerender } = render(
+        <AssistantChatView {...sharedProps} messages={beforePresent} />,
+      );
+
+      expect(screen.getByText("Read course")).toBeTruthy();
+      expect(screen.queryByTestId("rich-g")).toBeNull();
+
+      const afterPresent: Message[] = [
+        ...beforePresent,
+        {
+          id: "a2",
+          role: "assistant",
+          content: "",
+          toolCalls: [
+            {
+              id: "p",
+              type: "function",
+              function: {
+                name: "present_response",
+                arguments: '{"show":[{"component":"course_detail","course":"APAC1000"}]}',
+              },
+            },
+          ],
+        },
+        {
+          id: "t2",
+          role: "tool",
+          toolCallId: "p",
+          content: '{"status":"accepted","show":[{"component":"course_detail","course":"APAC1000"}]}',
+        },
+      ];
+
+      rerender(<AssistantChatView {...sharedProps} messages={afterPresent} />);
+
+      expect(screen.getByTestId("rich-g")).toBeTruthy();
+    });
+
+    it("keeps a course card when a later empty present_response arrives on a running turn", () => {
+      const toolRenderer = fakeToolRenderer();
+      const sharedProps: AssistantChatViewProps = {
+        messages: [],
+        suggestions: [{ title: "Q1", message: "M1" }],
+        isRunning: true,
+        isReady: true,
+        draft: "",
+        alert: null,
+        onDraftChange: vi.fn(),
+        onSend: vi.fn(),
+        onStop: vi.fn(),
+        onNewChat: vi.fn(),
+        onClose: vi.fn(),
+        onClearAlert: vi.fn(),
+        toolRenderer,
+      };
+
+      const afterPresent: Message[] = [
+        { id: "u1", role: "user", content: "APAC1000 details" },
+        {
+          id: "a1",
+          role: "assistant",
+          content: "",
+          toolCalls: [
+            { id: "g", type: "function", function: { name: "get_course", arguments: '{"code":"APAC1000"}' } },
+            {
+              id: "p1",
+              type: "function",
+              function: {
+                name: "present_response",
+                arguments: '{"show":[{"component":"course_detail","course":"APAC1000"}]}',
+              },
+            },
+          ],
+        },
+        { id: "t1", role: "tool", toolCallId: "g", content: courseBody },
+        {
+          id: "t2",
+          role: "tool",
+          toolCallId: "p1",
+          content: '{"status":"accepted","show":[{"component":"course_detail","course":"APAC1000"}]}',
+        },
+      ];
+
+      const { rerender } = render(<AssistantChatView {...sharedProps} messages={afterPresent} />);
+      expect(screen.getByTestId("rich-g")).toBeTruthy();
+
+      const afterEmptyPresent: Message[] = [
+        ...afterPresent,
+        {
+          id: "a2",
+          role: "assistant",
+          content: "",
+          toolCalls: [
+            {
+              id: "p2",
+              type: "function",
+              function: { name: "present_response", arguments: '{"show":[]}' },
+            },
+          ],
+        },
+        { id: "t3", role: "tool", toolCallId: "p2", content: '{"status":"accepted","show":[]}' },
+      ];
+
+      rerender(<AssistantChatView {...sharedProps} messages={afterEmptyPresent} />);
+      expect(screen.getByTestId("rich-g")).toBeTruthy();
+    });
+
+    it("pairs get_course and get_course_sections in call order when results arrive reversed", () => {
+      renderView({
+        messages: [
+          { id: "u1", role: "user", content: "details and times" },
+          {
+            id: "a1",
+            role: "assistant",
+            content: "",
+            toolCalls: [
+              {
+                id: "call-course",
+                type: "function",
+                function: { name: "get_course", arguments: '{"code":"APAC1000"}' },
+              },
+              {
+                id: "call-sections",
+                type: "function",
+                function: {
+                  name: "get_course_sections",
+                  arguments: '{"code":"APAC1000","instructor":"CHAN TAI MAN"}',
+                },
+              },
+            ],
+          },
+          { id: "t-sections", role: "tool", toolCallId: "call-sections", content: sectionsBody },
+          { id: "t-course", role: "tool", toolCallId: "call-course", content: courseBody },
+        ],
+        toolRenderer: fakeToolRenderer(),
+      });
+
+      const statuses = activityRows().map((node) => node.textContent ?? "");
+      expect(statuses[0]).toContain("Read course");
+      expect(statuses[1]).toContain("Read class times");
+      expect(screen.queryByTestId("rich-call-course")).toBeNull();
+      expect(screen.queryByTestId("rich-call-sections")).toBeNull();
+      expect(activityRows()).toHaveLength(2);
+    });
+
+    it("updates each call in one turn independently", () => {
+      renderView({
+        messages: [
+          { id: "u1", role: "user", content: "both" },
+          { id: "t1", role: "tool", toolCallId: "call-done", content: courseBody },
+          {
+            id: "a1",
+            role: "assistant",
+            content: "",
+            toolCalls: [
+              {
+                id: "call-done",
+                type: "function",
+                function: { name: "get_course", arguments: '{"code":"APAC1000"}' },
+              },
+              {
+                id: "call-open",
+                type: "function",
+                function: {
+                  name: "get_course_sections",
+                  arguments: '{"code":"APAC2000","instructor":"CHAN TAI MAN"}',
+                },
+              },
+            ],
+          },
+        ],
+        isRunning: true,
+        toolRenderer: fakeToolRenderer(),
+      });
+
+      const statuses = activityRows();
+      expect(statuses).toHaveLength(2);
+      expect(statuses[0].getAttribute("data-status")).toBe("done");
+      expect(statuses[0].textContent).toContain("Read course");
+      expect(statuses[1].getAttribute("data-status")).toBe("running");
+      expect(statuses[1].textContent).toContain("Reading class times…");
+      expect(screen.queryByText(/AI is thinking/)).toBeNull();
+    });
+
+    it("renders one row when the same call id is replayed", () => {
+      renderView({
+        messages: [
+          { id: "u1", role: "user", content: "search" },
+          {
+            id: "a1",
+            role: "assistant",
+            content: "",
+            toolCalls: [
+              {
+                id: "call-1",
+                type: "function",
+                function: { name: "search_catalog", arguments: "{}" },
+              },
+            ],
+          },
+          {
+            id: "a2",
+            role: "assistant",
+            content: "Again.",
+            toolCalls: [
+              {
+                id: "call-1",
+                type: "function",
+                function: { name: "search_catalog", arguments: '{"query":"MATH"}' },
+              },
+            ],
+          },
+          {
+            id: "a3",
+            role: "assistant",
+            content: "Listed.",
+            toolCalls: [browsePresentToolCall("p1", "call-1")],
+          },
+          { id: "t1", role: "tool", toolCallId: "call-1", content: catalogBody() },
+        ],
+        toolRenderer: fakeToolRenderer(),
+      });
+
+      expect(screen.getAllByTestId("rich-call-1")).toHaveLength(1);
+      expect(screen.getAllByText("Searched courses")).toHaveLength(1);
+    });
+
+    it("mounts a preview_timetable result automatically", async () => {
+      const previewBody = JSON.stringify(await runPreviewTimetable(previewReadyState(), {}, previewDeps()));
+      renderView({
+        messages: [
+          { id: "u1", role: "user", content: "Show my timetable" },
+          {
+            id: "a1",
+            role: "assistant",
+            content: "",
+            toolCalls: [
+              {
+                id: "call-preview",
+                type: "function",
+                function: { name: PREVIEW_TIMETABLE_TOOL_NAME, arguments: "{}" },
+              },
+            ],
+          },
+          { id: "t1", role: "tool", toolCallId: "call-preview", content: previewBody },
+        ],
+        toolRenderer: fakeToolRenderer(),
+      });
+
+      expect(screen.getByRole("region", { name: "Saved timetable preview" })).toBeTruthy();
+      expect(screen.queryByText("Choosing a layout")).toBeNull();
+    });
+
+    it("drops an unanswered preview call once the run stops", () => {
+      renderView({
+        messages: [
+          { id: "u1", role: "user", content: "Show my timetable" },
+          {
+            id: "a1",
+            role: "assistant",
+            content: "",
+            toolCalls: [
+              {
+                id: "call-preview",
+                type: "function",
+                function: { name: PREVIEW_TIMETABLE_TOOL_NAME, arguments: "{}" },
+              },
+            ],
+          },
+          { id: "a2", role: "assistant", content: "Stopped early." },
+        ],
+        isRunning: false,
+        toolRenderer: fakeToolRenderer(),
+      });
+
+      expect(screen.queryByText("Building timetable preview")).toBeNull();
+      expect(screen.queryByRole("region", { name: /timetable preview/i })).toBeNull();
+    });
+
+    it("keeps a non-rich trace and a rich row as two different calls", () => {
+      renderView({
+        messages: [
+          { id: "u1", role: "user", content: "both" },
+          {
+            id: "a1",
+            role: "assistant",
+            content: "",
+            toolCalls: [
+              {
+                id: "call-rich",
+                type: "function",
+                function: { name: "search_catalog", arguments: '{"query":"MATH"}' },
+              },
+              browsePresentToolCall("p1", "call-rich"),
+              {
+                id: "call-plain",
+                type: "function",
+                function: { name: "get_instructor", arguments: '{"name":"CHAN TAI MAN"}' },
+              },
+            ],
+          },
+          { id: "t1", role: "tool", toolCallId: "call-rich", content: catalogBody() },
+          {
+            id: "t2",
+            role: "tool",
+            toolCallId: "call-plain",
+            content: JSON.stringify({
+              name: "CHAN TAI MAN",
+              page: 1,
+              hasMore: false,
+              totalCount: 0,
+              courses: [],
+            }),
+          },
+        ],
+        toolRenderer: fakeToolRenderer(),
+      });
+
+      expect(screen.getAllByText("Searched courses")).toHaveLength(1);
+      expect(screen.getAllByText("Read instructor")).toHaveLength(1);
+      expect(screen.getAllByTestId(/^rich-call-/)).toHaveLength(1);
+      expect(screen.getByTestId("rich-call-rich").textContent).toBe(catalogBody());
+    });
   });
 });

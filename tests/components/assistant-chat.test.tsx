@@ -28,6 +28,16 @@ vi.mock("next/link", () => ({
 
 vi.mock("@copilotkit/react-core/v2", () => ({
   isAbortError: (error: unknown) => error instanceof Error && /abort/i.test(error.message),
+  useRenderToolCall: () =>
+    ({
+      toolCall,
+      toolMessage,
+    }: {
+      toolCall: { id: string };
+      toolMessage?: { content?: string };
+    }) => (
+      <div data-testid={`rich-${toolCall.id}`}>{toolMessage?.content ?? "loading"}</div>
+    ),
 }));
 
 vi.mock("@copilotkit/react-core/v2/headless", () => ({
@@ -57,6 +67,12 @@ function send(text: string) {
   const textarea = screen.getByLabelText("Ask about courses");
   fireEvent.change(textarea, { target: { value: text } });
   fireEvent.click(screen.getByRole("button", { name: "Send" }));
+}
+
+function expandToolTraces() {
+  for (const button of screen.queryAllByRole("button", { name: /^Show \d+ tool steps?$/ })) {
+    fireEvent.click(button);
+  }
 }
 
 beforeEach(() => {
@@ -198,5 +214,40 @@ describe("AssistantChat", () => {
     expect(screen.getByRole("button", { name: "Send" }).hasAttribute("disabled")).toBe(true);
     await act(async () => {});
     expect(mocks.agent.addMessage).not.toHaveBeenCalled();
+  });
+
+  it("renders search_catalog through useRenderToolCall", () => {
+    const catalogBody =
+      '{"type":"course","page":1,"hasMore":false,"totalCount":0,"results":[]}';
+    mocks.agent.messages = [
+      { id: "u1", role: "user", content: "Find ACCT courses" },
+      {
+        id: "a1",
+        role: "assistant",
+        content: "",
+        toolCalls: [
+          {
+            id: "call-sc",
+            type: "function",
+            function: { name: "search_catalog", arguments: '{"query":"ACCT"}' },
+          },
+          {
+            id: "p1",
+            type: "function",
+            function: {
+              name: "present_response",
+              arguments: JSON.stringify({ catalog: { mode: "browse", resultSetId: "call-sc" } }),
+            },
+          },
+        ],
+      },
+      { id: "t1", role: "tool", toolCallId: "call-sc", content: catalogBody },
+      { id: "a2", role: "assistant", content: "Here are matches." },
+    ];
+    renderChat();
+    expandToolTraces();
+
+    expect(screen.getByTestId("rich-call-sc").textContent).toBe(catalogBody);
+    expect(screen.getAllByText("Searched courses")).toHaveLength(1);
   });
 });

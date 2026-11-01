@@ -6,16 +6,32 @@ import {
 } from "@copilotkit/runtime/v2";
 
 import { apiError, readJsonBody } from "@/lib/api-response";
+import { canUseAssistant } from "@/lib/assistant/access";
 import { createAssistantAgent } from "@/lib/assistant/agent";
 import { readAssistantConfig, type AssistantConfig } from "@/lib/assistant/config";
+import { countUserTurns, runInputSchema } from "@/lib/assistant/conversation";
+import { claimAgentTurn } from "@/lib/assistant/rate-limit";
+import {
+  ASSISTANT_RUN_HEADER,
+  getRunContext,
+  registerRunContext,
+  releaseRunContext,
+} from "@/lib/assistant/run-context";
 import {
   MAX_RUN_BODY_BYTES,
-  countUserTurns,
-  runInputSchema,
-  shapeConversation,
-} from "@/lib/assistant/conversation";
-import { canUseAssistant } from "@/lib/assistant/access";
-import { consumeAgentRateLimits, type AgentRateLimitOutcome } from "@/lib/assistant/rate-limit";
+  MAX_RUN_WIRE_BYTES,
+  estimateToolResultBytes,
+  prepareRunMessages,
+  runPayloadBytes,
+} from "@/lib/assistant/run-messages";
+import { resolveAssistantConfig } from "@/lib/assistant/settings";
+import {
+  createRunTelemetry,
+  recordStreamError,
+  type RunTelemetry,
+} from "@/lib/assistant/telemetry";
+import { finalizeRunUsage, maybePruneAssistantTelemetry, recordRejectedRun } from "@/lib/assistant/telemetry-store";
+import { deriveTurnIdentity } from "@/lib/assistant/turn-key";
 
 export const dynamic = "force-dynamic";
 
@@ -33,10 +49,23 @@ function getHandler(): Handler {
   if (cachedHandler) return cachedHandler;
 
   const runtime = new CopilotRuntime({
-    agents: ({ request }: { request: Request }) => ({
-      default: createAssistantAgent(readAssistantConfig(), request.signal),
+    agents: ({ request }: { request: Request }) => {
+      const runKey = request.headers.get(ASSISTANT_RUN_HEADER);
+      const context = runKey ? getRunContext(runKey) : null;
+      return {
+        default: createAssistantAgent(
+          context?.config ?? readAssistantConfig(),
+          request.signal,
+          context?.telemetry,
+        ),
+      };
+    },
+    runner: new InMemoryAgentRunner({
+      maxThreads: 16,
+      // Frontend tools with followUp=true (e.g. filter_catalog_results) need a second run on the same thread.
+      maxRunsPerThread: 8,
+      maxBytes: 2 * 1024 * 1024,
     }),
-    runner: new InMemoryAgentRunner({ maxThreads: 16, maxRunsPerThread: 1, maxBytes: 2 * 1024 * 1024 }),
   });
 
   cachedHandler = createCopilotRuntimeHandler({ runtime, basePath: BASE_PATH });
@@ -70,49 +99,169 @@ function emptyEventStream() {
   });
 }
 
+async function loadConfig(): Promise<AssistantConfig> {
+  try {
+    return await resolveAssistantConfig();
+  } catch (error) {
+    console.error(
+      "[assistant] settings load failed:",
+      error instanceof Error ? error.message : "unknown",
+    );
+    return readAssistantConfig();
+  }
+}
+
+/** Persists the run outcome once, before the stream closes so the isolate stays alive for the write. */
+function withUsageFinalization(response: Response, telemetry: RunTelemetry): Response {
+  let finished = false;
+  const finish = async () => {
+    if (finished) return;
+    finished = true;
+    releaseRunContext(telemetry.runKey);
+    await finalizeRunUsage(telemetry);
+    void maybePruneAssistantTelemetry();
+  };
+
+  if (!response.body) {
+    void finish();
+    return response;
+  }
+
+  const reader = response.body.getReader();
+  const body = new ReadableStream<Uint8Array>({
+    async pull(controller) {
+      try {
+        const { done, value } = await reader.read();
+        if (done) {
+          await finish();
+          controller.close();
+          return;
+        }
+        controller.enqueue(value);
+      } catch (error) {
+        recordStreamError(telemetry, error);
+        await finish();
+        controller.error(error);
+      }
+    },
+    async cancel(reason) {
+      telemetry.aborted = true;
+      await finish();
+      return reader.cancel(reason);
+    },
+  });
+
+  const headers = new Headers(response.headers);
+  headers.delete("content-length");
+  return new Response(body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
 async function handleRun(request: Request, userId: string, config: AssistantConfig) {
-  const body = await readJsonBody(request, MAX_RUN_BODY_BYTES);
+  const runKey = crypto.randomUUID();
+  const body = await readJsonBody(request, MAX_RUN_WIRE_BYTES);
   if (!body.ok) return body.response;
 
   const parsed = runInputSchema.safeParse(body.data);
   if (!parsed.success) return apiError("invalid_request", "Invalid assistant request", 400);
 
-  const turns = countUserTurns(parsed.data.messages);
+  const messages = parsed.data.messages;
+  const threadId = typeof parsed.data.threadId === "string" ? parsed.data.threadId : undefined;
+  const requestRunId = typeof parsed.data.runId === "string" ? parsed.data.runId : undefined;
+  const turns = countUserTurns(messages);
   if (turns > config.maxTurns) {
+    void recordRejectedRun({
+      runKey,
+      identity: deriveTurnIdentity({ userId, threadId, messages }),
+    });
     return apiError("conversation_limit", "Conversation is too long, start a new one", 409);
   }
 
-  let outcome: AgentRateLimitOutcome;
+  const wireBytes = runPayloadBytes(messages, { threadId, runId: requestRunId });
+  const prepared = prepareRunMessages(messages, config.historyTurns);
+  const preparedBytes = runPayloadBytes(prepared, { threadId, runId: requestRunId });
+  if (preparedBytes > MAX_RUN_BODY_BYTES) {
+    void recordRejectedRun({
+      runKey,
+      identity: deriveTurnIdentity({ userId, threadId, messages }),
+    });
+    return apiError(
+      "payload_too_large",
+      "This message is too large for the assistant. Start a new chat or ask a shorter question.",
+      413,
+    );
+  }
+
+  const identity = deriveTurnIdentity({ userId, threadId, messages });
+
+  let claim;
   try {
-    outcome = await consumeAgentRateLimits(userId, {
-      perHour: config.ratePerHour,
-      perDay: config.ratePerDay,
+    claim = await claimAgentTurn({
+      userId,
+      threadId,
+      messages,
+      runKey,
+      limits: { perHour: config.ratePerHour, perDay: config.ratePerDay },
     });
   } catch (error) {
-    console.error("[assistant] rate limit failed:", error instanceof Error ? error.message : "unknown");
+    console.error(
+      "[assistant] quota claim failed:",
+      error instanceof Error ? error.message : "unknown",
+    );
     return apiError("temporarily_unavailable", "Assistant is temporarily unavailable", 503);
   }
-  if (!outcome.allowed) {
-    console.warn("[assistant] rate limited", JSON.stringify({ window: outcome.window, turns }));
-    const response = apiError("rate_limited", "Too many assistant requests", 429);
-    response.headers.set("Retry-After", String(outcome.retryAfter));
+
+  if (!claim.allowed) {
+    console.warn("[assistant] rate limited", JSON.stringify({ window: claim.window, turns }));
+    const response = apiError("quota_exhausted", "Too many assistant requests", 429);
+    response.headers.set("Retry-After", String(claim.retryAfter));
     return response;
   }
 
-  const messages = shapeConversation(parsed.data.messages, config.historyTurns);
-  const payload = JSON.stringify({ ...parsed.data, messages });
-  // CopilotKit starts a follow-up run after each frontend tool, ending the history with its result.
-  const continuation = parsed.data.messages.at(-1)?.role === "tool";
+  const payload = JSON.stringify({ ...parsed.data, messages: prepared });
   console.log(
     "[assistant] run",
-    JSON.stringify({ turns, continuation, messages: messages.length, bytes: payload.length }),
+    JSON.stringify({
+      turns,
+      continuation: identity.isContinuation,
+      charged: claim.charged,
+      messages: prepared.length,
+      wireBytes,
+      preparedBytes,
+      toolResultBytes: estimateToolResultBytes(prepared),
+    }),
   );
+
+  const telemetry = createRunTelemetry({
+    runKey,
+    identity: claim.identity,
+    charged: claim.charged,
+    maxSteps: config.maxSteps,
+  });
+  registerRunContext(runKey, { config, telemetry });
 
   const headers = new Headers(request.headers);
   headers.delete("content-length");
-  return getHandler()(
-    new Request(request.url, { method: "POST", headers, body: payload, signal: request.signal }),
-  );
+  headers.set(ASSISTANT_RUN_HEADER, runKey);
+
+  let response: Response;
+  try {
+    response = await getHandler()(
+      new Request(request.url, { method: "POST", headers, body: payload, signal: request.signal }),
+    );
+  } catch (error) {
+    recordStreamError(telemetry, error);
+    releaseRunContext(runKey);
+    await finalizeRunUsage(telemetry);
+    void maybePruneAssistantTelemetry();
+    throw error;
+  }
+
+  if (!response.ok) telemetry.errorClass ??= "runtime_error";
+  return withUsageFinalization(response, telemetry);
 }
 
 async function handle(request: Request) {
@@ -122,7 +271,7 @@ async function handle(request: Request) {
     return apiError("forbidden", "Assistant access required", 403);
   }
 
-  const config = readAssistantConfig();
+  const config = await loadConfig();
   if (!config.apiKey) return apiError("assistant_unavailable", "Assistant is not configured", 503);
 
   const kind = classify(request);

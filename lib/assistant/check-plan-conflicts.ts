@@ -1,72 +1,214 @@
 import { z } from "zod";
 
-import { detectScheduleConflicts } from "@/lib/timetable/conflicts";
+import { formatAcademicYear } from "@/lib/config/term-format";
+import { analyzeTimetable, sectionLabel } from "@/lib/timetable/analysis";
+import {
+  detectScheduleConflicts,
+  minutesToTime,
+  timeToMinutes,
+} from "@/lib/timetable/conflicts";
 import {
   normalizeCourseCode,
-  normalizePlanSection,
-  normalizeSection,
   type PlanSection,
+  type Weekday,
 } from "@/lib/timetable/schema";
 
+import { resolveCandidate } from "@/lib/assistant/timetable-candidates";
+import type { TimetableState } from "@/lib/assistant/timetable-context";
+import type { TimetableToolDeps } from "@/lib/assistant/timetable-tools";
+
+export const CHECK_PLAN_CONFLICTS_TOOL_NAME = "check_plan_conflicts";
 export const CHECK_PLAN_CONFLICTS_DESCRIPTION =
-  "Check whether one section of a course taught by an instructor clashes with the student's current timetable. Read-only; never changes the timetable.";
+  "Check whether sections of one instructor's offering of a course clash with the student's saved timetable, using this term's catalog class times. It needs the instructor: call get_course first when you do not know who teaches the course, then check each instructor teaching this term, at most three (list any others and ask). When the page names a course, check that code even if get_course fails, using an instructor from the page context or courseReferent. It loads the listed sections itself; do not call get_course_sections for the same course first. Omit section to check every listed section; do that, and answer in text, when the student asks what if they take a course without naming a section. Each section in a checked result includes fit: verified_no_clash, confirmed_clash, or incomplete—quote only those values. sectionListComplete false means not every section was listed. combination is always individual_only: this result never proves that a group of sections fits together; use preview_timetable for a combined proposal. Read-only; never changes the timetable.";
+
+export type ConflictFit = "verified_no_clash" | "confirmed_clash" | "incomplete";
+
+export function conflictFitForSection(section: {
+  complete: boolean;
+  conflicts: readonly unknown[];
+  planComplete: boolean;
+}): ConflictFit {
+  if (section.conflicts.length > 0) return "confirmed_clash";
+  if (!section.complete || !section.planComplete) return "incomplete";
+  return "verified_no_clash";
+}
 
 export const checkPlanConflictsParameters = z.object({
   code: z.string().min(1).max(20).describe("Course code, e.g. ECON1001"),
   instructor: z.string().min(1).max(80).describe("Instructor name in English, e.g. CHAN TAI MAN"),
-  section: z.string().min(1).max(20).describe("Section number, e.g. 001"),
+  section: z.string().min(1).max(20).optional().describe("Section number, e.g. 001"),
 });
 
 export type CheckPlanConflictsInput = z.infer<typeof checkPlanConflictsParameters>;
-export type CatalogSection = { section: string; schedules: PlanSection["schedules"] };
-export type PlanConflict = { with: string; day: string };
+
+export type SectionCheck = {
+  section: string;
+  meetings: string[];
+  conflicts: Array<{ with: string; day: Weekday; overlap: string }>;
+  complete: boolean;
+  fit: ConflictFit;
+  replaces?: string;
+};
+
 export type CheckPlanConflictsResult =
-  | { found: false; error?: "request_failed" }
-  | { found: true; conflicts: PlanConflict[] };
+  | {
+      status: "checked";
+      courseCode: string;
+      instructor: string;
+      plan: { name: string; term: string };
+      planComplete: boolean;
+      unscheduled: string[];
+      sectionListComplete: boolean;
+      plannerVersion: string;
+      combination?: "individual_only";
+      sections: SectionCheck[];
+    }
+  | { status: "no_timetable"; timetable: "no_plan" | "loading" | "unavailable" }
+  | { status: "term_mismatch"; planTerm: string; catalogTerm: string }
+  | { status: "not_found" }
+  | { status: "invalid_request" }
+  | { status: "temporarily_unavailable" }
+  | { status: "needs_clarification"; ask: string };
 
-export function checkPlanConflicts(
-  plan: PlanSection[],
-  input: CheckPlanConflictsInput,
-  sections: CatalogSection[],
-): CheckPlanConflictsResult {
-  const wanted = normalizeSection(input.section);
-  const match = sections.find((entry) => normalizeSection(entry.section) === wanted);
-  if (!match) return { found: false };
+const overlapWindow = (aTime: string, bTime: string) => {
+  const [aStart, aEnd] = aTime.split("-").map(timeToMinutes);
+  const [bStart, bEnd] = bTime.split("-").map(timeToMinutes);
+  const start = Math.max(aStart, bStart);
+  const end = Math.min(aEnd, bEnd);
+  return `${minutesToTime(start)}-${minutesToTime(end)}`;
+};
 
-  const candidate = normalizePlanSection({
-    code: input.code,
-    prof: input.instructor,
-    section: match.section,
-    schedules: match.schedules,
-  });
-  const others = plan.filter(
-    (item) => normalizeCourseCode(item.courseCode) !== candidate.courseCode,
+const sectionConflictSchema = z
+  .object({
+    section: z.string(),
+    meetings: z.array(z.string()),
+    conflicts: z.array(
+      z.object({ with: z.string(), day: z.enum(["MON", "TUE", "WED", "THU", "FRI"]), overlap: z.string() }).strict(),
+    ),
+    complete: z.boolean(),
+    fit: z.enum(["verified_no_clash", "confirmed_clash", "incomplete"]),
+    replaces: z.string().optional(),
+  })
+  .strict();
+
+export const checkPlanConflictsResultSchema: z.ZodType<CheckPlanConflictsResult> = z.union([
+  z
+    .object({
+      status: z.literal("checked"),
+      courseCode: z.string(),
+      instructor: z.string(),
+      plan: z.object({ name: z.string(), term: z.string() }).strict(),
+      planComplete: z.boolean(),
+      unscheduled: z.array(z.string()),
+      sectionListComplete: z.boolean(),
+      plannerVersion: z.string(),
+      combination: z.literal("individual_only").optional(),
+      sections: z.array(sectionConflictSchema),
+    })
+    .strict(),
+  z.object({ status: z.literal("no_timetable"), timetable: z.enum(["no_plan", "loading", "unavailable"]) }).strict(),
+  z
+    .object({
+      status: z.literal("term_mismatch"),
+      planTerm: z.string(),
+      catalogTerm: z.string(),
+    })
+    .strict(),
+  z.object({ status: z.literal("not_found") }).strict(),
+  z.object({ status: z.literal("invalid_request") }).strict(),
+  z.object({ status: z.literal("temporarily_unavailable") }).strict(),
+  z.object({ status: z.literal("needs_clarification"), ask: z.string() }).strict(),
+]);
+
+const planWithoutCourse = (plan: PlanSection[], courseCode: string) =>
+  plan.filter((section) => normalizeCourseCode(section.courseCode) !== normalizeCourseCode(courseCode));
+
+const replacesForCourse = (plan: PlanSection[], courseCode: string) => {
+  const saved = plan.find(
+    (section) => normalizeCourseCode(section.courseCode) === normalizeCourseCode(courseCode),
   );
+  return saved ? sectionLabel(saved) : undefined;
+};
 
+export const conflictsForCandidate = (plan: PlanSection[], candidate: PlanSection) => {
+  const base = planWithoutCourse(plan, candidate.courseCode);
   const seen = new Set<string>();
-  const conflicts: PlanConflict[] = [];
-  for (const conflict of detectScheduleConflicts([...others, candidate])) {
+  const conflicts: SectionCheck["conflicts"] = [];
+
+  for (const conflict of detectScheduleConflicts([...base, candidate])) {
     if (conflict.a.key !== candidate.key && conflict.b.key !== candidate.key) continue;
     const other = conflict.a.key === candidate.key ? conflict.b : conflict.a;
-    const label = `${other.courseCode}-${other.section}`;
-    const id = `${label}|${conflict.date}`;
+    const label = sectionLabel(other);
+    const overlap = overlapWindow(conflict.aTime, conflict.bTime);
+    const id = `${label}|${conflict.date}|${overlap}`;
     if (seen.has(id)) continue;
     seen.add(id);
-    conflicts.push({ with: label, day: conflict.date });
+    conflicts.push({ with: label, day: conflict.date, overlap });
   }
 
-  return { found: true, conflicts };
-}
+  conflicts.sort((a, b) => a.day.localeCompare(b.day) || a.with.localeCompare(b.with));
+  return conflicts;
+};
 
 export async function runCheckPlanConflicts(
-  plan: PlanSection[],
-  input: CheckPlanConflictsInput,
-  loadSections: (code: string, instructor: string) => Promise<{ sections: CatalogSection[] }>,
+  state: TimetableState,
+  args: unknown,
+  deps: TimetableToolDeps,
 ): Promise<CheckPlanConflictsResult> {
-  try {
-    const { sections } = await loadSections(input.code, input.instructor);
-    return checkPlanConflicts(plan, input, sections);
-  } catch {
-    return { found: false, error: "request_failed" };
+  const parsed = checkPlanConflictsParameters.safeParse(args);
+  if (!parsed.success) return { status: "invalid_request" };
+
+  if (state.status !== "ready") {
+    return { status: "no_timetable", timetable: state.status };
   }
+
+  let catalogTerm: { year: number; sem: number };
+  try {
+    catalogTerm = await deps.loadCatalogTerm();
+  } catch {
+    return { status: "temporarily_unavailable" };
+  }
+  if (state.plan.year !== catalogTerm.year || state.plan.sem !== catalogTerm.sem) {
+    return {
+      status: "term_mismatch",
+      planTerm: formatAcademicYear(state.plan.year, state.plan.sem),
+      catalogTerm: formatAcademicYear(catalogTerm.year, catalogTerm.sem),
+    };
+  }
+
+  const resolution = await resolveCandidate(parsed.data, deps.loadSections);
+  if (resolution.status !== "resolved") return resolution;
+
+  const analysis = analyzeTimetable(state.plan.sections);
+  const planCompleteForFit = analysis.complete && !state.truncated;
+  const replaces = replacesForCourse(state.plan.sections, resolution.courseCode);
+
+  const sections = resolution.options.map((option) => {
+    const conflicts = conflictsForCandidate(state.plan.sections, option.planSection);
+    const complete = option.meetings.length > 0 && option.unsupportedMeetings === 0;
+    return {
+      section: option.section,
+      meetings: option.meetings,
+      conflicts,
+      complete,
+      fit: conflictFitForSection({ complete, conflicts, planComplete: planCompleteForFit }),
+      ...(replaces ? { replaces } : {}),
+    };
+  });
+
+  return {
+    status: "checked",
+    courseCode: resolution.courseCode,
+    instructor: resolution.instructor,
+    plan: {
+      name: state.plan.name,
+      term: formatAcademicYear(state.plan.year, state.plan.sem),
+    },
+    planComplete: analysis.complete,
+    unscheduled: analysis.unscheduled,
+    sectionListComplete: resolution.sectionListComplete,
+    plannerVersion: state.version,
+    combination: "individual_only",
+    sections,
+  };
 }

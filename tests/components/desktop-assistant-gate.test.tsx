@@ -62,20 +62,25 @@ vi.mock("@copilotkit/react-core/v2", () => ({
     }, []);
     return <>{children}</>;
   },
+  useAgent: () => ({ agent: { messages: [] } }),
   useAgentContext: agentContextSpy,
   useFrontendTool: (definition: unknown, deps: unknown) => {
     frontendToolSpy(definition, deps);
   },
   useConfigureSuggestions: () => {},
+  useRenderTool: vi.fn(),
 }));
 vi.mock("@/lib/timetable/catalog-client", () => ({
   getSections: vi.fn(),
   getCourseDetail: (...args: unknown[]) => getCourseDetailMock(...args),
   getInstructorCourses: (...args: unknown[]) => getInstructorCoursesMock(...args),
 }));
-vi.mock("@/components/timetable/planner-provider", () => ({
-  useTimetablePlanner: () => ({ activePlan: undefined }),
-}));
+vi.mock("@/components/timetable/planner-provider", async () => {
+  const { plannerState } = await import("@/tests/helpers/planner-state");
+  return {
+    useTimetablePlanner: () => plannerState(undefined),
+  };
+});
 vi.mock("@/components/assistant/assistant-chat", () => ({
   default: (props: { notice: string | null; onClose: () => void }) => (
     <div data-testid="assistant-chat">

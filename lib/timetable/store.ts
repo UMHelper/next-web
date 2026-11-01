@@ -7,6 +7,10 @@ export type SyncState =
   | "error"
   | "conflict";
 
+export type PlannerLoadState = "signed_out" | "loading" | "ready";
+
+export type PlannerServerLoad = "pending" | "ok" | "failed";
+
 export type LocalPlan = {
   clientRef: string;
   serverId?: number;

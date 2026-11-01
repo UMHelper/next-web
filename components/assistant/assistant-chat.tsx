@@ -1,6 +1,11 @@
 "use client";
 
-import { isAbortError } from "@copilotkit/react-core/v2";
+import {
+  isAbortError,
+  useRenderToolCall,
+  type ToolCall,
+  type ToolMessage,
+} from "@copilotkit/react-core/v2";
 import {
   useAgent,
   useCopilotKit,
@@ -10,6 +15,11 @@ import { useCallback, useEffect, useMemo, useRef, useState, type RefCallback } f
 
 import { describeAssistantError } from "@/lib/assistant/error-message";
 import { PANEL_WIDTH_DEFAULT } from "@/lib/assistant/panel-width";
+import { FILTER_CATALOG_RESULTS_TOOL_NAME } from "@/lib/assistant/catalog-tool-names";
+import { RICH_TOOL_NAMES } from "@/lib/assistant/rich-tools";
+
+import { useCatalogFilterStore } from "./catalog-filter-store";
+import { CatalogFilterToolResult } from "./use-catalog-results-tool";
 import { AssistantChatView, type ChatSuggestion } from "./assistant-chat-view";
 import { PANEL_WIDTH_VAR } from "./resize-handle";
 
@@ -41,7 +51,30 @@ export default function AssistantChat({
 }) {
   const { agent, isReady } = useAgent();
   const { copilotkit } = useCopilotKit();
+  const catalogFilterStore = useCatalogFilterStore();
   const { suggestions } = useSuggestions();
+  const renderToolCall = useRenderToolCall();
+
+  const toolRenderer = useMemo(
+    () => ({
+      names: RICH_TOOL_NAMES,
+      render: (call: ToolCall, result: ToolMessage | undefined) => {
+        if (call.function.name === FILTER_CATALOG_RESULTS_TOOL_NAME) {
+          const raw = result?.content;
+          const resultText =
+            typeof raw === "string" ? raw : raw !== undefined ? JSON.stringify(raw) : undefined;
+          return (
+            <CatalogFilterToolResult
+              status={resultText ? "complete" : "executing"}
+              result={resultText}
+            />
+          );
+        }
+        return renderToolCall({ toolCall: call, toolMessage: result });
+      },
+    }),
+    [renderToolCall],
+  );
 
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -83,10 +116,11 @@ export default function AssistantChat({
   const startNewChat = useCallback(() => {
     if (agent.isRunning) copilotkit.stopAgent({ agent });
     agent.setMessages([]);
+    catalogFilterStore?.reset();
     setDraft("");
     setError(null);
     onClearNotice();
-  }, [agent, copilotkit, onClearNotice]);
+  }, [agent, catalogFilterStore, copilotkit, onClearNotice]);
 
   const clearAlert = () => {
     setError(null);
@@ -159,6 +193,7 @@ export default function AssistantChat({
       onNewChat={startNewChat}
       onClose={onClose}
       onClearAlert={clearAlert}
+      toolRenderer={toolRenderer}
     />
   );
 }

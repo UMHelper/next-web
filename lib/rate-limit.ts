@@ -16,6 +16,11 @@ type RateLimitRow = {
 
 type PreviewBucket = { count: number; resetAt: number };
 
+/** Local dev only: set DISABLE_RATE_LIMIT=1 in .env.local (never in production). */
+export function isRateLimitDisabled(env: Record<string, string | undefined> = process.env): boolean {
+  return env.NODE_ENV !== "production" && env.DISABLE_RATE_LIMIT === "1";
+}
+
 const previewBuckets = new Map<string, PreviewBucket>();
 const PREVIEW_PRUNE_THRESHOLD = 1000;
 
@@ -48,6 +53,10 @@ function consumePreviewRateLimit(input: ConsumeRateLimitInput, windowSeconds: nu
 }
 
 export async function consumeRateLimit(input: ConsumeRateLimitInput) {
+  if (isRateLimitDisabled()) {
+    return { allowed: true, remaining: input.limit, retryAfter: 0 };
+  }
+
   const windowSeconds = input.windowSeconds ?? 3600;
   if (isReadonlyPreview()) {
     return consumePreviewRateLimit(input, windowSeconds);

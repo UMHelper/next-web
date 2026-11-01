@@ -6,11 +6,6 @@ import type { ZodTypeAny } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
 
 import { createAssistantAgent } from "@/lib/assistant/agent";
-import {
-  CHECK_PLAN_CONFLICTS_DESCRIPTION,
-  checkPlanConflictsParameters,
-  runCheckPlanConflicts,
-} from "@/lib/assistant/check-plan-conflicts";
 import type { AssistantConfig } from "@/lib/assistant/config";
 import { shapeConversation, type RunMessage } from "@/lib/assistant/conversation";
 import {
@@ -25,15 +20,33 @@ import {
   type NavigateResult,
 } from "@/lib/assistant/navigation";
 import { PAGE_CONTEXT_DESCRIPTION, describePage } from "@/lib/assistant/page-context";
-import { PLAN_CONTEXT_DESCRIPTION, summarizePlan } from "@/lib/assistant/plan-summary";
+import {
+  TIMETABLE_CONTEXT_DESCRIPTION,
+  parseTimetableContext,
+  serializeTimetableContext,
+  type TimetableContextPayload,
+} from "@/lib/assistant/timetable-context";
+import {
+  TIMETABLE_PREVIEWS_CONTEXT_DESCRIPTION,
+  summarizeTimetablePreviews,
+} from "@/lib/assistant/timetable-previews";
 import { ASSISTANT_PROMPT } from "@/lib/assistant/prompt";
 
 import type { EvalCase } from "./cases";
-import { evalNavigationLookups, getPlanSections } from "./catalog";
+import { evalNavigationLookups } from "./catalog";
 import type { RunTrace, StepMetrics, ToolCallRecord, TurnTrace } from "./grade";
 import { captureRequests, type RequestAudit } from "./request-audit";
 
 export const MAX_RUNS_PER_TURN = 4;
+
+export function evalCaseTimeoutMs(value: string | undefined = process.env.ASSISTANT_EVAL_CASE_TIMEOUT_MS): number {
+  if (value === undefined || value === "") return 120_000;
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    throw new Error(`ASSISTANT_EVAL_CASE_TIMEOUT_MS must be a positive integer, got "${value}"`);
+  }
+  return parsed;
+}
 
 export const PROMPT_FINGERPRINT = createHash("sha256")
   .update(ASSISTANT_PROMPT)
@@ -47,6 +60,14 @@ export class BudgetExhausted extends Error {
 
 export type EvalBudget = { maxSteps: number; used: number };
 export type HarnessOptions = { config: AssistantConfig; budget: EvalBudget; repeat: number };
+
+export type RunCaseExtras = { timetableForTurn?: (turn: number) => TimetableContextPayload };
+
+const DEFAULT_TIMETABLE_CONTEXT = serializeTimetableContext({
+  v: 1,
+  status: "no_plan",
+  currentTerm: { year: 2026, sem: 1 },
+});
 
 type Session = { pathname: string; messages: Message[] };
 type PendingCall = { id: string; name: string; args: Record<string, unknown> };
@@ -72,11 +93,6 @@ function frontendToolSchema(parameters: ZodTypeAny): Record<string, unknown> {
 }
 
 const FRONTEND_TOOLS: Tool[] = [
-  {
-    name: "check_plan_conflicts",
-    description: CHECK_PLAN_CONFLICTS_DESCRIPTION,
-    parameters: frontendToolSchema(checkPlanConflictsParameters),
-  },
   { name: "navigate", description: NAVIGATE_DESCRIPTION, parameters: frontendToolSchema(navigateParameters) },
 ];
 const FRONTEND_TOOL_NAMES = new Set(FRONTEND_TOOLS.map((tool) => tool.name));
@@ -124,12 +140,16 @@ async function simulateNavigate(input: unknown, session: Session): Promise<Navig
 
 async function runFrontendTool(call: PendingCall, session: Session): Promise<unknown> {
   if (call.name === "navigate") return simulateNavigate(call.args, session);
-  const parsed = checkPlanConflictsParameters.safeParse(call.args);
-  if (!parsed.success) return { found: false, error: "request_failed" };
-  return runCheckPlanConflicts([], parsed.data, getPlanSections as Parameters<typeof runCheckPlanConflicts>[2]);
+  return { status: "invalid_request" };
 }
 
-async function runOnce(session: Session, options: HarnessOptions, continuation: boolean) {
+async function runOnce(
+  session: Session,
+  options: HarnessOptions,
+  continuation: boolean,
+  timetableContext: string,
+  signal?: AbortSignal,
+) {
   if (options.budget.used >= options.budget.maxSteps) {
     throw new BudgetExhausted(`model step budget of ${options.budget.maxSteps} used up`);
   }
@@ -142,11 +162,17 @@ async function runOnce(session: Session, options: HarnessOptions, continuation: 
   let newMessages: Message[] = [];
   let error: string | undefined;
   try {
-    const agent = createAssistantAgent(options.config);
+    const agent = createAssistantAgent(options.config, signal);
     agent.setMessages(shapeConversation(session.messages as RunMessage[], options.config.historyTurns) as Message[]);
+    const timetableState = parseTimetableContext(timetableContext);
+    const currentVersion = timetableState.status === "ready" ? timetableState.version : null;
     const context: Context[] = [
-      { description: PLAN_CONTEXT_DESCRIPTION, value: summarizePlan(undefined) },
+      { description: TIMETABLE_CONTEXT_DESCRIPTION, value: timetableContext },
       { description: PAGE_CONTEXT_DESCRIPTION, value: JSON.stringify(describePage(session.pathname)) },
+      {
+        description: TIMETABLE_PREVIEWS_CONTEXT_DESCRIPTION,
+        value: summarizeTimetablePreviews(session.messages, currentVersion),
+      },
     ];
     ({ newMessages } = await agent.runAgent({ runId: randomUUID(), tools: FRONTEND_TOOLS, context }));
   } catch (caught) {
@@ -200,7 +226,12 @@ async function runTurn(
   message: string,
   session: Session,
   options: HarnessOptions,
+  extras?: RunCaseExtras,
 ): Promise<TurnTrace> {
+  const timetableContext =
+    extras?.timetableForTurn === undefined
+      ? DEFAULT_TIMETABLE_CONTEXT
+      : serializeTimetableContext(extras.timetableForTurn(turn));
   const started = Date.now();
   const pathnameBefore = session.pathname;
   const lengthBefore = session.messages.length;
@@ -208,26 +239,46 @@ async function runTurn(
   session.messages.push({ id: randomUUID(), role: "user", content: message });
   const turnStart = session.messages.length - 1;
 
+  const controller = new AbortController();
+  const timer = setTimeout(() => {
+    controller.abort(new DOMException("Eval case timed out", "TimeoutError"));
+  }, evalCaseTimeoutMs());
+  timer.unref();
+
   const runs: RunTrace[] = [];
   let runCapHit = false;
   let error: string | undefined;
-  for (;;) {
-    if (runs.length === MAX_RUNS_PER_TURN) {
-      runCapHit = true;
-      break;
+  try {
+    for (;;) {
+      if (runs.length === MAX_RUNS_PER_TURN) {
+        runCapHit = true;
+        break;
+      }
+      // Await settlement after abort. Leaving the promise running would keep the provider request open.
+      const { trace, pending } = await runOnce(
+        session,
+        options,
+        runs.length > 0,
+        timetableContext,
+        controller.signal,
+      );
+      runs.push(trace);
+      if (controller.signal.aborted || trace.error !== undefined) {
+        error = trace.error;
+        break;
+      }
+      if (pending.length === 0) break;
+      for (const call of pending) {
+        const result = await runFrontendTool(call, session);
+        session.messages.push({ id: randomUUID(), role: "tool", toolCallId: call.id, content: JSON.stringify(result) });
+      }
     }
-    const { trace, pending } = await runOnce(session, options, runs.length > 0);
-    runs.push(trace);
-    if (trace.error !== undefined) {
-      error = trace.error;
-      break;
-    }
-    if (pending.length === 0) break;
-    for (const call of pending) {
-      const result = await runFrontendTool(call, session);
-      session.messages.push({ id: randomUUID(), role: "tool", toolCallId: call.id, content: JSON.stringify(result) });
-    }
+  } finally {
+    clearTimeout(timer);
   }
+
+  const timedOut = controller.signal.aborted;
+  if (timedOut && error === undefined) error = "TimeoutError: Eval case timed out";
 
   const turnMessages = session.messages.slice(turnStart);
   return {
@@ -243,16 +294,27 @@ async function runTurn(
     ms: Date.now() - started,
     runCapHit,
     error,
+    ...(timedOut ? { timedOut: true as const } : {}),
     messagesAdded: session.messages.length - lengthBefore,
     bytesAdded: historyBytes(session.messages) - bytesBefore,
   };
 }
 
-export async function runCase(evalCase: EvalCase, options: HarnessOptions): Promise<TurnTrace[]> {
+export type HarnessEvalCase = {
+  id: string;
+  pathname: string;
+  turns: Array<{ message: string }>;
+};
+
+export async function runCase(
+  evalCase: HarnessEvalCase,
+  options: HarnessOptions,
+  extras?: RunCaseExtras,
+): Promise<TurnTrace[]> {
   const session: Session = { pathname: evalCase.pathname, messages: [] };
   const traces: TurnTrace[] = [];
   for (const [turn, { message }] of evalCase.turns.entries()) {
-    traces.push(await runTurn(evalCase.id, turn, message, session, options));
+    traces.push(await runTurn(evalCase.id, turn, message, session, options, extras));
   }
   return traces;
 }

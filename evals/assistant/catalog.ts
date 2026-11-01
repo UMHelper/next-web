@@ -360,15 +360,15 @@ export async function getInstructorForAssistant(input: GetInstructorToolInput): 
   const filtered = base.courses.filter(
     (course) =>
       (input.minResult === undefined || (course.result ?? 0) >= input.minResult) &&
-      (input.maxDifficulty === undefined || (course.difficulty ?? 0) <= input.maxDifficulty) &&
+      (input.minEase === undefined || (course.difficulty ?? 0) >= input.minEase) &&
       (input.minCommentCount === undefined || course.commentCount >= input.minCommentCount) &&
       (input.offeredOnly !== true || course.isOffered),
   );
   const sorted = [...filtered].sort((a, b) => {
     const left =
-      input.sortBy === "result" ? (a.result ?? 0) : input.sortBy === "difficulty" ? (a.difficulty ?? 0) : input.sortBy === "commentCount" ? a.commentCount : a.courseCode;
+      input.sortBy === "result" ? (a.result ?? 0) : input.sortBy === "ease" ? (a.difficulty ?? 0) : input.sortBy === "commentCount" ? a.commentCount : a.courseCode;
     const right =
-      input.sortBy === "result" ? (b.result ?? 0) : input.sortBy === "difficulty" ? (b.difficulty ?? 0) : input.sortBy === "commentCount" ? b.commentCount : b.courseCode;
+      input.sortBy === "result" ? (b.result ?? 0) : input.sortBy === "ease" ? (b.difficulty ?? 0) : input.sortBy === "commentCount" ? b.commentCount : b.courseCode;
     const result = typeof left === "number" && typeof right === "number" ? left - right : String(left).localeCompare(String(right));
     return input.sortOrder === "asc" ? result : -result;
   });

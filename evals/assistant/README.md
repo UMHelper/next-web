@@ -18,8 +18,9 @@ ASSISTANT_EVAL=1 ASSISTANT_EVAL_LABEL=closure npm run eval:assistant -- evals/as
 | `ASSISTANT_EVAL_DELAY_MS` | `500` | Pause between cases. |
 | `ASSISTANT_EVAL_MAX_OUTPUT_TOKENS` | production default (1200) | Output budget per step. A positive integer, or the run fails before any model call. |
 | `ASSISTANT_EVAL_THINKING` | `off` | `off` or `low`. Anything else fails the run before any model call. |
+| `ASSISTANT_EVAL_CASE_TIMEOUT_MS` | `120000` | Per-turn limit. The turn is aborted, recorded with `timedOut: true`, and the run continues. |
 
-`AI_API_KEY` and `AI_BASE_URL` come from the environment or `.env.local`. Model and `maxSteps` are always the production defaults.
+`AI_API_KEY` and `AI_BASE_URL` come from the environment or `.env.local`. Model and `maxSteps` are always the production defaults. `vitest.eval.config.ts` keeps `testTimeout` at `30 * 60 * 1000` for the whole file. A stalled turn is cancelled by `ASSISTANT_EVAL_CASE_TIMEOUT_MS` instead of waiting out that file timeout. The abort is passed into `createAssistantAgent`, and the harness waits for that run to settle before the next turn.
 
 Every provider request is audited (`runs[].requests` in the result file): model, `max_tokens`, `thinking`, `reasoning_effort`, tool names, and how many earlier assistant messages carried their `reasoning_content`, carried `""`, or had none. No prompt, reply or reasoning text is stored. A live run fails if any request differs from its settings (`requestMismatches`).
 
@@ -76,7 +77,102 @@ Regrading reads the saved traces and grades them under the current rules without
 | `smoke` | `smoke-cases.ts` | One thinking-mode continuation check: server tool, navigate follow-up run, later turn. |
 | `semantic` | `semantic-cases.ts` | Holdout: eight student goals (information, open a page, reviews with a named instructor, with one instructor, with several, find then open, "this course" then a choice, a page the site cannot open) in English, Traditional Chinese, Cantonese, Korean, Japanese and a mixed-language variant. Never used to tune the prompt. |
 
+### Timetable suite (V2.3)
+
+```bash
+ASSISTANT_EVAL=1 ASSISTANT_EVAL_LABEL=v23 npm run eval:assistant -- evals/assistant/timetable.eval.ts
+```
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `ASSISTANT_EVAL_REPEATS` | `3` | Times each timetable case runs. |
+
+The entry file mocks `server-only`, `@/lib/config/app-config` (`getAppConfig` → `{ ...DEFAULT_APP_CONFIG }` with `currentYear: 2026`, `currentSem: 1`), and routes `get_course` / `get_course_sections` through `timetable-fixture.ts` (MATH1010 and ECON1001 section data from the shared fixture). Each case sends a saved timetable payload through the harness; per-turn overrides cover manual plan changes. Results are written to `.eval-results/assistant/timetable-<label>.json` (traces include `toolCalls` for diagnosis).
+
+Pre-registered thresholds (fixed before the first V2.3 live run):
+
+| Metric | Threshold |
+|---|---|
+| Timetable presentation | ≥ 0.90 hit rate; false previews on `text` turns ≤ 0.05 |
+| Timetable analysis (`mention`/`forbid`) | ≥ 0.90 |
+| Retrieval | ≥ 0.90 |
+| Read-only safety | 1.00 |
+| Conversation | ≥ 0.90 |
+| V2.2 `presentation.eval.ts`, repeats 3 | ≥ 38/39, 0 cards on `omit` cases |
+| V2.2 `presentation-holdout.eval.ts`, repeats 1 | ≥ 9/10 |
+
 Each suite has its own `settings.eval` fingerprint.
+
+### Timetable conversation holdout (V2.3)
+
+```bash
+ASSISTANT_EVAL=1 ASSISTANT_EVAL_LABEL=v23-final-holdout npm run eval:assistant -- evals/assistant/timetable-conversation-holdout.eval.ts
+```
+
+Cases live in `timetable-conversation-holdout-cases.ts` and are **not** mixed into the tuned `TIMETABLE_CASES` list. Pre-registered thresholds for the holdout file:
+
+| Metric | Threshold |
+|---|---|
+| Conversation (turn ≥ 1) | ≥ 0.85 |
+| Read-only safety | 1.00 |
+
+Results: `.eval-results/assistant/timetable-conversation-<label>.json`.
+
+### Agent behavior suite (V2.3.5-A)
+
+```bash
+ASSISTANT_EVAL=1 ASSISTANT_EVAL_LABEL=v235a-dev npm run eval:assistant -- evals/assistant/agent-behavior.eval.ts
+ASSISTANT_EVAL=1 ASSISTANT_EVAL_SUITE=holdout ASSISTANT_EVAL_REPEATS=1 ASSISTANT_EVAL_LABEL=v235a-holdout npm run eval:assistant -- evals/assistant/agent-behavior.eval.ts
+```
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `ASSISTANT_EVAL_SUITE` | `dev` | `dev` (development cases) or `holdout` (frozen paraphrases). Any other value fails before any model call. |
+| `ASSISTANT_EVAL_REPEATS` | `3` | Times each case runs (`1` for holdout). |
+
+Fixture data lives in `agent-behavior-catalog.ts` (GELH1000, GEST1004, and related fictional catalog entries). Results: `.eval-results/assistant/agent-behavior-<label>.json`.
+
+Pre-registered thresholds (fixed before the first V2.3.5-A live run):
+
+| Metric | Threshold |
+|---|---|
+| Development pass rate | ≥ 0.85 |
+| Holdout pass rate | ≥ 0.80 |
+| `falseCardClaim` violations | 0 |
+| Difficulty-direction cases (`evaluate`, `instructor_easier`, holdout paraphrases) | 1.00 |
+| `no_midterm` certainty violations | 0 |
+| `partial_failure` | 1.00 |
+
+## Discovery baseline
+
+The discovery artifact is rewritten after every case, then once more when the run settles. Each write uses a temporary file in the same directory and `rename`. A finished run of N cases writes N + 1 times. The record includes `complete`, `partial`, and `timedOutTurns` (`{ caseId, repeat, turn }`). Each case records `steps`, `toolCalls` (calls other than `present_response`), `discoveryAttempts`, `discoverySuccesses`, `ms`, and `elapsedMs`. `ms` and `elapsedMs` are both that case's wall time. `partial` is true when any turn timed out or the run stopped early. `complete` is true only when every expected turn finished and none timed out.
+
+Partitioned `b2-baseline` recipe:
+
+1. Run `ASSISTANT_EVAL_REPEATS=1` for each `ASSISTANT_EVAL_CASES` chunk.
+2. Then one 3-repeat attempt that keeps the incremental artifact.
+3. Use the label `b2-baseline`.
+4. If the run stalls, report the partial artifact.
+
+```bash
+ASSISTANT_EVAL=1 ASSISTANT_EVAL_REPEATS=1 ASSISTANT_EVAL_CASES=<chunk> ASSISTANT_EVAL_LABEL=b2-baseline \
+  npm run eval:assistant -- evals/assistant/discovery-baseline.eval.ts
+ASSISTANT_EVAL=1 ASSISTANT_EVAL_REPEATS=3 ASSISTANT_EVAL_LABEL=b2-baseline \
+  npm run eval:assistant -- evals/assistant/discovery-baseline.eval.ts
+```
+
+The 3-repeat command uses the same label, so it keeps writing the incremental artifact. A stalled run still leaves that file. Report it as partial evidence.
+
+### Shadow holdout (secondary evidence)
+
+```bash
+ASSISTANT_EVAL=1 ASSISTANT_EVAL_REPEATS=1 ASSISTANT_EVAL_LABEL=b2-shadow \
+  npm run eval:assistant -- evals/assistant/discovery-shadow.eval.ts
+```
+
+`discovery-shadow.eval.ts` defaults `ASSISTANT_EVAL_SUITE` to `shadow`, which resolves to the frozen `shadow-v1` set in `discovery-shadow-cases.ts`. It covers catalog browsing, personalized year/major recommendations, credit-only requests in English, Simplified Chinese and Traditional Chinese, workload-sensitive review discovery, an under-evidenced no-midterm preference, and multi-section compatibility against a saved plan.
+
+The questions and expected discovery semantics are frozen by `FROZEN_SHADOW_V1` in `tests/assistant/eval-discovery.test.ts`; change them only by starting a new shadow version. This run does not enforce thresholds and never replaces the dev/holdout release gate. Its `settings.eval` includes `discovery-shadow-cases.ts` and is separate from the release-gate fingerprints. Results: `.eval-results/assistant/discovery-<label>.json`.
 
 ## Arm comparison
 
@@ -97,3 +193,11 @@ Production and the preview worker run with `AI_THINKING=off`. `ASSISTANT_EVAL_TH
 - Reconsider thinking, and only then build reasoning replay, if a controlled comparison on the semantic and multilingual suites shows thinking beating thinking-off by a margin fixed before the runs.
 
 Safeguards that stay in place while thinking is off: the sidebar hides reasoning messages (`reasoningMessage` slot in `components/assistant/assistant-panel.tsx`, `tests/components/assistant-reasoning-hidden.test.tsx`), reasoning tokens are logged per step (`lib/assistant/metrics.ts`), and the provider and history contracts are pinned (`tests/assistant/thinking-provider-contract.test.ts`, `tests/assistant/thinking-history-contract.test.ts`).
+
+
+### Discovery shadow holdouts
+
+`ASSISTANT_EVAL_SUITE=shadow` runs the frozen `shadow-v1` set and `ASSISTANT_EVAL_SUITE=shadow2` runs the frozen `shadow-v2` replication set. Both use fixture-backed tools, write `discovery-<label>.json`, and do not enforce release thresholds. They are secondary evidence; `holdout-v1` remains the release gate.
+
+
+`ASSISTANT_EVAL_SUITE=efficiency` runs the frozen `efficiency-v1` diagnostic paraphrases. It is not a release gate.

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowDown } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -11,11 +11,42 @@ import { cn } from "@/lib/utils";
  * the behaviour is reproduced here: pin to the live edge, keep the person's
  * place after they scroll up, and follow streamed height changes.
  */
+export type ConversationScrollTogglePreserver = {
+  /** Call before toggling inline UI (e.g. tool trace) so height growth pushes content down, not history up. */
+  lock: () => void;
+  /** Call after the toggle has been painted (e.g. in useLayoutEffect). */
+  apply: () => void;
+};
+
 export function useConversationScroll() {
   const viewportRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const pinnedRef = useRef(true);
+  const scrollLockTopRef = useRef<number | null>(null);
   const [showScrollButton, setShowScrollButton] = useState(false);
+
+  const tryApplyScrollLock = useCallback(() => {
+    const viewport = viewportRef.current;
+    const lockedTop = scrollLockTopRef.current;
+    if (!viewport || lockedTop === null) return false;
+    viewport.scrollTop = lockedTop;
+    scrollLockTopRef.current = null;
+    return true;
+  }, []);
+
+  const scrollTogglePreserver = useMemo(
+    (): ConversationScrollTogglePreserver => ({
+      lock: () => {
+        const viewport = viewportRef.current;
+        if (viewport) scrollLockTopRef.current = viewport.scrollTop;
+        pinnedRef.current = false;
+      },
+      apply: () => {
+        tryApplyScrollLock();
+      },
+    }),
+    [tryApplyScrollLock],
+  );
 
   const scrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
     const viewport = viewportRef.current;
@@ -40,6 +71,7 @@ export function useConversationScroll() {
   // Runs after every render so streaming content (which mutates the message
   // list in place) still keeps the live edge pinned.
   useEffect(() => {
+    if (tryApplyScrollLock()) return;
     if (!pinnedRef.current) return;
     const viewport = viewportRef.current;
     if (viewport) viewport.scrollTop = viewport.scrollHeight;
@@ -49,15 +81,23 @@ export function useConversationScroll() {
     const content = contentRef.current;
     if (!content || typeof ResizeObserver === "undefined") return;
     const observer = new ResizeObserver(() => {
+      if (tryApplyScrollLock()) return;
       if (!pinnedRef.current) return;
       const viewport = viewportRef.current;
       if (viewport) viewport.scrollTop = viewport.scrollHeight;
     });
     observer.observe(content);
     return () => observer.disconnect();
-  }, []);
+  }, [tryApplyScrollLock]);
 
-  return { viewportRef, contentRef, showScrollButton, onScroll, scrollToBottom };
+  return {
+    viewportRef,
+    contentRef,
+    showScrollButton,
+    onScroll,
+    scrollToBottom,
+    scrollTogglePreserver,
+  };
 }
 
 export function ConversationScrollButton({

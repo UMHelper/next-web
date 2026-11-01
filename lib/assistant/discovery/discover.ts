@@ -1,0 +1,954 @@
+import {
+  conflictFitForSection,
+  conflictsForCandidate,
+} from "@/lib/assistant/check-plan-conflicts";
+import { NOT_AVAILABLE_ON_SITE, RATING_SCALE_NOTE } from "@/lib/assistant/academic-facts";
+import type { loadDiscoveryPool, loadReviewTexts } from "@/lib/assistant/data/discovery";
+import { evaluateTimeRules, type RuleOutcome } from "@/lib/assistant/discovery/constraints";
+import {
+  compareRanked,
+  rankingWeights,
+  RANKING_NOTE,
+  scoreSection,
+  topicScore,
+} from "@/lib/assistant/discovery/rank";
+import { buildSectionCandidates, type SectionCandidate } from "@/lib/assistant/discovery/sections";
+import { topicMatchLabels, matchTopic } from "@/lib/assistant/discovery/topic-match";
+import {
+  discoverCourseCandidatesInputSchema,
+  discoverValidationIssues,
+  type DiscoverToolFailure,
+  discoverResultSchema,
+  type DiscoverInput,
+  type DiscoverResult,
+  type DiscoveryFit,
+} from "@/lib/assistant/discovery/schema";
+import {
+  REVIEW_ROWS_PER_INSTRUCTOR,
+  type DiscoveryPool,
+  type PoolCourse,
+  type PoolInstructorRow,
+  type ReviewTextRow,
+} from "@/lib/assistant/discovery/pool";
+import type { TimetableState } from "@/lib/assistant/timetable-context";
+import { formatAcademicYear } from "@/lib/config/term-format";
+import { MCP_TOOL_TIMEOUT_MS } from "@/lib/mcp/constants";
+import { McpToolError } from "@/lib/mcp/errors";
+import { analyzeTimetable, sectionLabel } from "@/lib/timetable/analysis";
+import { detectScheduleConflicts } from "@/lib/timetable/conflicts";
+import { normalizeCourseCode, type PlanSection } from "@/lib/timetable/schema";
+
+export const MAX_DISCOVERY_RESULT_CHARS = 12_000;
+
+const MAX_UNVERIFIED = 5;
+const MAX_NO_LISTED = 10;
+const MAX_OTHER_SECTIONS = 3;
+const MAX_INSTRUCTORS = 3;
+const REVIEW_CANDIDATE_LIMIT = 3;
+const REVIEW_PWC_LIMIT = 6;
+const MAX_EXCERPTS = 2;
+const MAX_EXCERPT_CODE_POINTS = 120;
+
+void NOT_AVAILABLE_ON_SITE;
+
+export type DiscoveryDeps = {
+  loadCatalogTerm: () => Promise<{ year: number; sem: number }>;
+  loadPool: typeof loadDiscoveryPool;
+  loadReviews: typeof loadReviewTexts;
+};
+
+export const defaultDiscoveryDeps: DiscoveryDeps = {
+  loadCatalogTerm: async () => {
+    const { getAppConfig } = await import("@/lib/config/app-config");
+    const config = await getAppConfig();
+    return { year: config.currentYear, sem: config.currentSem };
+  },
+  loadPool: (scope, term, abortSignal) =>
+    import("@/lib/assistant/data/discovery").then((module) =>
+      module.loadDiscoveryPool(scope, term, abortSignal),
+    ),
+  loadReviews: (pwcIds, abortSignal) =>
+    import("@/lib/assistant/data/discovery").then((module) =>
+      module.loadReviewTexts(pwcIds, abortSignal),
+    ),
+};
+
+const DISCOVERY_NOTES = [
+  "required.noClash checks each returned section against the saved plan separately; two individually compatible sections can still clash—use preview_timetable for a combined check.",
+  "mutualClashes lists overlaps among the returned best sections only; it is not proof they all fit together.",
+  "Ratings are past students' reports for this instructor's offering of the course.",
+  "The site has no official exam format, prerequisite, seat or workload data.",
+  "suggestedYear is a catalog hint only; it is not official registration eligibility.",
+  "When examined.truncated is true, the search covered a bounded slice of matching courses—not every match was evaluated.",
+] as const;
+
+const REVIEW_EVIDENCE_NOTE =
+  "reviewEvidence.status: evidence found a review term match; no_relevant_evidence finished without a match; incomplete means the search finished but some review text was not read (unreadable, capped or truncated); unavailable means the review read failed. When read is 0, do not call get_course_reviews for any candidate in this result—report the missing evidence once instead. reviewCount is 0 means the course has no review text; it is not proof that no reviews or midterms exist. A missing term is not proof about exams, workload or grading.";
+
+const NO_MATCH_COMPLETE_NOTE =
+  "No candidate matched every applied constraint. examined.truncated is false, so the search covered the whole matching pool; this is a complete no-match for this scope, not proof no course exists under other constraints. Relax or change one constraint; do not repeat the same search or enumerate the subject to double-check.";
+
+const PREFERENCE_NOTE =
+  "preferred rules are soft: a candidate whose tradeoffs includes a preferred label (for example 'no FRI') is a compromise, not a match for that preference. Do not title or describe a list as satisfying a preference when any candidate carries that label.";
+
+const NO_MATCH_TRUNCATED_NOTE =
+  "No candidate matched every applied constraint, but examined.truncated is true: the pool was bounded, so some matching courses were not evaluated. Do not claim no course exists; relax a constraint or change the scope.";
+
+const ALL_IN_PLAN_NOTE =
+  "Every matching course is already in the saved plan, so there is no new candidate to return. This is not a catalog no-match; do not relax constraints or claim the course is unavailable.";
+
+const NO_LISTED_SECTIONS_NOTE =
+  "No candidate was returned because the matching courses have no listed sections this term, so they could not be fit-checked. This is not proof the courses do not exist; do not claim a catalog no-match.";
+
+type TimetableInfo = {
+  status: DiscoverResult["timetable"]["status"];
+  plannerVersion?: string;
+  planComplete?: boolean;
+  planSections: PlanSection[];
+  planCompleteForFit: boolean;
+  checkClash: boolean;
+};
+
+type ScoredSection = {
+  section: SectionCandidate;
+  course: PoolCourse;
+  fit: DiscoveryFit;
+  clashes: DiscoverResult["candidates"][number]["clashes"];
+  score: number;
+  signals: ReturnType<typeof scoreSection>["signals"];
+  matched: string[];
+  tradeoffs: string[];
+};
+
+type BuiltCandidate = DiscoverResult["candidates"][number] & { planSection: PlanSection };
+
+function parseCredits(value: string | null): number {
+  if (value === null) return 0;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function planCourseCodes(state: TimetableState): Set<string> {
+  const codes = new Set<string>();
+  if (state.status !== "ready") return codes;
+  for (const section of state.plan.sections) {
+    codes.add(normalizeCourseCode(section.courseCode));
+  }
+  return codes;
+}
+
+function courseInPlan(course: PoolCourse, planCodes: Set<string>): boolean {
+  if (planCodes.has(course.courseCode)) return true;
+  return course.aka.some((code) => planCodes.has(code));
+}
+
+function timetableInfo(state: TimetableState, catalogTerm: { year: number; sem: number }): TimetableInfo {
+  if (state.status === "no_plan") {
+    return {
+      status: "no_plan",
+      planSections: [],
+      planCompleteForFit: false,
+      checkClash: false,
+    };
+  }
+  if (state.status === "loading" || state.status === "unavailable") {
+    return {
+      status: state.status,
+      planSections: [],
+      planCompleteForFit: false,
+      checkClash: false,
+    };
+  }
+  if (state.status !== "ready") {
+    return {
+      status: "no_plan",
+      planSections: [],
+      planCompleteForFit: false,
+      checkClash: false,
+    };
+  }
+
+  const analysis = analyzeTimetable(state.plan.sections);
+  if (state.plan.year !== catalogTerm.year || state.plan.sem !== catalogTerm.sem) {
+    return {
+      status: "term_mismatch",
+      plannerVersion: state.version,
+      planComplete: analysis.complete,
+      planSections: state.plan.sections,
+      planCompleteForFit: false,
+      checkClash: false,
+    };
+  }
+
+  return {
+    status: "ready",
+    plannerVersion: state.version,
+    planComplete: analysis.complete,
+    planSections: state.plan.sections,
+    planCompleteForFit: analysis.complete && !state.truncated,
+    checkClash: true,
+  };
+}
+
+function sectionFit(
+  section: SectionCandidate,
+  timetable: TimetableInfo,
+): { fit: DiscoveryFit; clashes: ScoredSection["clashes"] } {
+  if (!timetable.checkClash) {
+    return { fit: "not_checked", clashes: undefined };
+  }
+
+  const conflicts = conflictsForCandidate(timetable.planSections, section.planSection);
+  const fit = conflictFitForSection({
+    complete: section.meetingsComplete,
+    conflicts,
+    planComplete: timetable.planCompleteForFit,
+  });
+  const clashes =
+    conflicts.length > 0
+      ? conflicts.map((entry) => ({ with: entry.with, day: entry.day, overlap: entry.overlap }))
+      : undefined;
+  return { fit, clashes };
+}
+
+function requiredRuleCounts() {
+  return { startAfter: 0, endBefore: 0, avoidDays: 0, avoidWindows: 0, noClash: 0 };
+}
+
+function incrementRequiredExclusion(
+  counts: ReturnType<typeof requiredRuleCounts>,
+  rule: RuleOutcome["rule"],
+) {
+  if (rule === "fewerDays") return;
+  counts[rule] += 1;
+}
+
+function collectRequiredMatched(outcomes: RuleOutcome[], matched: string[]) {
+  for (const outcome of outcomes) {
+    if (outcome.status === "met") matched.push(outcome.label);
+  }
+}
+
+function instructorPayload(rows: PoolInstructorRow[]) {
+  return rows.slice(0, MAX_INSTRUCTORS).map((row) => ({
+    name: row.instructor,
+    reviews: row.reviews,
+    difficulty: row.difficulty > 0 ? row.difficulty : null,
+    grade: row.grade > 0 ? row.grade : null,
+    result: row.result > 0 ? row.result : null,
+    sampleSize: row.reviews,
+  }));
+}
+
+function normalizedSignalValue(signal: { adjusted: number; reviews: number } | undefined): number | undefined {
+  if (!signal) return undefined;
+  return signal.reviews === 0 ? 0.5 : (signal.adjusted - 1) / 4;
+}
+
+function buildSignals(signals: ScoredSection["signals"]): DiscoverResult["candidates"][number]["signals"] {
+  return {
+    ease: normalizedSignalValue(signals.ease),
+    grade: normalizedSignalValue(signals.grade),
+    rating: normalizedSignalValue(signals.rating),
+    usefulness: signals.usefulness
+      ? {
+          mean: signals.usefulness.mean ?? signals.usefulness.adjusted,
+          adjusted: signals.usefulness.adjusted,
+          reviews: signals.usefulness.reviews,
+        }
+      : undefined,
+  };
+}
+
+function totalReviews(rows: PoolInstructorRow[]): number {
+  return rows.reduce((sum, row) => sum + row.reviews, 0);
+}
+
+function excerptAround(text: string, term: string): string | null {
+  const lower = text.toLowerCase();
+  const needle = term.toLowerCase();
+  const index = lower.indexOf(needle);
+  if (index === -1) return null;
+
+  const chars = [...text];
+  let start = index;
+  let end = index + needle.length;
+  while (start > 0 && end - start < MAX_EXCERPT_CODE_POINTS) {
+    if (end - start >= MAX_EXCERPT_CODE_POINTS) break;
+    if (start > 0) start -= 1;
+    if (end < chars.length && end - start < MAX_EXCERPT_CODE_POINTS) end += 1;
+  }
+  while (end - start > MAX_EXCERPT_CODE_POINTS && start < index) start += 1;
+  while (end - start > MAX_EXCERPT_CODE_POINTS && end > index + needle.length) end -= 1;
+  return chars.slice(start, end).join("").trim();
+}
+
+function sectionReviewCount(section: SectionCandidate): number {
+  const seen = new Set<number>();
+  let total = 0;
+  for (const instructor of section.instructors) {
+    if (seen.has(instructor.pwcId)) continue;
+    seen.add(instructor.pwcId);
+    total += instructor.reviews;
+  }
+  return total;
+}
+
+function reviewEvidenceForCandidate(
+  section: SectionCandidate,
+  reviewTerms: string[],
+  reviewRows: ReviewTextRow[],
+  searchedPwcIds: ReadonlySet<number>,
+): DiscoverResult["candidates"][number]["reviewEvidence"] {
+  const texts = reviewRows.flatMap((row) =>
+    section.instructors.some((instructor) => instructor.pwcId === row.pwcId) ? row.texts : [],
+  );
+  const reviewCount = sectionReviewCount(section);
+  const mentions: Record<string, number> = {};
+  const excerpts: string[] = [];
+
+  for (const term of reviewTerms) {
+    let count = 0;
+    for (const text of texts) {
+      const matches = text.toLowerCase().split(term.toLowerCase()).length - 1;
+      if (matches > 0) count += matches;
+      if (excerpts.length < MAX_EXCERPTS) {
+        const excerpt = excerptAround(text, term);
+        if (excerpt && !excerpts.includes(excerpt)) {
+          excerpts.push(`[review] ${excerpt} [/review]`);
+        }
+      }
+    }
+    if (count > 0) mentions[term] = count;
+  }
+
+  const truncated =
+    !section.instructors.every((instructor) => searchedPwcIds.has(instructor.pwcId)) ||
+    section.instructors.some((instructor) => instructor.reviews > REVIEW_ROWS_PER_INSTRUCTOR);
+  const hasMentions = Object.keys(mentions).length > 0;
+  const status = hasMentions
+    ? "evidence"
+    : truncated || (texts.length === 0 && reviewCount > 0)
+      ? "incomplete"
+      : "no_relevant_evidence";
+
+  return {
+    status,
+    read: texts.length,
+    reviewCount,
+    mentions,
+    excerpts: excerpts.slice(0, MAX_EXCERPTS),
+    ...(truncated ? { truncated: true } : {}),
+  };
+}
+
+function unsearchedReviewEvidence(
+  section: SectionCandidate,
+): DiscoverResult["candidates"][number]["reviewEvidence"] {
+  return {
+    status: "incomplete",
+    read: 0,
+    reviewCount: sectionReviewCount(section),
+    mentions: {},
+    excerpts: [],
+    truncated: true,
+  };
+}
+
+function unavailableReviewEvidence(
+  section: SectionCandidate,
+): DiscoverResult["candidates"][number]["reviewEvidence"] {
+  return {
+    status: "unavailable",
+    read: 0,
+    reviewCount: sectionReviewCount(section),
+    mentions: {},
+    excerpts: [],
+  };
+}
+
+function mutualClashes(candidates: BuiltCandidate[]): DiscoverResult["mutualClashes"] {
+  const labels = new Set(candidates.map((candidate) => candidate.planSection.key));
+  const pairs: [string, string][] = [];
+  const seen = new Set<string>();
+
+  for (const conflict of detectScheduleConflicts(candidates.map((candidate) => candidate.planSection))) {
+    const left = conflict.a.key;
+    const right = conflict.b.key;
+    if (!labels.has(left) || !labels.has(right)) continue;
+    const labelA = sectionLabel(conflict.a);
+    const labelB = sectionLabel(conflict.b);
+    const key = [labelA, labelB].sort().join("|");
+    if (seen.has(key)) continue;
+    seen.add(key);
+    pairs.push([labelA, labelB].sort() as [string, string]);
+  }
+
+  pairs.sort((a, b) => a[0].localeCompare(b[0]) || a[1].localeCompare(b[1]));
+  return pairs;
+}
+
+function withCompaction(
+  result: DiscoverResult,
+  dropped: readonly string[],
+  downgraded = false,
+): DiscoverResult {
+  if (dropped.length === 0 && !downgraded) return result;
+  return {
+    ...result,
+    compaction: {
+      truncated: true,
+      dropped: [...new Set(dropped)],
+      ...(downgraded ? { downgraded: true } : {}),
+    },
+  };
+}
+
+const FIT_SUPPORT_DROPS = new Set([
+  "matched",
+  "tradeoffs",
+  "reviewEvidence",
+  "titles",
+  "otherSections",
+  "reviewEvidence.excerpts",
+]);
+
+function downgradeUnsupportedFitClaims(result: DiscoverResult): DiscoverResult {
+  return {
+    ...result,
+    candidates: result.candidates.map((candidate) =>
+      candidate.fit === "verified_no_clash" ? { ...candidate, fit: "incomplete" } : candidate,
+    ),
+  };
+}
+
+function finalizeCompaction(result: DiscoverResult, dropped: readonly string[]): DiscoverResult {
+  const uniqueDropped = [...new Set(dropped)];
+  const needsDowngrade = uniqueDropped.some((entry) => FIT_SUPPORT_DROPS.has(entry));
+  const downgraded = needsDowngrade ? downgradeUnsupportedFitClaims(result) : result;
+  return withCompaction(downgraded, uniqueDropped, needsDowngrade);
+}
+
+function stripRatingsNote(notes: readonly string[]): { notes: string[]; removed: boolean } {
+  const next = notes.filter((note) => !note.startsWith("Ratings are"));
+  return { notes: next, removed: next.length < notes.length };
+}
+
+function shrinkDiscoverResult(result: DiscoverResult): DiscoverResult {
+  let next = result;
+  const dropped: string[] = [];
+  const over = (): boolean => JSON.stringify(next).length > MAX_DISCOVERY_RESULT_CHARS;
+
+  if (!over()) return next;
+
+  next = {
+    ...next,
+    candidates: next.candidates.map((candidate) => {
+      if (!candidate.reviewEvidence) return candidate;
+      return {
+        ...candidate,
+        reviewEvidence: {
+          ...candidate.reviewEvidence,
+          excerpts: candidate.reviewEvidence.excerpts.slice(0, 1),
+        },
+      };
+    }),
+  };
+  dropped.push("reviewEvidence.excerpts");
+  if (!over()) return finalizeCompaction(next, dropped);
+
+  next = {
+    ...next,
+    candidates: next.candidates.map((candidate) => ({
+      ...candidate,
+      reviewEvidence: candidate.reviewEvidence
+        ? { ...candidate.reviewEvidence, excerpts: [] }
+        : undefined,
+      matched: [],
+      tradeoffs: [],
+      otherSections: candidate.otherSections.slice(0, 1),
+    })),
+  };
+  dropped.push("matched", "tradeoffs");
+  if (!over()) return finalizeCompaction(next, dropped);
+
+  next = {
+    ...next,
+    candidates: next.candidates.map((candidate) => ({
+      ...candidate,
+      titleEn: null,
+      titleZh: null,
+      otherSections: [],
+      reviewEvidence: undefined,
+    })),
+    noListedSections: [],
+  };
+  dropped.push("titles", "otherSections", "noListedSections", "reviewEvidence");
+  if (!over()) return finalizeCompaction(next, dropped);
+
+  let ranking = next.ranking;
+  while (over() && ranking.length > 80) {
+    ranking = ranking.slice(0, Math.max(80, Math.floor(ranking.length * 0.75)));
+    next = { ...next, ranking };
+  }
+  dropped.push("ranking");
+  if (!over()) return finalizeCompaction(next, dropped);
+
+  while (over() && next.candidates.length > 1) {
+    next = { ...next, candidates: next.candidates.slice(0, -1) };
+    dropped.push("candidates");
+  }
+  if (!over()) return finalizeCompaction(next, dropped);
+
+  next = {
+    ...next,
+    candidates: next.candidates.map((candidate) => ({
+      ...candidate,
+      instructors: candidate.instructors.slice(0, 1),
+      meetings: candidate.meetings.slice(0, 2),
+    })),
+  };
+  dropped.push("meetings", "instructors");
+  if (!over()) return finalizeCompaction(next, dropped);
+
+  next = {
+    ...next,
+    candidates: next.candidates.map((candidate) => ({
+      ...candidate,
+      meetings: candidate.meetings.slice(0, 1),
+    })),
+  };
+  dropped.push("meetings_detail");
+  if (!over()) return finalizeCompaction(next, dropped);
+
+  const ratingsTrim = stripRatingsNote(next.notes);
+  if (ratingsTrim.removed) {
+    next = { ...next, notes: ratingsTrim.notes };
+    dropped.push("notes.ratings");
+    if (!over()) return finalizeCompaction(next, dropped);
+  }
+
+  return finalizeCompaction(
+    {
+      ...next,
+      notes: next.notes.filter(
+        (note) =>
+          note.startsWith("required.noClash") ||
+          note.startsWith("mutualClashes") ||
+          note.startsWith("The site has no official") ||
+          note.startsWith("suggestedYear") ||
+          note.startsWith("When examined.truncated") ||
+          note.startsWith("preferred rules are soft") ||
+          note.startsWith("No candidate matched") ||
+          note.startsWith("Every matching course") ||
+          note.startsWith("No candidate was returned because") ||
+          note.startsWith("reviewEvidence") ||
+          note.startsWith("Topic match was broadened"),
+      ),
+    },
+    [...dropped, "notes"],
+  );
+}
+
+function noClashNotAppliedMessage(status: TimetableInfo["status"]): string {
+  if (status === "no_plan") return "noClash: no saved timetable";
+  if (status === "loading") return "noClash: timetable still loading";
+  if (status === "unavailable") return "noClash: timetable unavailable";
+  if (status === "term_mismatch") return "noClash: plan term does not match catalog term";
+  return "noClash: timetable check did not run";
+}
+
+function evaluateSections(input: {
+  pool: DiscoveryPool;
+  input: DiscoverInput;
+  timetable: TimetableInfo;
+  examinedCourses: PoolCourse[];
+  notApplied: string[];
+  unverified: DiscoverResult["unverified"];
+  excludedRequired: ReturnType<typeof requiredRuleCounts>;
+}): Map<string, ScoredSection[]> {
+  const courseByCode = new Map(input.examinedCourses.map((course) => [course.courseCode, course]));
+  const allSections = buildSectionCandidates(input.pool).filter((section) =>
+    courseByCode.has(section.courseCode),
+  );
+
+  const topics = input.input.scope.topics ?? [];
+  const weights = rankingWeights({
+    priorities: input.input.priorities ?? [],
+    hasPreferred: Boolean(input.input.preferred),
+    hasTopics: topics.length > 0,
+  });
+
+  const byCourse = new Map<string, ScoredSection[]>();
+  let noClashNotApplied = false;
+
+  for (const section of allSections) {
+    const course = courseByCode.get(section.courseCode);
+    if (!course) continue;
+
+    const { fit, clashes } = sectionFit(section, input.timetable);
+    const requiredOutcomes = evaluateTimeRules(
+      section.meetings,
+      section.meetingsComplete,
+      input.input.required,
+    );
+    const preferredOutcomes = evaluateTimeRules(
+      section.meetings,
+      section.meetingsComplete,
+      input.input.preferred,
+      input.input.preferred?.fewerDays,
+    );
+
+    let eliminated = false;
+    for (const outcome of requiredOutcomes) {
+      if (outcome.status === "violated") {
+        incrementRequiredExclusion(input.excludedRequired, outcome.rule);
+        eliminated = true;
+        break;
+      }
+    }
+
+    if (!eliminated && input.input.required?.noClash) {
+      if (fit === "confirmed_clash") {
+        input.excludedRequired.noClash += 1;
+        eliminated = true;
+      } else if (fit === "incomplete") {
+        if (input.unverified.length < MAX_UNVERIFIED) {
+          input.unverified.push({
+            courseCode: section.courseCode,
+            section: section.section,
+            reason: "clash_check_incomplete",
+          });
+        }
+        eliminated = true;
+      } else if (fit === "not_checked") {
+        noClashNotApplied = true;
+      }
+    }
+
+    if (!eliminated) {
+      for (const outcome of requiredOutcomes) {
+        if (outcome.status === "unknown") {
+          if (input.unverified.length < MAX_UNVERIFIED) {
+            input.unverified.push({
+              courseCode: section.courseCode,
+              section: section.section,
+              reason: "meeting_times_incomplete",
+            });
+          }
+          eliminated = true;
+          break;
+        }
+      }
+    }
+
+    if (eliminated) continue;
+
+    const clashWith = (clashes ?? []).map((entry) => entry.with);
+    const scored = scoreSection({
+      section,
+      preferred: preferredOutcomes,
+      topicScore: topicScore(course, topics),
+      fit,
+      clashWith,
+      weights,
+    });
+    const matched = [...scored.matched];
+    if (topics.length > 0) {
+      matched.push(...topicMatchLabels(matchTopic(course, topics)));
+    }
+    collectRequiredMatched(requiredOutcomes, matched);
+
+    const row: ScoredSection = {
+      section,
+      course,
+      fit,
+      clashes,
+      score: scored.score,
+      signals: scored.signals,
+      matched,
+      tradeoffs: scored.tradeoffs,
+    };
+
+    const existing = byCourse.get(section.courseCode) ?? [];
+    existing.push(row);
+    byCourse.set(section.courseCode, existing);
+  }
+
+  if (input.input.required?.noClash && noClashNotApplied) {
+    input.notApplied.push(noClashNotAppliedMessage(input.timetable.status));
+  }
+
+  for (const rows of byCourse.values()) {
+    rows.sort((left, right) =>
+      compareRanked(
+        {
+          score: left.score,
+          reviews: totalReviews(left.section.instructors),
+          courseCode: left.section.courseCode,
+          section: left.section.section,
+        },
+        {
+          score: right.score,
+          reviews: totalReviews(right.section.instructors),
+          courseCode: right.section.courseCode,
+          section: right.section.section,
+        },
+      ),
+    );
+  }
+
+  return byCourse;
+}
+
+function buildCandidate(
+  rank: number,
+  best: ScoredSection,
+  alternates: ScoredSection[],
+): BuiltCandidate {
+  return {
+    rank,
+    courseCode: best.section.courseCode,
+    titleEn: best.course.titleEn,
+    titleZh: best.course.titleZh,
+    credits: parseCredits(best.course.credits),
+    courseType: best.course.courseType ?? "",
+    suggestedYear: best.course.suggestedYear,
+    section: best.section.section,
+    instructors: instructorPayload(best.section.instructors),
+    meetings: best.section.meetingLines,
+    meetingsComplete: best.section.meetingsComplete,
+    fit: best.fit,
+    clashes: best.clashes,
+    matched: best.matched,
+    tradeoffs: best.tradeoffs,
+    signals: buildSignals(best.signals),
+    score: best.score,
+    otherSections: alternates.slice(0, MAX_OTHER_SECTIONS).map((row) => ({
+      section: row.section.section,
+      meetings: row.section.meetingLines,
+      fit: row.fit,
+      clashes: (row.clashes ?? []).length > 0 ? row.clashes : undefined,
+    })),
+    planSection: best.section.planSection,
+  };
+}
+
+export async function runDiscoverCourseCandidates(
+  state: TimetableState,
+  args: unknown,
+  deps: DiscoveryDeps = defaultDiscoveryDeps,
+  signal?: AbortSignal,
+): Promise<DiscoverResult | DiscoverToolFailure> {
+  const parsed = discoverCourseCandidatesInputSchema.safeParse(args);
+  if (!parsed.success) {
+    return { error: "invalid_request", issues: discoverValidationIssues(parsed.error) };
+  }
+
+  let catalogTerm: { year: number; sem: number };
+  try {
+    catalogTerm = await deps.loadCatalogTerm();
+  } catch {
+    return { error: "temporarily_unavailable" };
+  }
+
+  const abortSignal = signal ?? AbortSignal.timeout(MCP_TOOL_TIMEOUT_MS);
+
+  let discoveryPool: DiscoveryPool;
+  try {
+    discoveryPool = await deps.loadPool(parsed.data.scope, catalogTerm, abortSignal);
+  } catch (error) {
+    if (error instanceof McpToolError && error.code === "temporarily_unavailable") {
+      return { error: "temporarily_unavailable" };
+    }
+    throw error;
+  }
+
+  const timetable = timetableInfo(state, catalogTerm);
+  const planCodes = planCourseCodes(state);
+  const notApplied: string[] = [];
+  const unverified: DiscoverResult["unverified"] = [];
+  const excludedRequired = requiredRuleCounts();
+
+  let alreadyInPlan = 0;
+  const examinedCourses = discoveryPool.courses.filter((course) => {
+    if (courseInPlan(course, planCodes)) {
+      alreadyInPlan += 1;
+      return false;
+    }
+    return true;
+  });
+
+  const allExaminedSections = buildSectionCandidates(discoveryPool).filter((section) =>
+    examinedCourses.some((course) => course.courseCode === section.courseCode),
+  );
+
+  const sectionsByCourse = evaluateSections({
+    pool: discoveryPool,
+    input: parsed.data,
+    timetable,
+    examinedCourses,
+    notApplied,
+    unverified,
+    excludedRequired,
+  });
+
+  const courseWinners: ScoredSection[] = [];
+  for (const rows of sectionsByCourse.values()) {
+    if (rows.length > 0) courseWinners.push(rows[0]!);
+  }
+
+  courseWinners.sort((left, right) =>
+    compareRanked(
+      {
+        score: left.score,
+        reviews: totalReviews(left.section.instructors),
+        courseCode: left.section.courseCode,
+        section: left.section.section,
+      },
+      {
+        score: right.score,
+        reviews: totalReviews(right.section.instructors),
+        courseCode: right.section.courseCode,
+        section: right.section.section,
+      },
+    ),
+  );
+
+  const limit = parsed.data.limit ?? 5;
+  const winners = courseWinners.slice(0, limit);
+  const candidates: BuiltCandidate[] = winners.map((best, index) => {
+    const alternates = (sectionsByCourse.get(best.section.courseCode) ?? []).slice(1);
+    return buildCandidate(index + 1, best, alternates);
+  });
+
+  const sectionsWithOffers = new Set(allExaminedSections.map((section) => section.courseCode));
+  const noListedSections = examinedCourses
+    .filter((course) => !sectionsWithOffers.has(course.courseCode))
+    .map((course) => course.courseCode)
+    .slice(0, MAX_NO_LISTED);
+
+  if (parsed.data.reviewTerms?.length && candidates.length > 0) {
+    const pwcIds: number[] = [];
+    for (const winner of winners.slice(0, REVIEW_CANDIDATE_LIMIT)) {
+      for (const instructor of winner.section.instructors) {
+        if (!pwcIds.includes(instructor.pwcId)) pwcIds.push(instructor.pwcId);
+        if (pwcIds.length >= REVIEW_PWC_LIMIT) break;
+      }
+      if (pwcIds.length >= REVIEW_PWC_LIMIT) break;
+    }
+
+    for (let index = REVIEW_CANDIDATE_LIMIT; index < candidates.length; index += 1) {
+      const built = candidates[index];
+      if (!built) continue;
+      candidates[index] = { ...built, reviewEvidence: unsearchedReviewEvidence(winners[index]!.section) };
+    }
+
+    try {
+      const reviewRows = await deps.loadReviews(pwcIds, abortSignal);
+      const searchedPwcIds = new Set(pwcIds);
+      for (let index = 0; index < Math.min(REVIEW_CANDIDATE_LIMIT, candidates.length); index += 1) {
+        const built = candidates[index];
+        if (!built) continue;
+        const evidence = reviewEvidenceForCandidate(
+          winners[index]!.section,
+          parsed.data.reviewTerms,
+          reviewRows,
+          searchedPwcIds,
+        );
+        candidates[index] = { ...built, reviewEvidence: evidence };
+      }
+      const searched = candidates.slice(0, Math.min(REVIEW_CANDIDATE_LIMIT, candidates.length));
+      const unreadable = searched.some(
+        (candidate) =>
+          (candidate.reviewEvidence?.reviewCount ?? 0) > 0 && candidate.reviewEvidence?.read === 0,
+      );
+      const read = searched.some((candidate) => (candidate.reviewEvidence?.read ?? 0) > 0);
+      if (unreadable && !read) {
+        notApplied.push("reviewTerms: review text was unreadable for the returned candidates");
+      }
+    } catch (error) {
+      if (error instanceof McpToolError) {
+        notApplied.push("reviewTerms: reviews could not be read");
+        for (let index = 0; index < candidates.length; index += 1) {
+          const built = candidates[index];
+          if (!built) continue;
+          candidates[index] = { ...built, reviewEvidence: unavailableReviewEvidence(winners[index]!.section) };
+        }
+      } else {
+        throw error;
+      }
+    }
+  }
+
+  const publicCandidates = candidates.map(({ planSection: _planSection, ...candidate }) => candidate);
+
+  if (discoveryPool.offersTruncated) {
+    notApplied.push("section offers capped; some sections may be missing from this search");
+  }
+
+  const requiredExcludedTotal = Object.values(excludedRequired).reduce((sum, count) => sum + count, 0);
+  if (publicCandidates.length === 0 && requiredExcludedTotal > 0) {
+    notApplied.push("required: no section satisfied all hard schedule rules");
+  }
+
+  const result: DiscoverResult = {
+    status: "ok",
+    term: {
+      year: catalogTerm.year,
+      sem: catalogTerm.sem,
+      label: formatAcademicYear(catalogTerm.year, catalogTerm.sem),
+    },
+    timetable: {
+      status: timetable.status,
+      ...(timetable.plannerVersion ? { plannerVersion: timetable.plannerVersion } : {}),
+      ...(timetable.planComplete !== undefined ? { planComplete: timetable.planComplete } : {}),
+    },
+    examined: {
+      courses: examinedCourses.length,
+      sections: allExaminedSections.length,
+      totalMatchingCourses: discoveryPool.totalMatchingCourses,
+      truncated: discoveryPool.truncated,
+      ...(discoveryPool.topicFallback !== undefined ? { topicFallback: discoveryPool.topicFallback } : {}),
+      ...(discoveryPool.topicTier !== undefined ? { topicTier: discoveryPool.topicTier } : {}),
+    },
+    ratingScale: { ...RATING_SCALE_NOTE },
+    excluded: {
+      alreadyInPlan,
+      excludedCodes: discoveryPool.excludedCodesMatched,
+      noListedSections: noListedSections.length,
+      required: excludedRequired,
+    },
+    notApplied,
+    candidates: publicCandidates,
+    unverified,
+    noListedSections,
+    mutualClashes: mutualClashes(candidates),
+    ranking: RANKING_NOTE,
+    notes: [
+      ...DISCOVERY_NOTES,
+      ...(parsed.data.reviewTerms?.length ? [REVIEW_EVIDENCE_NOTE] : []),
+      ...(parsed.data.preferred && Object.keys(parsed.data.preferred).length > 0
+        ? [PREFERENCE_NOTE]
+        : []),
+      ...(publicCandidates.length > 0
+        ? []
+        : [
+            alreadyInPlan > 0 && examinedCourses.length === 0
+              ? ALL_IN_PLAN_NOTE
+              : noListedSections.length > 0
+                ? NO_LISTED_SECTIONS_NOTE
+                : discoveryPool.truncated
+                  ? NO_MATCH_TRUNCATED_NOTE
+                  : NO_MATCH_COMPLETE_NOTE,
+          ]),
+      ...(discoveryPool.topicFallback
+        ? [
+            "Topic match was broadened to keyword-level hits because fewer than three courses matched the full topic phrases.",
+          ]
+        : []),
+    ],
+  };
+
+  return shrinkDiscoverResult(discoverResultSchema.parse(result));
+}

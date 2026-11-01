@@ -19,11 +19,18 @@ const MAX_DESCRIPTION_CODE_POINTS = 1200;
  * its title is missing.
  */
 const MISSING_COURSE_TITLE = "Unknown Course";
+const NORMALIZER_PLACEHOLDER = "Unknown";
 
 function readText(value: unknown): string | null {
   if (value === null || value === undefined) return null;
   const text = String(value).trim();
   return text.length > 0 ? text : null;
+}
+
+function readCatalogText(value: unknown): string | null {
+  const text = readText(value);
+  if (text === NORMALIZER_PLACEHOLDER) return null;
+  return text;
 }
 
 function readNumber(value: unknown): number | null {
@@ -63,17 +70,17 @@ function projectCourse(
 ): CourseDetail {
   return {
     courseCode: code,
-    titleEn: readText(course.courseTitle),
-    titleZh: readText(course.courseTitleChi),
-    credits: readText(course.credits),
-    faculty: readText(course.offeringUnit),
-    department: readText(course.offeringDept),
-    programLevel: readText(course.offeringProgLevel),
-    suggestedYear: readText(course.suggestedYearOfStudy),
-    medium: readText(course.mediumOfInstruction),
-    gradingSystem: readText(course.gradingSystem),
-    courseType: readText(course.courseType),
-    duration: readText(course.duration),
+    titleEn: readCatalogText(course.courseTitle),
+    titleZh: readCatalogText(course.courseTitleChi),
+    credits: readCatalogText(course.credits),
+    faculty: readCatalogText(course.offeringUnit),
+    department: readCatalogText(course.offeringDept),
+    programLevel: readCatalogText(course.offeringProgLevel),
+    suggestedYear: readCatalogText(course.suggestedYearOfStudy),
+    medium: readCatalogText(course.mediumOfInstruction),
+    gradingSystem: readCatalogText(course.gradingSystem),
+    courseType: readCatalogText(course.courseType),
+    duration: readCatalogText(course.duration),
     description: truncateDescription(readText(course.courseDescription)),
     aka,
     isOffered,
@@ -125,6 +132,10 @@ export async function getCourse(input: GetCourseInput): Promise<GetCourseOutput>
   // so the page is sliced from that list — exact totalCount with no extra query.
   // Historical codes resolve to the new primary code; links use that primary.
   const primaryCode = course.courseCode;
+  if (primaryCode.trim().toUpperCase() !== alias.primaryCode.trim().toUpperCase()) {
+    // Never pass a different course record through as if it answered the request.
+    throw new McpToolError("not_found");
+  }
   const allInstructors = profList
     .map((row) => projectInstructor(row, primaryCode))
     .filter((row): row is CourseInstructorSummary => row !== null);

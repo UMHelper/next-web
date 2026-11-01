@@ -2,6 +2,8 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-libra
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ReactNode } from "react";
 
+import { CATALOG_RESULTS_CONTEXT_DESCRIPTION } from "@/lib/assistant/catalog-result-sets";
+import { RICH_TOOL_NAMES } from "@/lib/assistant/rich-tools";
 import { installFakeStorage } from "@/tests/helpers/fake-storage";
 
 const {
@@ -9,6 +11,7 @@ const {
   contextSpy,
   suggestionsSpy,
   toolSpy,
+  renderToolSpy,
   plannerMock,
   pathnameMock,
   pushMock,
@@ -18,6 +21,7 @@ const {
   contextSpy: vi.fn(),
   suggestionsSpy: vi.fn(),
   toolSpy: vi.fn(),
+  renderToolSpy: vi.fn(),
   plannerMock: vi.fn(),
   pathnameMock: vi.fn(() => "/"),
   pushMock: vi.fn(),
@@ -29,9 +33,11 @@ vi.mock("@copilotkit/react-core/v2", () => ({
     providerSpy(props);
     return <>{props.children}</>;
   },
+  useAgent: () => ({ agent: { messages: [] } }),
   useAgentContext: (context: unknown) => contextSpy(context),
   useConfigureSuggestions: (config: unknown) => suggestionsSpy(config),
   useFrontendTool: (definition: unknown, deps: unknown) => toolSpy(definition, deps),
+  useRenderTool: (definition: unknown, deps: unknown) => renderToolSpy(definition, deps),
 }));
 
 vi.mock("@/components/timetable/planner-provider", () => ({
@@ -70,15 +76,22 @@ vi.mock("@/components/assistant/assistant-chat", () => ({
 import AssistantPanel from "@/components/assistant/assistant-panel";
 import { EXAMPLE_QUESTIONS } from "@/lib/assistant/example-questions";
 import { PAGE_CONTEXT_DESCRIPTION } from "@/lib/assistant/page-context";
-import { summarizePlan } from "@/lib/assistant/plan-summary";
-import type { LocalPlan } from "@/lib/timetable/store";
+import { TIMETABLE_PREVIEWS_CONTEXT_DESCRIPTION } from "@/lib/assistant/timetable-previews";
+import {
+  TIMETABLE_CONTEXT_DESCRIPTION,
+  buildTimetableContextPayload,
+  serializeTimetableContext,
+} from "@/lib/assistant/timetable-context";
+import { plannerCurrentTerm } from "@/lib/timetable/current-term";
+import { FIXTURE_PLAN } from "@/tests/fixtures/timetable-plan";
+import { plannerState } from "@/tests/helpers/planner-state";
 
 const contexts = () => contextSpy.mock.calls.map(([context]) => context);
 const tools = () => toolSpy.mock.calls.map(([definition]) => definition);
 
 beforeEach(() => {
   installFakeStorage();
-  plannerMock.mockReturnValue({ activePlan: undefined });
+  plannerMock.mockReturnValue(plannerState(undefined));
   pathnameMock.mockReturnValue("/");
 });
 
@@ -100,8 +113,21 @@ describe("AssistantPanel", () => {
     expect(screen.getByTestId("assistant-chat")).toBeTruthy();
     expect(screen.getByRole("separator", { name: "Resize assistant" })).toBeTruthy();
     expect(document.documentElement.hasAttribute("data-assistant-open")).toBe(true);
-    expect(tools().map((tool) => tool.name)).toEqual(
-      expect.arrayContaining(["check_plan_conflicts", "navigate"]),
+    expect(tools().map((tool) => tool.name).sort()).toEqual(["filter_catalog_results", "navigate"]);
+    expect(
+      contexts().some((context) => context.description === CATALOG_RESULTS_CONTEXT_DESCRIPTION),
+    ).toBe(true);
+    expect(
+      contexts().some((context) => context.description === TIMETABLE_PREVIEWS_CONTEXT_DESCRIPTION),
+    ).toBe(true);
+    expect(
+      contexts().find((context) => context.description === TIMETABLE_PREVIEWS_CONTEXT_DESCRIPTION)?.value,
+    ).toBe(JSON.stringify({ previews: [] }));
+    expect(RICH_TOOL_NAMES.has("search_catalog")).toBe(true);
+    expect(RICH_TOOL_NAMES.has("filter_catalog_results")).toBe(true);
+    expect(renderToolSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ name: "search_catalog" }),
+      [],
     );
   });
 
@@ -109,10 +135,14 @@ describe("AssistantPanel", () => {
     pathnameMock.mockReturnValue("/course/ACCT1000");
     render(<AssistantPanel suppressed={false} />);
 
-    const planContext = contexts().find(
-      (context) => context.description === "The student's active timetable plan (read-only)",
+    const timetableContext = contexts().find(
+      (context) => context.description === TIMETABLE_CONTEXT_DESCRIPTION,
     );
-    expect(planContext?.value).toBe("No timetable plan");
+    expect(timetableContext?.value).toBe(
+      serializeTimetableContext(
+        buildTimetableContextPayload(plannerState(undefined), plannerCurrentTerm()),
+      ),
+    );
 
     const pageContext = contexts().find(
       (context) => context.description === PAGE_CONTEXT_DESCRIPTION,
@@ -128,36 +158,35 @@ describe("AssistantPanel", () => {
     });
   });
 
-  it("follows the active plan from the global planner", () => {
-    const plan = {
-      clientRef: "plan-1",
-      name: "我的课表",
-      year: 2026,
-      sem: 1,
-      payload: {
-        schemaVersion: 1,
-        sections: [
-          {
-            key: "ACCT1000|CHAN|A01",
-            courseCode: "ACCT1000",
-            prof: "CHAN",
-            section: "A01",
-            color: "#2563eb",
-            schedules: [{ date: "MON", time: "09:00-10:00", location: "E4" }],
-          },
-        ],
-      },
-      revision: 1,
-      syncState: "idle",
-    } as unknown as LocalPlan;
-    plannerMock.mockReturnValue({ activePlan: plan });
+  it("registers the timetable payload from the planner", () => {
+    plannerMock.mockReturnValue(plannerState(FIXTURE_PLAN));
 
     render(<AssistantPanel suppressed={false} />);
-    const planContext = contexts().find(
-      (context) => context.description === "The student's active timetable plan (read-only)",
+    const timetableContext = contexts().find(
+      (context) => context.description === TIMETABLE_CONTEXT_DESCRIPTION,
     );
-    expect(planContext?.value).toBe(summarizePlan(plan));
-    expect(summarizePlan(plan)).toContain("ACCT1000-A01");
+    expect(timetableContext?.value).toBe(
+      serializeTimetableContext(
+        buildTimetableContextPayload(plannerState(FIXTURE_PLAN), plannerCurrentTerm()),
+      ),
+    );
+  });
+
+  it("re-registers the payload after a manual planner change", () => {
+    plannerMock.mockReturnValue(plannerState(FIXTURE_PLAN));
+    const { rerender } = render(<AssistantPanel suppressed={false} />);
+    const timetableValue = () =>
+      contextSpy.mock.calls
+        .map(([context]) => context)
+        .filter((context) => context.description === TIMETABLE_CONTEXT_DESCRIPTION)
+        .at(-1)?.value;
+    const first = timetableValue();
+
+    plannerMock.mockReturnValue(plannerState({ ...FIXTURE_PLAN, name: "Updated plan" }));
+    rerender(<AssistantPanel suppressed={false} />);
+    const second = timetableValue();
+
+    expect(first).not.toBe(second);
   });
 
   it("hides the panel and the reopen pill when the route suppresses it", () => {

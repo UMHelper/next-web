@@ -25,14 +25,13 @@ export const getCourseInfo = unstable_cache(
             .maybeSingle();
 
         if (error) {
-            console.error("[getCourseInfo] query failed:", error.message);
-            return {} as CourseRow;
+            console.error("[getCourseInfo] course_catalog query failed:", error.message);
+        } else if (data) {
+            return data as CourseRow;
         }
 
-        if (data) return data as CourseRow;
-
-        // Fallback for a code that exists but has no catalog row (for example a
-        // legacy code whose primary row has not been inserted yet).
+        // Fallback when the view is missing, PostgREST is stale, or the code has
+        // no catalog row yet (legacy primary not inserted).
         const { data: fallback, error: fallbackError } = await supabaseServer
             .from("course_noporf")
             .select("*")

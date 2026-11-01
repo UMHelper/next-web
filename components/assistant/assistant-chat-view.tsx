@@ -11,7 +11,13 @@ import {
   Sparkles,
   X,
 } from "lucide-react";
-import { useEffect, useMemo, useState, type RefCallback } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+  type RefCallback,
+} from "react";
 
 import type {
   AssistantMessage,
@@ -26,12 +32,20 @@ import { Bubble, BubbleContent } from "@/components/ai-elements/bubble";
 import {
   ConversationScrollButton,
   useConversationScroll,
+  type ConversationScrollTogglePreserver,
 } from "@/components/ai-elements/conversation";
 import { Message as ChatMessage, MessageContent } from "@/components/ai-elements/message";
 import { PromptInput } from "@/components/ai-elements/prompt-input";
 import { Response } from "@/components/ai-elements/response";
-import { ToolTrace } from "@/components/ai-elements/tool";
+import { dedupeCalls, ToolTrace } from "@/components/ai-elements/tool";
+import { RecommendationShortlist } from "@/components/assistant/recommendation-shortlist";
 import { EXAMPLE_QUESTIONS } from "@/lib/assistant/example-questions";
+import {
+  callsForActivity,
+  planRichBlocks,
+  type PlanRichBlocksThreadContext,
+} from "@/lib/assistant/presentation";
+import { ALWAYS_RICH_TOOL_NAMES } from "@/lib/assistant/rich-tools";
 import { cn } from "@/lib/utils";
 
 type AssistantPart = AssistantMessage | ReasoningMessage;
@@ -58,6 +72,10 @@ export type AssistantChatViewProps = {
   onClearAlert: () => void;
   panelRef?: RefCallback<HTMLElement>;
   panelOpen?: boolean;
+  toolRenderer?: {
+    names: ReadonlySet<string>;
+    render: (call: ToolCall, result: ToolMessage | undefined) => ReactNode;
+  };
 };
 
 function buildTurns(messages: Message[]): Turn[] {
@@ -71,6 +89,32 @@ function buildTurns(messages: Message[]): Turn[] {
     }
   }
   return turns;
+}
+
+function threadToolContext(
+  messages: Message[],
+  toolResults: Map<string, ToolMessage>,
+): PlanRichBlocksThreadContext {
+  const calls: ToolCall[] = [];
+  for (const message of messages) {
+    if (message.role !== "assistant") continue;
+    for (const call of message.toolCalls ?? []) calls.push(call);
+  }
+  const deduped = dedupeCalls(calls, toolResults);
+  const results = new Map<string, { content?: unknown }>();
+  for (const call of deduped) {
+    const toolMessage = toolResults.get(call.id);
+    if (toolMessage) {
+      results.set(call.id, { content: toolMessage.content });
+    }
+  }
+  return {
+    calls: deduped.map((call) => ({
+      id: call.id,
+      function: { name: call.function.name, arguments: call.function.arguments },
+    })),
+    results,
+  };
 }
 
 function userText(content: UserMessage["content"]): string {
@@ -93,6 +137,13 @@ function ThinkingRow() {
       </span>
     </div>
   );
+}
+
+function splitAssistantProse(content: string): string[] {
+  return content
+    .split(/(?<=\.)(?=[A-Z])/)
+    .map((segment) => segment.trim())
+    .filter(Boolean);
 }
 
 function CopyAction({ text }: { text: string }) {
@@ -130,29 +181,85 @@ function CopyAction({ text }: { text: string }) {
 function AssistantTurn({
   parts,
   results,
+  threadContext,
   isRunning,
   isLast,
+  toolRenderer,
+  scrollTogglePreserver,
 }: {
   parts: AssistantPart[];
   results: Map<string, ToolMessage>;
+  threadContext: PlanRichBlocksThreadContext;
   isRunning: boolean;
   isLast: boolean;
+  toolRenderer?: AssistantChatViewProps["toolRenderer"];
+  scrollTogglePreserver?: ConversationScrollTogglePreserver;
 }) {
-  const calls = useMemo(() => {
-    const seen = new Set<string>();
+  const dedupedCalls = useMemo(() => {
     const collected: ToolCall[] = [];
     for (const part of parts) {
       if (part.role !== "assistant") continue;
-      for (const call of part.toolCalls ?? []) {
-        if (seen.has(call.id)) continue;
-        seen.add(call.id);
-        collected.push(call);
-      }
+      for (const call of part.toolCalls ?? []) collected.push(call);
     }
-    return collected;
-  }, [parts]);
+    return dedupeCalls(collected, results);
+  }, [parts, results]);
 
-  // One action row per turn, not one under every assistant fragment.
+  const dedupedById = useMemo(
+    () => new Map(dedupedCalls.map((call) => [call.id, call])),
+    [dedupedCalls],
+  );
+
+  const streamingHere = isRunning && isLast;
+
+  const activityCalls = useMemo(() => callsForActivity(dedupedCalls), [dedupedCalls]);
+
+  const richPlan = useMemo(
+    () =>
+      planRichBlocks(
+        dedupedCalls,
+        results,
+        ALWAYS_RICH_TOOL_NAMES,
+        streamingHere,
+        threadContext,
+      ),
+    [dedupedCalls, results, streamingHere, threadContext],
+  );
+
+  const presentationResults = useMemo(() => {
+    const map = new Map<string, { content?: unknown }>();
+    for (const call of dedupedCalls) {
+      const toolMessage = results.get(call.id);
+      if (toolMessage) map.set(call.id, { content: toolMessage.content });
+    }
+    return map;
+  }, [dedupedCalls, results]);
+
+  const richBlocksContent = useMemo(() => {
+    if (!toolRenderer && richPlan.every((block) => block.kind !== "recommendations")) {
+      return [];
+    }
+    return richPlan.flatMap((block) => {
+      if (block.kind === "recommendations") {
+        return [
+          <RecommendationShortlist
+            key={`rec-${block.presentCallId}`}
+            courses={block.courses}
+            sections={block.sections}
+            calls={dedupedCalls}
+            results={presentationResults}
+          />,
+        ];
+      }
+      const call = dedupedById.get(block.callId);
+      if (!call || !toolRenderer) return [];
+      return [
+        <div key={`rich-${block.callId}`} className="space-y-1.5">
+          {toolRenderer.render(call, results.get(call.id))}
+        </div>,
+      ];
+    });
+  }, [richPlan, dedupedById, toolRenderer, results, dedupedCalls, presentationResults]);
+
   const lastText = useMemo(() => {
     for (let index = parts.length - 1; index >= 0; index -= 1) {
       const part = parts[index];
@@ -161,26 +268,32 @@ function AssistantTurn({
     return "";
   }, [parts]);
 
-  const streamingHere = isRunning && isLast;
-
   const textParts = parts.filter(
     (part): part is AssistantMessage => part.role === "assistant" && Boolean(part.content?.trim()),
   );
 
   return (
     <div className="flex w-full min-w-0 flex-col gap-2 animate-in fade-in duration-200">
-      {calls.length > 0 ? (
-        <ToolTrace calls={calls} results={results} isRunning={isRunning} />
+      {activityCalls.length > 0 ? (
+        <ToolTrace
+          calls={activityCalls}
+          results={results}
+          isRunning={isRunning}
+          scrollTogglePreserver={scrollTogglePreserver}
+        />
       ) : null}
+      {richBlocksContent.length > 0 ? <div className="space-y-2">{richBlocksContent}</div> : null}
       {textParts.length > 0 ? (
         <div className="w-full min-w-0 rounded-xl border border-border bg-background px-4 py-3 shadow-sm">
           <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-brand">
             AI
           </span>
           <div className="min-w-0">
-            {textParts.map((part) => (
-              <Response key={part.id}>{part.content ?? ""}</Response>
-            ))}
+            {textParts.map((part) =>
+              splitAssistantProse(part.content ?? "").map((segment, index) => (
+                <Response key={`${part.id}-${index}`}>{segment}</Response>
+              )),
+            )}
           </div>
         </div>
       ) : null}
@@ -260,8 +373,9 @@ export function AssistantChatView({
   onClearAlert,
   panelRef,
   panelOpen = true,
+  toolRenderer,
 }: AssistantChatViewProps) {
-  const { viewportRef, contentRef, showScrollButton, onScroll, scrollToBottom } =
+  const { viewportRef, contentRef, showScrollButton, onScroll, scrollToBottom, scrollTogglePreserver } =
     useConversationScroll();
 
   const turns = useMemo(() => buildTurns(messages), [messages]);
@@ -273,6 +387,17 @@ export function AssistantChatView({
     }
     return results;
   }, [messages]);
+
+  const turnThreadContexts = useMemo(() => {
+    const contexts: PlanRichBlocksThreadContext[] = [];
+    const slice: Message[] = [];
+    for (const turn of turns) {
+      if (turn.user) slice.push(turn.user);
+      slice.push(...turn.assistant);
+      contexts.push(threadToolContext(slice, toolResults));
+    }
+    return contexts;
+  }, [turns, toolResults]);
 
   const suggestionList = useMemo(() => {
     if (suggestions.length > 0) return suggestions.slice(0, 4);
@@ -366,8 +491,11 @@ export function AssistantChatView({
                         <AssistantTurn
                           parts={turn.assistant}
                           results={toolResults}
+                          threadContext={turnThreadContexts[index] ?? threadToolContext([], toolResults)}
                           isRunning={isRunning}
                           isLast={isLast}
+                          toolRenderer={toolRenderer}
+                          scrollTogglePreserver={scrollTogglePreserver}
                         />
                       ) : null}
                     </div>

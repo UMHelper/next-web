@@ -1,19 +1,12 @@
-import { createHash } from "node:crypto";
-
 import { consumeRateLimit } from "@/lib/rate-limit";
+import { hashUserId } from "@/lib/user-hash";
+
+export { hashUserId };
 
 export const MCP_USER_MINUTE_LIMIT = 60;
 export const MCP_USER_MINUTE_WINDOW_SECONDS = 60;
 export const MCP_TOOL_HOUR_LIMIT = 300;
 export const MCP_TOOL_HOUR_WINDOW_SECONDS = 3600;
-
-/**
- * Irreversible user hash used in rate-limit keys and logs. The raw Clerk user id
- * is never persisted in counter keys or emitted to telemetry.
- */
-export function hashUserId(userId: string): string {
-  return createHash("sha256").update(userId).digest("hex").slice(0, 32);
-}
 
 export function mcpMinuteKey(userHash: string): string {
   return `mcp:user:${userHash}:minute`;

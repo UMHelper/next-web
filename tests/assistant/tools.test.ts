@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { z } from "zod";
 
 const data = vi.hoisted(() => ({
   searchCatalogForAssistant: vi.fn(),
@@ -23,14 +24,17 @@ vi.mock("@/lib/mcp/data/get-course", () => ({ getCourse: data.getCourse }));
 vi.mock("@/lib/mcp/data/get-course-reviews", () => ({ getCourseReviews: data.getCourseReviews }));
 vi.mock("@/lib/mcp/data/get-course-sections", () => ({ getCourseSections: data.getCourseSections }));
 
+import { NOT_AVAILABLE_ON_SITE, RATING_SCALE_NOTE } from "@/lib/assistant/academic-facts";
+import { COURSE_REFERENT_DESCRIPTION, type CourseReferentSlot } from "@/lib/assistant/course-referent";
+import { getInstructorToolInputSchema } from "@/lib/assistant/tool-schemas";
 import { ASSISTANT_SERVER_TOOL_NAMES, createAssistantTools } from "@/lib/assistant/tools";
 import { McpToolError } from "@/lib/mcp/errors";
 
 const COURSE_URL = "https://umeh.top/course/ACCT1000";
 const REVIEW_URL = "https://umeh.top/reviews/ACCT1000/CHAN%20TAI%20MAN";
 
-async function call(name: string, args: Record<string, unknown>) {
-  const tool = createAssistantTools().find((entry) => entry.name === name);
+async function call(name: string, args: Record<string, unknown>, slot?: CourseReferentSlot) {
+  const tool = createAssistantTools(slot).find((entry) => entry.name === name);
   if (!tool?.execute) throw new Error(`missing tool ${name}`);
   return (tool.execute as (input: unknown) => Promise<unknown>)(args);
 }
@@ -40,8 +44,58 @@ describe("assistant server tools", () => {
     vi.clearAllMocks();
   });
 
-  it("registers every read-only tool", () => {
+  it("registers every read-only tool, including present_response", () => {
     expect(createAssistantTools().map((tool) => tool.name)).toEqual([...ASSISTANT_SERVER_TOOL_NAMES]);
+    expect(ASSISTANT_SERVER_TOOL_NAMES).toContain("present_response");
+    expect(ASSISTANT_SERVER_TOOL_NAMES.at(-1)).toBe("preview_timetable");
+  });
+
+  it("describes present_response as a receipt-backed card request", () => {
+    const tool = createAssistantTools().find((entry) => entry.name === "present_response");
+    expect(tool?.description).toContain("receipt reports readiness");
+    expect(tool?.description).toContain("catalog browse");
+    expect(tool?.description).toContain("recommendations");
+  });
+
+  it("rejects present_response show lists longer than MAX_PRESENT_SHOW_ITEMS at the schema", () => {
+    const tool = createAssistantTools().find((entry) => entry.name === "present_response");
+    expect(tool?.parameters).toBeInstanceOf(z.ZodType);
+    const schema = tool!.parameters as z.ZodType;
+    const six = {
+      show: [
+        { component: "course_detail", course: "CISC2001" },
+        { component: "course_detail", course: "CISC2002" },
+        { component: "course_detail", course: "CISC2003" },
+        { component: "course_detail", course: "CISC2004" },
+        { component: "course_detail", course: "CISC2005" },
+        { component: "course_detail", course: "CISC2006" },
+      ],
+    };
+    expect(schema!.safeParse(six).success).toBe(false);
+    const five = {
+      show: [
+        { component: "course_detail", course: "CISC2001" },
+        { component: "course_detail", course: "CISC2002" },
+        { component: "course_detail", course: "CISC2003" },
+        { component: "course_detail", course: "CISC2004" },
+        { component: "course_detail", course: "CISC2005" },
+      ],
+    };
+    expect(schema!.safeParse(five).success).toBe(true);
+  });
+
+  it("validates present_response without reading academic data", async () => {
+    await expect(
+      call("present_response", { show: [{ component: "course_detail", course: "CISC2001" }] }),
+    ).resolves.toMatchObject({
+      status: "requested",
+      items: [{ component: "course_detail", course: "CISC2001", eligibility: "missing_lookup" }],
+    });
+    expect(data.getCourse).not.toHaveBeenCalled();
+    expect(data.getInstructorForAssistant).not.toHaveBeenCalled();
+    expect(data.searchCatalogForAssistant).not.toHaveBeenCalled();
+    expect(data.getCourseReviews).not.toHaveBeenCalled();
+    expect(data.getCourseSections).not.toHaveBeenCalled();
   });
 
   it("describes tools in English so the model does not lean toward one reply language", () => {
@@ -147,6 +201,53 @@ describe("assistant server tools", () => {
     expect(JSON.stringify(output)).not.toContain('"id"');
   });
 
+  it("get_course returns ratingScale, sampleSize and notAvailableOnSite to the model", async () => {
+    data.getCourse.mockResolvedValue({
+      course: {
+        courseCode: "ACCT1000",
+        titleEn: "Principles of Accounting",
+        titleZh: null,
+        credits: "3",
+        faculty: "FBA",
+        department: "ACCT",
+        programLevel: "UG",
+        suggestedYear: "1",
+        medium: "English",
+        gradingSystem: "Graded",
+        courseType: "Compulsory",
+        duration: "One semester",
+        description: "Intro accounting.",
+        aka: [],
+        isOffered: true,
+        url: COURSE_URL,
+      },
+      page: 1,
+      hasMore: false,
+      totalCount: 1,
+      instructors: [
+        {
+          name: "CHAN TAI MAN",
+          commentCount: 5,
+          result: 4,
+          attendance: null,
+          grade: null,
+          difficulty: 3.2,
+          reward: null,
+          isOffered: true,
+          reviewUrl: REVIEW_URL,
+        },
+      ],
+    });
+
+    const output = await call("get_course", { code: "ACCT1000" });
+
+    expect(output).toMatchObject({
+      ratingScale: RATING_SCALE_NOTE,
+      notAvailableOnSite: [...NOT_AVAILABLE_ON_SITE],
+      instructors: [{ name: "CHAN TAI MAN", sampleSize: "adequate" }],
+    });
+  });
+
   it("rejects a course search without any term or filter", async () => {
     await expect(call("search_catalog", { type: "course" })).resolves.toEqual({ error: "invalid_request" });
     expect(data.searchCatalogForAssistant).not.toHaveBeenCalled();
@@ -238,7 +339,7 @@ describe("assistant server tools", () => {
     await call("get_instructor", {
       name: " chan  tai man ",
       minResult: 4,
-      maxDifficulty: 3,
+      minEase: 3,
       minCommentCount: 5,
       offeredOnly: true,
       sortBy: "result",
@@ -250,7 +351,7 @@ describe("assistant server tools", () => {
       expect.objectContaining({
         name: "CHAN TAI MAN",
         minResult: 4,
-        maxDifficulty: 3,
+        minEase: 3,
         minCommentCount: 5,
         offeredOnly: true,
         sortBy: "result",
@@ -259,6 +360,12 @@ describe("assistant server tools", () => {
         page: 1,
       }),
       expect.any(AbortSignal),
+    );
+  });
+
+  it("get_instructor rejects the removed maxDifficulty filter", () => {
+    expect(getInstructorToolInputSchema.safeParse({ name: "X", maxDifficulty: 3 }).data).not.toHaveProperty(
+      "maxDifficulty",
     );
   });
 
@@ -305,5 +412,108 @@ describe("assistant server tools", () => {
     await expect(
       call("get_course_sections", { code: "ACCT1000", instructor: "CHAN TAI MAN" }),
     ).resolves.toEqual({ error: "temporarily_unavailable" });
+  });
+
+  it("fetches the page course when the model passes a stale code", async () => {
+    data.getCourse.mockResolvedValue({
+      course: {
+        courseCode: "CISC3014",
+        titleEn: "Fixture",
+        titleZh: null,
+        credits: null,
+        faculty: null,
+        department: null,
+        programLevel: null,
+        suggestedYear: null,
+        medium: null,
+        gradingSystem: null,
+        courseType: null,
+        duration: null,
+        description: null,
+        isOffered: true,
+        url: COURSE_URL,
+      },
+      page: 1,
+      hasMore: false,
+      totalCount: 0,
+      instructors: [],
+    });
+    const slot: CourseReferentSlot = { current: { kind: "page", courseCode: "CISC3014" } };
+
+    await call("get_course", { code: "APAC2000" }, slot);
+
+    expect(data.getCourse).toHaveBeenCalledWith(expect.objectContaining({ code: "CISC3014" }));
+  });
+
+  it("fetches the named course when the model passes the page course", async () => {
+    data.getCourseSections.mockResolvedValue({
+      courseCode: "APAC2000",
+      instructor: "CHAN TAI MAN",
+      courseUrl: COURSE_URL,
+      sections: [],
+    });
+    const slot: CourseReferentSlot = { current: { kind: "explicit", courseCode: "APAC2000" } };
+
+    await call("get_course_sections", { code: "CISC3014", instructor: "CHAN TAI MAN" }, slot);
+
+    expect(data.getCourseSections).toHaveBeenCalledWith({ code: "APAC2000", instructor: "CHAN TAI MAN" });
+  });
+
+  it("does not fetch a course when the referent is ambiguous", async () => {
+    const slot: CourseReferentSlot = {
+      current: { kind: "ambiguous", reason: "no_page_course", ask: "Which course do you mean?" },
+    };
+
+    await expect(call("get_course", { code: "APAC2000" }, slot)).resolves.toEqual({
+      status: "needs_clarification",
+      ask: "Which course do you mean?",
+    });
+    expect(data.getCourse).not.toHaveBeenCalled();
+
+    await expect(call("get_course", { code: "APAC2000" }, slot)).resolves.toMatchObject({
+      status: "needs_clarification",
+      terminal: true,
+    });
+    expect(data.getCourse).not.toHaveBeenCalled();
+  });
+});
+
+describe("tool descriptions carry moved procedures", () => {
+  function description(name: string) {
+    const tool = createAssistantTools().find((entry) => entry.name === name);
+    if (!tool?.description) throw new Error(`missing tool ${name}`);
+    return tool.description;
+  }
+
+  it("check_plan_conflicts", () => {
+    const text = description("check_plan_conflicts");
+    expect(text).toContain("at most three");
+    expect(text).toContain("even if get_course fails");
+  });
+
+  it("preview_timetable", () => {
+    expect(description("preview_timetable")).toContain("never pick one");
+  });
+
+  it("get_course_sections", () => {
+    expect(description("get_course_sections")).toContain("at most three in one turn");
+  });
+
+  it("get_course_reviews", () => {
+    expect(description("get_course_reviews")).toContain("not that none exist");
+    expect(description("get_course_reviews")).toContain("use it instead of repeating the search");
+    expect(description("get_course_reviews")).toContain("do not call this tool for the same instructors");
+    expect(description("get_course_reviews")).not.toContain("the search did not finish");
+    expect(description("count_reviews")).toContain("Do not use it to double-check");
+  });
+
+  it("present_response", () => {
+    const text = description("present_response");
+    expect(text).toContain("catalog browse");
+    expect(text).not.toContain("Default: omit");
+  });
+
+  it("courseReferent context description", () => {
+    expect(COURSE_REFERENT_DESCRIPTION).toContain("ambiguous: ask the ask text");
   });
 });

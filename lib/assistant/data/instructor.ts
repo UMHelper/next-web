@@ -12,9 +12,18 @@ const PROF_COURSE_COLUMNS =
 const SORT_COLUMNS = {
   code: "course_id",
   result: "result",
-  difficulty: "hard",
+  ease: "hard",
   commentCount: "comments",
 } as const;
+
+function hasRestrictiveFilters(input: GetInstructorToolInput): boolean {
+  return (
+    input.minResult !== undefined ||
+    input.minEase !== undefined ||
+    input.minCommentCount !== undefined ||
+    input.offeredOnly === true
+  );
+}
 
 function readText(value: unknown): string | null {
   if (value === null || value === undefined) return null;
@@ -84,7 +93,7 @@ export async function getInstructorForAssistant(
     .eq("prof_id", input.name);
 
   if (input.minResult !== undefined) builder = builder.gte("result", input.minResult);
-  if (input.maxDifficulty !== undefined) builder = builder.lte("hard", input.maxDifficulty);
+  if (input.minEase !== undefined) builder = builder.gte("hard", input.minEase);
   if (input.minCommentCount !== undefined) builder = builder.gte("comments", input.minCommentCount);
   if (input.offeredOnly === true) builder = builder.eq("is_offered", 1);
 
@@ -99,7 +108,27 @@ export async function getInstructorForAssistant(
   if (error) throw new McpToolError("temporarily_unavailable");
 
   const totalCount = typeof count === "number" && count >= 0 ? count : 0;
-  if (totalCount === 0) throw new McpToolError("not_found");
+  if (totalCount === 0) {
+    if (hasRestrictiveFilters(input)) {
+      const { count: existenceCount, error: existenceError } = await supabaseServer
+        .from(PROF_COURSE_TABLE)
+        .select(PROF_COURSE_COLUMNS, { count: "exact", head: true })
+        .eq("prof_id", input.name)
+        .abortSignal(signal);
+
+      if (existenceError) throw new McpToolError("temporarily_unavailable");
+      if (typeof existenceCount === "number" && existenceCount > 0) {
+        return {
+          name: input.name,
+          page: input.page,
+          totalCount: 0,
+          hasMore: false,
+          courses: [],
+        };
+      }
+    }
+    throw new McpToolError("not_found");
+  }
 
   const courses = toRows(data)
     .map((row) => projectCourse(row, input.name))
