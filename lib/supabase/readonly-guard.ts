@@ -8,6 +8,7 @@ export const PREVIEW_READONLY_MESSAGE = "Preview worker is read-only";
  * absent because it writes counters; preview uses an in-memory limiter instead.
  */
 export const READONLY_RPC_ALLOWLIST: ReadonlySet<string> = new Set([
+  "assistant_usage_daily",
   "get_comment_list",
   "get_comment_page",
   "get_comment_page_v2",

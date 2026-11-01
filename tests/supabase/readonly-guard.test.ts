@@ -30,7 +30,10 @@ describe("evaluateSupabaseRequest", () => {
   it("allows POST to an allowlisted rpc only", () => {
     expect(evaluateSupabaseRequest("POST", "/rest/v1/rpc/get_schedule_list").allowed).toBe(true);
     expect(evaluateSupabaseRequest("POST", "/rest/v1/rpc/get_schedule_list/").allowed).toBe(true);
+    expect(evaluateSupabaseRequest("POST", "/rest/v1/rpc/assistant_usage_daily").allowed).toBe(true);
     expect(evaluateSupabaseRequest("POST", "/rest/v1/rpc/consume_rate_limit").allowed).toBe(false);
+    expect(evaluateSupabaseRequest("POST", "/rest/v1/rpc/claim_assistant_turn").allowed).toBe(false);
+    expect(evaluateSupabaseRequest("POST", "/rest/v1/rpc/prune_assistant_telemetry").allowed).toBe(false);
     expect(evaluateSupabaseRequest("POST", "/rest/v1/rpc/insert_comment_and_refresh_prof_stats").allowed).toBe(false);
     expect(evaluateSupabaseRequest("POST", "/rest/v1/rpc/admin_apply_schedule").allowed).toBe(false);
   });
