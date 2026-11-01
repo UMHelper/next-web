@@ -13,6 +13,7 @@ export type AssistantConfig = {
   ratePerDay: number;
   maxTurns: number;
   historyTurns: number;
+  maxSteps: number;
 };
 
 const positiveInt = (value: string | undefined, fallback: number) => {
@@ -34,5 +35,6 @@ export function readAssistantConfig(
     ratePerDay: positiveInt(env.AGENT_RATE_LIMIT_PER_DAY, 80),
     maxTurns: positiveInt(env.AGENT_MAX_TURNS_PER_CONVERSATION, 30),
     historyTurns: positiveInt(env.AGENT_HISTORY_TURNS, DEFAULT_HISTORY_TURNS),
+    maxSteps: positiveInt(env.AGENT_MAX_STEPS, 8),
   };
 }

@@ -44,7 +44,12 @@ import { PREVIEW_TIMETABLE_TOOL_NAME } from "@/lib/assistant/timetable-preview";
 describe("createAssistantAgent", () => {
   it("builds a read-only DeepSeek agent with the spec limits", () => {
     const signal = new AbortController().signal;
-    const config = readAssistantConfig({ AI_API_KEY: "sk-test", AI_THINKING: "low", AI_MAX_OUTPUT_TOKENS: "300" });
+    const config = readAssistantConfig({
+      AI_API_KEY: "sk-test",
+      AI_THINKING: "low",
+      AI_MAX_OUTPUT_TOKENS: "300",
+      AGENT_MAX_STEPS: "6",
+    });
 
     createAssistantAgent(config, signal);
 
@@ -53,7 +58,7 @@ describe("createAssistantAgent", () => {
       model: { modelId: "deepseek-flash" },
       prompt: ASSISTANT_PROMPT,
       tools: [{ name: "search_catalog" }],
-      maxSteps: 8,
+      maxSteps: 6,
       maxOutputTokens: 300,
       providerOptions: { deepseek: { thinking: { type: "enabled" }, reasoningEffort: "low" } },
       overridableProperties: [],
