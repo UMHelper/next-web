@@ -82,7 +82,7 @@ export default function AssistantUsageClient({ initial }: { initial: AssistantUs
       </div>
 
       <div className="mt-2 grid gap-2 sm:grid-cols-4">
-        <Stat label="Accepted" value={number(summary.totals.accepted)} hint="Last 14 days" />
+        <Stat label="In flight" value={number(summary.totals.accepted)} hint="Last 14 days" />
         <Stat label="Completed" value={number(summary.totals.completed)} hint="Last 14 days" />
         <Stat label="Provider failures" value={number(summary.totals.providerErrors)} hint="Last 14 days" />
         <Stat label="Rejected" value={number(summary.totals.rejected)} hint="Too long or too large" />
@@ -93,7 +93,7 @@ export default function AssistantUsageClient({ initial }: { initial: AssistantUs
           <thead>
             <tr className="border-b text-muted-foreground">
               <th className="py-2">Day</th>
-              <th className="py-2 text-right">Accepted</th>
+              <th className="py-2 text-right">In flight</th>
               <th className="py-2 text-right">Completed</th>
               <th className="py-2 text-right">Provider errors</th>
               <th className="py-2 text-right">Denied</th>
