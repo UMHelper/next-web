@@ -84,21 +84,25 @@ An independent V2 reality audit reached the same operational-visibility conclusi
 The server derives, per run:
 
 ```
-userHash  = sha256(clerkUserId).slice(0, 32)
-threadHash = sha256(threadId).slice(0, 32)
-turnKey   = sha256(userHash + "\0" + threadId + "\0" + turnMessageKey).slice(0, 32)
+userHash     = sha256(clerkUserId).slice(0, 32)
+threadHash   = sha256(threadId).slice(0, 32)
+contentKey   = sha256(JSON.stringify(latest user content, or all message contents when no user message)).slice(0, 32)
+turnMessageKey = latest user message id, or "no-id" when the client omits an id, or "no-user" when the run has no user message
+turnKey      = sha256(userHash + "\0" + threadId + "\0" + turnMessageKey + "\0" + contentKey).slice(0, 32)
 ```
 
-`turnMessageKey` is the latest user message's `id`, or a hash of its content when the client omits an id, or `"no-user"` when the run has no user message. The raw Clerk id, thread id, and prompt are never stored.
+The client message `id` is a disambiguator only; it is never sufficient on its own to prove two executions are the same logical turn. The raw Clerk id, thread id, and prompt are never stored.
 
 `isContinuation` is `messages.at(-1)?.role === "tool"`. It is recorded for usage but is **not** trusted for charging; the turn key is authoritative.
+
+Within the five-minute replay window, one charge funds at most eight provider runs for the same turn key (one charged run plus seven uncharged replays). A ninth identical request re-enters the hour/day counters. Identical-body replays beyond that cap therefore spend quota; the server cannot distinguish a forged tool continuation from a real one without durable conversation state (deferred with V2.3.5-C).
 
 ### 3.2 Idempotency and atomicity
 
 A dedicated `assistant_turn_charges(user_hash, turn_key)` ledger records committed charges. The `claim_assistant_turn` RPC:
 
 1. Takes a transaction-scoped advisory lock on the user hash.
-2. Returns `allowed=true, charged=false` if a charge for the turn exists and is under 5 minutes old.
+2. Returns `allowed=true, charged=false` if a charge for the turn exists, is under 5 minutes old, and `continuations < 7`.
 3. Otherwise reads both window counters, denies without incrementing either if either is full, and only then increments both.
 4. Upserts the charge row and writes an `accepted` usage event.
 

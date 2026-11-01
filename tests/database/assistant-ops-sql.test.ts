@@ -2,6 +2,10 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 const migration = readFileSync("supabase/migrations/20261028_assistant_admin_ops.sql", "utf8");
+const replayCapMigration = readFileSync(
+  "supabase/migrations/20261101_assistant_turn_replay_cap.sql",
+  "utf8",
+);
 const snapshot = readFileSync("supabase/schema.sql", "utf8");
 
 describe("assistant admin ops migration", () => {
@@ -64,5 +68,14 @@ describe("assistant admin ops migration", () => {
   it("stays compatible with the pinned Postgres 15 local stack", () => {
     expect(snapshot).not.toContain("transaction_timeout");
     expect(snapshot).toContain("create schema if not exists public;");
+  });
+});
+
+describe("assistant turn replay cap migration", () => {
+  it("caps uncharged replays before re-entering the quota windows", () => {
+    expect(replayCapMigration).toContain("charge_continuations");
+    expect(replayCapMigration).toContain("coalesce(charge_continuations, 0) < 7");
+    expect(replayCapMigration).toContain("pg_advisory_xact_lock(hashtextextended(target_user_hash, 0))");
+    expect(snapshot).toContain("coalesce(charge_continuations, 0) < 7");
   });
 });
