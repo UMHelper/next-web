@@ -31,11 +31,19 @@
 
 ## Deploy
 
+Pushes to `dev` deploy automatically through Cloudflare Workers Builds on `next-web-preview`:
+
+- Build command: `npm run build:preview`
+- Deploy command: `npx opennextjs-cloudflare deploy --env preview`
+- Build variables: the same six values as `.env.preview.local` above.
+
+To deploy from your machine instead:
+
 ```
 npm run deploy:preview
 ```
 
-The script refuses to run unless the Clerk key starts with `pk_test_` and `PREVIEW_DB_READONLY=1`.
+Both paths run `scripts/check-preview-env.sh`, which refuses to build unless the Clerk key starts with `pk_test_` and `PREVIEW_DB_READONLY=1`.
 
 ## Smoke test
 
