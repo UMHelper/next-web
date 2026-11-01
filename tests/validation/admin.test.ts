@@ -8,7 +8,7 @@ import {
   reportUpdateSchema,
   syncUmSchema,
 } from "@/lib/validation/admin";
-import { ASSISTANT_LIMIT_BOUNDS } from "@/lib/assistant/limits";
+import { ASSISTANT_LIMIT_INTEGER_MAX, ASSISTANT_LIMIT_MIN } from "@/lib/assistant/limits";
 
 describe("admin validation schemas", () => {
   it("validates admin grant ids", () => {
@@ -57,13 +57,18 @@ describe("admin validation schemas", () => {
     ["ai_timeout_ms", "timeoutMs"],
   ] as const;
 
-  it.each(limitColumns)("bounds %s and accepts null", (column, key) => {
-    const { min, max } = ASSISTANT_LIMIT_BOUNDS[key];
+  it.each(limitColumns)("validates %s minimum, large values, and null", (column, key) => {
+    const min = ASSISTANT_LIMIT_MIN[key];
     expect(appConfigUpdateSchema.safeParse({ [column]: min }).success).toBe(true);
-    expect(appConfigUpdateSchema.safeParse({ [column]: max }).success).toBe(true);
+    expect(appConfigUpdateSchema.safeParse({ [column]: 5000 }).success).toBe(true);
+    expect(appConfigUpdateSchema.safeParse({ [column]: ASSISTANT_LIMIT_INTEGER_MAX }).success).toBe(
+      true,
+    );
     expect(appConfigUpdateSchema.safeParse({ [column]: null }).success).toBe(true);
     expect(appConfigUpdateSchema.safeParse({ [column]: min - 1 }).success).toBe(false);
-    expect(appConfigUpdateSchema.safeParse({ [column]: max + 1 }).success).toBe(false);
+    expect(appConfigUpdateSchema.safeParse({ [column]: ASSISTANT_LIMIT_INTEGER_MAX + 1 }).success).toBe(
+      false,
+    );
     expect(appConfigUpdateSchema.safeParse({ [column]: 1.5 }).success).toBe(false);
   });
 

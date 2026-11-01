@@ -1,7 +1,11 @@
 import { z } from "zod";
 
 import { ASSISTANT_ACCESS_MODES } from "@/lib/assistant/access-mode";
-import { ASSISTANT_LIMIT_BOUNDS, ASSISTANT_LIMIT_FIELDS } from "@/lib/assistant/limits";
+import {
+  ASSISTANT_LIMIT_FIELDS,
+  ASSISTANT_LIMIT_INTEGER_MAX,
+  ASSISTANT_LIMIT_MIN,
+} from "@/lib/assistant/limits";
 
 const clerkUserIdPattern = /^user_[A-Za-z0-9_-]+$/;
 const emailAddressPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -94,8 +98,8 @@ const nullableLimit = (min: number, max: number) =>
 
 const assistantLimitShape = Object.fromEntries(
   ASSISTANT_LIMIT_FIELDS.map((field) => {
-    const bounds = ASSISTANT_LIMIT_BOUNDS[field.key];
-    return [field.column, nullableLimit(bounds.min, bounds.max)];
+    const min = ASSISTANT_LIMIT_MIN[field.key];
+    return [field.column, nullableLimit(min, ASSISTANT_LIMIT_INTEGER_MAX)];
   }),
 );
 

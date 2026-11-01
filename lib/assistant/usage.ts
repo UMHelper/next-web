@@ -2,51 +2,25 @@ import "server-only";
 
 import { readAssistantConfig } from "@/lib/assistant/config";
 import { resolveAssistantConfig } from "@/lib/assistant/settings";
+import {
+  parseAssistantUsageDays,
+  type AssistantUsageDay,
+  type AssistantUsageSummary,
+  type UsagePricing,
+  type UsageTokens,
+} from "@/lib/assistant/usage-shared";
+import { readAssistantUsageRecording } from "@/lib/assistant/usage-recording";
 import supabaseAdmin from "@/lib/supabase/admin";
 
-export type UsageTokens = {
-  inputTokens: number | null;
-  cachedInputTokens?: number | null;
-  outputTokens: number | null;
-};
+export type {
+  AssistantUsageDay,
+  AssistantUsageSummary,
+  AssistantUsageDayWindow,
+  UsagePricing,
+  UsageTokens,
+} from "@/lib/assistant/usage-shared";
+export { ASSISTANT_USAGE_DAY_WINDOWS, parseAssistantUsageDays } from "@/lib/assistant/usage-shared";
 
-export type UsagePricing = {
-  inputPerMTok: number | null;
-  cachedInputPerMTok: number | null;
-  outputPerMTok: number | null;
-};
-
-export type AssistantUsageDay = {
-  day: string;
-  accepted: number;
-  completed: number;
-  providerErrors: number;
-  denied: number;
-  rejected: number;
-  inputTokens: number | null;
-  outputTokens: number | null;
-  estimatedCostUsd: number | null;
-};
-
-export type AssistantUsageSummary = {
-  generatedAt: string;
-  limits: { perHour: number; perDay: number };
-  current: { chargedTurnsHour: number; chargedTurnsDay: number; denialsToday: number };
-  totals: {
-    accepted: number;
-    completed: number;
-    providerErrors: number;
-    denied: number;
-    rejected: number;
-    inputTokens: number | null;
-    outputTokens: number | null;
-  };
-  daily: AssistantUsageDay[];
-  cost: { estimate: true; configured: boolean; currency: "USD" };
-  error?: "usage_unavailable";
-};
-
-const DAILY_ROWS = 14;
 const TOKENS_PER_MTOK = 1_000_000;
 
 const parsePrice = (raw: string | undefined): number | null => {
@@ -153,7 +127,9 @@ async function headCount(
 /** Aggregates only. No user hash, thread hash, prompt, or reply leaves this module. */
 export async function readAssistantUsageSummary(
   now: Date = new Date(),
+  options?: { days?: number },
 ): Promise<AssistantUsageSummary> {
+  const dayWindow = parseAssistantUsageDays(options?.days);
   const pricing = readUsagePricing();
   const configured = Boolean(pricing.inputPerMTok && pricing.outputPerMTok);
 
@@ -192,7 +168,7 @@ export async function readAssistantUsageSummary(
   let rows: DailyRow[] = [];
   try {
     const { data, error } = await supabaseAdmin.rpc("assistant_usage_daily", {
-      target_days: DAILY_ROWS,
+      target_days: dayWindow,
     });
     if (error) {
       unavailable = true;
@@ -207,6 +183,7 @@ export async function readAssistantUsageSummary(
 
   return {
     generatedAt: now.toISOString(),
+    recording: readAssistantUsageRecording(),
     limits: base,
     current: { chargedTurnsHour, chargedTurnsDay, denialsToday },
     totals: {

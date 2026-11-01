@@ -8,7 +8,7 @@ vi.mock("@/lib/supabase/admin", () => ({
   default: { from: () => ({ select: () => ({ eq: () => ({ maybeSingle }) }) }) },
 }));
 
-import { ASSISTANT_LIMIT_BOUNDS, resolveAssistantConfig } from "@/lib/assistant/settings";
+import { ASSISTANT_LIMIT_MIN, resolveAssistantConfig } from "@/lib/assistant/settings";
 
 describe("resolveAssistantConfig", () => {
   beforeEach(() => {
@@ -35,7 +35,7 @@ describe("resolveAssistantConfig", () => {
     expect(config.ratePerDay).toBe(80);
   });
 
-  it("lets database values win and clamps out-of-range values", async () => {
+  it("lets database values win and passes through large overrides", async () => {
     maybeSingle.mockResolvedValue({
       data: { ai_quota_per_hour: 5000, ai_max_steps: 99 },
       error: null,
@@ -43,11 +43,11 @@ describe("resolveAssistantConfig", () => {
 
     const config = await resolveAssistantConfig({});
 
-    expect(config.ratePerHour).toBe(ASSISTANT_LIMIT_BOUNDS.ratePerHour.max);
-    expect(config.maxSteps).toBe(ASSISTANT_LIMIT_BOUNDS.maxSteps.max);
+    expect(config.ratePerHour).toBe(5000);
+    expect(config.maxSteps).toBe(99);
   });
 
-  it("clamps environment values that exceed the absolute ceiling", async () => {
+  it("passes through large environment values without a ceiling", async () => {
     maybeSingle.mockResolvedValue({ data: null, error: null });
 
     const config = await resolveAssistantConfig({
@@ -55,8 +55,20 @@ describe("resolveAssistantConfig", () => {
       AI_MAX_OUTPUT_TOKENS: "999999",
     });
 
-    expect(config.ratePerDay).toBe(ASSISTANT_LIMIT_BOUNDS.ratePerDay.max);
-    expect(config.maxOutputTokens).toBe(ASSISTANT_LIMIT_BOUNDS.maxOutputTokens.max);
+    expect(config.ratePerDay).toBe(99999);
+    expect(config.maxOutputTokens).toBe(999999);
+  });
+
+  it("floors values below the minimum", async () => {
+    maybeSingle.mockResolvedValue({
+      data: { ai_history_turns: -3, ai_max_steps: 0 },
+      error: null,
+    });
+
+    const config = await resolveAssistantConfig({});
+
+    expect(config.historyTurns).toBe(ASSISTANT_LIMIT_MIN.historyTurns);
+    expect(config.maxSteps).toBe(ASSISTANT_LIMIT_MIN.maxSteps);
   });
 
   it("falls back to environment values when the read fails", async () => {

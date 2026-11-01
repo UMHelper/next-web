@@ -11,17 +11,15 @@ import { getCurrentAdmin } from "@/lib/admin-auth";
 import { readAssistantAccess } from "@/lib/assistant/access";
 import { readAssistantConfig } from "@/lib/assistant/config";
 import {
-  ASSISTANT_LIMIT_BOUNDS,
   ASSISTANT_LIMIT_FIELDS,
+  ASSISTANT_LIMIT_MIN,
+  normalizeAssistantLimit,
   type AssistantLimitKey,
 } from "@/lib/assistant/limits";
 import { readAssistantLimitOverrides, resolveAssistantConfig } from "@/lib/assistant/settings";
 import { readAssistantUsageSummary } from "@/lib/assistant/usage";
 
 export const dynamic = "force-dynamic";
-
-const clamp = (value: number, min: number, max: number) =>
-  Math.min(max, Math.max(min, Math.round(value)));
 
 export default async function AssistantAdminPage() {
   const admin = await getCurrentAdmin();
@@ -39,15 +37,14 @@ export default async function AssistantAdminPage() {
 
   const base = readAssistantConfig();
   const bounds: AssistantLimitView[] = ASSISTANT_LIMIT_FIELDS.map((field) => {
-    const { min, max } = ASSISTANT_LIMIT_BOUNDS[field.key];
+    const min = ASSISTANT_LIMIT_MIN[field.key];
     return {
       column: field.column,
       key: field.key,
       label: field.label,
       unit: field.unit,
       min,
-      max,
-      defaultValue: clamp(base[field.key], min, max),
+      defaultValue: normalizeAssistantLimit(field.key, base[field.key]),
       configuredValue: overrides[field.key] ?? null,
     };
   });

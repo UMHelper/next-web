@@ -14,10 +14,10 @@ type TesterRow = {
   created_at: string;
 };
 
-const MODE_COPY: Record<AssistantAccess, { label: string; description: string }> = {
-  off: { label: "Off", description: "Hidden for everyone. The assistant API returns 403." },
-  testers: { label: "Admins & testers", description: "Admins and the tester emails below." },
-  everyone: { label: "Everyone", description: "Every signed-in user." },
+const MODE_LABEL: Record<AssistantAccess, string> = {
+  off: "Off",
+  testers: "Admins & testers",
+  everyone: "Everyone",
 };
 
 const EVERYONE_CONFIRM =
@@ -71,7 +71,7 @@ export default function AssistantAccessClient({ initialAccess }: { initialAccess
         return;
       }
       setAccess(next);
-      toast.success(`AI assistant access: ${MODE_COPY[next].label}`);
+      toast.success(`AI assistant access: ${MODE_LABEL[next]}`);
     } catch {
       toast.error("Failed to update access");
     } finally {
@@ -113,10 +113,7 @@ export default function AssistantAccessClient({ initialAccess }: { initialAccess
       <div className="text-lg font-semibold">AI Assistant</div>
 
       <div className="rounded-lg border p-4">
-        <div className="mb-1 text-sm font-medium">Access</div>
-        <div className="mb-3 text-xs text-muted-foreground">
-          Changes apply on the next request (at most 5 minutes if the cache is slow to clear).
-        </div>
+        <div className="mb-3 text-sm font-medium">Access</div>
         <div role="radiogroup" aria-label="AI assistant access" className="grid gap-2 sm:grid-cols-3">
           {ASSISTANT_ACCESS_MODES.map((mode) => (
             <button
@@ -130,19 +127,14 @@ export default function AssistantAccessClient({ initialAccess }: { initialAccess
                 access === mode ? "border-brand bg-brand/10" : "hover:bg-muted"
               }`}
             >
-              <div className="font-medium">{MODE_COPY[mode].label}</div>
-              <div className="text-xs text-muted-foreground">{MODE_COPY[mode].description}</div>
+              <div className="font-medium">{MODE_LABEL[mode]}</div>
             </button>
           ))}
         </div>
       </div>
 
       <div className="rounded-lg border p-4">
-        <div className="mb-1 text-sm font-medium">Testers</div>
-        <div className="mb-3 text-xs text-muted-foreground">
-          Used only in &quot;Admins &amp; testers&quot; mode. Admins always have access. Matched against the
-          user&apos;s verified email, so you can add people before they sign up.
-        </div>
+        <div className="mb-3 text-sm font-medium">Testers</div>
         <div className="mb-3 flex flex-col gap-2 sm:flex-row">
           <Input
             aria-label="Tester email"

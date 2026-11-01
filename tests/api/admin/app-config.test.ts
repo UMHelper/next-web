@@ -172,9 +172,9 @@ describe("/api/admin/app-config", () => {
     expect(update).not.toHaveBeenCalled();
   });
 
-  it("updates assistant limits and audits the previous values", async () => {
+  it("updates assistant limits and audits only the patched columns", async () => {
     maybeSingle.mockResolvedValue({
-      data: { ...row, ai_quota_per_hour: 30, ai_max_steps: 6 },
+      data: { ...row, ai_quota_per_hour: 30, ai_history_turns: 4 },
       error: null,
     });
     const request = new Request("http://localhost/api/admin/app-config", {
@@ -189,17 +189,18 @@ describe("/api/admin/app-config", () => {
     expect(update.mock.calls[0][0]).toMatchObject({ ai_quota_per_hour: 60, ai_history_turns: null });
     expect(writeAuditLog).toHaveBeenCalledWith(
       expect.objectContaining({
-        before: expect.objectContaining({ ai_quota_per_hour: 30, ai_history_turns: null }),
-        after: expect.objectContaining({ ai_quota_per_hour: 60, ai_history_turns: null }),
+        before: { ai_quota_per_hour: 30, ai_history_turns: 4 },
+        after: { ai_quota_per_hour: 60, ai_history_turns: 8 },
       }),
     );
+    expect(writeAuditLog.mock.calls[0][0].after).not.toHaveProperty("updated_at");
   });
 
-  it("rejects assistant limits outside the allowed range", async () => {
+  it("rejects assistant limits below the minimum", async () => {
     const request = new Request("http://localhost/api/admin/app-config", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ai_max_steps: 13 }),
+      body: JSON.stringify({ ai_max_steps: 0 }),
     });
 
     const response = await POST(request);

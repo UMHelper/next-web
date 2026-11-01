@@ -1,4 +1,4 @@
-/** Server, admin UI, and validation share these ceilings; nothing else may widen them. */
+/** Shared limit field metadata. Minimums are fixed; maximum is Postgres integer range only. */
 
 export type AssistantLimitKey =
   | "ratePerHour"
@@ -9,16 +9,17 @@ export type AssistantLimitKey =
   | "maxOutputTokens"
   | "timeoutMs";
 
-export type AssistantLimitBounds = { min: number; max: number };
+/** Upper bound for `integer` columns in `app_config` and API validation. */
+export const ASSISTANT_LIMIT_INTEGER_MAX = 2_147_483_647;
 
-export const ASSISTANT_LIMIT_BOUNDS: Record<AssistantLimitKey, AssistantLimitBounds> = {
-  ratePerHour: { min: 1, max: 500 },
-  ratePerDay: { min: 1, max: 2_000 },
-  maxTurns: { min: 1, max: 100 },
-  historyTurns: { min: 0, max: 20 },
-  maxSteps: { min: 1, max: 12 },
-  maxOutputTokens: { min: 128, max: 4_096 },
-  timeoutMs: { min: 5_000, max: 60_000 },
+export const ASSISTANT_LIMIT_MIN: Record<AssistantLimitKey, number> = {
+  ratePerHour: 1,
+  ratePerDay: 1,
+  maxTurns: 1,
+  historyTurns: 0,
+  maxSteps: 1,
+  maxOutputTokens: 1,
+  timeoutMs: 1,
 };
 
 export type AssistantLimitField = {
@@ -40,3 +41,9 @@ export const ASSISTANT_LIMIT_FIELDS: readonly AssistantLimitField[] = [
 ];
 
 export type AssistantLimitOverrides = Partial<Record<AssistantLimitKey, number | null>>;
+
+export function normalizeAssistantLimit(key: AssistantLimitKey, value: number): number {
+  const rounded = Math.round(value);
+  const min = ASSISTANT_LIMIT_MIN[key];
+  return Math.min(ASSISTANT_LIMIT_INTEGER_MAX, Math.max(min, rounded));
+}

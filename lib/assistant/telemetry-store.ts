@@ -6,6 +6,7 @@ import {
   type UsageOutcome,
 } from "@/lib/assistant/telemetry";
 import type { TurnIdentity } from "@/lib/assistant/turn-key";
+import { isRateLimitDisabled } from "@/lib/rate-limit";
 import { isReadonlyPreview } from "@/lib/supabase/readonly-guard";
 import supabaseAdmin from "@/lib/supabase/admin";
 
@@ -35,6 +36,48 @@ export async function maybePruneAssistantTelemetry(now: number = Date.now()): Pr
   }
 }
 
+function finalizeUsagePayload(telemetry: RunTelemetry, outcome: UsageOutcome) {
+  return {
+    outcome,
+    is_continuation: telemetry.isContinuation,
+    charged: telemetry.charged,
+    duration_ms: Math.max(0, Date.now() - telemetry.startedAt),
+    steps: telemetry.steps,
+    tool_calls: telemetry.toolCalls,
+    input_tokens: telemetry.inputTokens,
+    cached_input_tokens: telemetry.cachedInputTokens,
+    output_tokens: telemetry.outputTokens,
+    reasoning_tokens: telemetry.reasoningTokens,
+    error_class: telemetry.errorClass,
+  };
+}
+
+/** Dev bypass skips claim_assistant_turn; mirror charge rows so admin counters move. */
+async function recordDevTurnCharge(telemetry: RunTelemetry): Promise<void> {
+  if (!isRateLimitDisabled()) return;
+
+  try {
+    const { error } = await supabaseAdmin.from("assistant_turn_charges").upsert(
+      {
+        user_hash: telemetry.userHash,
+        turn_key: telemetry.turnKey,
+        charged_at: new Date().toISOString(),
+        continuations: 0,
+      },
+      { onConflict: "user_hash,turn_key" },
+    );
+
+    if (error) {
+      console.warn("[assistant-telemetry] dev charge upsert failed:", error.message);
+    }
+  } catch (error) {
+    console.warn(
+      "[assistant-telemetry] dev charge upsert threw:",
+      error instanceof Error ? error.message : "unknown",
+    );
+  }
+}
+
 /** Best-effort persistence. A usage write never blocks or fails a response. */
 export async function finalizeRunUsage(
   telemetry: RunTelemetry,
@@ -43,27 +86,37 @@ export async function finalizeRunUsage(
   if (isReadonlyPreview()) return;
 
   const outcome = resolveOutcome(telemetry, outcomeHint);
+  const payload = finalizeUsagePayload(telemetry, outcome);
+
   try {
-    const { error } = await supabaseAdmin
+    const { data, error } = await supabaseAdmin
       .from("assistant_usage_events")
-      .update({
-        outcome,
-        is_continuation: telemetry.isContinuation,
-        charged: telemetry.charged,
-        duration_ms: Math.max(0, Date.now() - telemetry.startedAt),
-        steps: telemetry.steps,
-        tool_calls: telemetry.toolCalls,
-        input_tokens: telemetry.inputTokens,
-        cached_input_tokens: telemetry.cachedInputTokens,
-        output_tokens: telemetry.outputTokens,
-        reasoning_tokens: telemetry.reasoningTokens,
-        error_class: telemetry.errorClass,
-      })
-      .eq("run_key", telemetry.runKey);
+      .update(payload)
+      .eq("run_key", telemetry.runKey)
+      .select("run_key");
 
     if (error) {
       console.warn("[assistant-telemetry] finalize failed:", error.message);
+      return;
     }
+
+    if (!data?.length) {
+      const { error: insertError } = await supabaseAdmin.from("assistant_usage_events").insert([
+        {
+          run_key: telemetry.runKey,
+          user_hash: telemetry.userHash,
+          thread_hash: telemetry.threadHash,
+          turn_key: telemetry.turnKey,
+          ...payload,
+        },
+      ]);
+
+      if (insertError) {
+        console.warn("[assistant-telemetry] finalize insert failed:", insertError.message);
+      }
+    }
+
+    await recordDevTurnCharge(telemetry);
   } catch (error) {
     console.warn(
       "[assistant-telemetry] finalize threw:",

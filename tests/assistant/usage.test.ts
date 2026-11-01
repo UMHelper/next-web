@@ -8,6 +8,7 @@ vi.mock("@/lib/assistant/settings", () => ({
 }));
 vi.mock("@/lib/supabase/admin", () => ({ default: { from, rpc } }));
 
+import { parseAssistantUsageDays } from "@/lib/assistant/usage-shared";
 import { estimateUsageCost, readAssistantUsageSummary } from "@/lib/assistant/usage";
 
 function countQuery(result: { count: number | null; error: { message: string } | null }) {
@@ -83,7 +84,21 @@ describe("estimateUsageCost", () => {
   });
 });
 
+describe("parseAssistantUsageDays", () => {
+  it("allows 7, 14, and 30 and defaults everything else to 14", () => {
+    expect(parseAssistantUsageDays(7)).toBe(7);
+    expect(parseAssistantUsageDays("30")).toBe(30);
+    expect(parseAssistantUsageDays(999)).toBe(14);
+    expect(parseAssistantUsageDays(undefined)).toBe(14);
+  });
+});
+
 describe("readAssistantUsageSummary", () => {
+  it("passes the requested day window to the RPC", async () => {
+    await readAssistantUsageSummary(new Date("2026-10-28T12:00:00.000Z"), { days: 30 });
+    expect(rpc).toHaveBeenCalledWith("assistant_usage_daily", { target_days: 30 });
+  });
+
   it("groups daily rows and totals measured tokens", async () => {
     rpc.mockResolvedValue({
       data: [
@@ -112,6 +127,24 @@ describe("readAssistantUsageSummary", () => {
       outputTokens: 100,
     });
     expect(summary.generatedAt).toBe("2026-10-28T12:00:00.000Z");
+    expect(summary.recording).toEqual({ status: "live" });
+  });
+
+  it("reports dev quota bypass when DISABLE_RATE_LIMIT is on", async () => {
+    vi.stubEnv("NODE_ENV", "development");
+    vi.stubEnv("DISABLE_RATE_LIMIT", "1");
+
+    const summary = await readAssistantUsageSummary();
+
+    expect(summary.recording).toEqual({ status: "dev_quota_bypass" });
+  });
+
+  it("reports preview readonly when PREVIEW_DB_READONLY is on", async () => {
+    vi.stubEnv("PREVIEW_DB_READONLY", "1");
+
+    const summary = await readAssistantUsageSummary();
+
+    expect(summary.recording).toEqual({ status: "preview_readonly" });
   });
 
   it("marks cost as an estimate and reports whether pricing is configured", async () => {

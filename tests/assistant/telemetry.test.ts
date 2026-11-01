@@ -2,22 +2,29 @@ import type { LanguageModelV3StreamPart } from "@ai-sdk/provider";
 import { MockLanguageModelV3, convertReadableStreamToArray, simulateReadableStream } from "ai/test";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const { update, eq, insert } = vi.hoisted(() => ({
+const { update, eq, select, insert, upsertTurnCharge } = vi.hoisted(() => ({
   update: vi.fn(),
-  eq: vi.fn(async (_value?: unknown) => ({ error: null })),
+  eq: vi.fn(),
+  select: vi.fn(async () => ({ data: [{ run_key: "run-1" }], error: null })),
   insert: vi.fn(async (_payload?: unknown) => ({ error: null })),
+  upsertTurnCharge: vi.fn(async (_payload?: unknown) => ({ error: null })),
 }));
 
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/supabase/admin", () => ({
   default: {
-    from: () => ({
-      update: (payload: unknown) => {
-        update(payload);
-        return { eq };
-      },
-      insert: (payload: unknown) => insert(payload),
-    }),
+    from: (table: string) => {
+      if (table === "assistant_turn_charges") {
+        return { upsert: upsertTurnCharge };
+      }
+      return {
+        update: (payload: unknown) => {
+          update(payload);
+          return { eq };
+        },
+        insert: (payload: unknown) => insert(payload),
+      };
+    },
   },
 }));
 
@@ -72,6 +79,7 @@ const telemetryFor = (maxSteps = 8) =>
 describe("run telemetry", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    eq.mockReturnValue({ select });
     vi.spyOn(console, "log").mockImplementation(() => undefined);
     vi.spyOn(console, "warn").mockImplementation(() => undefined);
   });
@@ -241,9 +249,43 @@ describe("run telemetry", () => {
   });
 
   it("does not throw when the usage write fails", async () => {
-    eq.mockResolvedValueOnce({ error: { message: "db down" } } as never);
+    select.mockResolvedValueOnce({ data: null, error: { message: "db down" } } as never);
 
     await expect(finalizeRunUsage(telemetryFor())).resolves.toBeUndefined();
+  });
+
+  it("inserts a usage row when claim was skipped and no accepted event exists", async () => {
+    select.mockResolvedValueOnce({ data: [], error: null });
+
+    await finalizeRunUsage(telemetryFor());
+
+    expect(update).toHaveBeenCalledWith(expect.objectContaining({ outcome: "completed" }));
+    expect(insert).toHaveBeenCalledWith([
+      expect.objectContaining({
+        run_key: "run-1",
+        outcome: "completed",
+        user_hash: expect.any(String),
+        turn_key: expect.any(String),
+      }),
+    ]);
+    expect(upsertTurnCharge).not.toHaveBeenCalled();
+  });
+
+  it("upserts a dev charge row when DISABLE_RATE_LIMIT skips claim_assistant_turn", async () => {
+    vi.stubEnv("NODE_ENV", "development");
+    vi.stubEnv("DISABLE_RATE_LIMIT", "1");
+    select.mockResolvedValueOnce({ data: [], error: null });
+
+    await finalizeRunUsage(telemetryFor());
+
+    expect(upsertTurnCharge).toHaveBeenCalledWith(
+      expect.objectContaining({
+        user_hash: expect.any(String),
+        turn_key: expect.any(String),
+        continuations: 0,
+      }),
+      { onConflict: "user_hash,turn_key" },
+    );
   });
 
   it("records a stream error into the telemetry object", () => {

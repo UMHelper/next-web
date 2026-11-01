@@ -2343,19 +2343,19 @@ notify pgrst, 'reload schema';
 
 alter table public.app_config
   add column if not exists ai_quota_per_hour integer
-    check (ai_quota_per_hour is null or ai_quota_per_hour between 1 and 500),
+    check (ai_quota_per_hour is null or ai_quota_per_hour >= 1),
   add column if not exists ai_quota_per_day integer
-    check (ai_quota_per_day is null or ai_quota_per_day between 1 and 2000),
+    check (ai_quota_per_day is null or ai_quota_per_day >= 1),
   add column if not exists ai_max_turns integer
-    check (ai_max_turns is null or ai_max_turns between 1 and 100),
+    check (ai_max_turns is null or ai_max_turns >= 1),
   add column if not exists ai_history_turns integer
-    check (ai_history_turns is null or ai_history_turns between 0 and 20),
+    check (ai_history_turns is null or ai_history_turns >= 0),
   add column if not exists ai_max_steps integer
-    check (ai_max_steps is null or ai_max_steps between 1 and 12),
+    check (ai_max_steps is null or ai_max_steps >= 1),
   add column if not exists ai_max_output_tokens integer
-    check (ai_max_output_tokens is null or ai_max_output_tokens between 128 and 4096),
+    check (ai_max_output_tokens is null or ai_max_output_tokens >= 1),
   add column if not exists ai_timeout_ms integer
-    check (ai_timeout_ms is null or ai_timeout_ms between 5000 and 60000);
+    check (ai_timeout_ms is null or ai_timeout_ms >= 1);
 
 create table if not exists public.assistant_turn_charges (
   user_hash text not null,
