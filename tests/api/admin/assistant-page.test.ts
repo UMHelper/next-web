@@ -38,6 +38,7 @@ const effective = {
 
 const usage = {
   generatedAt: "2026-10-28T12:00:00.000Z",
+  recording: { status: "live" as const },
   limits: { perHour: 30, perDay: 200 },
   current: { chargedTurnsHour: 0, chargedTurnsDay: 0, denialsToday: 0 },
   totals: {
@@ -96,6 +97,6 @@ describe("AssistantAdminPage guard", () => {
     expect(settings?.props.initial.bounds).toHaveLength(7);
     expect(
       settings?.props.initial.bounds.find((bound: { key: string }) => bound.key === "ratePerHour"),
-    ).toMatchObject({ min: 1, max: 500, configuredValue: 60 });
+    ).toMatchObject({ min: 1, configuredValue: 60 });
   });
 });

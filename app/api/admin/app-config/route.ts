@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { writeAuditLog } from "@/lib/admin-audit";
 import { requireAdmin } from "@/lib/admin-auth";
 import { apiError, readJsonBody } from "@/lib/api-response";
+import { buildAssistantLimitAuditDiff } from "@/lib/assistant/limit-audit";
 import { ASSISTANT_LIMIT_FIELDS } from "@/lib/assistant/limits";
 import { CACHE_TAGS } from "@/lib/cache-tags";
 import { mapAppConfigRow } from "@/lib/config/app-config-core";
@@ -54,8 +55,11 @@ export async function POST(request: Request) {
     return apiError("forbidden", "Platform admin required", 403);
   }
 
+  const limitKeysInPatch = fields.filter((field) => ASSISTANT_NUMERIC_COLUMNS.has(field));
+
   let before: Record<string, unknown> | undefined;
-  if (touchesAssistantLimits) {
+  let limitAuditAfter: Record<string, unknown> | undefined;
+  if (limitKeysInPatch.length > 0) {
     const { data: current, error: readError } = await supabaseAdmin
       .from("app_config")
       .select(ASSISTANT_COLUMNS)
@@ -65,9 +69,9 @@ export async function POST(request: Request) {
     if (readError) return apiError("internal_error", "Unable to load app config", 500);
 
     const row = (current ?? {}) as Record<string, unknown>;
-    before = Object.fromEntries(
-      ASSISTANT_LIMIT_FIELDS.map((field) => [field.column, row[field.column] ?? null]),
-    );
+    const auditDiff = buildAssistantLimitAuditDiff(limitKeysInPatch, row, parsed.data);
+    before = auditDiff.before;
+    limitAuditAfter = auditDiff.after;
   }
 
   const patch = {
@@ -86,13 +90,20 @@ export async function POST(request: Request) {
   if (error) return apiError("internal_error", "Unable to update app config", 500);
 
   revalidateTag(CACHE_TAGS.appConfig);
+  const afterAudit: Record<string, unknown> = { ...parsed.data };
+  if (limitAuditAfter) {
+    for (const [column, value] of Object.entries(limitAuditAfter)) {
+      afterAudit[column] = value;
+    }
+  }
+
   await writeAuditLog({
     actorId: admin.session.userId,
     action: "config.update",
     targetType: "app_config",
     targetId: 1,
     ...(before ? { before } : {}),
-    after: patch,
+    after: afterAudit,
   });
 
   return NextResponse.json({ config: mapAppConfigRow(data) });

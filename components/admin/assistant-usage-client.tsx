@@ -1,35 +1,42 @@
 "use client";
 
-import { useState } from "react";
+import dynamic from "next/dynamic";
+import { useCallback, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import type { AssistantUsageSummary } from "@/lib/assistant/usage";
+import {
+  ASSISTANT_USAGE_DAY_WINDOWS,
+  type AssistantUsageDayWindow,
+  type AssistantUsageSummary,
+} from "@/lib/assistant/usage-shared";
+import { cn } from "@/lib/utils";
+
+const AssistantUsageCharts = dynamic(() => import("@/components/admin/assistant-usage-charts"), {
+  ssr: false,
+});
 
 const number = (value: number | null): string =>
   value == null ? "—" : value.toLocaleString("en-US");
 
-const cost = (value: number | null): string =>
-  value == null ? "—" : `$${value.toFixed(4)}`;
-
-function Stat({ label, value, hint }: { label: string; value: string; hint: string }) {
+function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-lg border p-3">
       <div className="text-xs text-muted-foreground">{label}</div>
       <div className="text-xl font-semibold">{value}</div>
-      <div className="text-[11px] text-muted-foreground">{hint}</div>
     </div>
   );
 }
 
 export default function AssistantUsageClient({ initial }: { initial: AssistantUsageSummary }) {
   const [summary, setSummary] = useState(initial);
+  const [days, setDays] = useState<AssistantUsageDayWindow>(14);
   const [refreshing, setRefreshing] = useState(false);
 
-  async function refresh() {
+  const loadSummary = useCallback(async (windowDays: AssistantUsageDayWindow) => {
     setRefreshing(true);
     try {
-      const response = await fetch("/api/admin/assistant/usage", { cache: "no-store" });
+      const response = await fetch(`/api/admin/assistant/usage?days=${windowDays}`, { cache: "no-store" });
       if (!response.ok) {
         toast.error("Failed to refresh usage");
         return;
@@ -40,23 +47,56 @@ export default function AssistantUsageClient({ initial }: { initial: AssistantUs
     } finally {
       setRefreshing(false);
     }
+  }, []);
+
+  async function changeWindow(next: AssistantUsageDayWindow) {
+    if (next === days || refreshing) return;
+    setDays(next);
+    await loadSummary(next);
   }
 
   return (
     <div className="rounded-lg border p-4">
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div>
-          <div className="mb-1 text-sm font-medium">Usage</div>
-          <div className="text-xs text-muted-foreground">
-            Provider-reported counts and tokens. Cost is an estimate from configured list prices, not a
-            bill.
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="text-sm font-medium">Usage</div>
+        <div className="flex flex-wrap items-center gap-2">
+          <div
+            role="group"
+            aria-label="Usage date range"
+            className="inline-flex rounded-md border p-0.5"
+          >
+            {ASSISTANT_USAGE_DAY_WINDOWS.map((window) => (
+              <button
+                key={window}
+                type="button"
+                disabled={refreshing}
+                aria-pressed={days === window}
+                onClick={() => void changeWindow(window)}
+                className={cn(
+                  "rounded px-2.5 py-1 text-xs font-medium transition-colors disabled:opacity-50",
+                  days === window ? "bg-brand text-brand-foreground" : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {window}d
+              </button>
+            ))}
           </div>
+          <Button size="sm" variant="outline" onClick={() => void loadSummary(days)} disabled={refreshing}>
+            {refreshing ? "Refreshing…" : "Refresh"}
+          </Button>
         </div>
-        <Button size="sm" variant="outline" onClick={() => void refresh()} disabled={refreshing}>
-          {refreshing ? "Refreshing…" : "Refresh"}
-        </Button>
       </div>
 
+      {summary.recording.status === "preview_readonly" ? (
+        <p role="status" className="mt-3 rounded-md border border-warning/40 bg-warning/10 p-2 text-xs">
+          Preview worker: assistant usage is not recorded. Use production admin for live metrics.
+        </p>
+      ) : null}
+      {summary.recording.status === "dev_quota_bypass" ? (
+        <p role="status" className="mt-3 rounded-md border border-warning/40 bg-warning/10 p-2 text-xs">
+          DISABLE_RATE_LIMIT is on. Quota is not enforced; usage is still written after each run.
+        </p>
+      ) : null}
       {summary.error === "usage_unavailable" ? (
         <p role="status" className="mt-3 rounded-md border border-destructive/40 bg-destructive/10 p-2 text-xs">
           Usage is temporarily unavailable. Quota enforcement is unaffected.
@@ -67,73 +107,22 @@ export default function AssistantUsageClient({ initial }: { initial: AssistantUs
         <Stat
           label="Accepted turns · last hour"
           value={number(summary.current.chargedTurnsHour)}
-          hint={`Per-user limit ${summary.limits.perHour}/hour`}
         />
         <Stat
           label="Accepted turns · last 24 hours"
           value={number(summary.current.chargedTurnsDay)}
-          hint={`Per-user limit ${summary.limits.perDay}/day`}
         />
-        <Stat
-          label="Quota denials · today"
-          value={number(summary.current.denialsToday)}
-          hint="Rejected before execution"
-        />
+        <Stat label="Quota denials · today" value={number(summary.current.denialsToday)} />
       </div>
 
       <div className="mt-2 grid gap-2 sm:grid-cols-4">
-        <Stat label="In flight" value={number(summary.totals.accepted)} hint="Last 14 days" />
-        <Stat label="Completed" value={number(summary.totals.completed)} hint="Last 14 days" />
-        <Stat label="Provider failures" value={number(summary.totals.providerErrors)} hint="Last 14 days" />
-        <Stat label="Rejected" value={number(summary.totals.rejected)} hint="Too long or too large" />
+        <Stat label="In flight" value={number(summary.totals.accepted)} />
+        <Stat label="Completed" value={number(summary.totals.completed)} />
+        <Stat label="Provider failures" value={number(summary.totals.providerErrors)} />
+        <Stat label="Rejected" value={number(summary.totals.rejected)} />
       </div>
 
-      <div className="mt-4 overflow-x-auto">
-        <table className="w-full min-w-[720px] text-left text-sm">
-          <thead>
-            <tr className="border-b text-muted-foreground">
-              <th className="py-2">Day</th>
-              <th className="py-2 text-right">In flight</th>
-              <th className="py-2 text-right">Completed</th>
-              <th className="py-2 text-right">Provider errors</th>
-              <th className="py-2 text-right">Denied</th>
-              <th className="py-2 text-right">Rejected</th>
-              <th className="py-2 text-right">Input tokens</th>
-              <th className="py-2 text-right">Output tokens</th>
-              <th className="py-2 text-right">Est. cost</th>
-            </tr>
-          </thead>
-          <tbody>
-            {summary.daily.length === 0 ? (
-              <tr>
-                <td colSpan={9} className="py-6 text-center text-muted-foreground">
-                  No usage recorded yet
-                </td>
-              </tr>
-            ) : null}
-            {summary.daily.map((day) => (
-              <tr key={day.day} className="border-b last:border-0">
-                <td className="py-2 text-xs">{day.day}</td>
-                <td className="py-2 text-right text-xs">{number(day.accepted)}</td>
-                <td className="py-2 text-right text-xs">{number(day.completed)}</td>
-                <td className="py-2 text-right text-xs">{number(day.providerErrors)}</td>
-                <td className="py-2 text-right text-xs">{number(day.denied)}</td>
-                <td className="py-2 text-right text-xs">{number(day.rejected)}</td>
-                <td className="py-2 text-right text-xs">{number(day.inputTokens)}</td>
-                <td className="py-2 text-right text-xs">{number(day.outputTokens)}</td>
-                <td className="py-2 text-right text-xs">{cost(day.estimatedCostUsd)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <p className="mt-3 text-[11px] text-muted-foreground">
-        Aggregate and pseudonymous: per-user hashes are never shown. Prompts, replies, tool arguments, and
-        course records are not stored. {summary.cost.configured
-          ? "Cost uses configured token prices and may differ from the provider invoice."
-          : "Token pricing is not configured, so cost is hidden."}
-      </p>
+      <AssistantUsageCharts daily={summary.daily} costConfigured={summary.cost.configured} />
     </div>
   );
 }

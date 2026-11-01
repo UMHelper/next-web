@@ -44,12 +44,16 @@ function formatAuditValue(value: unknown): string {
   }
 }
 
+const AUDIT_SUMMARY_SKIP_KEYS = new Set(["updated_at", "updated_by"]);
+
 function summarizeAuditChanges(entry: any): string {
   const before = asRecord(entry.before);
   const after = asRecord(entry.after);
 
   if (before && after) {
-    const keys = Array.from(new Set([...Object.keys(before), ...Object.keys(after)]));
+    const keys = Array.from(new Set([...Object.keys(before), ...Object.keys(after)])).filter(
+      (key) => !AUDIT_SUMMARY_SKIP_KEYS.has(key),
+    );
     const changed = keys.filter((key) => JSON.stringify(before[key]) !== JSON.stringify(after[key]));
     if (changed.length === 0) return "no field changes";
 
@@ -62,7 +66,7 @@ function summarizeAuditChanges(entry: any): string {
   }
 
   if (after) {
-    const keys = Object.keys(after).slice(0, 4);
+    const keys = Object.keys(after).filter((key) => !AUDIT_SUMMARY_SKIP_KEYS.has(key)).slice(0, 4);
     return keys.length
       ? `created: ${keys.map((key) => `${key}=${formatAuditValue(after[key])}`).join(", ")}`
       : "created";

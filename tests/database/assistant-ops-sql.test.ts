@@ -6,6 +6,10 @@ const replayCapMigration = readFileSync(
   "supabase/migrations/20261101_assistant_turn_replay_cap.sql",
   "utf8",
 );
+const minOnlyMigration = readFileSync(
+  "supabase/migrations/20261029_assistant_limit_min_only.sql",
+  "utf8",
+);
 const snapshot = readFileSync("supabase/schema.sql", "utf8");
 
 describe("assistant admin ops migration", () => {
@@ -77,5 +81,20 @@ describe("assistant turn replay cap migration", () => {
     expect(replayCapMigration).toContain("coalesce(charge_continuations, 0) < 7");
     expect(replayCapMigration).toContain("pg_advisory_xact_lock(hashtextextended(target_user_hash, 0))");
     expect(snapshot).toContain("coalesce(charge_continuations, 0) < 7");
+  });
+});
+
+describe("assistant limit min-only checks", () => {
+  it("relaxes column checks in the follow-up migration", () => {
+    expect(minOnlyMigration).toContain("app_config_ai_quota_per_hour_check");
+    expect(minOnlyMigration).toContain("ai_quota_per_hour is null or ai_quota_per_hour >= 1");
+    expect(minOnlyMigration).toContain("ai_history_turns is null or ai_history_turns >= 0");
+    expect(minOnlyMigration).not.toContain("between 1 and 500");
+  });
+
+  it("uses min-only checks in the bootstrap snapshot", () => {
+    expect(snapshot).toContain("ai_quota_per_hour is null or ai_quota_per_hour >= 1");
+    expect(snapshot).toContain("ai_history_turns is null or ai_history_turns >= 0");
+    expect(snapshot).not.toMatch(/ai_quota_per_hour between 1 and 500/i);
   });
 });

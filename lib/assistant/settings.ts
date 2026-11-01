@@ -4,9 +4,9 @@ import { unstable_cache } from "next/cache";
 
 import { readAssistantConfig, type AssistantConfig } from "@/lib/assistant/config";
 import {
-  ASSISTANT_LIMIT_BOUNDS,
   ASSISTANT_LIMIT_FIELDS,
-  type AssistantLimitBounds,
+  ASSISTANT_LIMIT_MIN,
+  normalizeAssistantLimit,
   type AssistantLimitOverrides,
 } from "@/lib/assistant/limits";
 import { CACHE_TAGS } from "@/lib/cache-tags";
@@ -14,8 +14,9 @@ import { isReadonlyPreview } from "@/lib/supabase/readonly-guard";
 import supabaseAdmin from "@/lib/supabase/admin";
 
 export {
-  ASSISTANT_LIMIT_BOUNDS,
   ASSISTANT_LIMIT_FIELDS,
+  ASSISTANT_LIMIT_INTEGER_MAX,
+  ASSISTANT_LIMIT_MIN,
   type AssistantLimitField,
   type AssistantLimitKey,
   type AssistantLimitOverrides,
@@ -60,13 +61,9 @@ const getAssistantLimitOverrides = unstable_cache(
   { tags: [CACHE_TAGS.appConfig], revalidate: 300 },
 );
 
-function clamp(value: number, bounds: AssistantLimitBounds) {
-  return Math.min(bounds.max, Math.max(bounds.min, Math.round(value)));
-}
-
 /**
- * Environment defaults overlaid by administrator values, then clamped to the
- * absolute code ceilings. A null column resets the field to its environment value.
+ * Environment defaults overlaid by administrator values, then normalized to integer
+ * minimums. A null column resets the field to its environment value.
  */
 export async function resolveAssistantConfig(
   env: Record<string, string | undefined> = process.env,
@@ -77,7 +74,7 @@ export async function resolveAssistantConfig(
 
   for (const field of ASSISTANT_LIMIT_FIELDS) {
     const candidate = overrides[field.key] ?? base[field.key];
-    resolved[field.key] = clamp(candidate, ASSISTANT_LIMIT_BOUNDS[field.key]);
+    resolved[field.key] = normalizeAssistantLimit(field.key, candidate);
   }
 
   return resolved;

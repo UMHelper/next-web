@@ -13,6 +13,7 @@ import { GET } from "@/app/api/admin/assistant/usage/route";
 
 const summary = {
   generatedAt: "2026-10-28T12:00:00.000Z",
+  recording: { status: "live" as const },
   limits: { perHour: 30, perDay: 200 },
   current: { chargedTurnsHour: 2, chargedTurnsDay: 5, denialsToday: 0 },
   totals: {
@@ -28,6 +29,11 @@ const summary = {
   cost: { estimate: true, configured: false, currency: "USD" },
 };
 
+const usageRequest = (days?: string) =>
+  new Request(
+    `http://localhost/api/admin/assistant/usage${days == null ? "" : `?days=${encodeURIComponent(days)}`}`,
+  );
+
 describe("/api/admin/assistant/usage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -41,23 +47,32 @@ describe("/api/admin/assistant/usage", () => {
       response: NextResponse.json({ error: { code: "forbidden" } }, { status: 403 }),
     });
 
-    const response = await GET();
+    const response = await GET(usageRequest());
 
     expect(response.status).toBe(403);
     expect(readAssistantUsageSummary).not.toHaveBeenCalled();
   });
 
   it("returns aggregates without caching", async () => {
-    const response = await GET();
+    const response = await GET(usageRequest());
 
     expect(response.status).toBe(200);
     expect(response.headers.get("Cache-Control")).toBe("private, no-store");
     await expect(response.json()).resolves.toEqual(summary);
     expect(requireAdmin).toHaveBeenCalledWith();
+    expect(readAssistantUsageSummary).toHaveBeenCalledWith(expect.any(Date), { days: 14 });
+  });
+
+  it("forwards allowed day windows and falls back to 14", async () => {
+    await GET(usageRequest("30"));
+    expect(readAssistantUsageSummary).toHaveBeenLastCalledWith(expect.any(Date), { days: 30 });
+
+    await GET(usageRequest("999"));
+    expect(readAssistantUsageSummary).toHaveBeenLastCalledWith(expect.any(Date), { days: 14 });
   });
 
   it("does not leak per-user identifiers", async () => {
-    const body = JSON.stringify(await (await GET()).json());
+    const body = JSON.stringify(await (await GET(usageRequest())).json());
     for (const forbidden of ["user_hash", "thread_hash", "turn_key", "user_1"]) {
       expect(body).not.toContain(forbidden);
     }
