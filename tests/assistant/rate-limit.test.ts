@@ -4,7 +4,11 @@ const { rpc } = vi.hoisted(() => ({ rpc: vi.fn() }));
 
 vi.mock("@/lib/supabase/server", () => ({ default: { rpc } }));
 
-import { AGENT_TURN_REPLAY_MS, claimAgentTurn } from "@/lib/assistant/rate-limit";
+import {
+  AGENT_TURN_REPLAY_MS,
+  MAX_PROVIDER_RUNS_PER_CHARGE,
+  claimAgentTurn,
+} from "@/lib/assistant/rate-limit";
 import { deriveTurnIdentity } from "@/lib/assistant/turn-key";
 
 const user = (id = "u1") => ({ id, role: "user", content: "question" });
@@ -146,6 +150,22 @@ describe("claimAgentTurn in read-only preview", () => {
 
     vi.setSystemTime(new Date(Date.now() + 1));
     await expect(claim({ userId: "preview-window" })).resolves.toMatchObject({ charged: true });
+  });
+
+  it(`denies after ${MAX_PROVIDER_RUNS_PER_CHARGE} identical replays within the window`, async () => {
+    const userId = "preview-identical-cap";
+    const limits = { perHour: 1, perDay: 10 };
+    const message = { id: "u1", role: "user", content: "same body" };
+
+    for (let index = 0; index < MAX_PROVIDER_RUNS_PER_CHARGE; index += 1) {
+      await expect(
+        claim({ userId, limits, messages: [message], runKey: `run-${index}` }),
+      ).resolves.toMatchObject({ allowed: true });
+    }
+
+    await expect(
+      claim({ userId, limits, messages: [message], runKey: "run-denied" }),
+    ).resolves.toMatchObject({ allowed: false, window: "hour" });
   });
 
   it("denies the hour window without consuming the day window", async () => {

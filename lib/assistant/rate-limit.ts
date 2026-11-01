@@ -7,6 +7,9 @@ import supabaseServer from "@/lib/supabase/server";
 export const AGENT_HOUR_WINDOW_SECONDS = 3600;
 export const AGENT_DAY_WINDOW_SECONDS = 86_400;
 export const AGENT_TURN_REPLAY_MS = 5 * 60 * 1000;
+/** One charged run plus uncharged retries/continuations within the replay window. */
+export const MAX_PROVIDER_RUNS_PER_CHARGE = 8;
+const MAX_UNCHARGED_REPLAYS_PER_CHARGE = MAX_PROVIDER_RUNS_PER_CHARGE - 1;
 
 export const agentHourKey = (userHash: string) => `agent:user:${userHash}:hour`;
 export const agentDayKey = (userHash: string) => `agent:user:${userHash}:day`;
@@ -31,8 +34,9 @@ type ClaimRow = {
 };
 
 type PreviewBucket = { startedAt: number; count: number };
+type PreviewTurnCharge = { chargedAt: number; continuations: number };
 
-const previewTurns = new Map<string, number>();
+const previewTurns = new Map<string, PreviewTurnCharge>();
 const previewBuckets = new Map<string, PreviewBucket>();
 const PREVIEW_PRUNE_THRESHOLD = 1000;
 
@@ -55,8 +59,13 @@ function claimPreview(input: AgentTurnClaimInput, identity: TurnIdentity): Agent
   }
 
   const turnKey = `${identity.userHash}:${identity.turnKey}`;
-  const chargedAt = previewTurns.get(turnKey);
-  if (chargedAt !== undefined && now - chargedAt < AGENT_TURN_REPLAY_MS) {
+  const charge = previewTurns.get(turnKey);
+  if (
+    charge !== undefined &&
+    now - charge.chargedAt < AGENT_TURN_REPLAY_MS &&
+    charge.continuations < MAX_UNCHARGED_REPLAYS_PER_CHARGE
+  ) {
+    charge.continuations += 1;
     return { allowed: true, charged: false, identity };
   }
 
@@ -82,7 +91,7 @@ function claimPreview(input: AgentTurnClaimInput, identity: TurnIdentity): Agent
 
   hour.count += 1;
   day.count += 1;
-  previewTurns.set(turnKey, now);
+  previewTurns.set(turnKey, { chargedAt: now, continuations: 0 });
   return { allowed: true, charged: true, identity };
 }
 

@@ -75,4 +75,38 @@ describe("deriveTurnIdentity", () => {
     expect(identity.isContinuation).toBe(true);
     expect(identity.turnKey).toHaveLength(32);
   });
+
+  it("separates the same message id when the prompt content changes", () => {
+    const first = deriveTurnIdentity({
+      userId: "user_1",
+      threadId: "t1",
+      messages: [{ id: "msg-const", role: "user", content: "first prompt" }],
+    });
+    const second = deriveTurnIdentity({
+      userId: "user_1",
+      threadId: "t1",
+      messages: [{ id: "msg-const", role: "user", content: "second prompt" }],
+    });
+
+    expect(second.turnKey).not.toBe(first.turnKey);
+  });
+
+  it("keeps the same key for the same id and content on retry", () => {
+    const message = { id: "msg-const", role: "user", content: "same prompt" };
+    const first = deriveTurnIdentity({ userId: "user_1", threadId: "t1", messages: [message] });
+    const retry = deriveTurnIdentity({ userId: "user_1", threadId: "t1", messages: [message] });
+
+    expect(retry.turnKey).toBe(first.turnKey);
+  });
+
+  it("binds no-user runs to message contents instead of a constant thread key", () => {
+    const toolOnly = deriveTurnIdentity({ userId: "user_1", threadId: "t1", messages: [tool] });
+    const otherTool = deriveTurnIdentity({
+      userId: "user_1",
+      threadId: "t1",
+      messages: [{ id: "t2", role: "tool", toolCallId: "c2", content: '{"other":true}' }],
+    });
+
+    expect(otherTool.turnKey).not.toBe(toolOnly.turnKey);
+  });
 });

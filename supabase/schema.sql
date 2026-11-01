@@ -2433,6 +2433,7 @@ declare
   day_started timestamptz;
   day_count integer;
   recent boolean := false;
+  charge_continuations integer := 0;
 begin
   if hour_limit <= 0 or day_limit <= 0 then
     raise exception 'hour_limit and day_limit must be positive';
@@ -2440,12 +2441,14 @@ begin
 
   perform pg_advisory_xact_lock(hashtextextended(target_user_hash, 0));
 
-  select c.charged_at > now_ts - interval '5 minutes'
-    into recent
+  select
+    c.charged_at > now_ts - interval '5 minutes',
+    c.continuations
+    into recent, charge_continuations
     from public.assistant_turn_charges c
     where c.user_hash = target_user_hash and c.turn_key = target_turn_key;
 
-  if coalesce(recent, false) then
+  if coalesce(recent, false) and coalesce(charge_continuations, 0) < 7 then
     update public.assistant_turn_charges c
       set continuations = c.continuations + 1
       where c.user_hash = target_user_hash and c.turn_key = target_turn_key;
